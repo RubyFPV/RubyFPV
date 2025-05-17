@@ -86,7 +86,7 @@ void MenuController::addItems()
    removeAllTopLines();
    
    setTitle(L("Controller Settings"));
-   m_IndexVideo = addMenuItem(new MenuItem(L("Audio & video output"), L("Change Audio and Video Output Settings (HDMI, USB Tethering, Audio output device)")));
+   m_IndexVideo = addMenuItem(new MenuItem(L("Audio & Video Output"), L("Change Audio and Video Output Settings (HDMI, USB Tethering, Audio output device)")));
    //m_pMenuItems[m_IndexVideo]->showArrow();
 
    m_IndexTelemetry = addMenuItem(new MenuItem(L("Telemetry Input/Output"), L("Change the Telemetry Input/Output settings on the controller ports.")));
@@ -133,7 +133,7 @@ void MenuController::addItems()
    m_IndexDeveloper = -1;
    if ( (NULL != pCS) && pCS->iDeveloperMode )
    {
-      m_IndexDeveloper = addMenuItem( new MenuItem("Developer Settings") );
+      m_IndexDeveloper = addMenuItem( new MenuItem(L("Developer Settings")) );
       m_pMenuItems[m_IndexDeveloper]->showArrow();
       m_pMenuItems[m_IndexDeveloper]->setTextColor(get_Color_Dev());
    }

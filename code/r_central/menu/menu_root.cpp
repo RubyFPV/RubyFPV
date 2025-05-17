@@ -99,10 +99,10 @@ void MenuRoot::addItems()
    addSeparator();
    //m_iIndexSpectator = addMenuItem(new MenuItem("Spectator Vehicles", "See the list of vehicles you recently connected to as a spectator."));
    m_iIndexVehicle = addMenuItem(new MenuItem(L("Vehicle settings"), L("Change vehicle settings.")));
-   m_iIndexController = addMenuItem(new MenuItem(L("Controller settings"), L("Change controller settings and user interface preferences.")));
+   m_iIndexController = addMenuItem(new MenuItem(L("Controller Settings"), L("Change controller settings and user interface preferences.")));
    m_iIndexSystem = addMenuItem(new MenuItem(L("System"), L("Configure system options, shows detailed information about the system.")));
    addSeparator();
-   m_iIndexMedia = addMenuItem(new MenuItem(L("Media & storage"), L("Manage saved logs, screenshots and videos.")));
+   m_iIndexMedia = addMenuItem(new MenuItem(L("Media & Storage"), L("Manage saved logs, screenshots and videos.")));
    
    m_pMenuItems[m_ItemsCount-1]->setExtraHeight(m_sfMenuPaddingY);
    char szBuff[256];
@@ -337,7 +337,7 @@ void MenuRoot::onSelectItem()
       if ( (NULL == g_pCurrentModel) || (0 == g_uActiveControllerModelVID) ||
         (g_bFirstModelPairingDone && (0 == getControllerModelsCount()) && (0 == getControllerModelsSpectatorCount())) )
       {
-         addMessage2(0, "Not paired with any vehicle.", "Search for vehicles to find one and connect to.");
+         addMessage2(0, L("Not paired with any vehicle"), L("Search for vehicles to find one and connect to."));
          return;
       }
 
@@ -356,7 +356,7 @@ void MenuRoot::onSelectItem()
       if ( (NULL == g_pCurrentModel) || (0 == g_uActiveControllerModelVID) ||
         (g_bFirstModelPairingDone && (0 == getControllerModelsCount()) && (0 == getControllerModelsSpectatorCount())) )
       {
-         addMessage2(0, "Not paired with any vehicle.", "Search for vehicles to find one and connect to.");
+         addMessage2(0, L("Not paired with any vehicle"), L("Search for vehicles to find one and connect to."));
          return;
       }
       add_menu_to_stack(new MenuVehicle());

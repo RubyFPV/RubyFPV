@@ -55,45 +55,45 @@
 
 
 MenuSystem::MenuSystem(void)
-:Menu(MENU_ID_SYSTEM, "System Info", NULL)
+:Menu(MENU_ID_SYSTEM, L("System Info"), NULL)
 {
    m_Width = 0.34;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.24;
    
-   m_IndexAlarms = addMenuItem( new MenuItem("Alarms Settings") );
+   m_IndexAlarms = addMenuItem( new MenuItem(L("Alarms Settings")) );
    m_pMenuItems[m_IndexAlarms]->showArrow();
 
-   m_IndexLogs = addMenuItem( new MenuItem("Logs Settings") );
+   m_IndexLogs = addMenuItem( new MenuItem(L("Logs Settings")) );
    m_pMenuItems[m_IndexLogs]->showArrow();
 
-   m_IndexAllParams = addMenuItem(new MenuItem("View All Parameters", "View all controller and vehicle parameters at once, in a single screen."));
+   m_IndexAllParams = addMenuItem(new MenuItem(L("View All Parameters"), L("View all controller and vehicle parameters at once, in a single screen.")));
    m_pMenuItems[m_IndexAllParams]->showArrow();
 
-   m_IndexDevices = addMenuItem(new MenuItem("View All Devices and Peripherals", "Displays all the devices and peripherals attached to the controller and to the current vehicle."));
+   m_IndexDevices = addMenuItem(new MenuItem(L("View All Devices and Peripherals"), L("Displays all the devices and peripherals attached to the controller and to the current vehicle.")));
    m_pMenuItems[m_IndexDevices]->showArrow();
 
-   m_IndexExport = addMenuItem(new MenuItem("Export All Settings", "Exports all vehicles, controller settings and preferences to a USB memory stick for back-up purposes."));
-   m_IndexImport = addMenuItem(new MenuItem("Import All Settings", "Import all vehicles, controller settings and preferences from a USB memory stick."));
+   m_IndexExport = addMenuItem(new MenuItem(L("Export All Settings"), L("Exports all vehicles, controller settings and preferences to a USB memory stick for back-up purposes.")));
+   m_IndexImport = addMenuItem(new MenuItem(L("Import All Settings"), L("Import all vehicles, controller settings and preferences from a USB memory stick.")));
 
-   m_pItemsSelect[1] = new MenuItemSelect("Auto Export Settings", "Automatically periodically export all settings and models to a USB memory stick, if one is found. All your settings will be synchronized to a USB memory stick for later import (after a factory reset for example).");
-   m_pItemsSelect[1]->addSelection("Off");
-   m_pItemsSelect[1]->addSelection("On");
+   m_pItemsSelect[1] = new MenuItemSelect(L("Auto Export Settings"), L("Automatically periodically export all settings and models to a USB memory stick, if one is found. All your settings will be synchronized to a USB memory stick for later import (after a factory reset for example)."));
+   m_pItemsSelect[1]->addSelection(L("Off"));
+   m_pItemsSelect[1]->addSelection(L("On"));
    m_pItemsSelect[1]->setUseMultiViewLayout();
    m_IndexAutoExport = addMenuItem(m_pItemsSelect[1]);
 
-   m_IndexReset = addMenuItem(new MenuItem("Factory Reset", "Resets all the settings an files on the controller, as they where when the image was flashed."));
+   m_IndexReset = addMenuItem(new MenuItem(L("Factory Reset"), L("Resets all the settings an files on the controller, as they where when the image was flashed.")));
    m_IndexAbout = addMenuItem(new MenuItem("About", "Get info about Ruby system."));
 
-   m_pItemsSelect[0] = new MenuItemSelect("Enable Developer Mode", "Used to debug issues and test experimental features. Disables fail safe checks, parameters consistency checks and other options. It's recommended to leave this [Off] as it will degrade your system performance.");
-   m_pItemsSelect[0]->addSelection("Off");
-   m_pItemsSelect[0]->addSelection("On");
+   m_pItemsSelect[0] = new MenuItemSelect(L("Enable Developer Mode"), L("Used to debug issues and test experimental features. Disables fail safe checks, parameters consistency checks and other options. It's recommended to leave this [Off] as it will degrade your system performance."));
+   m_pItemsSelect[0]->addSelection(L("Off"));
+   m_pItemsSelect[0]->addSelection(L("On"));
    m_pItemsSelect[0]->setUseMultiViewLayout();
    m_IndexDeveloper = addMenuItem(m_pItemsSelect[0]);
 
-   m_IndexDevOptionsVehicle = addMenuItem( new MenuItem("Vehicle Developer Settings") );
+   m_IndexDevOptionsVehicle = addMenuItem( new MenuItem(L("Vehicle Developer Settings")) );
    m_pMenuItems[m_IndexDevOptionsVehicle]->showArrow();
 
-   m_IndexDevOptionsController = addMenuItem( new MenuItem("Controller Developer Settings") );
+   m_IndexDevOptionsController = addMenuItem( new MenuItem(L("Controller Developer Settings")) );
    m_pMenuItems[m_IndexDevOptionsController]->showArrow();
 }
 
@@ -253,9 +253,9 @@ void MenuSystem::onReturnFromChild(int iChildMenuId, int returnValue)
             save_ControllerInterfacesSettings();
    
 
-         MenuConfirmation* pMC = new MenuConfirmation("Import Succeeded","All configuration files have been successfully imported. You can now remove the USB memory stick.", 12, true);
+         MenuConfirmation* pMC = new MenuConfirmation(L("Import Succeeded"),L("All configuration files have been successfully imported. You can now remove the USB memory stick."), 12, true);
          pMC->addTopLine(" ");
-         pMC->addTopLine("The controller will reboot now.");
+         pMC->addTopLine(L("The controller will reboot now."));
          add_menu_to_stack(pMC);
       }
       return;

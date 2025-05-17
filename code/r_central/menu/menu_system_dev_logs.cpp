@@ -52,49 +52,49 @@
 #include <string.h>
 
 MenuSystemDevLogs::MenuSystemDevLogs(void)
-:Menu(MENU_ID_DEV_LOGS, "Developer Log Settings", NULL)
+:Menu(MENU_ID_DEV_LOGS, L("Developer Log Settings"), NULL)
 {
    m_Width = 0.34;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.16;
    
-   m_pItemsSelect[0] = new MenuItemSelect("Log System (Controller)", "Sets the type of log system to use: directly to files or using a service. Requires a reboot after the change.");
-   m_pItemsSelect[0]->addSelection("Files");
-   m_pItemsSelect[0]->addSelection("Service");
+   m_pItemsSelect[0] = new MenuItemSelect(L("Log System (Controller)"), L("Sets the type of log system to use: directly to files or using a service. Requires a reboot after the change."));
+   m_pItemsSelect[0]->addSelection(L("Files"));
+   m_pItemsSelect[0]->addSelection(L("Service"));
    m_pItemsSelect[0]->setIsEditable();
    m_IndexLogServiceController = addMenuItem(m_pItemsSelect[0]);
 
    m_pItemsSelect[1] = new MenuItemSelect("Log System (Vehicle)", "Sets the type of log system to use: directly to files or using a service or disabled completly. Requires a reboot after the change.");
-   m_pItemsSelect[1]->addSelection("Files");
-   m_pItemsSelect[1]->addSelection("Service");
-   m_pItemsSelect[1]->addSelection("Disabled");
+   m_pItemsSelect[1]->addSelection(L("Files"));
+   m_pItemsSelect[1]->addSelection(L("Service"));
+   m_pItemsSelect[1]->addSelection(L("Disabled"));
    m_pItemsSelect[1]->setIsEditable();
    m_IndexLogServiceVehicle = addMenuItem(m_pItemsSelect[1]);
 
-   m_pItemsSelect[6] = new MenuItemSelect("Vehicle Log Level", "How much logs are saved on current vehicle.");
-   m_pItemsSelect[6]->addSelection("Full");
-   m_pItemsSelect[6]->addSelection("Errors");
+   m_pItemsSelect[6] = new MenuItemSelect(L("Vehicle Log Level"), L("How much logs are saved on current vehicle."));
+   m_pItemsSelect[6]->addSelection(L("Full"));
+   m_pItemsSelect[6]->addSelection(L("Errors"));
    m_pItemsSelect[6]->setIsEditable();
    m_IndexLogLevelVehicle = addMenuItem(m_pItemsSelect[6]);
 
-   m_pItemsSelect[7] = new MenuItemSelect("Controller Log Level", "How much logs are saved on this controller.");
-   m_pItemsSelect[7]->addSelection("Full");
-   m_pItemsSelect[7]->addSelection("Errors");
+   m_pItemsSelect[7] = new MenuItemSelect(L("Controller Log Level"), L("How much logs are saved on this controller."));
+   m_pItemsSelect[7]->addSelection(L("Full"));
+   m_pItemsSelect[7]->addSelection(L("Errors"));
    m_pItemsSelect[7]->setIsEditable();
    m_IndexLogLevelController = addMenuItem(m_pItemsSelect[7]);
 
-   m_pItemsSelect[2] = new MenuItemSelect("Enable Vehicle Live Log", "Gets a stream of the live log for the current vehicle.");
-   m_pItemsSelect[2]->addSelection("Disabled");
-   m_pItemsSelect[2]->addSelection("Enabled");
+   m_pItemsSelect[2] = new MenuItemSelect(L("Enable Vehicle Live Log"), L("Gets a stream of the live log for the current vehicle."));
+   m_pItemsSelect[2]->addSelection(L("Disabled"));
+   m_pItemsSelect[2]->addSelection(L("Enabled"));
    m_IndexEnableLiveLog = addMenuItem(m_pItemsSelect[2]);
 
-   m_IndexGetVehicleLogs = addMenuItem( new MenuItem("Get Vehicle Logs") );
-   m_IndexZipAllLogs = addMenuItem( new MenuItem("Export all logs", "Exports all controller logs and all vehicle logs (that are already downloaded) to a USB memort stick.") );
+   m_IndexGetVehicleLogs = addMenuItem( new MenuItem(L("Get Vehicle Logs")) );
+   m_IndexZipAllLogs = addMenuItem( new MenuItem(L("Export all logs"), L("Exports all controller logs and all vehicle logs (that are already downloaded) to a USB memort stick.")) );
    m_pMenuItems[m_IndexZipAllLogs]->showArrow();
 
-   m_IndexClearControllerLogs = addMenuItem( new MenuItem("Clear controller logs") );
+   m_IndexClearControllerLogs = addMenuItem( new MenuItem(L("Clear controller logs")) );
    m_pMenuItems[m_IndexClearControllerLogs]->showArrow();
 
-   m_IndexClearVehicleLogs = addMenuItem( new MenuItem("Clear vehicle logs") );
+   m_IndexClearVehicleLogs = addMenuItem( new MenuItem(L("Clear vehicle logs")) );
    m_pMenuItems[m_IndexClearVehicleLogs]->showArrow();
 
    //for( int i=0; i<m_ItemsCount; i++ )

@@ -48,16 +48,16 @@ MenuControllerTelemetry::MenuControllerTelemetry(void)
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.25;
    load_ControllerSettings();
 
-   m_pItemsSelect[0] = new MenuItemSelect("Telemetry Input/Output", "Enables or disables the telemetry output on controller's serial ports");
-   m_pItemsSelect[0]->addSelection("None");
-   m_pItemsSelect[0]->addSelection("Outgoing");
-   m_pItemsSelect[0]->addSelection("Incoming");
-   m_pItemsSelect[0]->addSelection("Bidirectional");
+   m_pItemsSelect[0] = new MenuItemSelect(L("Telemetry Input/Output"), L("Enables or disables the telemetry output on controller's serial ports"));
+   m_pItemsSelect[0]->addSelection(L("None"));
+   m_pItemsSelect[0]->addSelection(L("Outgoing"));
+   m_pItemsSelect[0]->addSelection(L("Incoming"));
+   m_pItemsSelect[0]->addSelection(L("Bidirectional"));
    m_pItemsSelect[0]->setIsEditable();
    m_IndexInOut = addMenuItem(m_pItemsSelect[0]);
    
-   m_pItemsSelect[1] = new MenuItemSelect("   Telemetry Serial Port", "Sets the serial port to use for telemetry input/output to other devices.");
-   m_pItemsSelect[1]->addSelection("None");
+   m_pItemsSelect[1] = new MenuItemSelect(L("   Telemetry Serial Port"), L("Sets the serial port to use for telemetry input/output to other devices."));
+   m_pItemsSelect[1]->addSelection(L("None"));
    for( int i=0; i<hardware_get_serial_ports_count(); i++ )
    {
       hw_serial_port_info_t* pInfo = hardware_get_serial_port_info(i);
@@ -68,7 +68,7 @@ MenuControllerTelemetry::MenuControllerTelemetry(void)
    m_pItemsSelect[1]->setIsEditable();
    m_IndexSerialPort = addMenuItem(m_pItemsSelect[1]);
 
-   m_pItemsSelect[2] = new MenuItemSelect("   Telemetry Port Baudrate", "Sets the baud rate of the serial port used for telemetry.");
+   m_pItemsSelect[2] = new MenuItemSelect(L("   Telemetry Port Baudrate"), L("Sets the baud rate of the serial port used for telemetry."));
    for( int n=0; n<hardware_get_serial_baud_rates_count(); n++ )
    {
       char szBuff[32];
@@ -79,19 +79,19 @@ MenuControllerTelemetry::MenuControllerTelemetry(void)
    m_IndexSerialSpeed = addMenuItem(m_pItemsSelect[2]);
 
 
-   addMenuItem(new MenuItemSection("Other Telemetry Outputs"));
+   addMenuItem(new MenuItemSection(L("Other Telemetry Outputs")));
 
-   m_pItemsSelect[3] = new MenuItemSelect("Enable USB Device Telemetry Output", "Enables or disables forwarding the telemetry stream received from vehicle to an external device using a USB connection.");
-   m_pItemsSelect[3]->addSelection("Disabled");
-   m_pItemsSelect[3]->addSelection("Enabled");
+   m_pItemsSelect[3] = new MenuItemSelect(L("Enable USB Device Telemetry Output"), L("Enables or disables forwarding the telemetry stream received from vehicle to an external device using a USB connection."));
+   m_pItemsSelect[3]->addSelection(L("Disabled"));
+   m_pItemsSelect[3]->addSelection(L("Enabled"));
    m_pItemsSelect[3]->setIsEditable();
    m_IndexTelemetryUSBForward = addMenuItem(m_pItemsSelect[3]);
 
-   m_pItemsRange[0] = new MenuItemRange("    USB Telemetry Port Number", "Sets the USB port number to output telemetry to.", 1025, 32000, 5001, 1 );
+   m_pItemsRange[0] = new MenuItemRange(L("    USB Telemetry Port Number"), L("Sets the USB port number to output telemetry to."), 1025, 32000, 5001, 1 );
    m_pItemsRange[0]->setSufix("");
    m_IndexTelemetryUSBPort = addMenuItem(m_pItemsRange[0]);
 
-   m_pItemsRange[1] = new MenuItemRange("    USB Packet Size", "Sets the data packet size send to USB. Some VR apps are sensitive to this value.", 10, 2048, 1024, 1 );
+   m_pItemsRange[1] = new MenuItemRange(L("    USB Packet Size"), L("Sets the data packet size send to USB. Some VR apps are sensitive to this value."), 10, 2048, 1024, 1 );
    m_pItemsRange[1]->setSufix("");
    m_IndexTelemetryUSBPacket = addMenuItem(m_pItemsRange[1]);
 }

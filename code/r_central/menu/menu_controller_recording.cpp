@@ -38,73 +38,73 @@
 #include "../osd/osd_common.h"
 
 MenuControllerRecording::MenuControllerRecording(void)
-:Menu(MENU_ID_CONTROLLER_RECORDING, "Video Recording Settings", NULL)
+:Menu(MENU_ID_CONTROLLER_RECORDING, L("Video Recording Settings"), NULL)
 {
    m_Width = 0.34;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.12;
 
    int c = 0;
 
-   m_pItemsSelect[c] = new MenuItemSelect("Add OSD To Screenshots", "When taking a screenshot, OSD info can be included in the picture or not.");  
-   m_pItemsSelect[c]->addSelection("No");
-   m_pItemsSelect[c]->addSelection("Yes");
+   m_pItemsSelect[c] = new MenuItemSelect(L("Add OSD To Screenshots"), L("When taking a screenshot, OSD info can be included in the picture or not."));  
+   m_pItemsSelect[c]->addSelection(L("No"));
+   m_pItemsSelect[c]->addSelection(L("Yes"));
    m_pItemsSelect[c]->setIsEditable();
    addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect("Recording buffers", "When recording, record directly to the persistent storage or to memory first. Record to memory first when having slow performance on the persistent storage. Either way, when video recording ends, the video is saved to persistent storage.");  
-   m_pItemsSelect[c]->addSelection("Storage");
-   m_pItemsSelect[c]->addSelection("Memory");
+   m_pItemsSelect[c] = new MenuItemSelect(L("Recording buffers"), L("When recording, record directly to the persistent storage or to memory first. Record to memory first when having slow performance on the persistent storage. Either way, when video recording ends, the video is saved to persistent storage."));  
+   m_pItemsSelect[c]->addSelection(L("Storage"));
+   m_pItemsSelect[c]->addSelection(L("Memory"));
    m_pItemsSelect[c]->setIsEditable();
    m_IndexVideoDestination = addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect("Record Indicator Style", "Select which style of record indicator to show on the OSD");  
-   m_pItemsSelect[c]->addSelection("Normal");
-   m_pItemsSelect[c]->addSelection("Large");
+   m_pItemsSelect[c] = new MenuItemSelect(L("Record Indicator Style"), L("Select which style of record indicator to show on the OSD"));  
+   m_pItemsSelect[c]->addSelection(L("Normal"));
+   m_pItemsSelect[c]->addSelection(L("Large"));
    m_pItemsSelect[c]->setIsEditable();
    m_IndexRecordIndicator = addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect("Recording LED", "Select what the recording LED should do when recording is on.");  
-   m_pItemsSelect[c]->addSelection("Disabled");
-   m_pItemsSelect[c]->addSelection("On/Off");
-   m_pItemsSelect[c]->addSelection("Blinking");
+   m_pItemsSelect[c] = new MenuItemSelect(L("Recording LED"), L("Select what the recording LED should do when recording is on."));  
+   m_pItemsSelect[c]->addSelection(L("Disabled"));
+   m_pItemsSelect[c]->addSelection(L("On/Off"));
+   m_pItemsSelect[c]->addSelection(L("Blinking"));
    m_pItemsSelect[c]->setIsEditable();
    m_IndexRecordLED = addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect("Record Button", "Select which button to use to trigger start/stop of video recording.");  
-   m_pItemsSelect[c]->addSelection("None");
-   m_pItemsSelect[c]->addSelection("QA Button 1");
-   m_pItemsSelect[c]->addSelection("QA Button 2");
-   m_pItemsSelect[c]->addSelection("QA Button 3");
+   m_pItemsSelect[c] = new MenuItemSelect(L("Record Button"), L("Select which button to use to trigger start/stop of video recording."));  
+   m_pItemsSelect[c]->addSelection(L("None"));
+   m_pItemsSelect[c]->addSelection(L("QA Button 1"));
+   m_pItemsSelect[c]->addSelection(L("QA Button 2"));
+   m_pItemsSelect[c]->addSelection(L("QA Button 3"));
    m_pItemsSelect[c]->setIsEditable();
    m_IndexRecordButton = addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect("Start recording on Arm", "Starts video recording (if it's not started already) when the vehicle arms. It requires an active connection of the vehicle to the flight controller.");
-   m_pItemsSelect[c]->addSelection("No");
-   m_pItemsSelect[c]->addSelection("Yes");
+   m_pItemsSelect[c] = new MenuItemSelect(L("Start recording on Arm"), L("Starts video recording (if it's not started already) when the vehicle arms. It requires an active connection of the vehicle to the flight controller."));
+   m_pItemsSelect[c]->addSelection(L("No"));
+   m_pItemsSelect[c]->addSelection(L("Yes"));
    m_pItemsSelect[c]->setIsEditable();
    m_IndexRecordArm = addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect("Stop recording on Disarm", "Stops video recording (if one is started) when the vehicle disarms. It requires an active connection of the vehicle to the flight controller.");  
-   m_pItemsSelect[c]->addSelection("No");
-   m_pItemsSelect[c]->addSelection("Yes");
+   m_pItemsSelect[c] = new MenuItemSelect(L("Stop recording on Disarm"), L("Stops video recording (if one is started) when the vehicle disarms. It requires an active connection of the vehicle to the flight controller."));  
+   m_pItemsSelect[c]->addSelection(L("No"));
+   m_pItemsSelect[c]->addSelection(L("Yes"));
    m_pItemsSelect[c]->setIsEditable();
    m_IndexRecordDisarm = addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect("Stop recording on link lost", "Stops video recording (if one is started) when the radio link is lost, after a timeout.");
-   m_pItemsSelect[c]->addSelection("No");
-   m_pItemsSelect[c]->addSelection("Yes");
+   m_pItemsSelect[c] = new MenuItemSelect(L("Stop recording on link lost"), L("Stops video recording (if one is started) when the radio link is lost, after a timeout."));
+   m_pItemsSelect[c]->addSelection(L("No"));
+   m_pItemsSelect[c]->addSelection(L("Yes"));
    m_pItemsSelect[c]->setIsEditable();
    m_iIndexStopOnLinkLost = addMenuItem(m_pItemsSelect[c]);
 
    float fSliderWidth = 0.12;
-   m_pItemsSlider[0] = new MenuItemSlider("Delay (seconds)", "Sets a delay to automatically stop recording if link is lost for too long.", 1,100,20, fSliderWidth);
+   m_pItemsSlider[0] = new MenuItemSlider(L("Delay (seconds)"), L("Sets a delay to automatically stop recording if link is lost for too long."), 1,100,20, fSliderWidth);
    m_pItemsSlider[0]->setStep(1);
    m_iIndexStopOnLinkLostTime = addMenuItem(m_pItemsSlider[0]);
 }

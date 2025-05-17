@@ -1125,36 +1125,60 @@ float RenderEngine::drawMessageLines(float xPos, float yPos, const char* text, f
    float xTmp = xPos;
    float yTmp = yPos;
 
-   while ( *szParse )
+   auto isChineseChar = [](const char* ptr) {
+      return (ptr[0] & 0xE0) == 0xE0; // The first byte range of Chinese UTF-8 is 0xE0-0xEF
+   };
+   char outputBuffer[256];
+   bool AddSpace = false;
+   while (*szParse)
    {
-      szWord = szParse;
-      while ( *szParse )
+      //If have space
+      while (*szParse == ' ' || *szParse == '\n')
       {
-         if ( ((*szParse) == ' ') || ((*szParse) == '\n') )
-         {
-            *szParse = 0;
-            szParse++;
-            break;
-         }
+         AddSpace = true;
          szParse++;
       }
-      if ( NULL == szWord )
+      if (!*szParse)
          break;
-      if ( 0 == szWord[0] )
+
+      char *szWordStart = szParse;
+      memset(outputBuffer, 0, sizeof(outputBuffer));
+
+      if (isChineseChar(szParse))
+      {
+         // CN
+         strncpy(outputBuffer, szParse, 3);
+         szParse += 3;
+      }
+      else
+      {
+         // Latin or outhers
+         int i = 0;
+         while (*szParse && !isChineseChar(szParse) && *szParse != ' ' && *szParse != '\n')
+         {
+            outputBuffer[i++] = *szParse++;
+         }
+      }
+      
+      if (strlen(outputBuffer) > 0)
+         szWord = outputBuffer;
+      if (NULL == szWord)
+         break;
+      if (0 == szWord[0])
          continue;
 
       countWords++;
       countLineWords++;
 
       float fWidthWord = textRawWidthScaled(fontId, 1.0, szWord);
-
       if ( (line_width+fWidthWord) <= max_width+0.0002 )
       {
          // Draw on same line
-         if ( countLineWords > 1 )
+         if ( countLineWords > 1 && AddSpace == true)
          {
             line_width += space_width;
             xTmp += space_width;
+            AddSpace = false;
          }
          //if ( m_bEnableFontScaling )
          //   _drawSimpleTextScaled(pFont, szWord, xTmp, yTmp, 0.7);

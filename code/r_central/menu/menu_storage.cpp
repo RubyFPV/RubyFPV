@@ -50,7 +50,7 @@
 const char* s_szWarningFreeDiskSpace = "You are running low on free storage space. Move your media files to a USB memory stick.";
 
 MenuStorage::MenuStorage(void)
-:Menu(MENU_ID_STORAGE, "Media & Storage", NULL)
+:Menu(MENU_ID_STORAGE, L("Media & Storage"), NULL)
 {
    m_Width = 0.68;
    m_Height = 0.66;
@@ -125,22 +125,22 @@ void MenuStorage::onShow()
    m_IndexDelete = -1;
    m_MainItemsCount = 5;
 
-   m_IndexCopy = addMenuItem(new MenuItem("Copy media files to USB memory stick", "Copy your screenshots and videos to an external USB memory stick."));
-   m_IndexMove = addMenuItem(new MenuItem("Move media files to USB memory stick", "Move your screenshots and videos to an external USB memory stick."));
-   m_IndexDelete = addMenuItem(new MenuItem("Delete all files", "Deletes all videos, pictures from the SD Card."));
+   m_IndexCopy = addMenuItem(new MenuItem(L("Copy media files to USB memory stick"), L("Copy your screenshots and videos to an external USB memory stick.")));
+   m_IndexMove = addMenuItem(new MenuItem(L("Move media files to USB memory stick"), L("Move your screenshots and videos to an external USB memory stick.")));
+   m_IndexDelete = addMenuItem(new MenuItem(L("Delete all files"), L("Deletes all videos, pictures from the SD Card.")));
    
-   sprintf(szBuff, "View Screenshots (%d)", media_get_screenshots_count());
-   m_IndexViewPictures = addMenuItem(new MenuItem(szBuff, "View the screenshots"));
+   sprintf(szBuff, L("View Screenshots (%d)"), media_get_screenshots_count());
+   m_IndexViewPictures = addMenuItem(new MenuItem(szBuff, L("View the screenshots")));
    if ( 0 == media_get_screenshots_count() )
       m_pMenuItems[m_IndexViewPictures]->setEnabled(false);
    else
       m_pMenuItems[m_IndexViewPictures]->showArrow();
 
-   m_IndexRecordingOptions =  addMenuItem(new MenuItem("Recording Options", "Change recording options."));
+   m_IndexRecordingOptions =  addMenuItem(new MenuItem(L("Recording Options"), L("Change recording options.")));
    m_pMenuItems[m_IndexRecordingOptions]->showArrow();
 
-   addMenuItem(new MenuItem("Prev Page",""));
-   addMenuItem(new MenuItem("Next Page",""));
+   addMenuItem(new MenuItem(L("Prev Page"),""));
+   addMenuItem(new MenuItem(L("Next Page"),""));
 
    m_StaticMenuItemsCountBeforeUIFiles = m_MainItemsCount;
    m_StaticMenuItemsCount = m_StaticMenuItemsCountBeforeUIFiles+2; // Added PageUp/Down

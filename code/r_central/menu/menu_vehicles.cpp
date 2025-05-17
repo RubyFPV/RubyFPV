@@ -39,13 +39,13 @@
 #include "../../common/favorites.h"
 #include "../../base/hardware_files.h"
 
-const char* s_textTitle[] = { "My Vehicles",  NULL };
-const char* s_szVehicleNone1 = "No vehicles defined. To add a vehicle:";
-const char* s_szVehicleNone2 = "* Search for a vehicle and then connect to it as controller;";
-const char* s_szVehicleNone3 = "* Or import a previously saved vehicle from a USB memory stick.";
+//const char* s_textTitle[] = { "My Vehicles",  NULL };
+const char* s_szVehicleNone1 = L("No vehicles defined. To add a vehicle:");
+const char* s_szVehicleNone2 = L("* Search for a vehicle and then connect to it as controller;");
+const char* s_szVehicleNone3 = L("* Or import a previously saved vehicle from a USB memory stick.");
 
 MenuVehicles::MenuVehicles(void)
-:Menu(MENU_ID_VEHICLES, "My Vehicles", NULL)
+:Menu(MENU_ID_VEHICLES, L("My Vehicles"), NULL)
 {
    m_Width = 0.33;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.2;

@@ -49,7 +49,7 @@
 #include "../launchers_controller.h"
 
 MenuVehicleSimpleSetup::MenuVehicleSimpleSetup()
-:Menu(MENU_ID_VEHICLE_SIMPLE_SETUP, "Quick Vehicle Setup", NULL)
+:Menu(MENU_ID_VEHICLE_SIMPLE_SETUP, L("Quick vehicle setup"), NULL)
 {
    m_bDisableStacking = true;
    m_Width = 0.32;
@@ -375,7 +375,7 @@ void MenuVehicleSimpleSetup::addRadioItems()
           iRadioInterfaceId+1, m_SupportedChannelsCount[iRadioLinkId]);
 
       char szTmp[128];
-      strcpy(szTmp, "Radio Link Frequency");
+      strcpy(szTmp, L("Radio Link Frequency"));
       if ( g_pCurrentModel->radioLinksParams.links_count > 1 )
          sprintf(szTmp, "Radio Link %d Frequency", iRadioLinkId+1 );
 
@@ -1097,7 +1097,7 @@ void MenuVehicleSimpleSetup::onSelectItem()
       if ( (NULL == g_pCurrentModel) || (0 == g_uActiveControllerModelVID) ||
         (g_bFirstModelPairingDone && (0 == getControllerModelsCount()) && (0 == getControllerModelsSpectatorCount())) )
       {
-         addMessage2(0, L("Not paired with any vehicle."), L("Search for vehicles to find one and connect to."));
+         addMessage2(0, L("Not paired with any vehicle"), L("Search for vehicles to find one and connect to."));
          return;
       }
       add_menu_to_stack(new MenuVehicle());

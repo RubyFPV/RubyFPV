@@ -39,81 +39,81 @@
 #include <semaphore.h>
 
 MenuSystemAlarms::MenuSystemAlarms(void)
-:Menu(MENU_ID_SYSTEM_ALARMS, "Configure System Alarms", NULL)
+:Menu(MENU_ID_SYSTEM_ALARMS, L("Configure System Alarms"), NULL)
 {
    m_Width = 0.42;
    m_yPos = 0.28;
    m_xPos = menu_get_XStartPos(m_Width);
 
-   m_pItemsSelect[0] = new MenuItemSelect("All Alarms", "Turn all alarms on or off.");
-   m_pItemsSelect[0]->addSelection("Disabled");
-   m_pItemsSelect[0]->addSelection("Enabled");
-   m_pItemsSelect[0]->addSelection("Custom");
+   m_pItemsSelect[0] = new MenuItemSelect(L("All Alarms"), L("Turn all alarms on or off."));
+   m_pItemsSelect[0]->addSelection(L("Disabled"));
+   m_pItemsSelect[0]->addSelection(L("Enabled"));
+   m_pItemsSelect[0]->addSelection(L("Custom"));
    m_pItemsSelect[0]->setUseMultiViewLayout();
    m_IndexAllAlarms = addMenuItem( m_pItemsSelect[0]);
 
    addSeparator();
 
-   m_pItemsSelect[8] = new MenuItemSelect("Video Stream Alarms", "Turn alarms about video stream output on or off.");
-   m_pItemsSelect[8]->addSelection("Disabled");
-   m_pItemsSelect[8]->addSelection("Enabled");
+   m_pItemsSelect[8] = new MenuItemSelect(L("Video Stream Alarms"), L("Turn alarms about video stream output on or off."));
+   m_pItemsSelect[8]->addSelection(L("Disabled"));
+   m_pItemsSelect[8]->addSelection(L("Enabled"));
    m_pItemsSelect[8]->setUseMultiViewLayout();
    m_IndexAlarmControllerIOErrors = addMenuItem( m_pItemsSelect[8]);
 
 
-   m_pItemsSelect[1] = new MenuItemSelect("Invalid Radio Data", "Turn this alarm on or off.");
-   m_pItemsSelect[1]->addSelection("Disabled");
-   m_pItemsSelect[1]->addSelection("Enabled");
+   m_pItemsSelect[1] = new MenuItemSelect(L("Invalid Radio Data"), L("Turn this alarm on or off."));
+   m_pItemsSelect[1]->addSelection(L("Disabled"));
+   m_pItemsSelect[1]->addSelection(L("Enabled"));
    m_pItemsSelect[1]->setUseMultiViewLayout();
    m_IndexAlarmInvalidRadioPackets = addMenuItem( m_pItemsSelect[1]);
 
-   m_pItemsSelect[5] = new MenuItemSelect("Controller Link Lost", "Turn this alarm on or off.");
-   m_pItemsSelect[5]->addSelection("Disabled");
-   m_pItemsSelect[5]->addSelection("Enabled");
+   m_pItemsSelect[5] = new MenuItemSelect(L("Controller Link Lost"), L("Turn this alarm on or off."));
+   m_pItemsSelect[5]->addSelection(L("Disabled"));
+   m_pItemsSelect[5]->addSelection(L("Enabled"));
    m_pItemsSelect[5]->setUseMultiViewLayout();
    m_IndexAlarmControllerLink = addMenuItem( m_pItemsSelect[5]);
    
-   m_pItemsSelect[2] = new MenuItemSelect("Video Overload", "Turn this alarm on or off.");
-   m_pItemsSelect[2]->addSelection("Disabled");
-   m_pItemsSelect[2]->addSelection("Enabled");
+   m_pItemsSelect[2] = new MenuItemSelect(L("Video Overload"), L("Turn this alarm on or off."));
+   m_pItemsSelect[2]->addSelection(L("Disabled"));
+   m_pItemsSelect[2]->addSelection(L("Enabled"));
    m_pItemsSelect[2]->setUseMultiViewLayout();
    m_IndexAlarmVideoDataOverload = addMenuItem( m_pItemsSelect[2]);
 
-   m_pItemsSelect[3] = new MenuItemSelect("Vehicle CPU or Rx Overload", "Turn this alarm on or off.");
-   m_pItemsSelect[3]->addSelection("Disabled");
-   m_pItemsSelect[3]->addSelection("Enabled");
+   m_pItemsSelect[3] = new MenuItemSelect(L("Vehicle CPU or Rx Overload"), L("Turn this alarm on or off."));
+   m_pItemsSelect[3]->addSelection(L("Disabled"));
+   m_pItemsSelect[3]->addSelection(L("Enabled"));
    m_pItemsSelect[3]->setUseMultiViewLayout();
    m_IndexAlarmVehicleCPUOverload = addMenuItem( m_pItemsSelect[3]);
 
-   m_pItemsSelect[6] = new MenuItemSelect("Vehicle Radio Timeout", "Alarm when a vehicle radio interface times out reading a pending received packet. Turn this alarm on or off.");
-   m_pItemsSelect[6]->addSelection("Disabled");
-   m_pItemsSelect[6]->addSelection("Enabled");
+   m_pItemsSelect[6] = new MenuItemSelect(L("Vehicle Radio Timeout"), L("Alarm when a vehicle radio interface times out reading a pending received packet. Turn this alarm on or off."));
+   m_pItemsSelect[6]->addSelection(L("Disabled"));
+   m_pItemsSelect[6]->addSelection(L("Enabled"));
    m_pItemsSelect[6]->setUseMultiViewLayout();
    m_IndexAlarmVehicleRxTimeout = addMenuItem( m_pItemsSelect[6]);
 
    addSeparator();
 
-   m_pItemsSelect[10] = new MenuItemSelect("Recording SD Card Overload", "Alarm when recording to SD card slows down the system. Turn this alarm on or off.");
-   m_pItemsSelect[10]->addSelection("Disabled");
-   m_pItemsSelect[10]->addSelection("Enabled");
+   m_pItemsSelect[10] = new MenuItemSelect(L("Recording SD Card Overload"), L("Alarm when recording to SD card slows down the system. Turn this alarm on or off."));
+   m_pItemsSelect[10]->addSelection(L("Disabled"));
+   m_pItemsSelect[10]->addSelection(L("Enabled"));
    m_pItemsSelect[10]->setUseMultiViewLayout();
    m_IndexAlarmControllerRecording = addMenuItem( m_pItemsSelect[10]);
 
-   m_pItemsSelect[4] = new MenuItemSelect("Controller CPU or Rx Overload", "Turn this alarm on or off.");
-   m_pItemsSelect[4]->addSelection("Disabled");
-   m_pItemsSelect[4]->addSelection("Enabled");
+   m_pItemsSelect[4] = new MenuItemSelect(L("Controller CPU or Rx Overload"), L("Turn this alarm on or off."));
+   m_pItemsSelect[4]->addSelection(L("Disabled"));
+   m_pItemsSelect[4]->addSelection(L("Enabled"));
    m_pItemsSelect[4]->setUseMultiViewLayout();
    m_IndexAlarmControllerCPUOverload = addMenuItem( m_pItemsSelect[4]);
 
-   m_pItemsSelect[7] = new MenuItemSelect("Controller Radio Timeout", "Alarm when a controller radio interface times out reading a pending received packet. Turn this alarm on or off.");
-   m_pItemsSelect[7]->addSelection("Disabled");
-   m_pItemsSelect[7]->addSelection("Enabled");
+   m_pItemsSelect[7] = new MenuItemSelect(L("Controller Radio Timeout"), L("Alarm when a controller radio interface times out reading a pending received packet. Turn this alarm on or off."));
+   m_pItemsSelect[7]->addSelection(L("Disabled"));
+   m_pItemsSelect[7]->addSelection(L("Enabled"));
    m_pItemsSelect[7]->setUseMultiViewLayout();
    m_IndexAlarmControllerRxTimeout = addMenuItem( m_pItemsSelect[7]);
 
-   m_pItemsSelect[9] = new MenuItemSelect("Developer Alarms", "Disables/Enables developer alarms.");
-   m_pItemsSelect[9]->addSelection("Disabled");
-   m_pItemsSelect[9]->addSelection("Enabled");
+   m_pItemsSelect[9] = new MenuItemSelect(L("Developer Alarms"), L("Disables/Enables developer alarms."));
+   m_pItemsSelect[9]->addSelection(L("Disabled"));
+   m_pItemsSelect[9]->addSelection(L("Enabled"));
    m_pItemsSelect[9]->setUseMultiViewLayout();
    m_IndexAlarmsDev = addMenuItem( m_pItemsSelect[9]);
 
