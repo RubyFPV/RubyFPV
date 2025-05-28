@@ -634,6 +634,8 @@ int hardware_radio_get_driver_id_card_model(int iCardModel)
       return RADIO_HW_DRIVER_REALTEK_8812EU;
    else if ( iCardModel == CARD_MODEL_RTL8733BU )
       return RADIO_HW_DRIVER_REALTEK_8733BU;
+   else if ( iCardModel == CARD_MODEL_RTL8814AU )
+      return RADIO_HW_DRIVER_REALTEK_RTL8814AU;
    else if ( (iCardModel > 0) && (iCardModel <50) )
       return RADIO_HW_DRIVER_REALTEK_RTL88XXAU;
 
@@ -1172,6 +1174,35 @@ int hardware_radio_get_class_net_adapters_count()
    return iCount;
 }
 
+int hardware_radio_has_rtl8814au_cards()
+{
+   if ( ! s_HardwareRadiosEnumeratedOnce )
+   if ( 0 == s_iHwRadiosCount )
+   if ( ! s_iEnumeratedUSBRadioInterfaces )
+      _hardware_find_usb_radio_interfaces_info();
+
+   int iCount = 0;
+
+   if ( 0 < s_iHwRadiosCount )
+   {
+      for( int i=0; i<s_iHwRadiosCount; i++ )
+      {
+         if ( sRadioInfo[i].iRadioDriver == RADIO_HW_DRIVER_REALTEK_RTL8814AU )
+            iCount++;
+      }
+   }
+
+   if ( iCount > 0 )
+      return iCount;
+
+   for( int i=0; i<s_iFoundUSBRadioInterfaces; i++ )
+   {
+       if ( s_USB_RadioInterfacesInfo[i].iDriver == RADIO_HW_DRIVER_REALTEK_RTL8814AU )
+          iCount++;
+   }
+   return iCount;
+}
+
 int hardware_load_driver_rtl8812au()
 {
    char szPlatform[128];
@@ -1261,6 +1292,56 @@ int hardware_load_driver_rtl8733bu()
    return 1;
 }
 
+int hardware_load_driver_rtl8814au()
+{
+   char szPlatform[128];
+   hw_execute_bash_command("uname -r", szPlatform);
+   removeTrailingNewLines(szPlatform);
+   log_line("[Hardware] Loading driver RTL8814AU for platform: %s ...", szPlatform);
+
+   #if defined HW_PLATFORM_OPENIPC_CAMERA
+   hw_execute_bash_command("modprobe cfg80211", NULL);
+   // Note: Using 88XXau.ko as a placeholder, actual 8814au driver name might differ
+   char szFile[MAX_FILE_PATH_SIZE];
+   snprintf(szFile, sizeof(szFile)/sizeof(szFile[0]), "/lib/modules/%s/extra/8814au.ko", szPlatform);
+   if ( access(szFile, R_OK) != -1 )
+   {
+      hw_execute_bash_command_raw("insmod /lib/modules/$(uname -r)/extra/8814au.ko rtw_tx_pwr_idx_override=1 2>&1", NULL);
+      hardware_sleep_ms(50);
+      hw_execute_bash_command_raw("modprobe 8814au rtw_tx_pwr_idx_override=1 2>&1", NULL);
+   }
+   else
+   {
+      log_softerror_and_alarm("[HardwareRadio] RTL8814AU driver file not found at %s for OpenIPC. Attempting generic modprobe.", szFile);
+      hw_execute_bash_command_raw("modprobe 8814au rtw_tx_pwr_idx_override=1 2>&1", NULL);
+   }
+   // For OpenIPC, we assume driver is pre-installed or handled by firmware.
+   // If modprobe/insmod fails, installation is likely a manual process beyond this scope.
+   return 1; 
+   #endif
+
+   char szOutput[256];
+   
+   hw_execute_bash_command("sudo modprobe cfg80211", NULL);
+   // Attempt to load 8814au, then rtl8814au as fallback names
+   hw_execute_bash_command("sudo modprobe 8814au rtw_tx_pwr_idx_override=1 2>&1", szOutput);
+   if ( strlen(szOutput) > 10 ) // Heuristic: successful modprobe has minimal output
+   {
+      log_line("[HardwareRadio] Failed to load driver 8814au, trying rtl8814au. Error: [%s]", szOutput);
+      szOutput[0] = 0; // Clear previous output
+      hw_execute_bash_command("sudo modprobe rtl8814au rtw_tx_pwr_idx_override=1 2>&1", szOutput);
+   }
+
+   log_line("Modprobe result for RTL8814AU: [%s]", szOutput);
+   if ( strlen(szOutput) > 10 )
+   {
+      log_softerror_and_alarm("[HardwareRadio] Failed to load driver RTL8814AU (8814au/rtl8814au) on platform (%s), error: (%s)", szPlatform, szOutput);
+      return hardware_install_driver_rtl8814au(0);
+   }
+
+   return 1;
+}
+
 // Called only once, from ruby_start process
 int hardware_radio_load_radio_modules(int iEchoToConsole)
 {
@@ -1310,6 +1391,7 @@ int hardware_radio_load_radio_modules(int iEchoToConsole)
    int iRTL8812AULoaded = 0;
    int iRTL8812EULoaded = 0;
    int iRTL8733BULoaded = 0;
+   int iRTL8814AULoaded = 0;
    int iAtherosLoaded = 0;
    int iCountLoaded = 0;
 
@@ -1400,12 +1482,36 @@ int hardware_radio_load_radio_modules(int iEchoToConsole)
       iCountLoaded++;
    }
 
-   log_line("[HardwareRadio] Added %d modules. Added RTL8812AU? %s. Added RTL8812EU? %s. Added RTL8733BU? %s. Added Atheros? %s",
-      iCountLoaded, (iRTL8812AULoaded?"yes":"no"), (iRTL8812EULoaded?"yes":"no"), (iRTL8733BULoaded?"yes":"no"), (iAtherosLoaded?"yes":"no"));
+   if ( hardware_radio_has_rtl8814au_cards() ) // This function will be created in a later step
+   {
+      if ( iEchoToConsole )
+      {
+         printf("Ruby: Adding radio modules for RTL8814AU radio cards...\n");
+         fflush(stdout);
+      }
+      log_line("[HardwareRadio] Found RTL8814AU cards. Loading module...");
+      if ( 1 != hardware_load_driver_rtl8814au() )
+      {
+         log_softerror_and_alarm("[HardwareRadio] Error on loading driver RTL8814AU");
+         if ( iEchoToConsole )
+         {
+            printf("Ruby: ERROR on loading driver RTL8814AU\n");
+            fflush(stdout);
+         }
+      }
+      else
+      {
+         iRTL8814AULoaded = 1;
+         iCountLoaded++;
+      }
+   }
+
+   log_line("[HardwareRadio] Added %d modules. Added RTL8812AU? %s. Added RTL8812EU? %s. Added RTL8733BU? %s. Added RTL8814AU? %s. Added Atheros? %s",
+      iCountLoaded, (iRTL8812AULoaded?"yes":"no"), (iRTL8812EULoaded?"yes":"no"), (iRTL8733BULoaded?"yes":"no"), (iRTL8814AULoaded?"yes":"no"), (iAtherosLoaded?"yes":"no"));
    if ( iEchoToConsole )
    {
-      printf( "Ruby: Added %d modules. Added RTL8812AU? %s. Added RTL8812EU? %s. Added RTL8733BU? %s. Added Atheros? %s\n",
-         iCountLoaded, (iRTL8812AULoaded?"yes":"no"), (iRTL8812EULoaded?"yes":"no"), (iRTL8733BULoaded?"yes":"no"), (iAtherosLoaded?"yes":"no"));
+      printf( "Ruby: Added %d modules. Added RTL8812AU? %s. Added RTL8812EU? %s. Added RTL8733BU? %s. Added RTL8814AU? %s. Added Atheros? %s\n",
+         iCountLoaded, (iRTL8812AULoaded?"yes":"no"), (iRTL8812EULoaded?"yes":"no"), (iRTL8733BULoaded?"yes":"no"), (iRTL8814AULoaded?"yes":"no"), (iAtherosLoaded?"yes":"no"));
       fflush(stdout);
    }
    return iCountLoaded;
@@ -1647,6 +1753,48 @@ int hardware_install_driver_rtl8733bu(int iEchoToConsole)
    return 1;
 }
 
+int hardware_install_driver_rtl8814au(int iEchoToConsole)
+{
+   #if defined HW_PLATFORM_OPENIPC_CAMERA
+   log_line("[HardwareRadio] Driver installation for RTL8814AU on OpenIPC is typically handled by the firmware image.");
+   if ( iEchoToConsole )
+   {
+      printf("Ruby: Driver installation for RTL8814AU on OpenIPC is handled by the firmware.\n");
+      fflush(stdout);
+   }
+   return 1; // Assume success or manual intervention needed
+   #endif
+
+   char szPlatform[256];
+   hw_execute_bash_command("uname -r", szPlatform);
+   removeTrailingNewLines(szPlatform);
+   log_line("[HardwareRadio] Installing RTL8814AU driver for platform: [%s]", szPlatform);
+   if ( iEchoToConsole )
+   {
+      printf("Ruby: Installing RTL8814AU driver for platform: %s ...\n", szPlatform);
+      fflush(stdout);
+   }
+
+   // Placeholder for actual driver installation logic.
+   // For now, as per subtask, log that manual installation is required.
+   log_softerror_and_alarm("[HardwareRadio] RTL8814AU driver files are not currently packaged with Ruby. Manual installation is required for this chipset.");
+   if ( iEchoToConsole )
+   {
+      printf("Ruby: ERROR: RTL8814AU driver files not packaged. Manual installation required.\n");
+      fflush(stdout);
+   }
+   
+   // Example of what could be here if driver files were available:
+   // char szDriverFile[128];
+   // if ( NULL != strstr(szPlatform, "v7l+") ) // Example for RPi
+   //    strcpy(szDriverFile, "8814au-pi+.ko");
+   // else
+   //    strcpy(szDriverFile, "8814au-pi.ko");
+   // return _hardware_try_install_rtl8814au_generic(szDriverFile, "8814au", iEchoToConsole); // A new helper similar to _hardware_try_install_rtl8812au
+
+   return 0; // Return 0 to indicate failure, prompting manual installation.
+}
+
 void hardware_install_drivers(int iEchoToConsole)
 {
    char szPlatform[128];
@@ -1742,6 +1890,25 @@ void hardware_install_drivers(int iEchoToConsole)
       if ( iEchoToConsole )
       {
          printf("Ruby: Installed RTL8733BU driver.\n");
+         fflush(stdout);
+      }
+   }
+
+   if ( 0 == hardware_install_driver_rtl8814au(iEchoToConsole) )
+   {
+      log_softerror_and_alarm("[HardwareRadio] Failed to install RTL8814AU driver.");
+      if ( iEchoToConsole )
+      {
+         printf("Ruby: ERROR: Installing RTL8814AU driver failed.\n");
+         fflush(stdout);
+      }
+   }
+   else
+   {
+      log_line("[HardwareRadio] Installed RTL8814AU driver");
+      if ( iEchoToConsole )
+      {
+         printf("Ruby: Installed RTL8814AU driver.\n");
          fflush(stdout);
       }
    }

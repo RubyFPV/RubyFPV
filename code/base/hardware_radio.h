@@ -24,6 +24,7 @@
 #define RADIO_HW_DRIVER_SERIAL_SIK 8
 #define RADIO_HW_DRIVER_SERIAL 9
 #define RADIO_HW_DRIVER_REALTEK_8812EU 10          // 88x2eu
+#define RADIO_HW_DRIVER_REALTEK_RTL8814AU 11
 #define RADIO_HW_DRIVER_REALTEK_8733BU 15          // 88733bu
 
 
@@ -40,7 +41,6 @@
 #define CARD_MODEL_RTL8812AU_AF1   10
 #define CARD_MODEL_ZIPRAY 11
 #define CARD_MODEL_ARCHER_T2UPLUS 12
-#define CARD_MODEL_RTL8814AU      13
 #define CARD_MODEL_ALFA_AWUS036ACS  14
 #define CARD_MODEL_BLUE_8812EU    15
 #define CARD_MODEL_ATHEROS_GENERIC 16
@@ -48,6 +48,7 @@
 #define CARD_MODEL_RTL8812AU_OIPC_USIGHT 18
 #define CARD_MODEL_RTL8812AU_OIPC_USIGHT2 19
 #define CARD_MODEL_RTL8733BU    20
+#define CARD_MODEL_RTL8814AU      21
 
 #define CARD_MODEL_SIK_RADIO 100
 #define CARD_MODEL_SERIAL_RADIO 101
@@ -187,10 +188,12 @@ int hardware_radio_get_class_net_adapters_count();
 int hardware_load_driver_rtl8812au();
 int hardware_load_driver_rtl8812eu();
 int hardware_load_driver_rtl8733bu();
+int hardware_load_driver_rtl8814au();
 int hardware_radio_load_radio_modules(int iEchoToConsole);
 int hardware_install_driver_rtl8812au(int iEchoToConsole);
 int hardware_install_driver_rtl8812eu(int iEchoToConsole);
 int hardware_install_driver_rtl8733bu(int iEchoToConsole);
+int hardware_install_driver_rtl8814au(int iEchoToConsole);
 void hardware_install_drivers(int iEchoToConsole);
 int hardware_initialize_radio_interface(int iInterfaceIndex, u32 uDelayMS);
 
@@ -207,6 +210,7 @@ int hardware_radio_has_low_capacity_links();
 int hardware_radio_has_rtl8812au_cards();
 int hardware_radio_has_rtl8812eu_cards();
 int hardware_radio_has_rtl8733bu_cards();
+int hardware_radio_has_rtl8814au_cards();
 int hardware_radio_has_atheros_cards();
 int hardware_radio_driver_is_rtl8812au_card(int iDriver);
 int hardware_radio_driver_is_rtl8812eu_card(int iDriver);
