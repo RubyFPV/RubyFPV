@@ -939,6 +939,14 @@ int _hardware_enumerate_wifi_radios()
             sRadioInfo[i].iRadioDriver = RADIO_HW_DRIVER_REALTEK_8733BU;
          }
       }
+      else if ( NULL != strstr(pszDriver,"8814au") )
+      {
+         s_iHwRadiosSupportedCount++;
+         sRadioInfo[i].isSupported = 1;
+         strcpy(sRadioInfo[i].szDescription, "Realtek");
+         sRadioInfo[i].iRadioType = RADIO_TYPE_REALTEK;
+         sRadioInfo[i].iRadioDriver = RADIO_HW_DRIVER_REALTEK_RTL8814AU;
+      }
       // Experimental
       if ( NULL != strstr(pszDriver,"rtl88x2bu") )
       {
