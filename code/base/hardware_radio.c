@@ -802,8 +802,7 @@ int _hardware_enumerate_wifi_radios()
       
       if ( 0 == sRadioInfo[s_iHwRadiosCount].szName[0] )
          continue;
-      if ( 0 != strstr(sRadioInfo[s_iHwRadiosCount].szName, "wlx") )
-         continue;
+      // if ( 0 != strstr(sRadioInfo[s_iHwRadiosCount].szName, "wlx") ) continue;
         
       log_line("[HardwareRadio] Parsing found wireless radio: [%s]", sRadioInfo[s_iHwRadiosCount].szName);
       if ( 0 == strstr(sRadioInfo[s_iHwRadiosCount].szName, "wlan" ) )
@@ -2333,6 +2332,13 @@ int hardware_radio_driver_is_rtl8733bu_card(int iDriver)
    if ( iDriver == RADIO_HW_DRIVER_REALTEK_8733BU )
       return 1;
    return 0; 
+}
+
+int hardware_radio_driver_is_rtl8814au_card(int iDriver)
+{
+   if ( iDriver == RADIO_HW_DRIVER_REALTEK_RTL8814AU )
+      return 1;
+   return 0;
 }
 
 int hardware_radio_driver_is_atheros_card(int iDriver)

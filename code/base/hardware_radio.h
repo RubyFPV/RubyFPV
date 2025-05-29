@@ -215,6 +215,7 @@ int hardware_radio_has_atheros_cards();
 int hardware_radio_driver_is_rtl8812au_card(int iDriver);
 int hardware_radio_driver_is_rtl8812eu_card(int iDriver);
 int hardware_radio_driver_is_rtl8733bu_card(int iDriver);
+int hardware_radio_driver_is_rtl8814au_card(int iDriver);
 int hardware_radio_driver_is_atheros_card(int iDriver);
 
 const char* hardware_get_radio_name(int iRadioIndex);
