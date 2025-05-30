@@ -1308,45 +1308,75 @@ int hardware_load_driver_rtl8814au()
 
    #if defined HW_PLATFORM_OPENIPC_CAMERA
    hw_execute_bash_command("modprobe cfg80211", NULL);
-   // Note: Using 88XXau.ko as a placeholder, actual 8814au driver name might differ
+   char szOutputOpenIPC[256];
+   szOutputOpenIPC[0] = 0;
+   int iRetOpenIPC = -1;
+
+   log_line("[HardwareRadio] OpenIPC: Attempting to load rtw_8814au module...");
+   iRetOpenIPC = hw_execute_bash_command_silent("modprobe rtw_8814au rtw_tx_pwr_idx_override=1", szOutputOpenIPC);
+   if ( 0 == iRetOpenIPC )
+   {
+      log_line("[HardwareRadio] OpenIPC: Successfully loaded driver rtw_8814au via modprobe.");
+      return 1;
+   }
+   
+   log_softerror_and_alarm("[HardwareRadio] OpenIPC: Failed to load rtw_8814au via modprobe (ret: %d, out: %s). Trying legacy path /extra/8814au.ko.", iRetOpenIPC, szOutputOpenIPC);
+   
    char szFile[MAX_FILE_PATH_SIZE];
    snprintf(szFile, sizeof(szFile)/sizeof(szFile[0]), "/lib/modules/%s/extra/8814au.ko", szPlatform);
    if ( access(szFile, R_OK) != -1 )
    {
+      log_line("[HardwareRadio] OpenIPC: Found driver at %s. Attempting insmod...", szFile);
       hw_execute_bash_command_raw("insmod /lib/modules/$(uname -r)/extra/8814au.ko rtw_tx_pwr_idx_override=1 2>&1", NULL);
       hardware_sleep_ms(50);
+      // Try to modprobe the specific legacy name if insmod was attempted
       hw_execute_bash_command_raw("modprobe 8814au rtw_tx_pwr_idx_override=1 2>&1", NULL);
+      log_line("[HardwareRadio] OpenIPC: Attempted insmod and modprobe for legacy 8814au.ko.");
    }
    else
    {
-      log_softerror_and_alarm("[HardwareRadio] RTL8814AU driver file not found at %s for OpenIPC. Attempting generic modprobe.", szFile);
-      hw_execute_bash_command_raw("modprobe 8814au rtw_tx_pwr_idx_override=1 2>&1", NULL);
+      log_softerror_and_alarm("[HardwareRadio] OpenIPC: Legacy RTL8814AU driver file not found at %s. Module may not be available.", szFile);
    }
-   // For OpenIPC, we assume driver is pre-installed or handled by firmware.
-   // If modprobe/insmod fails, installation is likely a manual process beyond this scope.
+   // For OpenIPC, installation is typically part of the firmware, so we return 1 to indicate the load attempt was made.
+   // If it failed, other parts of the system will detect the interface is not actually working.
    return 1; 
-   #endif
-
+   #else
+   // For other platforms (Raspberry Pi, Radxa, etc.)
    char szOutput[256];
-   
+   char szComm[128];
+   int iRet = -1;
+   szOutput[0] = 0;
+
    hw_execute_bash_command("sudo modprobe cfg80211", NULL);
-   // Attempt to load 8814au, then rtl8814au as fallback names
-   hw_execute_bash_command("sudo modprobe 8814au rtw_tx_pwr_idx_override=1 2>&1", szOutput);
-   if ( strlen(szOutput) > 10 ) // Heuristic: successful modprobe has minimal output
+   
+   log_line("[HardwareRadio] Attempting to load rtw_8814au module...");
+   sprintf(szComm, "sudo modprobe rtw_8814au rtw_tx_pwr_idx_override=1");
+   // Using hw_execute_bash_command_raw to capture output and check for common success (no output or specific messages)
+   // A simple return code check might be too naive if modprobe succeeds but with warnings.
+   // However, for simplicity and directness as requested:
+   if ( 0 == hw_execute_bash_command_raw_silent(szComm, szOutput) ) // _raw_silent checks exit code, ignores output length
    {
-      log_line("[HardwareRadio] Failed to load driver 8814au, trying rtl8814au. Error: [%s]", szOutput);
-      szOutput[0] = 0; // Clear previous output
-      hw_execute_bash_command("sudo modprobe rtl8814au rtw_tx_pwr_idx_override=1 2>&1", szOutput);
+      log_line("[HardwareRadio] Successfully loaded driver rtw_8814au.");
+      return 1; // Success
    }
-
-   log_line("Modprobe result for RTL8814AU: [%s]", szOutput);
-   if ( strlen(szOutput) > 10 )
+   else
    {
-      log_softerror_and_alarm("[HardwareRadio] Failed to load driver RTL8814AU (8814au/rtl8814au) on platform (%s), error: (%s)", szPlatform, szOutput);
-      return hardware_install_driver_rtl8814au(0);
+      // Try legacy name "8814au" as a fallback before installing
+      log_softerror_and_alarm("[HardwareRadio] Failed to load driver rtw_8814au (ret code from _raw_silent was non-zero, output: [%s]). Trying legacy name 8814au...", szOutput);
+      szOutput[0] = 0;
+      sprintf(szComm, "sudo modprobe 8814au rtw_tx_pwr_idx_override=1");
+      if ( 0 == hw_execute_bash_command_raw_silent(szComm, szOutput) )
+      {
+         log_line("[HardwareRadio] Successfully loaded driver 8814au (legacy name).");
+         return 1; // Success
+      }
+      else
+      {
+         log_softerror_and_alarm("[HardwareRadio] Failed to load driver 8814au with legacy name (ret code from _raw_silent was non-zero, output: [%s]). Trying to install it...", szOutput);
+         return hardware_install_driver_rtl8814au(0); // Pass 0 for iEchoToConsole
+      }
    }
-
-   return 1;
+   #endif
 }
 
 // Called only once, from ruby_start process
@@ -1782,24 +1812,54 @@ int hardware_install_driver_rtl8814au(int iEchoToConsole)
       fflush(stdout);
    }
 
-   // Placeholder for actual driver installation logic.
-   // For now, as per subtask, log that manual installation is required.
-   log_softerror_and_alarm("[HardwareRadio] RTL8814AU driver files are not currently packaged with Ruby. Manual installation is required for this chipset.");
+   log_line("[HardwareRadio] Attempting to install RTL8814AU driver by script.");
    if ( iEchoToConsole )
    {
-      printf("Ruby: ERROR: RTL8814AU driver files not packaged. Manual installation required.\n");
+      printf("Ruby: Attempting to install RTL8814AU driver by script. This may take several minutes and require internet access and sudo privileges...\n");
       fflush(stdout);
    }
-   
-   // Example of what could be here if driver files were available:
-   // char szDriverFile[128];
-   // if ( NULL != strstr(szPlatform, "v7l+") ) // Example for RPi
-   //    strcpy(szDriverFile, "8814au-pi+.ko");
-   // else
-   //    strcpy(szDriverFile, "8814au-pi.ko");
-   // return _hardware_try_install_rtl8814au_generic(szDriverFile, "8814au", iEchoToConsole); // A new helper similar to _hardware_try_install_rtl8812au
 
-   return 0; // Return 0 to indicate failure, prompting manual installation.
+   char szScriptPath[MAX_FILE_PATH_SIZE];
+   strcpy(szScriptPath, "./scripts/install_rtw8814au_driver.sh");
+
+   char szComm[MAX_FILE_PATH_SIZE + 32];
+   snprintf(szComm, sizeof(szComm)-1, "chmod +x %s", szScriptPath);
+   hw_execute_bash_command_silent(szComm, NULL); // Use existing helper for consistency, though system() also works
+
+   log_line("[HardwareRadio] Executing script: %s", szScriptPath);
+   
+   // Execute the script.
+   // The script should handle its own console output.
+   // We check WEXITSTATUS for the actual return code of the script.
+   int iRet = system(szScriptPath);
+   
+   if ( iRet == -1 )
+   {
+      log_softerror_and_alarm("[HardwareRadio] Failed to execute script %s (system call error: %s).", szScriptPath, strerror(errno));
+      return 0;
+   }
+   
+   if ( WIFEXITED(iRet) )
+   {
+      int iExitStatus = WEXITSTATUS(iRet);
+      if ( 0 == iExitStatus )
+      {
+         log_line("[HardwareRadio] Script %s executed successfully.", szScriptPath);
+         // Attempt to load the driver again after successful installation
+         hw_execute_bash_command("sudo modprobe 8814au rtw_tx_pwr_idx_override=1 2>&1", NULL);
+         return 1;
+      }
+      else
+      {
+         log_softerror_and_alarm("[HardwareRadio] Script %s failed with exit code %d.", szScriptPath, iExitStatus);
+         return 0;
+      }
+   }
+   else
+   {
+      log_softerror_and_alarm("[HardwareRadio] Script %s did not terminate normally (signal %d).", szScriptPath, WTERMSIG(iRet));
+      return 0;
+   }
 }
 
 void hardware_install_drivers(int iEchoToConsole)
