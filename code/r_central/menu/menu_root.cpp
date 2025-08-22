@@ -105,10 +105,10 @@ void MenuRoot::addItems()
    //m_iIndexSpectator = addMenuItem(new MenuItem("Spectator Vehicles", "See the list of vehicles you recently connected to as a spectator."));
 
    if ( pP->iShowCompactMenus )
-      m_iIndexVehicle = addMenuItem(new MenuItem(L("Vehicle settings"), L("Change vehicle settings.")));
+      m_iIndexVehicle = addMenuItem(new MenuItem(L("Vehicle Settings"), L("Change vehicle settings.")));
    else
       m_iIndexVehicle = -1;
-   m_iIndexController = addMenuItem(new MenuItem(L("Controller settings"), L("Change controller settings and user interface preferences.")));
+   m_iIndexController = addMenuItem(new MenuItem(L("Controller Settings"), L("Change controller settings and user interface preferences.")));
    m_iIndexSystem = addMenuItem(new MenuItem(L("System"), L("Configure system options, shows detailed information about the system.")));
    addSeparator();
    m_iIndexMedia = addMenuItem(new MenuItem(L("Media & Storage"), L("Manage saved logs, screenshots and videos.")));
