@@ -89,6 +89,45 @@ typedef struct
 
 } video_parameters_t;
 
+// WiFi Direct Link Parameters
+typedef struct
+{
+   u32 uFlags; // WIFI_DIRECT_FLAG_* constants
+      // bit 0: enable WiFi Direct
+      // bit 1: prefer WiFi over radio when available
+      // bit 2: auto-failover between WiFi and radio
+      // bit 3: use multicast mode
+      // bit 4-7: reserved
+      
+   int iMode; // 0=None, 1=AP, 2=Client, 3=Mesh (future)
+   char szSSID[64];
+   char szPassword[128];
+   int iChannel; // WiFi channel (1-14)
+   char szIPAddress[32]; // IP address for AP mode
+   char szNetmask[32]; // Network mask
+   int iDHCPEnabled; // Enable DHCP server (AP mode)
+   char szDHCPStart[32]; // DHCP range start
+   char szDHCPEnd[32]; // DHCP range end
+   int iPort; // UDP port for video stream
+   
+   // Client mode specific
+   char szVTXIP[32]; // VTX IP address to connect to
+   
+   // Statistics (runtime, not saved)
+   u32 uBytesReceived;
+   u32 uBytesSent;
+   u32 uPacketsReceived;
+   u32 uPacketsSent;
+   u32 uPacketsDropped;
+   int iSignalStrength; // dBm
+   u32 uLastActivityTime;
+   
+} type_wifi_direct_parameters;
+
+#define WIFI_DIRECT_FLAG_ENABLED          0x01
+#define WIFI_DIRECT_FLAG_PREFER_WIFI      0x02
+#define WIFI_DIRECT_FLAG_AUTO_FAILOVER    0x04
+#define WIFI_DIRECT_FLAG_MULTICAST        0x08
 
 typedef struct
 {
@@ -614,6 +653,7 @@ class Model
 
       video_parameters_t video_params;
       type_video_link_profile video_link_profiles[MAX_VIDEO_LINK_PROFILES];
+      type_wifi_direct_parameters wifi_direct_params;
       osd_parameters_t osd_params;
       rc_parameters_t rc_params;
       telemetry_parameters_t telemetry_params;

@@ -3,6 +3,7 @@
 #include <map>
 #include <dirent.h>
 #include <string>
+#include <cstdint>
 
 struct OLEDIcon {
     int width;

@@ -57,6 +57,11 @@
 #define FILE_CONFIG_CONTROLLER_OSD_WIDGETS "osd_widgets.cfg"
 #define FILE_CONFIG_CONTROLLER_FAVORITES_VEHICLES "favorites.cfg"
 
+// AP-ALINK-FPV Integration Configuration Files
+#define FILE_CONFIG_DYNAMIC_RSSI "dynamic_rssi_thresholds.cfg"
+#define FILE_CONFIG_QP_DELTA "qp_delta_config.cfg"
+#define FILE_CONFIG_ROBUST_COMMANDS "robust_command_execution.cfg"
+
 #define FILE_TEMP_USB_TETHERING_DEVICE "usb_tethering"
 #define FILE_TEMP_VIDEO_MEM_FILE "tmpVideo.h26x"
 #define FILE_TEMP_VIDEO_FILE "tmpVideo.h26x"

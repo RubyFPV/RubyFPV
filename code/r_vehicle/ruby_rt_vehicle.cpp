@@ -66,6 +66,187 @@
 #include "../base/vehicle_settings.h"
 #include "../base/vehicle_rt_info.h"
 #include "../base/hardware_radio_serial.h"
+#include "../base/wifi_link.h"
+
+// RubALink WiFi MCS Control Integration
+#include <sys/stat.h>
+#include <errno.h>
+
+// WiFi MCS control configuration
+typedef struct {
+    bool enable_mcs_control;
+    bool enable_rate_control;
+    int default_mcs_rate;
+    int max_mcs_rate;
+    int min_mcs_rate;
+} wifi_mcs_config_t;
+
+// Global MCS control configuration
+static wifi_mcs_config_t s_MCSConfig = {
+    .enable_mcs_control = true,
+    .enable_rate_control = true,
+    .default_mcs_rate = 3,
+    .max_mcs_rate = 7,
+    .min_mcs_rate = 0
+};
+
+// Function declarations
+static bool set_wifi_mcs_rate(int interface_index, int mcs_rate);
+static bool set_wifi_rate_control(int interface_index, bool enable);
+static int get_current_mcs_rate(int interface_index);
+static bool is_wifi_interface(int interface_index);
+static void initialize_wifi_mcs_control();
+
+// WiFi MCS control function implementations
+static bool is_wifi_interface(int interface_index) {
+    if (interface_index < 0 || interface_index >= hardware_get_radio_interfaces_count()) {
+        return false;
+    }
+    
+    radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(interface_index);
+    if (!pRadioHWInfo) {
+        return false;
+    }
+    
+    // Check if it's a WiFi interface (Atheros or similar)
+    return hardware_radio_index_is_wifi_radio(interface_index);
+}
+
+static bool set_wifi_mcs_rate(int interface_index, int mcs_rate) {
+    if (!s_MCSConfig.enable_mcs_control) {
+        return false;
+    }
+    
+    if (!is_wifi_interface(interface_index)) {
+        return false;
+    }
+    
+    // Clamp MCS rate to valid range
+    if (mcs_rate < s_MCSConfig.min_mcs_rate) {
+        mcs_rate = s_MCSConfig.min_mcs_rate;
+    }
+    if (mcs_rate > s_MCSConfig.max_mcs_rate) {
+        mcs_rate = s_MCSConfig.max_mcs_rate;
+    }
+    
+    radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(interface_index);
+    if (!pRadioHWInfo) {
+        return false;
+    }
+    
+    // Try different MCS control methods based on driver
+    char szComm[256];
+    bool success = false;
+    
+    // Method 1: Realtek RTL88x2EU driver
+    sprintf(szComm, "echo %d > /proc/net/rtl88x2eu/wlan%d/mcs_rate 2>/dev/null", mcs_rate, interface_index);
+    if (hw_execute_bash_command(szComm, NULL) == 0) {
+        success = true;
+        log_line("[RubALink] Set MCS rate %d for WiFi interface %d (RTL88x2EU)", mcs_rate, interface_index);
+    }
+    
+    // Method 2: Realtek RTL88xxAU driver
+    if (!success) {
+        sprintf(szComm, "echo %d > /proc/net/rtl88xxau/wlan%d/mcs_rate 2>/dev/null", mcs_rate, interface_index);
+        if (hw_execute_bash_command(szComm, NULL) == 0) {
+            success = true;
+            log_line("[RubALink] Set MCS rate %d for WiFi interface %d (RTL88xxAU)", mcs_rate, interface_index);
+        }
+    }
+    
+    // Method 3: Generic iw command
+    if (!success) {
+        sprintf(szComm, "iw dev wlan%d set bitrates ht-mcs-2.4 %d 2>/dev/null", interface_index, mcs_rate);
+        if (hw_execute_bash_command(szComm, NULL) == 0) {
+            success = true;
+            log_line("[RubALink] Set MCS rate %d for WiFi interface %d (iw)", mcs_rate, interface_index);
+        }
+    }
+    
+    if (!success) {
+        log_softerror_and_alarm("[RubALink] Failed to set MCS rate %d for WiFi interface %d", mcs_rate, interface_index);
+    }
+    
+    return success;
+}
+
+static bool set_wifi_rate_control(int interface_index, bool enable) {
+    if (!is_wifi_interface(interface_index)) {
+        return false;
+    }
+    
+    char szComm[256];
+    bool success = false;
+    
+    // Try different rate control methods
+    sprintf(szComm, "echo %s > /proc/net/rtl88x2eu/wlan%d/rate_control 2>/dev/null", 
+            enable ? "1" : "0", interface_index);
+    if (hw_execute_bash_command(szComm, NULL) == 0) {
+        success = true;
+        log_line("[RubALink] Set rate control %s for WiFi interface %d (RTL88x2EU)", 
+                 enable ? "ON" : "OFF", interface_index);
+    }
+    
+    if (!success) {
+        sprintf(szComm, "echo %s > /proc/net/rtl88xxau/wlan%d/rate_control 2>/dev/null", 
+                enable ? "1" : "0", interface_index);
+        if (hw_execute_bash_command(szComm, NULL) == 0) {
+            success = true;
+            log_line("[RubALink] Set rate control %s for WiFi interface %d (RTL88xxAU)", 
+                     enable ? "ON" : "OFF", interface_index);
+        }
+    }
+    
+    return success;
+}
+
+static int get_current_mcs_rate(int interface_index) {
+    if (!is_wifi_interface(interface_index)) {
+        return -1;
+    }
+    
+    char szComm[256];
+    char szOutput[64];
+    
+    // Try to read current MCS rate
+    sprintf(szComm, "cat /proc/net/rtl88x2eu/wlan%d/mcs_rate 2>/dev/null", interface_index);
+    if (hw_execute_bash_command(szComm, szOutput) == 0 && strlen(szOutput) > 0) {
+        int mcs_rate = atoi(szOutput);
+        if (mcs_rate >= 0 && mcs_rate <= 7) {
+            return mcs_rate;
+        }
+    }
+    
+    sprintf(szComm, "cat /proc/net/rtl88xxau/wlan%d/mcs_rate 2>/dev/null", interface_index);
+    if (hw_execute_bash_command(szComm, szOutput) == 0 && strlen(szOutput) > 0) {
+        int mcs_rate = atoi(szOutput);
+        if (mcs_rate >= 0 && mcs_rate <= 7) {
+            return mcs_rate;
+        }
+    }
+    
+    return -1; // Unknown
+}
+
+static void initialize_wifi_mcs_control() {
+    log_line("[RubALink] Initializing WiFi MCS control...");
+    
+    // Initialize MCS control for all WiFi interfaces
+    for (int i = 0; i < hardware_get_radio_interfaces_count(); i++) {
+        if (is_wifi_interface(i)) {
+            // Set default MCS rate
+            set_wifi_mcs_rate(i, s_MCSConfig.default_mcs_rate);
+            
+            // Enable/disable rate control based on config
+            set_wifi_rate_control(i, s_MCSConfig.enable_rate_control);
+            
+            log_line("[RubALink] WiFi interface %d: MCS control initialized (default MCS: %d, rate control: %s)", 
+                     i, s_MCSConfig.default_mcs_rate, s_MCSConfig.enable_rate_control ? "ON" : "OFF");
+        }
+    }
+    
+    log_line("[RubALink] WiFi MCS control initialization complete");
+}
 #include "../common/string_utils.h"
 #include "../common/radio_stats.h"
 #include "../common/relay_utils.h"
@@ -600,6 +781,9 @@ void reinit_radio_interfaces()
    }
 
    radio_links_open_rxtx_radio_interfaces();
+
+   // RubALink: Reinitialize WiFi MCS control after radio interfaces are reopened
+   initialize_wifi_mcs_control();
 
    log_line("Reinit radio interfaces: completed.");
 
@@ -1238,6 +1422,45 @@ int main(int argc, char *argv[])
    }
 
    log_line("Start sequence: Done opening radio interfaces.");
+
+   // RubALink: Initialize WiFi MCS control after radio interfaces are opened
+   initialize_wifi_mcs_control();
+
+   // Initialize WiFi Direct Link if enabled
+   if (g_pCurrentModel->wifi_direct_params.uFlags & WIFI_DIRECT_FLAG_ENABLED) {
+      log_line("Start sequence: Initializing WiFi Direct Link...");
+      
+      if (wifi_link_init()) {
+         // Configure WiFi Link
+         wifi_link_config_t wifiLinkConfig;
+         memset(&wifiLinkConfig, 0, sizeof(wifiLinkConfig));
+         
+         wifiLinkConfig.mode = g_pCurrentModel->wifi_direct_params.iMode;
+         strcpy(wifiLinkConfig.ssid, g_pCurrentModel->wifi_direct_params.szSSID);
+         strcpy(wifiLinkConfig.password, g_pCurrentModel->wifi_direct_params.szPassword);
+         wifiLinkConfig.channel = g_pCurrentModel->wifi_direct_params.iChannel;
+         strcpy(wifiLinkConfig.ip_address, g_pCurrentModel->wifi_direct_params.szIPAddress);
+         strcpy(wifiLinkConfig.netmask, g_pCurrentModel->wifi_direct_params.szNetmask);
+         wifiLinkConfig.dhcp_enabled = g_pCurrentModel->wifi_direct_params.iDHCPEnabled;
+         strcpy(wifiLinkConfig.dhcp_start, g_pCurrentModel->wifi_direct_params.szDHCPStart);
+         strcpy(wifiLinkConfig.dhcp_end, g_pCurrentModel->wifi_direct_params.szDHCPEnd);
+         wifiLinkConfig.port = g_pCurrentModel->wifi_direct_params.iPort;
+         
+         if (wifi_link_configure(&wifiLinkConfig)) {
+            if (wifi_link_start()) {
+               log_line("Start sequence: WiFi Direct Link started successfully");
+            } else {
+               log_softerror_and_alarm("Start sequence: Failed to start WiFi Direct Link");
+            }
+         } else {
+            log_softerror_and_alarm("Start sequence: Failed to configure WiFi Direct Link");
+         }
+      } else {
+         log_softerror_and_alarm("Start sequence: Failed to initialize WiFi Direct Link");
+      }
+   } else {
+      log_line("Start sequence: WiFi Direct Link is disabled");
+   }
 
    if ( NULL != g_pProcessStats )
    {

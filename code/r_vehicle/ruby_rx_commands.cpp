@@ -2319,6 +2319,46 @@ bool process_command(u8* pBuffer, int length)
       return true;
    }
 
+   if ( uCommandType == COMMAND_ID_SET_WIFI_DIRECT_PARAMS )
+   {
+      if ( iParamsLength != (int)sizeof(type_wifi_direct_parameters) )
+      {
+         log_softerror_and_alarm("Received WiFi Direct params size invalid (%d bytes received, expected %d bytes)",
+            iParamsLength, (int)sizeof(type_wifi_direct_parameters));
+         sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED, 0, 0);
+         return true;
+      }
+      sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
+      
+      type_wifi_direct_parameters* params = (type_wifi_direct_parameters*)(pBuffer + sizeof(t_packet_header)+sizeof(t_packet_header_command));
+      
+      // Save runtime stats before overwriting
+      u32 uBytesReceived = g_pCurrentModel->wifi_direct_params.uBytesReceived;
+      u32 uBytesSent = g_pCurrentModel->wifi_direct_params.uBytesSent;
+      u32 uPacketsReceived = g_pCurrentModel->wifi_direct_params.uPacketsReceived;
+      u32 uPacketsSent = g_pCurrentModel->wifi_direct_params.uPacketsSent;
+      u32 uPacketsDropped = g_pCurrentModel->wifi_direct_params.uPacketsDropped;
+      int iSignalStrength = g_pCurrentModel->wifi_direct_params.iSignalStrength;
+      u32 uLastActivityTime = g_pCurrentModel->wifi_direct_params.uLastActivityTime;
+      
+      memcpy(&(g_pCurrentModel->wifi_direct_params), params, sizeof(type_wifi_direct_parameters));
+      
+      // Restore runtime stats
+      g_pCurrentModel->wifi_direct_params.uBytesReceived = uBytesReceived;
+      g_pCurrentModel->wifi_direct_params.uBytesSent = uBytesSent;
+      g_pCurrentModel->wifi_direct_params.uPacketsReceived = uPacketsReceived;
+      g_pCurrentModel->wifi_direct_params.uPacketsSent = uPacketsSent;
+      g_pCurrentModel->wifi_direct_params.uPacketsDropped = uPacketsDropped;
+      g_pCurrentModel->wifi_direct_params.iSignalStrength = iSignalStrength;
+      g_pCurrentModel->wifi_direct_params.uLastActivityTime = uLastActivityTime;
+      
+      saveCurrentModel();
+      
+      // Signal model reload - this will restart WiFi Direct with new settings
+      signalReloadModel(MODEL_CHANGED_GENERIC, 0);
+      return true;
+   }
+
    if ( uCommandType == COMMAND_ID_SET_VIDEO_PARAMETERS )
    {
       if ( iParamsLength != (int)(sizeof(video_parameters_t) + MAX_VIDEO_LINK_PROFILES * sizeof(type_video_link_profile)) )

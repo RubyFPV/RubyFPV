@@ -1,0 +1,75 @@
+# RubyFPV Build Artifacts
+# =======================
+
+# Object files
+*.o
+*.obj
+
+# Executable files
+ruby_central
+ruby_rt_station
+ruby_rt_vehicle
+ruby_controller
+ruby_initdhcp
+ruby_logger
+ruby_sik_config
+ruby_start
+ruby_tx_telemetry
+ruby_update
+ruby_update_worker
+ruby_video_proc
+ruby_alive
+
+# Build directories
+build/
+obj/
+bin/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# IDE files
+.vscode/
+.idea/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Log files
+*.log
+logs/
+
+# Image files (for SD card flashing)
+*.img
+*.img.xz
+radxa_zero3_debian.img
+radxa_zero3_debian.img.xz
+rubalink_radxa.img
+rubalink_radxa.img.xz
+
+# Test files
+test_rubalink
+test_rubalink.c
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Dependencies
+node_modules/
+vendor/
+
+# Configuration backups
+*.cfg.bak
+*.conf.bak

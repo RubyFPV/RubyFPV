@@ -34,6 +34,7 @@
 #include "menu_vehicle.h"
 #include "menu_vehicle_general.h"
 #include "menu_vehicle_video.h"
+#include "menu_vehicle_wifi_direct.h"
 #include "menu_vehicle_camera.h"
 #include "menu_vehicle_osd.h"
 #include "menu_vehicle_osd_stats.h"
@@ -118,6 +119,10 @@ void MenuVehicle::onShow()
    //   m_pMenuItems[m_IndexVideo]->setEnabled(false);
    if ( NULL != g_pCurrentModel && g_pCurrentModel->is_spectator )
       m_pMenuItems[m_IndexVideo]->setEnabled(false);
+
+   m_IndexWiFiDirect = addMenuItem(new MenuItem(L("WiFi Direct Link"), L("Configure WiFi Direct video streaming.")));
+   if ( NULL != g_pCurrentModel && g_pCurrentModel->is_spectator )
+      m_pMenuItems[m_IndexWiFiDirect]->setEnabled(false);
 
    m_IndexAudio = addMenuItem(new MenuItem(L("Audio"), L("Change the audio settings")));
    if ( (NULL != g_pCurrentModel) && g_pCurrentModel->is_spectator )
@@ -434,6 +439,13 @@ void MenuVehicle::onSelectItem()
          addMessage(L("You can't change video settings for a spectator vehicle."));
       else
          add_menu_to_stack(new MenuVehicleVideo());
+   }
+   if ( m_IndexWiFiDirect == m_SelectedIndex )
+   {
+      if ( (NULL != g_pCurrentModel) && g_pCurrentModel->is_spectator )
+         addMessage(L("You can't change WiFi Direct settings for a spectator vehicle."));
+      else
+         add_menu_to_stack(new MenuVehicleWiFiDirect());
    }
    if ( m_IndexAudio == m_SelectedIndex )
    {

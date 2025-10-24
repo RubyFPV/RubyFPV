@@ -44,6 +44,9 @@
 #include "../radio/radio_rx.h"
 #include "../radio/radio_tx.h"
 
+// RubALink Advanced Signal Processing Integration
+#include <math.h>
+
 #include "ruby_rt_vehicle.h"
 #include "packets_utils.h"
 #include "processor_tx_video.h"
@@ -62,6 +65,145 @@ u32 s_uLastCommandChangeDataRateTime = 0;
 u32 s_uLastCommandChangeDataRateCounter = MAX_U32;
 
 u32 s_uTotalBadPacketsReceived = 0;
+
+// RubALink Advanced Signal Processing Integration
+// Kalman filter structures
+typedef struct {
+    float estimate;
+    float error_estimate;
+    float process_variance;
+    float measurement_variance;
+} kalman_filter_t;
+
+typedef struct {
+    float alpha;
+    float last_output;
+} lowpass_filter_t;
+
+typedef struct {
+    float x1, x2, y1, y2;
+    float cutoff_freq;
+    float sample_freq;
+} lpf_2pole_t;
+
+// Global signal processing filters
+static kalman_filter_t s_RSSIKalmanFilter = {0};
+static kalman_filter_t s_DBMKalmanFilter = {0};
+static lowpass_filter_t s_RSSILPF = {0};
+static lowpass_filter_t s_DBMLPF = {0};
+static lpf_2pole_t s_RSSI2PoleLPF = {0};
+static lpf_2pole_t s_DBM2PoleLPF = {0};
+
+// Signal processing configuration
+static struct {
+    bool use_kalman_filter;
+    bool use_lowpass_filter;
+    bool use_2pole_lpf;
+    float kalman_process_noise;
+    float kalman_measurement_noise;
+    float lpf_cutoff_freq;
+    float lpf_sample_freq;
+} s_SignalProcessingConfig = {
+    .use_kalman_filter = true,
+    .use_lowpass_filter = true,
+    .use_2pole_lpf = false,
+    .kalman_process_noise = 1e-5f,
+    .kalman_measurement_noise = 0.1f,
+    .lpf_cutoff_freq = 2.0f,
+    .lpf_sample_freq = 10.0f
+};
+
+// Signal processing functions
+static float kalman_filter_update(kalman_filter_t *filter, float measurement) {
+    // Predict
+    float predicted_estimate = filter->estimate;
+    float predicted_error = filter->error_estimate + filter->process_variance;
+    
+    // Update
+    float kalman_gain = predicted_error / (predicted_error + filter->measurement_variance);
+    
+    // Clamp kalman gain to prevent numerical issues
+    if (kalman_gain > 1.0f) kalman_gain = 1.0f;
+    if (kalman_gain < 0.0f) kalman_gain = 0.0f;
+    
+    filter->estimate = predicted_estimate + kalman_gain * (measurement - predicted_estimate);
+    filter->error_estimate = (1.0f - kalman_gain) * predicted_error;
+    
+    return filter->estimate;
+}
+
+static float lowpass_filter_apply(lowpass_filter_t *filter, float sample) {
+    filter->last_output = filter->alpha * sample + (1.0f - filter->alpha) * filter->last_output;
+    return filter->last_output;
+}
+
+static float lpf_2pole_apply(lpf_2pole_t *filter, float input) {
+    float omega = 2.0f * M_PI * filter->cutoff_freq / filter->sample_freq;
+    float alpha = omega / (1.0f + omega);
+    
+    float y = alpha * input + alpha * (1.0f - alpha) * filter->x1 + alpha * (1.0f - alpha) * (1.0f - alpha) * filter->x2;
+    
+    filter->x2 = filter->x1;
+    filter->x1 = input;
+    filter->y2 = filter->y1;
+    filter->y1 = y;
+    
+    return y;
+}
+
+static void init_signal_processing() {
+    // Initialize Kalman filters
+    s_RSSIKalmanFilter.process_variance = s_SignalProcessingConfig.kalman_process_noise;
+    s_RSSIKalmanFilter.measurement_variance = s_SignalProcessingConfig.kalman_measurement_noise;
+    s_DBMKalmanFilter.process_variance = s_SignalProcessingConfig.kalman_process_noise;
+    s_DBMKalmanFilter.measurement_variance = s_SignalProcessingConfig.kalman_measurement_noise;
+    
+    // Initialize low-pass filters
+    float alpha = 2.0f * M_PI * s_SignalProcessingConfig.lpf_cutoff_freq / s_SignalProcessingConfig.lpf_sample_freq;
+    s_RSSILPF.alpha = alpha;
+    s_DBMLPF.alpha = alpha;
+    
+    // Initialize 2-pole filters
+    s_RSSI2PoleLPF.cutoff_freq = s_SignalProcessingConfig.lpf_cutoff_freq;
+    s_RSSI2PoleLPF.sample_freq = s_SignalProcessingConfig.lpf_sample_freq;
+    s_DBM2PoleLPF.cutoff_freq = s_SignalProcessingConfig.lpf_cutoff_freq;
+    s_DBM2PoleLPF.sample_freq = s_SignalProcessingConfig.lpf_sample_freq;
+    
+    log_line("[RubALink] Advanced signal processing initialized in process_radio_in_packets");
+}
+
+static float apply_signal_processing(float raw_value, bool is_rssi) {
+    float filtered_value = raw_value;
+    
+    // Apply Kalman filter
+    if (s_SignalProcessingConfig.use_kalman_filter) {
+        if (is_rssi) {
+            filtered_value = kalman_filter_update(&s_RSSIKalmanFilter, filtered_value);
+        } else {
+            filtered_value = kalman_filter_update(&s_DBMKalmanFilter, filtered_value);
+        }
+    }
+    
+    // Apply low-pass filter
+    if (s_SignalProcessingConfig.use_lowpass_filter) {
+        if (is_rssi) {
+            filtered_value = lowpass_filter_apply(&s_RSSILPF, filtered_value);
+        } else {
+            filtered_value = lowpass_filter_apply(&s_DBMLPF, filtered_value);
+        }
+    }
+    
+    // Apply 2-pole filter
+    if (s_SignalProcessingConfig.use_2pole_lpf) {
+        if (is_rssi) {
+            filtered_value = lpf_2pole_apply(&s_RSSI2PoleLPF, filtered_value);
+        } else {
+            filtered_value = lpf_2pole_apply(&s_DBM2PoleLPF, filtered_value);
+        }
+    }
+    
+    return filtered_value;
+}
 
 void _mark_link_from_controller_present(int iRadioInterface)
 {
@@ -222,6 +364,13 @@ int _handle_received_packet_error(int iInterfaceIndex, u8* pData, int nDataLengt
 
 void process_received_single_radio_packet(int iRadioInterface, u8* pData, int dataLength )
 {
+   // RubALink: Initialize signal processing on first call
+   static bool s_SignalProcessingInitialized = false;
+   if (!s_SignalProcessingInitialized) {
+       init_signal_processing();
+       s_SignalProcessingInitialized = true;
+   }
+   
    t_packet_header* pPH = (t_packet_header*)pData;
    u32 uVehicleIdSrc = pPH->vehicle_id_src;
    u32 uVehicleIdDest = pPH->vehicle_id_dest;
@@ -239,17 +388,24 @@ void process_received_single_radio_packet(int iRadioInterface, u8* pData, int da
    g_UplinkInfoRxStats[iRadioInterface].lastReceivedSNR = 1000;
    g_UplinkInfoRxStats[iRadioInterface].uTimeLastCapture = pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.uLastTimeCapture;
 
-   if ( pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iDbmLast < 500 )
-   if ( pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iDbmLast > -500 )
-      g_UplinkInfoRxStats[iRadioInterface].lastReceivedDBM = pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iDbmLast;
+   // RubALink: Apply advanced signal processing to raw signal data
+   float raw_dbm = pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iDbmLast;
+   float raw_dbm_noise = pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iDbmNoiseLast;
    
-   if ( pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iDbmNoiseLast < 500 )
-   if ( pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iDbmNoiseLast > -500 )
-      g_UplinkInfoRxStats[iRadioInterface].lastReceivedDBMNoise = pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iDbmNoiseLast;
+   // Apply signal processing filters
+   float filtered_dbm = apply_signal_processing(raw_dbm, false);  // false = dBm, not RSSI
+   float filtered_dbm_noise = apply_signal_processing(raw_dbm_noise, false);
+   float filtered_snr = filtered_dbm - filtered_dbm_noise;  // Calculate SNR from filtered values
+   
+   // Store processed values
+   if ( filtered_dbm < 500 && filtered_dbm > -500 )
+      g_UplinkInfoRxStats[iRadioInterface].lastReceivedDBM = (int)filtered_dbm;
+   
+   if ( filtered_dbm_noise < 500 && filtered_dbm_noise > -500 )
+      g_UplinkInfoRxStats[iRadioInterface].lastReceivedDBMNoise = (int)filtered_dbm_noise;
 
-   if ( pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iSNRLast < 500 )
-   if ( pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iSNRLast > -500 )
-      g_UplinkInfoRxStats[iRadioInterface].lastReceivedSNR = pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iSNRLast;
+   if ( filtered_snr < 500 && filtered_snr > -500 )
+      g_UplinkInfoRxStats[iRadioInterface].lastReceivedSNR = (int)filtered_snr;
 
    g_UplinkInfoRxStats[iRadioInterface].lastReceivedDataRate = pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nDataRateBPSMCS;
 

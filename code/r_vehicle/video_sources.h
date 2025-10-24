@@ -3,6 +3,7 @@
 #include "../base/models.h"
 #include "video_source_csi.h"
 #include "video_source_majestic.h"
+#include "video_source_wifi_direct.h"
 
 void video_sources_start_capture();
 void video_sources_stop_capture();

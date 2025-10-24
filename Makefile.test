@@ -1,0 +1,32 @@
+# RubALink Test Makefile
+CC = gcc
+CFLAGS = -Wall -O2 -I. -Icode/r_vehicle -Icode/r_central -Icode/base
+LDFLAGS = -lm
+
+# Test program
+test_rubalink: test_rubalink.c \
+	code/r_vehicle/rubalink_integration.o \
+	code/r_vehicle/rubalink_seamless_integration.o \
+	code/r_vehicle/dynamic_rssi_thresholds.o \
+	code/r_vehicle/qp_delta_config.o \
+	code/r_vehicle/advanced_signal_processing.o \
+	code/r_vehicle/independent_signal_sampling.o \
+	code/r_vehicle/enhanced_cooldown_control.o \
+	code/r_vehicle/racing_mode_enhancements.o \
+	code/base/robust_command_execution.o
+	$(CC) $(CFLAGS) -o test_rubalink test_rubalink.c \
+		code/r_vehicle/rubalink_integration.o \
+		code/r_vehicle/rubalink_seamless_integration.o \
+		code/r_vehicle/dynamic_rssi_thresholds.o \
+		code/r_vehicle/qp_delta_config.o \
+		code/r_vehicle/advanced_signal_processing.o \
+		code/r_vehicle/independent_signal_sampling.o \
+		code/r_vehicle/enhanced_cooldown_control.o \
+		code/r_vehicle/racing_mode_enhancements.o \
+		code/base/robust_command_execution.o \
+		$(LDFLAGS)
+
+clean:
+	rm -f test_rubalink
+
+.PHONY: clean

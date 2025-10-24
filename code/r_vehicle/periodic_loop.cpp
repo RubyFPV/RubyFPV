@@ -56,6 +56,7 @@
 #include "process_cam_params.h"
 #include "launchers_vehicle.h"
 #include "video_source_csi.h"
+#include "video_source_wifi_direct.h"
 #include "adaptive_video.h"
 #include "negociate_radio.h"
 
@@ -898,6 +899,12 @@ int periodicLoop()
    process_camera_periodic_loop();
 
    _periodic_update_radio_stats();
+   
+   // Update WiFi Direct stats if enabled
+   if (video_source_wifi_direct_is_started()) {
+      video_source_wifi_direct_update_stats();
+   }
+   
    negociate_radio_periodic_loop();
 
    //_periodic_loop_check_ping();

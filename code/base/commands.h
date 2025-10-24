@@ -168,6 +168,8 @@ typedef struct
 
 #define COMMAND_ID_SET_AUDIO_PARAMS 73  // (added v.4.4) an audio_parameters_t struct
 
+#define COMMAND_ID_SET_WIFI_DIRECT_PARAMS 74  // type_wifi_direct_parameters struct
+
 #define COMMAND_ID_SET_RXTX_SYNC_TYPE 80 // param is rxtx sync type enum (0..2)
 
 #define COMMAND_ID_RESET_CPU_SPEED 81 // (added v5.0)

@@ -1401,6 +1401,12 @@ void osd_show_signal_bars()
 
    float dbmMin = -90;
    float dbmMax = -50;
+   
+   // Ensure dbmMax is always greater than dbmMin to prevent divide by zero
+   if (dbmMax <= dbmMin) {
+       dbmMax = dbmMin + 1.0f;  // Force at least 1dB difference
+   }
+   
    float xTextLeft = xPos + g_SM_RadioStats.countLocalRadioInterfaces * fBarHeight*1.2 + fBarHeight*0.3;
    float xTextRight = xPos - g_SM_RadioStats.countLocalRadioInterfaces * fBarHeight*1.2 - fBarHeight*0.1;
 
@@ -1411,7 +1417,17 @@ void osd_show_signal_bars()
          cardIndex = hardware_get_radio_interfaces_count()-i-1;
  
       radio_hw_info_t* pNICInfo = hardware_get_radio_info(cardIndex);
-      float fPercent = (g_fOSDDbm[cardIndex]-dbmMin)/(dbmMax - dbmMin);
+      
+      // Calculate percentage with bounds checking
+      float fPercent;
+      if (dbmMax == dbmMin) {
+          // Fallback: if somehow they're still equal, use default 50%
+          fPercent = 0.5f;
+      } else {
+          fPercent = (g_fOSDDbm[cardIndex]-dbmMin)/(dbmMax - dbmMin);
+      }
+      
+      // Clamp to valid range (0-1)
       if ( fPercent < 0.0f ) fPercent = 0.0f;
       if ( fPercent > 1.0f ) fPercent = 1.0f;
 

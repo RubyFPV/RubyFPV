@@ -213,7 +213,7 @@ void* _thread_video_recording(void *argument)
    int iOpenFlags = O_CREAT | O_WRONLY;
    //if ( RUBY_PIPES_EXTRA_FLAGS & O_NONBLOCK )
    //   iOpenFlags |= O_NONBLOCK;
-   s_iFileVideoRecordingOutput = open(s_szFileRecordingOutput, iOpenFlags);
+   s_iFileVideoRecordingOutput = open(s_szFileRecordingOutput, iOpenFlags, 0644);
    if ( -1 == s_iFileVideoRecordingOutput )
    {
       close(s_iPipeRecordingThreadRead);
@@ -550,7 +550,7 @@ void rx_video_recording_start()
    while ( iRetries > 0 )
    {
       iRetries--;
-      s_iPipeRecordingThreadRead = open(FIFO_RUBY_STATION_VIDEO_STREAM_RECORDING, O_CREAT | O_RDONLY | O_NONBLOCK);
+      s_iPipeRecordingThreadRead = open(FIFO_RUBY_STATION_VIDEO_STREAM_RECORDING, O_CREAT | O_RDONLY | O_NONBLOCK, 0644);
       if ( s_iPipeRecordingThreadRead > 0 )
          break;
       log_line("[VideoRecording] Failed to open video recording pipe read endpoint: %s, error code (%d): [%s]",
@@ -574,7 +574,7 @@ void rx_video_recording_start()
    while ( iRetries > 0 )
    {
       iRetries--;
-      s_iPipeRecordingThreadWrite = open(FIFO_RUBY_STATION_VIDEO_STREAM_RECORDING, O_CREAT | O_WRONLY | O_NONBLOCK);
+      s_iPipeRecordingThreadWrite = open(FIFO_RUBY_STATION_VIDEO_STREAM_RECORDING, O_CREAT | O_WRONLY | O_NONBLOCK, 0644);
       if ( s_iPipeRecordingThreadWrite > 0 )
          break;
       log_line("[VideoRecording] Failed to open video recording pipe write endpoint: %s, error code (%d): [%s]",

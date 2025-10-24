@@ -18,7 +18,7 @@ class MenuVehicle: public Menu
       void addTopDescription();
 
       int m_IndexGeneral;
-      int m_IndexCamera, m_IndexVideo, m_IndexAudio;
+      int m_IndexCamera, m_IndexVideo, m_IndexWiFiDirect, m_IndexAudio;
       int m_IndexRC;
       int m_IndexOSD;
       int m_IndexTelemetry;

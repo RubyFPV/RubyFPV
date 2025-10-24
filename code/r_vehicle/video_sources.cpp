@@ -55,6 +55,7 @@
 #include "adaptive_video.h"
 #include "video_source_csi.h"
 #include "video_source_majestic.h"
+#include "video_source_wifi_direct.h"
 #include "negociate_radio.h"
 #include "packets_utils.h"
 
@@ -80,6 +81,35 @@ void video_sources_start_capture()
    log_line("[VideoSources] Current camera type: %s", str_get_hardware_camera_type_string(g_pCurrentModel->getActiveCameraType()));
    u32 uInitialVideoBitrate = 0;
    int iInitialKeyframeMs = 0;
+   
+   // Check if WiFi Direct is enabled as an additional video source
+   bool bWiFiDirectEnabled = false;
+   wifi_direct_config_t wifiConfig;
+   memset(&wifiConfig, 0, sizeof(wifiConfig));
+   
+   // Load WiFi Direct config from model settings
+   if (g_pCurrentModel->wifi_direct_params.uFlags & WIFI_DIRECT_FLAG_ENABLED) {
+      wifiConfig.enabled = true;
+      strcpy(wifiConfig.vtx_ip, g_pCurrentModel->wifi_direct_params.szVTXIP);
+      wifiConfig.udp_port = g_pCurrentModel->wifi_direct_params.iPort;
+      wifiConfig.is_multicast = (g_pCurrentModel->wifi_direct_params.uFlags & WIFI_DIRECT_FLAG_MULTICAST) ? true : false;
+      strcpy(wifiConfig.multicast_group, "239.255.0.1"); // Default multicast group
+   } else {
+      wifiConfig.enabled = false;
+   }
+   
+   if (wifiConfig.enabled) {
+      log_line("[VideoSources] WiFi Direct video source is enabled");
+      video_source_wifi_direct_set_config(&wifiConfig);
+      if (video_source_wifi_direct_start()) {
+         bWiFiDirectEnabled = true;
+         log_line("[VideoSources] WiFi Direct video source started successfully");
+      } else {
+         log_softerror_and_alarm("[VideoSources] Failed to start WiFi Direct video source");
+      }
+   }
+   
+   // Start regular camera sources
    if ( g_pCurrentModel->isActiveCameraCSICompatible() || g_pCurrentModel->isActiveCameraVeye() )
       uInitialVideoBitrate = video_source_csi_start_program(s_uLastSetVideoBitrateBPS, s_iLastSetVideoKeyframeMs, &iInitialKeyframeMs);
    if ( g_pCurrentModel->isActiveCameraOpenIPC() )
@@ -94,6 +124,12 @@ void video_sources_start_capture()
 void video_sources_stop_capture()
 {
    log_line("[VideoSources] Stop capture begin...");
+
+   // Stop WiFi Direct if running
+   if (video_source_wifi_direct_is_started()) {
+      log_line("[VideoSources] Stopping WiFi Direct video source");
+      video_source_wifi_direct_stop();
+   }
 
    if ( (NULL == g_pCurrentModel) || (! g_pCurrentModel->hasCamera()) )
    {
@@ -133,6 +169,32 @@ bool video_sources_read_process_stream(bool* pbEndOfFrameDetected, int iHasPendi
 {
    if ( NULL != pbEndOfFrameDetected )
       *pbEndOfFrameDetected = false;
+   
+   // Check WiFi Direct video source first (if enabled)
+   if (video_source_wifi_direct_is_started() && video_source_wifi_direct_has_data()) {
+      static u8 wifiDirectBuffer[4096];  // Buffer for WiFi Direct data
+      int iWiFiReadSize = video_source_wifi_direct_read(wifiDirectBuffer, sizeof(wifiDirectBuffer));
+      
+      if (iWiFiReadSize > 0) {
+         s_uLastVideoSourcesStreamData = g_TimeNow;
+         s_uTotalVideoSourceReadBytes += iWiFiReadSize;
+         
+         // Process WiFi Direct video data
+         // Assume it's already packetized H.264 stream
+         bool bIsEndOfFrame = false;  // TODO: Implement frame boundary detection
+         
+         if ( NULL != g_pVideoTxBuffers )
+            g_pVideoTxBuffers->fillVideoPacketsFromCSI(wifiDirectBuffer, iWiFiReadSize, bIsEndOfFrame, iHasPendingDataPacketsToSend);
+         
+         if ( NULL != pbEndOfFrameDetected )
+            *pbEndOfFrameDetected = bIsEndOfFrame;
+         
+         // Return true to indicate we processed data
+         // Continue to also check regular camera sources
+         return true;
+      }
+   }
+   
    if ( ! g_pCurrentModel->hasCamera() )
       return false;
 

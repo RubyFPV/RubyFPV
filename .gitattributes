@@ -1,0 +1,45 @@
+# RubyFPV Git Attributes
+# ======================
+
+# Text files
+*.c text
+*.cpp text
+*.h text
+*.hpp text
+*.md text
+*.txt text
+*.cfg text
+*.conf text
+*.ini text
+*.sh text
+*.bat text
+Makefile text
+
+# Binary files
+*.o binary
+*.obj binary
+*.exe binary
+*.dll binary
+*.so binary
+*.a binary
+*.lib binary
+*.img binary
+*.img.xz binary
+
+# Scripts (make executable)
+*.sh text eol=lf
+*.bat text eol=crlf
+
+# Documentation
+*.md text
+README* text
+LICENSE text
+
+# Configuration files
+*.cfg text
+*.conf text
+*.ini text
+
+# Build files
+Makefile text
+*.mk text

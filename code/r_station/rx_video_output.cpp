@@ -511,7 +511,7 @@ void _rx_video_output_open_pipe_to_streamer()
    {
       iRetries--;
       //s_fPipeVideoOutToStreamer = open(FIFO_RUBY_STATION_VIDEO_STREAM_DISPLAY, O_CREAT | O_WRONLY | O_NONBLOCK);
-      s_fPipeVideoOutToStreamer = open(FIFO_RUBY_STATION_VIDEO_STREAM_DISPLAY, O_CREAT | O_WRONLY);
+      s_fPipeVideoOutToStreamer = open(FIFO_RUBY_STATION_VIDEO_STREAM_DISPLAY, O_CREAT | O_WRONLY, 0644);
       if ( s_fPipeVideoOutToStreamer < 0 )
       {
          log_error_and_alarm("[VideoOutput] Failed to open video output pipe to streamer write endpoint: %s, error code (%d): [%s]",

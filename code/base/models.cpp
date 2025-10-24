@@ -183,6 +183,21 @@ Model::Model(void)
       camera_params[i].profiles[k].fovH = 0;
    }
 
+   // Initialize WiFi Direct parameters
+   memset((u8*)&wifi_direct_params, 0, sizeof(type_wifi_direct_parameters));
+   wifi_direct_params.uFlags = 0; // Disabled by default
+   wifi_direct_params.iMode = 0; // None
+   strcpy(wifi_direct_params.szSSID, "RubyFPV_Direct");
+   strcpy(wifi_direct_params.szPassword, "rubyfpv123");
+   wifi_direct_params.iChannel = 6;
+   strcpy(wifi_direct_params.szIPAddress, "192.168.42.1");
+   strcpy(wifi_direct_params.szNetmask, "255.255.255.0");
+   wifi_direct_params.iDHCPEnabled = 1;
+   strcpy(wifi_direct_params.szDHCPStart, "192.168.42.100");
+   strcpy(wifi_direct_params.szDHCPEnd, "192.168.42.200");
+   wifi_direct_params.iPort = 5600;
+   strcpy(wifi_direct_params.szVTXIP, "192.168.42.1");
+
    memset((u8*)&osd_params, 0, sizeof(osd_parameters_t));
    osd_params.voltage_alarm = 0;
    memset((u8*)&rc_params, 0, sizeof(rc_parameters_t));
