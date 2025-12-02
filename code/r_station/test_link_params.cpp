@@ -33,6 +33,7 @@
 #include "test_link_params.h"
 #include "../base/ruby_ipc.h"
 #include "../base/models_list.h"
+#include "../base/hardware_procs.h"
 #include "../base/radio_utils.h"
 #include "../radio/radiopackets2.h"
 #include "../radio/radiopacketsqueue.h"
@@ -269,6 +270,7 @@ void _test_link_reopen_interfaces()
 static void * _thread_test_link_worker_apply(void *argument)
 {
    log_line("[TestLink-%d] Started worker thread to update radio interfaces for vehicle radio link %d.", s_iTestLinkRunCount, s_iTestLinkIndex+1);
+   hw_log_current_thread_attributes("test link apply");
    char szPrefix[32];
    sprintf(szPrefix, "[TestLink-%d]", s_iTestLinkRunCount);
    g_pCurrentModel->logVehicleRadioLinkDifferences(szPrefix, &s_RadioLinksParamsOriginal, &s_RadioLinksParamsToTest);
@@ -283,6 +285,7 @@ static void * _thread_test_link_worker_apply(void *argument)
 static void * _thread_test_link_worker_revert(void *argument)
 {
    log_line("[TestLink-%d] Started worker thread to revert radio interfaces for vehicle radio link %d.", s_iTestLinkRunCount, s_iTestLinkIndex+1);
+   hw_log_current_thread_attributes("test link revert");
    char szPrefix[32];
    sprintf(szPrefix, "[TestLink-%d]", s_iTestLinkRunCount);
    g_pCurrentModel->logVehicleRadioLinkDifferences(szPrefix, &s_RadioLinksParamsToTest, &s_RadioLinksParamsOriginal);

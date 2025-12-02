@@ -131,9 +131,9 @@ void MenuVehicleTelemetry::addItems()
    m_IndexVSerialPort = addMenuItem(m_pItemsSelect[1]);
 
    m_pItemsSelect[2] = new MenuItemSelect(L("Vehicle Serial Baudrate"), L("Sets the baud rate between flight controller and Ruby on the vehicle side. Should match the serial speed that the flight controller generates. Higher is better."));
-   for( int i=0; i<hardware_get_serial_baud_rates_count(); i++ )
+   for( int i=0; i<hardware_serial_get_baud_rates_count(); i++ )
    {
-      sprintf(szBuff, "%d bps", hardware_get_serial_baud_rates()[i]);
+      sprintf(szBuff, "%d bps", hardware_serial_get_baud_rates()[i]);
       m_pItemsSelect[2]->addSelection(szBuff);
    }
    m_pItemsSelect[2]->setIsEditable();
@@ -287,7 +287,7 @@ void MenuVehicleTelemetry::valuesToUI()
    }
 
    if ( -1 != m_IndexRUpdateRate )
-      m_pItemsSlider[0]->setCurrentValue(g_pCurrentModel->telemetry_params.update_rate);
+      m_pItemsSlider[0]->setCurrentValue(g_pCurrentModel->telemetry_params.iUpdateRateHz);
 
    m_pItemsSelect[0]->setSelection(0);
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_NONE )
@@ -334,7 +334,7 @@ void MenuVehicleTelemetry::valuesToUI()
       bool bSpeedFound = false;
       for(int i=0; i<m_pItemsSelect[2]->getSelectionsCount(); i++ )
       {
-         if ( hardware_get_serial_baud_rates()[i] == (int)uCurrentSerialPortSpeed )
+         if ( hardware_serial_get_baud_rates()[i] == (int)uCurrentSerialPortSpeed )
          {
             m_pItemsSelect[2]->setSelection(i);
             bSpeedFound = true;
@@ -611,8 +611,8 @@ void MenuVehicleTelemetry::onSelectItem()
       telemetry_parameters_t params;
       memcpy(&params, &g_pCurrentModel->telemetry_params, sizeof(telemetry_parameters_t));
       
-      params.update_rate = m_pItemsSlider[0]->getCurrentValue();
-      if ( params.update_rate == g_pCurrentModel->telemetry_params.update_rate )
+      params.iUpdateRateHz = m_pItemsSlider[0]->getCurrentValue();
+      if ( params.iUpdateRateHz == g_pCurrentModel->telemetry_params.iUpdateRateHz )
          return;
   
       if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_TELEMETRY_PARAMETERS, 0, (u8*)&params, sizeof(telemetry_parameters_t)) )
@@ -689,7 +689,7 @@ void MenuVehicleTelemetry::onSelectItem()
       if ( -1 == iCurrentSerialPortIndexForTelemetry )
          return;
 
-      long val = hardware_get_serial_baud_rates()[m_pItemsSelect[2]->getSelectedIndex()];
+      long val = hardware_serial_get_baud_rates()[m_pItemsSelect[2]->getSelectedIndex()];
       if ( val == g_pCurrentModel->hardwareInterfacesInfo.serial_port_speed[iCurrentSerialPortIndexForTelemetry] )
          return;
 

@@ -99,8 +99,8 @@ void MenuRoot::addItems()
       m_iIndexSimpleSetup = addMenuItem(new MenuItem(L("Quick vehicle setup"), L("Quickly change the most common vehicle settings.")));
    else
       m_iIndexSimpleSetup = addMenuItem(new MenuItem(L("Vehicle Settings"), L("Change current vehicle settings.")));
-   m_iIndexSearch = addMenuItem(new MenuItem(L("Search"), L("Search for vehicles.")));
    m_iIndexMyVehicles = addMenuItem(new MenuItem(L("My vehicles"), L("Manage my vehicles.")));
+   m_iIndexSearch = addMenuItem(new MenuItem(L("Search"), L("Search for vehicles.")));
    addSeparator();
    //m_iIndexSpectator = addMenuItem(new MenuItem("Spectator Vehicles", "See the list of vehicles you recently connected to as a spectator."));
 
@@ -117,7 +117,7 @@ void MenuRoot::addItems()
    char szBuff[256];
    char szBuff2[64];
    getSystemVersionString(szBuff2, (SYSTEM_SW_VERSION_MAJOR<<8) | SYSTEM_SW_VERSION_MINOR);
-   sprintf(szBuff, "Version %s (b.%d)", szBuff2, SYSTEM_SW_BUILD_NUMBER);
+   sprintf(szBuff, "Version %s (b-%d)", szBuff2, SYSTEM_SW_BUILD_NUMBER);
 
    addMenuItem(new MenuItemText(szBuff, true, 0.01 * Menu::getScaleFactor()));
    sprintf(szBuff, "Running on: %s", str_get_hardware_board_name_short(hardware_getBoardType()));
@@ -179,7 +179,6 @@ void MenuRoot::RenderVehicleInfo()
       if ( (NULL != g_pCurrentModel) && link_is_vehicle_online_now(g_pCurrentModel->uVehicleId) )
       {
          sprintf(szLine1, L("Connected to %s"), g_pCurrentModel->getLongName() );
-         //sprintf(szBuff, "Running ver %d.%d", ((g_pCurrentModel->sw_version>>8) & 0xFF), (g_pCurrentModel->sw_version & 0xFF));
          height += g_pRenderEngine->textHeight(g_idFontMenuSmall);
          height += g_pRenderEngine->textHeight(g_idFontMenuSmall);
       }

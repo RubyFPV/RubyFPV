@@ -298,7 +298,7 @@ bool _check_add_fc_message(char* szMessage)
    return true;
 }
 
-void _process_mav_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_ruby_telemetry_extended_v5* pPHRTE, u8 vehicleType)
+void _process_mav_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_ruby_telemetry_extended_v6* pPHRTE, u8 vehicleType)
 {
    char szBuff[512];
    u32 tmp32;
@@ -712,7 +712,7 @@ void _process_mav_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_
    }
 }
 
-bool parse_telemetry_from_fc( u8* buffer, int length, t_packet_header_fc_telemetry* pphfct, t_packet_header_ruby_telemetry_extended_v5* pPHRTE, u8 vehicleType, int telemetry_type )
+bool parse_telemetry_from_fc( u8* buffer, int length, t_packet_header_fc_telemetry* pphfct, t_packet_header_ruby_telemetry_extended_v6* pPHRTE, u8 vehicleType, int telemetry_type )
 {
    if ( telemetry_type == TELEMETRY_TYPE_LTM )
       return parse_telemetry_from_fc_ltm(buffer, length, pphfct, pPHRTE, vehicleType);

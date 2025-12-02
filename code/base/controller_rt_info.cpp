@@ -39,6 +39,52 @@
 #include "hardware_radio.h"
 
 
+
+controller_debug_runtime_info* controller_debug_rt_info_open_for_read()
+{
+   void *retVal = open_shared_mem_for_read(SHARED_MEM_CONTROLLER_DEBUG_RUNTIME_INFO, sizeof(controller_debug_runtime_info));
+   return (controller_debug_runtime_info*)retVal;
+}
+
+controller_debug_runtime_info* controller_debug_rt_info_open_for_write()
+{
+   void *retVal = open_shared_mem_for_write(SHARED_MEM_CONTROLLER_DEBUG_RUNTIME_INFO, sizeof(controller_debug_runtime_info));
+   controller_debug_runtime_info* pRTInfo = (controller_debug_runtime_info*)retVal;
+   controller_debug_rt_info_init(pRTInfo);
+   return pRTInfo;
+}
+
+void controller_debug_rt_info_close(controller_debug_runtime_info* pAddress)
+{
+   if ( NULL != pAddress )
+      munmap(pAddress, sizeof(controller_debug_runtime_info));
+   //shm_unlink(szName);
+}
+
+
+void controller_debug_rt_info_init(controller_debug_runtime_info* pCDebugRTInfo)
+{
+   if ( NULL == pCDebugRTInfo )
+      return;
+
+   log_line("controller_debug_runtime_info total size: %d", sizeof(controller_debug_runtime_info));
+   memset(pCDebugRTInfo, 0, sizeof(controller_debug_runtime_info));
+
+   pCDebugRTInfo->iCurrentFrameBufferIndex =0;
+}
+
+void controller_debug_rt_info_advance_frame(controller_debug_runtime_info* pCDebugRTInfo)
+{
+   if ( NULL == pCDebugRTInfo )
+      return;
+
+   pCDebugRTInfo->iCurrentFrameBufferIndex = (pCDebugRTInfo->iCurrentFrameBufferIndex+1) % SYSTEM_RT_INFO_INTERVALS_FRAMES;
+
+   pCDebugRTInfo->uOutputedFramesSizes[pCDebugRTInfo->iCurrentFrameBufferIndex] = 0;
+   pCDebugRTInfo->uVideoFramesProcessingTimes[pCDebugRTInfo->iCurrentFrameBufferIndex] = 0;
+}
+
+
 controller_runtime_info* controller_rt_info_open_for_read()
 {
    void *retVal = open_shared_mem_for_read(SHARED_MEM_CONTROLLER_RUNTIME_INFO, sizeof(controller_runtime_info));
@@ -66,7 +112,6 @@ void _controller_runtime_info_reset_slice_signal_info(controller_runtime_info* p
       return;
    for( int k=0; k<MAX_RADIO_INTERFACES; k++ )
    {
-      reset_runtime_radio_rx_signal_info(&(pCRTInfo->radioInterfacesSignalInfoAll[iSliceIndex][k]));
       reset_runtime_radio_rx_signal_info(&(pCRTInfo->radioInterfacesSignalInfoVideo[iSliceIndex][k]));
       reset_runtime_radio_rx_signal_info(&(pCRTInfo->radioInterfacesSignalInfoData[iSliceIndex][k]));
    }
@@ -78,7 +123,7 @@ void controller_rt_info_init(controller_runtime_info* pCRTInfo)
       return;
 
    log_line("controller_runtime_info total size: %d", sizeof(controller_runtime_info));
-   log_line("controller_runtime_info dbm size: %d", sizeof(pCRTInfo->radioInterfacesSignalInfoAll));
+   log_line("controller_runtime_info dbm size: %d", sizeof(pCRTInfo->radioInterfacesSignalInfoVideo));
    memset(pCRTInfo, 0, sizeof(controller_runtime_info));
    
    pCRTInfo->uUpdateIntervalMs = SYSTEM_RT_INFO_UPDATE_INTERVAL_MS;
@@ -133,7 +178,7 @@ controller_runtime_info_vehicle* controller_rt_info_get_vehicle_info(controller_
    return NULL;
 }
 
-void controller_rt_info_update_ack_rt_time(controller_runtime_info* pRTInfo, u32 uVehicleId, int iRadioLink, u32 uRoundTripTime)
+void controller_rt_info_update_ack_rt_time(controller_runtime_info* pRTInfo, u32 uVehicleId, int iRadioLink, u32 uRoundTripTime, u8 uAckType)
 {
    if ( (NULL == pRTInfo) || (0 == uVehicleId) || (MAX_U32 == uVehicleId) )
       return;
@@ -146,9 +191,10 @@ void controller_rt_info_update_ack_rt_time(controller_runtime_info* pRTInfo, u32
 
 
    pRTInfoVehicle->iAckTimeIndex[iRadioLink]++;
-   if ( pRTInfoVehicle->iAckTimeIndex[iRadioLink] >= SYSTEM_RT_INFO_INTERVALS/4 )
+   if ( pRTInfoVehicle->iAckTimeIndex[iRadioLink] >= SYSTEM_RT_INFO_INTERVALS/2 )
       pRTInfoVehicle->iAckTimeIndex[iRadioLink] = 0;
    pRTInfoVehicle->uAckTimes[pRTInfoVehicle->iAckTimeIndex[iRadioLink]][iRadioLink] = uRoundTripTime;
+   pRTInfoVehicle->uAckTypes[pRTInfoVehicle->iAckTimeIndex[iRadioLink]][iRadioLink] = uAckType;
 
    if ( 0 == pRTInfoVehicle->uMinAckTime[pRTInfo->iCurrentIndex][iRadioLink] )
       pRTInfoVehicle->uMinAckTime[pRTInfo->iCurrentIndex][iRadioLink] = (u8)uRoundTripTime;
@@ -169,7 +215,7 @@ int controller_rt_info_will_advance_index(controller_runtime_info* pRTInfo, u32 
    return 1;
 }
 
-int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, u32 uTimeNowMs)
+int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, controller_debug_runtime_info* pDebugRTInfo, u32 uTimeNowMs)
 {
    if ( ! controller_rt_info_will_advance_index(pRTInfo, uTimeNowMs) )
       return 0;
@@ -302,9 +348,7 @@ int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, u32
    pRTInfo->uTxPackets[iIndex] = 0;
    pRTInfo->uTxHighPriorityPackets[iIndex] = 0;
 
-   pRTInfo->uRecvVideoDataPackets[iIndex] = 0;
-   pRTInfo->uRecvVideoECPackets[iIndex] = 0;
-   pRTInfo->uOutputFramesInfo[iIndex] = 0;
+   pDebugRTInfo->uOutputFramesInfo[iIndex] = 0;
  
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
    {
@@ -334,10 +378,8 @@ int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, u32
 
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
    {
-      pRTInfo->iRecvVideoDataRate[iIndex][i] = 0;
-      pRTInfo->uDbmChangeSpeed[iIndex][i] = 0;
+      pDebugRTInfo->iRecvVideoDataRate[iIndex][i] = 0;
    }
-   pRTInfo->uRadioLinkQuality[iIndex] = 0;
 
    pRTInfo->uFlagsAdaptiveVideo[iIndex] = 0;
    _controller_runtime_info_reset_slice_signal_info(pRTInfo, iIndex);

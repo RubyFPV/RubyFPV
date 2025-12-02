@@ -13,7 +13,8 @@ void rx_video_output_stop_video_streamer();
 void rx_video_output_enable_local_player_udp_output();
 void rx_video_output_disable_local_player_udp_output();
 
-void rx_video_output_video_data(u32 uVehicleId, u8 uVideoStreamType, int width, int height, u8* pBuffer, int video_data_length, int packet_length);
+void rx_video_output_discard_cached_data();
+void rx_video_output_video_data(u32 uVehicleId, t_packet_header_video_segment* pPHVS, int width, int height, u8* pBuffer, int video_data_length, int packet_length, bool bWaitFullFrame);
 void rx_video_output_on_controller_settings_changed();
 void rx_video_output_on_changed_video_params(video_parameters_t* pOldVideoParams, type_video_link_profile* pOldVideoProfiles, video_parameters_t* pNewVideoParams, type_video_link_profile* pNewVideoProfiles);
 

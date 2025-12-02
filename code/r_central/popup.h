@@ -108,6 +108,7 @@ class Popup
 };
 
 void popups_add(Popup* p);
+void popups_add_bottom(Popup* p);
 void popups_add_topmost(Popup* p);
 bool popups_has_popup(Popup* p);
 
@@ -115,6 +116,7 @@ void popups_remove(Popup* p);
 void popups_remove_all(Popup* pExceptionPopup = NULL);
 void popups_render();
 void popups_render_topmost();
+void popups_render_bottom();
 void popups_invalidate_all();
 
 int popups_get_count();

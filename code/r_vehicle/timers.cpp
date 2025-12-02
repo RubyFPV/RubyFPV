@@ -39,8 +39,6 @@ u32 g_TimeLastPacketsOutPerSecCalculation = 0;
 u32 g_TimeLastVideoCaptureProgramStartCheck = 0;
 u32 g_TimeLastVideoCaptureProgramRunningCheck = 0;
 
-type_radio_tx_timers g_RadioTxTimers;
-
 u32 g_TimeLastOverwriteBitrateDownOnTxOverload = 0;
 u32 g_TimeLastOverwriteBitrateUpOnTxOverload = 0;
 u32 g_TimeLastVideoProfileChanged = 0;
@@ -49,9 +47,8 @@ u32 g_TimeLastSetRadioFlagsCommandReceived = 0;
 u32 g_TimeLastHistoryTxComputation = 0;
 u32 g_TimeLastTxPacket = 0;
 u32 g_TimeLastVideoPacketIn = 0;
-u32 g_TimeLastNotificationRelayParamsChanged = 0;
 
-u32 g_uTimeLastCommandSowftwareUpload = 0;
+u32 g_uTimeLastCommandSoftwareUpload = 0;
 
 u32 g_uTimeLastVideoTxOverload = 0;
 

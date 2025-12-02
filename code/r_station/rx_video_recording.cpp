@@ -85,13 +85,13 @@ int s_iRecordingHeight = 0;
 int s_iRecordingFPS = 0;
 int s_iRecordingType = 0;
 
-u8 s_uTempRecordingBuffer[32000];
+u8 s_uTempRecordingBuffer[64000];
 int s_iTempRecordingBufferFilledInBytes = 0;
 
 u32 s_uRecordingStreamCurrentParsedToken = 0x11111111;
 u32 s_uRecordingStreamPrevParsedToken = 0x11111111;
 bool s_bRecordingFoundStartOfFirstNAL = false;
-
+bool s_bRecordingThreadReadyForData = false;
 
 void _recording_send_status_to_central(u8 uStatus, u8 uErrorLevel, const char* szError)
 {
@@ -135,14 +135,44 @@ void _recording_send_status_to_central(u8 uStatus, u8 uErrorLevel, const char* s
       log_line("Sent recording status %d to central.", uStatus);
 }
 
+bool _recording_write_info_file(u32 uDurrationMs)
+{
+   char szFile[MAX_FILE_PATH_SIZE];
+   strcpy(szFile, FOLDER_RUBY_TEMP);
+   strcat(szFile, FILE_TEMP_VIDEO_FILE_INFO);
+   log_line("[VideoRecording-Th] Writing video info file %s ...", szFile);
+   FILE* fd = fopen(szFile, "w");
+   if ( NULL == fd )
+   {
+      system("sudo mount -o remount,rw /");
+      char szTmp[MAX_FILE_PATH_SIZE];
+      sprintf(szTmp, "rm -rf %s%s", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_INFO);
+      hw_execute_bash_command(szTmp, NULL);
+      fd = fopen(szFile, "w");
+   }
+
+   if ( NULL == fd )
+   {
+      log_softerror_and_alarm("[VideoRecording-Th] Failed to create video info file %s", szFile);
+      return false;
+   }
+   
+   fprintf(fd, "%s\n", s_szFileRecordingOutput);
+   fprintf(fd, "%d %d\n", s_iRecordingFPS, (int)(uDurrationMs/1000));
+   fprintf(fd, "%d %d\n", s_iRecordingWidth, s_iRecordingHeight);
+   fprintf(fd, "%d\n", s_iRecordingType);
+   fclose(fd);
+
+   log_line("[VideoRecording-Th] Created video info file %s, for raw stream: (%s) resolution: %d x %d, %d fps, video type: %d",
+      szFile, s_szFileRecordingOutput, s_iRecordingWidth, s_iRecordingHeight, s_iRecordingFPS, s_iRecordingType);
+   return true;
+}
+
 void _recording_cleanp_temp_recording_data()
 {
-   char szComm[256];
+   char szComm[512];
 
    s_uRecordingFileSize = 0;
-   s_uRecordingStreamCurrentParsedToken = 0x11111111;
-   s_uRecordingStreamPrevParsedToken = 0x11111111;
-   s_bRecordingFoundStartOfFirstNAL = false;
 
    if ( 0 != s_szFileRecordingOutput[0] )
    {
@@ -156,11 +186,17 @@ void _recording_cleanp_temp_recording_data()
       hw_execute_bash_command_silent(szComm, NULL);
       s_bIsRecordingToRAM = false;
    }
+
+   sprintf(szComm, "rm -rf %s%s 2>/dev/null", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_INFO);
+   hw_execute_bash_command(szComm, NULL );
 }
 
 void* _thread_video_recording(void *argument)
 {
    log_line("[VideoRecording-Th] Thread to record started.");
+   hw_log_current_thread_attributes("video recording");
+
+   s_bRecordingThreadReadyForData = false;
 
    char szComm[512];
    sprintf(szComm, "mkdir -p %s",FOLDER_MEDIA);
@@ -209,6 +245,10 @@ void* _thread_video_recording(void *argument)
    }
 
    log_line("[VideoRecording-Th] Recording to output file: (%s)", s_szFileRecordingOutput);
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "touch %s", s_szFileRecordingOutput);
+   hw_execute_bash_command(szComm, NULL);
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s", s_szFileRecordingOutput);
+   hw_execute_bash_command(szComm, NULL);
 
    int iOpenFlags = O_CREAT | O_WRONLY;
    //if ( RUBY_PIPES_EXTRA_FLAGS & O_NONBLOCK )
@@ -226,6 +266,8 @@ void* _thread_video_recording(void *argument)
       _recording_send_status_to_central(0, 0, NULL);
       s_bIsRecording = false;
       s_bRequestedStopRecording = false;
+
+      log_line("[VideoRecording-Th] Exit due to error creating recording file [%s]", s_szFileRecordingOutput);
       return NULL;
    }
 
@@ -242,14 +284,19 @@ void* _thread_video_recording(void *argument)
    s_bRecordingFoundStartOfFirstNAL = false;
 
    fd_set fdSet;
-   u8 uRecBuffer[32000];
+   u8 uRecBuffer[64000];
    u32 uTimeLastVideoMemoryFreeCheck = get_current_timestamp_ms();
+   u32 uTimeLastInfoFileWrite = 0;
+   bool bFirstWrite = true;
+   s_bRecordingThreadReadyForData = true;
+
+   log_line("[VideoRecording-Th] Started waiting for data...");
 
    while ( (! g_bQuit) && (! s_bRequestedStopRecording) )
    {
+      u32 uTimeNow = get_current_timestamp_ms();
       if ( s_bIsRecordingToRAM )
       {
-         u32 uTimeNow = get_current_timestamp_ms();
          if ( uTimeNow > uTimeLastVideoMemoryFreeCheck + 4000 )
          {
             uTimeLastVideoMemoryFreeCheck = uTimeNow;
@@ -263,9 +310,17 @@ void* _thread_video_recording(void *argument)
             if ( lf/1000 < 20 )
             {
                _recording_send_status_to_central(0xFF, 1, "Video recording RAM cache is full. Stopping recording...");
+               s_bRecordingThreadReadyForData = false;
                break;
             }
          }
+      }
+
+      if ( uTimeNow > uTimeLastInfoFileWrite + 4000 )
+      {
+         uTimeLastInfoFileWrite = uTimeNow;
+         if ( 0 != s_TimeStartRecording )
+            _recording_write_info_file(uTimeNow - s_TimeStartRecording);
       }
 
       FD_ZERO(&fdSet);
@@ -307,6 +362,9 @@ void* _thread_video_recording(void *argument)
          continue;
       }
 
+      if ( bFirstWrite )
+         log_line("[VideoRecording-Th] Start receiving data to write to file (%d bytes). Start writing to recording file...", iRead);
+      bFirstWrite = false;
       int iRes = write(s_iFileVideoRecordingOutput, uRecBuffer, iRead);
       if ( iRes == iRead )
          continue;
@@ -314,7 +372,7 @@ void* _thread_video_recording(void *argument)
       // Error writing to recording file
       log_softerror_and_alarm("[VideoRecording-Th] Recording thread failed to write %d bytes to recording file, result: %d , error: %d (%s)", iRead, iRes, errno, strerror(errno));
    }
-
+   s_bRecordingThreadReadyForData = false;
    log_line("[VideoRecording-Th] Finishing recording...");
 
    close( s_iPipeRecordingThreadWrite );
@@ -357,24 +415,8 @@ void* _thread_video_recording(void *argument)
       return NULL;
    }
 
-   char szFile[MAX_FILE_PATH_SIZE];
-   strcpy(szFile, FOLDER_RUBY_TEMP);
-   strcat(szFile, FILE_TEMP_VIDEO_FILE_INFO);
-   log_line("[VideoRecording-Th] Writing video info file %s ...", szFile);
-   FILE* fd = fopen(szFile, "w");
-   if ( NULL == fd )
+   if ( ! _recording_write_info_file(uDurrationMs) )
    {
-      system("sudo mount -o remount,rw /");
-      char szTmp[MAX_FILE_PATH_SIZE];
-      sprintf(szTmp, "rm -rf %s%s", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_INFO);
-      hw_execute_bash_command(szTmp, NULL);
-      fd = fopen(szFile, "w");
-   }
-
-   if ( NULL == fd )
-   {
-      log_softerror_and_alarm("[VideoRecording-Th] Failed to create video info file %s", szFile);
-
       _recording_cleanp_temp_recording_data();
       _recording_send_status_to_central(0xFF, 2, "Failed to save recording info.");
       _recording_send_status_to_central(0, 0, NULL);
@@ -385,15 +427,6 @@ void* _thread_video_recording(void *argument)
       return NULL;
    }
    
-   fprintf(fd, "%s\n", s_szFileRecordingOutput);
-   fprintf(fd, "%d %d\n", s_iRecordingFPS, (int)(uDurrationMs/1000));
-   fprintf(fd, "%d %d\n", s_iRecordingWidth, s_iRecordingHeight);
-   fprintf(fd, "%d\n", s_iRecordingType);
-   fclose(fd);
-
-   log_line("[VideoRecording-Th] Created video info file %s, for raw stream: (%s) resolution: %d x %d, %d fps, video type: %d",
-      szFile, s_szFileRecordingOutput, s_iRecordingWidth, s_iRecordingHeight, s_iRecordingFPS, s_iRecordingType);
-
    _recording_send_status_to_central(2, 0, NULL);
    _recording_send_status_to_central(0xFF, 0, "Processing video recording file...");
 
@@ -423,6 +456,7 @@ void* _thread_video_recording(void *argument)
       
    log_line("[VideoRecording-Th] Video processing process finished.");
 
+   char szFile[512];
    strcpy(szFile, FOLDER_RUBY_TEMP);
    strcat(szFile, FILE_TEMP_VIDEO_FILE_PROCESS_ERROR);
    if ( access(szFile, R_OK) == -1 )
@@ -434,7 +468,7 @@ void* _thread_video_recording(void *argument)
       char * line = NULL;
       size_t len = 0;
       ssize_t read;
-      fd = fopen(szFile, "r");
+      FILE* fd = fopen(szFile, "r");
 
       while ( (NULL != fd) && ((read = getline(&line, &len, fd)) != -1))
       {
@@ -469,6 +503,7 @@ void rx_video_recording_init()
    s_uRecordingStreamCurrentParsedToken = 0x11111111;
    s_uRecordingStreamPrevParsedToken = 0x11111111;
    s_bRecordingFoundStartOfFirstNAL = false;
+   s_bRecordingThreadReadyForData = false;
 
    char szComm[MAX_FILE_PATH_SIZE];
    sprintf(szComm, "chmod 777 %s 2>/dev/null 1>/dev/null", FOLDER_MEDIA);
@@ -602,14 +637,12 @@ void rx_video_recording_start()
    log_line("[VideoRecording] Video recording FIFO write new size: %d bytes", fcntl(s_iPipeRecordingThreadWrite, F_GETPIPE_SZ));
 
    pthread_attr_t attr;
-   struct sched_param params;
-   pthread_attr_init(&attr);
-   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-   pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
-   pthread_attr_setschedpolicy(&attr, SCHED_OTHER);
-   params.sched_priority = 0;
-   pthread_attr_setschedparam(&attr, &params);
-   
+   ControllerSettings* pCS = get_ControllerSettings();
+   if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityVideoRecording > 1) && (pCS->iThreadPriorityVideoRecording < 100) )
+      hw_init_worker_thread_attrs(&attr, (pCS->iCoresAdjustment?CORE_AFFINITY_CENTRAL_UI:-1), 256000, SCHED_FIFO, pCS->iThreadPriorityVideoRecording, "video_recording");
+   else
+      hw_init_worker_thread_attrs(&attr, (pCS->iCoresAdjustment?CORE_AFFINITY_CENTRAL_UI:-1), 256000, SCHED_OTHER, 0, "video_recording");
+
    if ( 0 != pthread_create(&s_pThreadVideoRecording, &attr, &_thread_video_recording, NULL) )
    {
       log_softerror_and_alarm("[VideoRecording] Failed to create recording thread.");
@@ -662,7 +695,7 @@ u32  rx_video_recording_get_last_start_stop_time()
 
 void rx_video_recording_on_new_data(u8* pData, int iLength)
 {
-   if ( (! s_bIsRecording) || s_bRequestedStopRecording || (-1 == s_iFileVideoRecordingOutput) || (NULL == pData) || (iLength <= 0) || (s_iPipeRecordingThreadWrite <= 0) )
+   if ( (! s_bIsRecording) || s_bRequestedStopRecording || (-1 == s_iFileVideoRecordingOutput) || (NULL == pData) || (iLength <= 0) || (s_iPipeRecordingThreadWrite <= 0) || (! s_bRecordingThreadReadyForData) )
       return;
 
    while ( ! s_bRecordingFoundStartOfFirstNAL )
@@ -671,12 +704,12 @@ void rx_video_recording_on_new_data(u8* pData, int iLength)
       s_uRecordingStreamCurrentParsedToken = (s_uRecordingStreamCurrentParsedToken << 8) | (*pData);
       pData++;
       iLength--;
-      s_uRecordingFileSize++;
       if ( s_uRecordingStreamCurrentParsedToken == 0x00000001 )
       {
          log_line("[VideoRecording] Found start of first NAL at position %u (bytes) in recording stream.", s_uRecordingFileSize);
          s_bRecordingFoundStartOfFirstNAL = true;
          s_TimeStartRecording = get_current_timestamp_ms();
+         s_uRecordingFileSize = 4;
          u8 uHeader[5];
          uHeader[0] = 0; uHeader[1] = 0; uHeader[2] = 0; uHeader[3] = 0x01;
          int iRes = write(s_iPipeRecordingThreadWrite, uHeader, 4);

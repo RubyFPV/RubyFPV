@@ -144,19 +144,20 @@ int hardware_get_free_space_kb()
 void* _thread_get_free_space_async(void *argument)
 {
    sched_yield();
+   hw_log_current_thread_attributes("get free space");
    s_iGetFreeSpaceAsyncResultValueKb = -1;
-   hardware_sleep_ms(500);
+   hardware_sleep_ms(100);
    int iFreeSpaceKb = hardware_get_free_space_kb();
    log_line("Done getting free space async");
    s_iGetFreeSpaceAsyncResultValueKb = iFreeSpaceKb;
    return NULL;
 }
 
-int hardware_get_free_space_kb_async()
+int hardware_get_free_space_kb_async(int iCPUCore)
 {
    s_iGetFreeSpaceAsyncResultValueKb = -1;
    pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "get free space async");
+   hw_init_worker_thread_attrs(&attr, iCPUCore, -1, SCHED_OTHER, 0, "get free space async");
    if ( 0 != pthread_create(&s_pThreadGetFreeSpaceAsync, &attr, &_thread_get_free_space_async, NULL) )
    {
       pthread_attr_destroy(&attr);

@@ -95,7 +95,7 @@ MenuControllerPeripherals::MenuControllerPeripherals(void)
       log_softerror_and_alarm("Failed to get pointer to controller settings structure");
       return;
    }
-   for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+   for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
       hw_serial_port_info_t* pInfo = hardware_get_serial_port_info(i);
       if ( NULL == pInfo )
@@ -144,9 +144,9 @@ MenuControllerPeripherals::MenuControllerPeripherals(void)
 
       snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%s Baudrate", pInfo->szName );
       m_pItemsSelect[11+i*2] = new MenuItemSelect(szBuff, L("Sets the baud rate of this serial port on the controller."));
-      for( int n=0; n<hardware_get_serial_baud_rates_count(); n++ )
+      for( int n=0; n<hardware_serial_get_baud_rates_count(); n++ )
       {
-         sprintf(szBuff, "%d bps", hardware_get_serial_baud_rates()[n]);
+         sprintf(szBuff, "%d bps", hardware_serial_get_baud_rates()[n]);
          m_pItemsSelect[11+i*2]->addSelection(szBuff);
       }
       m_pItemsSelect[11+i*2]->setIsEditable();
@@ -204,7 +204,7 @@ void MenuControllerPeripherals::valuesToUI()
       return;
    }
 
-   for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+   for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {  
       hw_serial_port_info_t* pInfo = hardware_get_serial_port_info(i);
       if ( NULL == pInfo )
@@ -259,12 +259,12 @@ void MenuControllerPeripherals::valuesToUI()
       bool bFoundSpeed = false;
       for(int n=0; n<m_pItemsSelect[11+i*2]->getSelectionsCount(); n++ )
       {
-         if ( (pInfo->iPortUsage == SERIAL_PORT_USAGE_SIK_RADIO) && (hardware_get_serial_baud_rates()[n] < 57000) )
+         if ( (pInfo->iPortUsage == SERIAL_PORT_USAGE_SIK_RADIO) && (hardware_serial_get_baud_rates()[n] < 57000) )
             m_pItemsSelect[11+i*2]->setSelectionIndexDisabled(n);
          else
             m_pItemsSelect[11+i*2]->setSelectionIndexEnabled(n);
 
-         if ( hardware_get_serial_baud_rates()[n] == pInfo->lPortSpeed )
+         if ( hardware_serial_get_baud_rates()[n] == pInfo->lPortSpeed )
          {
             m_pItemsSelect[11+i*2]->setSelection(n);
             bFoundSpeed = true;
@@ -296,7 +296,7 @@ bool MenuControllerPeripherals::periodicLoop()
          log_softerror_and_alarm("Failed to get pointer to controller settings structure");
          return false;
       }
-      for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+      for( int i=0; i<hardware_serial_get_ports_count(); i++ )
       {
          hw_serial_port_info_t* pPortInfo = hardware_get_serial_port_info(i);
 
@@ -333,7 +333,7 @@ bool MenuControllerPeripherals::periodicLoop()
       if ( m_nSearchI2CDeviceAddress >= 128 )
          break;
       if ( hardware_is_known_i2c_device(m_nSearchI2CDeviceAddress) )
-      if ( hardware_has_i2c_device_id(m_nSearchI2CDeviceAddress) )
+      if ( hardware_i2c_has_device_id(m_nSearchI2CDeviceAddress) )
       {
          s_nMenuControllerI2CDevices[m_nSearchI2CDeviceAddress] = m_nSearchI2CDeviceAddress;
          hardware_i2c_get_device_settings((u8)m_nSearchI2CDeviceAddress);
@@ -427,7 +427,7 @@ void MenuControllerPeripherals::onSelectItem()
       return;
    }
 
-   for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+   for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
       hw_serial_port_info_t* pPortInfo = hardware_get_serial_port_info(i);
       if ( NULL == pPortInfo )
@@ -487,7 +487,7 @@ void MenuControllerPeripherals::onSelectItem()
 
          // Allow only one port for telemetry
          int iCountPortsTelemetry = 0;
-         for( int n=0; n<hardware_get_serial_ports_count(); n++ )
+         for( int n=0; n<hardware_serial_get_ports_count(); n++ )
          {
             hw_serial_port_info_t* pInfo = hardware_get_serial_port_info(n);
             if ( NULL == pInfo )
@@ -505,7 +505,7 @@ void MenuControllerPeripherals::onSelectItem()
 
          // Allow only one port for a specific usage
 
-         for( int k=0; k<hardware_get_serial_ports_count(); k++ )
+         for( int k=0; k<hardware_serial_get_ports_count(); k++ )
          {
             hw_serial_port_info_t* pInfo = hardware_get_serial_port_info(k);
             if ( NULL == pInfo )
@@ -531,7 +531,7 @@ void MenuControllerPeripherals::onSelectItem()
 
       if ( m_IndexSerialSpeed[i] == m_SelectedIndex && (! m_pMenuItems[m_SelectedIndex]->isEditing()) )
       {
-         long val = hardware_get_serial_baud_rates()[m_pItemsSelect[11+i*2]->getSelectedIndex()];
+         long val = hardware_serial_get_baud_rates()[m_pItemsSelect[11+i*2]->getSelectedIndex()];
          if ( val != pPortInfo->lPortSpeed )
          {
             pPortInfo->lPortSpeed = val;

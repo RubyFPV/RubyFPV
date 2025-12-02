@@ -75,7 +75,7 @@ int save_CorePluginsSettings()
    {
       char szBuff[256];
       strcpy(szBuff, s_CorePluginsSettings[i].szName);
-      for( int k=0; k<strlen(szBuff); k++ )
+      for( int k=0; k<(int)strlen(szBuff); k++ )
       if ( szBuff[k] == ' ' || (szBuff[k] < 32) )
          szBuff[k] = '*';
 
@@ -143,7 +143,7 @@ int load_CorePluginsSettings()
          s_iCorePluginsSettingsCount = i;
          break;
       }
-      for( int k=0; k<strlen(s_CorePluginsSettings[i].szName); k++ )
+      for( int k=0; k<(int)strlen(s_CorePluginsSettings[i].szName); k++ )
          if ( s_CorePluginsSettings[i].szName[k] == '*' )
             s_CorePluginsSettings[i].szName[k] = ' ';
    }
@@ -236,13 +236,13 @@ int _load_CorePlugin(char* szFileName, int iEnumerateOnly)
    strncpy(s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szName, szPluginName, 64);
    strncpy(s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szGUID, szPluginGUID, 32);
 
-   for( int i=0; i<strlen(s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szName); i++ )
+   for( int i=0; i<(int)strlen(s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szName); i++ )
       if ( s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szName[i] == ' ' ||
          s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szName[i] == 10 ||
          s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szName[i] == 13 )
          s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szName[i] = '_';
 
-   for( int i=0; i<strlen(s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szGUID); i++ )
+   for( int i=0; i<(int)strlen(s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szGUID); i++ )
       if ( s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szGUID[i] == ' ' ||
          s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szGUID[i] == 10 ||
          s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szGUID[i] == 13 )

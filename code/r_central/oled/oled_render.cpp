@@ -6,6 +6,7 @@
 #include "../../base/config.h"
 #include "../../base/hardware.h"
 #include "../../base/hardware_procs.h"
+#include "../../base/ctrl_settings.h"
 #include "../menu/menu_storage.h"
 #include "../handle_commands.h"
 #include "../shared_vars.h"
@@ -24,6 +25,10 @@ u32 s_uOLDERRenderLastTime = 0;
 void *_thread_oled_render_async(void *argument)
 {
     log_line("[OLED] Started OLED render thread.");
+    ControllerSettings* pCS = get_ControllerSettings();
+    if ( pCS->iPrioritiesAdjustment )
+       hw_set_current_thread_raw_priority("olde renderer", pCS->iThreadPriorityOthers);
+    hw_log_current_thread_attributes("oled renderer");
     s_bHasOLEDRenderThread = true;
     OLEDIconLoader &loader = OLEDIconLoader::get_instance();
     loader.load_icons("res/");
@@ -182,9 +187,11 @@ int oled_render_thread_start()
     if (s_iOLEDRenderInit == -1)
         return -1;
 
+    ControllerSettings* pCS = get_ControllerSettings();
+
     s_bHasOLEDRenderThread = false;
     pthread_attr_t attr;
-    hw_init_worker_thread_attrs(&attr, "oled render thread");
+    hw_init_worker_thread_attrs(&attr, (pCS->iCoresAdjustment?CORE_AFFINITY_OTHERS:-1), 128000, SCHED_OTHER, 0, "oled renderer");
     if (0 != pthread_create(&s_pThreadOLEDRenderAsync, &attr, &_thread_oled_render_async, NULL))
     {
         pthread_attr_destroy(&attr);

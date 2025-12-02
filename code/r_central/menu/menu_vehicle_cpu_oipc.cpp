@@ -32,6 +32,7 @@
 
 #include "menu.h"
 #include "menu_vehicle_cpu_oipc.h"
+#include "menu_vehicle_cpu_priorities.h"
 #include "menu_item_select.h"
 #include "menu_confirmation.h"
 #include "menu_item_section.h"
@@ -42,9 +43,7 @@ MenuVehicleCPU_OIPC::MenuVehicleCPU_OIPC(void)
    m_Width = 0.36;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.13;
    float fSliderWidth = 0.10;
-   setSubTitle("Change vehicle processes priorities, for expert users.");
-
-   m_IndexBalanceIntCores = -1;
+   setSubTitle("Change vehicle CPU settings, for expert users.");
 
    m_pItemsSlider[5] = new MenuItemSlider("CPU Speed (Mhz)", "Sets the main CPU frequency.", 700, 1200, 900, fSliderWidth);
    m_pItemsSlider[5]->setStep(25);
@@ -73,54 +72,12 @@ MenuVehicleCPU_OIPC::MenuVehicleCPU_OIPC(void)
    m_pItemsSelect[8]->setIsEditable();
    m_IndexGPUFreqCore2 = addMenuItem(m_pItemsSelect[8]);
 
-   addMenuItem(new MenuItemSection("Priorities"));
-
-   m_pItemsSelect[0] = new MenuItemSelect("Core Priority Adjustment", "Change the way the priority of Ruby processes is adjusted.");
-   m_pItemsSelect[0]->addSelection("Default");
-   m_pItemsSelect[0]->addSelection("Manual");
-   m_pItemsSelect[0]->setIsEditable();
-   m_IndexEnableNice = addMenuItem(m_pItemsSelect[0]);
-
-   m_pItemsSlider[0] = new MenuItemSlider("   Core Priority", "Sets the priority for the Ruby core functionality. Higher values means higher priority.", 1,18,11, fSliderWidth);
-   m_IndexNiceRouter = addMenuItem(m_pItemsSlider[0]);
-
-   m_pItemsSelect[1] = new MenuItemSelect("Core Threads Adjustment", "Change the way the priority of Ruby threads is adjusted.");
-   m_pItemsSelect[1]->addSelection("Default");
-   m_pItemsSelect[1]->addSelection("Manual");
-   m_pItemsSelect[1]->setIsEditable();
-   m_IndexEnableRouter = addMenuItem(m_pItemsSelect[1]);
-
-   m_pItemsSlider[1] = new MenuItemSlider("   Threads Priority", "Sets the priority for the Ruby threads. Higher values means higher priority.", 1,90,10, fSliderWidth);
-   m_IndexRouter = addMenuItem(m_pItemsSlider[1]);
-
-   m_pItemsSelect[2] = new MenuItemSelect("Radio Threads Adjustment", "Change the way the priority of Ruby radio threads is adjusted.");
-   m_pItemsSelect[2]->addSelection("Default");
-   m_pItemsSelect[2]->addSelection("Custom");
-   m_pItemsSelect[2]->setIsEditable();
-   m_IndexEnableRadio = addMenuItem(m_pItemsSelect[2]);
-
-   m_pItemsSlider[2] = new MenuItemSlider("   Rx Threads Priority", "Sets the priority for the Ruby radio Rx threads. Higher values means higher priority.", 1,90,10, fSliderWidth);
-   m_IndexRadioRx = addMenuItem(m_pItemsSlider[2]);
-
-   m_pItemsSlider[3] = new MenuItemSlider("   Tx Threads Priority", "Sets the priority for the Ruby radio Rx threads. Higher values means higher priority.", 1,90,10, fSliderWidth);
-   m_IndexRadioTx = addMenuItem(m_pItemsSlider[3]);
-
-   m_pItemsSelect[4] = new MenuItemSelect("Video Priority Adjustment", "Change the way the priority of video processes is adjusted.");
-   m_pItemsSelect[4]->addSelection("Default");
-   m_pItemsSelect[4]->addSelection("Manual");
-   m_pItemsSelect[4]->setIsEditable();
-   m_IndexEnableVideo = addMenuItem(m_pItemsSelect[4]);
-
-   m_pItemsSlider[4] = new MenuItemSlider("   Video Priority", "Sets the priority for the video processes. Higher values means higher priority.", 1,18,11, fSliderWidth);
-   m_IndexNiceVideo = addMenuItem(m_pItemsSlider[4]);
-
-   if ( hardware_board_is_sigmastar(g_pCurrentModel->hwCapabilities.uBoardType) )
+   m_IndexPriorities = -1;
+   if ( (NULL != g_pCurrentModel) && (g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE) )
    {
-      m_pItemsSelect[6] = new MenuItemSelect("Balance CPU Interrupts", "Tries to balance the load on the CPU cores interrupts.");
-      m_pItemsSelect[6]->addSelection("Off");
-      m_pItemsSelect[6]->addSelection("On");
-      m_pItemsSelect[6]->setIsEditable();
-      m_IndexBalanceIntCores = addMenuItem(m_pItemsSelect[6]);
+      m_IndexPriorities = addMenuItem(new MenuItem(L("Processes Priorities"), L("Sets vehicle processes priorities.")));
+      m_pMenuItems[m_IndexPriorities]->showArrow();
+      m_pMenuItems[m_IndexPriorities]->setTextColor(get_Color_Dev());
    }
 }
 
@@ -163,71 +120,6 @@ void MenuVehicleCPU_OIPC::valuesToUI()
       m_pItemsSelect[7]->setSelectedIndex(iCore1);
       m_pItemsSelect[8]->setSelectedIndex(iCore2);
    }
-
-   if ( g_pCurrentModel->processesPriorities.iNiceRouter == 0 )
-   {
-      m_pItemsSelect[0]->setSelectedIndex(0);
-      m_pItemsSlider[0]->setCurrentValue(1);
-      m_pItemsSlider[0]->setEnabled(false);
-   }
-   else
-   {
-      m_pItemsSelect[0]->setSelectedIndex(1);
-      m_pItemsSlider[0]->setCurrentValue(-g_pCurrentModel->processesPriorities.iNiceRouter);
-      m_pItemsSlider[0]->setEnabled(true);
-   }
-
-   if ( g_pCurrentModel->processesPriorities.iThreadPriorityRouter == 0 )
-   {
-      m_pItemsSelect[1]->setSelectedIndex(0);
-      m_pItemsSlider[1]->setCurrentValue(1);
-      m_pItemsSlider[1]->setEnabled(false);
-   }
-   else
-   {
-      m_pItemsSelect[1]->setSelectedIndex(1);
-      m_pItemsSlider[1]->setCurrentValue(g_pCurrentModel->processesPriorities.iThreadPriorityRouter);
-      m_pItemsSlider[1]->setEnabled(true);
-   }
-
-   if ( g_pCurrentModel->processesPriorities.iThreadPriorityRadioRx == 0 )
-   {
-      m_pItemsSelect[2]->setSelectedIndex(0);
-      m_pItemsSlider[2]->setCurrentValue(1);
-      m_pItemsSlider[2]->setEnabled(false);
-      m_pItemsSlider[3]->setCurrentValue(1);
-      m_pItemsSlider[3]->setEnabled(false);
-   }
-   else
-   {
-      m_pItemsSelect[2]->setSelectedIndex(1);
-      m_pItemsSlider[2]->setCurrentValue(g_pCurrentModel->processesPriorities.iThreadPriorityRadioRx);
-      m_pItemsSlider[2]->setEnabled(true);
-      m_pItemsSlider[3]->setCurrentValue(g_pCurrentModel->processesPriorities.iThreadPriorityRadioTx);
-      m_pItemsSlider[3]->setEnabled(true);
-   }
-
-   if ( g_pCurrentModel->processesPriorities.iNiceVideo == 0 )
-   {
-      m_pItemsSelect[4]->setSelectedIndex(0);
-      m_pItemsSlider[4]->setCurrentValue(1);
-      m_pItemsSlider[4]->setEnabled(false);
-   }
-   else
-   {
-      m_pItemsSelect[4]->setSelectedIndex(1);
-      m_pItemsSlider[4]->setCurrentValue(-g_pCurrentModel->processesPriorities.iNiceVideo);
-      m_pItemsSlider[4]->setEnabled(true);
-   }
-
-   if ( -1 != m_IndexBalanceIntCores )
-   if ( hardware_board_is_sigmastar(g_pCurrentModel->hwCapabilities.uBoardType) )
-   {
-      if ( g_pCurrentModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_BALANCE_INT_CORES )
-         m_pItemsSelect[6]->setSelectedIndex(1);
-      else
-         m_pItemsSelect[6]->setSelectedIndex(0);
-   }
 }
 
 void MenuVehicleCPU_OIPC::onShow()
@@ -262,21 +154,6 @@ void MenuVehicleCPU_OIPC::onReturnFromChild(int iChildMenuId, int returnValue)
    }
 }
 
-void MenuVehicleCPU_OIPC::send_threads_values()
-{
-   u32 uValues = 0;
-
-   if ( m_pItemsSelect[1]->getSelectedIndex() != 0 )
-      uValues |= m_pItemsSlider[1]->getCurrentValue() & 0xFF;
-   if ( m_pItemsSelect[2]->getSelectedIndex() != 0 )
-   {
-      uValues |= (m_pItemsSlider[2]->getCurrentValue() & 0xFF) << 8;
-      uValues |= (m_pItemsSlider[3]->getCurrentValue() & 0xFF) << 16;
-   }
-   if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_THREADS_PRIORITIES, uValues , NULL, 0) )
-      valuesToUI();
-}
-
 void MenuVehicleCPU_OIPC::onSelectItem()
 {
    Menu::onSelectItem();
@@ -292,57 +169,11 @@ void MenuVehicleCPU_OIPC::onSelectItem()
    if ( ! menu_check_current_model_ok_for_edit() )
       return;
 
-   if ( (m_IndexEnableNice == m_SelectedIndex) || (m_IndexNiceRouter == m_SelectedIndex)  )
-   {
-      int nr = 0;
-      if ( 0 == m_pItemsSelect[0]->getSelectedIndex() )
-         nr = 0;
-      else
-         nr = -m_pItemsSlider[0]->getCurrentValue();
-      int nv = g_pCurrentModel->processesPriorities.iNiceVideo;
-      int nc = g_pCurrentModel->processesPriorities.iNiceRC;
-      int no = g_pCurrentModel->processesPriorities.iNiceOthers;
-      u32 val = (nv+20) + (no+20)*256 + (nr+20)*256*256 + (nc+20)*256*256*256;
-      if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_NICE_VALUES, val , NULL, 0) )
-         valuesToUI();
-      return;
-   }
-
-
-   if ( (m_IndexEnableRouter == m_SelectedIndex) || (m_IndexRouter == m_SelectedIndex) )
-   {
-      send_threads_values();
-      return;
-   }
-
-   if ( (m_IndexEnableRadio == m_SelectedIndex) || (m_IndexRadioRx == m_SelectedIndex) || (m_IndexRadioTx == m_SelectedIndex) )
-   {
-      send_threads_values();
-      return;
-   }
-
-   if ( (m_IndexEnableVideo == m_SelectedIndex) || (m_IndexNiceVideo == m_SelectedIndex)  )
-   {
-      int nv = 0;
-      if ( 0 == m_pItemsSelect[4]->getSelectedIndex() )
-         nv = 0;
-      else
-         nv = -m_pItemsSlider[4]->getCurrentValue();
-      int nr = g_pCurrentModel->processesPriorities.iNiceRouter;
-      int nc = g_pCurrentModel->processesPriorities.iNiceRC;
-      int no = g_pCurrentModel->processesPriorities.iNiceOthers;
-      u32 val = (nv+20) + (no+20)*256 + (nr+20)*256*256 + (nc+20)*256*256*256;
-      if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_NICE_VALUES, val , NULL, 0) )
-         valuesToUI();
-      return;
-   }
-
    bool sendUpdate = false;
    command_packet_overclocking_params params;
    params.freq_arm = g_pCurrentModel->processesPriorities.iFreqARM;
    params.freq_gpu = g_pCurrentModel->processesPriorities.iFreqGPU;
    params.overvoltage = g_pCurrentModel->processesPriorities.iOverVoltage;
-   params.uProcessesFlags = g_pCurrentModel->processesPriorities.uProcessesFlags;
    
    if ( m_IndexCPUSpeed == m_SelectedIndex )
    {
@@ -363,15 +194,10 @@ void MenuVehicleCPU_OIPC::onSelectItem()
       sendUpdate = true;
    }
 
-   if ( -1 != m_IndexBalanceIntCores )
-   if ( m_IndexBalanceIntCores == m_SelectedIndex )
+   if ( (-1 != m_IndexPriorities) && (m_IndexPriorities == m_SelectedIndex) )
    {
-      if ( 1 == m_pItemsSelect[6]->getSelectedIndex() )
-         params.uProcessesFlags |= PROCESSES_FLAGS_BALANCE_INT_CORES;
-      else
-         params.uProcessesFlags &= ~PROCESSES_FLAGS_BALANCE_INT_CORES;
-
-      sendUpdate = true;
+      add_menu_to_stack(new MenuVehicleCPUPriorities());
+      return;
    }
 
    if ( sendUpdate )

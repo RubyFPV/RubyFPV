@@ -1090,12 +1090,29 @@ void MenuStorage::playVideoFile(int iMenuItemIndex)
       hardware_sleep_ms(200);
    }  
    #ifdef HW_PLATFORM_RASPBERRY
-   snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "./%s %s%s %d&", VIDEO_PLAYER_OFFLINE, FOLDER_MEDIA, szFile, m_VideoFilesFPS[index]);
+   snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "./%s -file %s%s -fps %d", VIDEO_PLAYER_OFFLINE, FOLDER_MEDIA, szFile, m_VideoFilesFPS[index]);
    #endif
 
    #ifdef HW_PLATFORM_RADXA
-   snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "./%s -f %s%s %d&", VIDEO_PLAYER_OFFLINE, FOLDER_MEDIA, szFile, m_VideoFilesFPS[index]);
+   snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "./%s -file %s%s -fps %d", VIDEO_PLAYER_OFFLINE, FOLDER_MEDIA, szFile, m_VideoFilesFPS[index]);
    #endif
+
+   ControllerSettings* pCS = get_ControllerSettings();
+   if ( pCS->iCoresAdjustment )
+   {
+      char szTmp[32];
+      sprintf(szTmp, " -af %d", (0x01 << CORE_AFFINITY_VIDEO_OUTPUT));
+      strcat(szBuff, szTmp);
+   }
+
+   if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityVideo > 1) && (pCS->iThreadPriorityVideo < 100) )
+   {
+      char szTmp[32];
+      sprintf(szTmp, " -rawp %d", pCS->iThreadPriorityVideo );
+      strcat(szBuff, szTmp);
+   }
+
+   strcat(szBuff, "&");
    hw_execute_bash_command_nonblock(szBuff, NULL);
    hardware_sleep_ms(100);
    g_bIsVideoPlaying = true;

@@ -19,7 +19,7 @@ void radio_stats_set_graph_refresh_interval(shared_mem_radio_stats* pSMRS, int g
 void radio_stats_enable_history_monitor(int iEnable);
 
 void radio_stats_log_info(shared_mem_radio_stats* pSMRS, u32 uTimeNow);
-void radio_stats_log_tx_info(shared_mem_radio_stats* pSMRS, u32 uTimeNow);
+void radio_stats_log_tx_info(shared_mem_radio_stats* pSMRS, u32 uVehicleId, u32 uControllerId, u32 uTimeNow);
 int  radio_stats_periodic_update(shared_mem_radio_stats* pSMRS, u32 timeNow);
 
 void radio_stats_set_tx_card_for_radio_link(shared_mem_radio_stats* pSMRS, int iLocalRadioLink, int iTxCard);

@@ -149,6 +149,8 @@ float osd_stats_render_video_stream_graph(float xPos, float yPos, float fWidth, 
       iGraphIntervals = (SYSTEM_RT_INFO_INTERVALS * g_SMControllerRTInfo.uUpdateIntervalMs) / pCS->nGraphVideoRefreshInterval;
       iRTValuesPerGraphInterval = pCS->nGraphVideoRefreshInterval / g_SMControllerRTInfo.uUpdateIntervalMs;
    }
+   if ( 0 == iGraphIntervals )
+      iGraphIntervals = 1;
    int iRTStartIndex = g_SMControllerRTInfo.iCurrentIndex - (g_SMControllerRTInfo.iCurrentIndex % iRTValuesPerGraphInterval) - 1;
    if ( iRTStartIndex < 0 )
       iRTStartIndex = SYSTEM_RT_INFO_INTERVALS-1;
@@ -274,7 +276,7 @@ float osd_stats_render_video_stream_graph(float xPos, float yPos, float fWidth, 
       float percentDropped = (float)(fSumDropped)/(float)(maxGraphValue);
       if ( percentDropped > 1.0 )
          percentDropped = 1.0;
-      if ( percentTotal > 0.001 )
+      if ( (percentTotal > 0.001) && (fSumPackets > 0.001) )
       {
          hBar = (fHeightGraph-widthBar)*percentTotal;
 
@@ -720,7 +722,11 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
       else if (((pVDS->PHVS.uVideoStreamIndexAndType >> 4) & 0x0F) == VIDEO_TYPE_H264 )
          strcpy(szVideoType, "H264");
 
-      snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%s %s FPS: %d (%d-%d)", szVideoType, getOptionVideoResolutionName(pVDS->iCurrentVideoWidth, pVDS->iCurrentVideoHeight), pVDS->iCurrentVideoFPS, pVDS->iDetectedFPS, pVDS->iDetectedSlices);
+      if ( (pVDS->iCurrentVideoFPS - pActiveModel->video_params.iVideoFPS > 3) || (pVDS->iCurrentVideoFPS - pActiveModel->video_params.iVideoFPS < -3) )
+         snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%s %s FPS: *%d (%d-%d)", szVideoType, getOptionVideoResolutionName(pVDS->iCurrentVideoWidth, pVDS->iCurrentVideoHeight), pVDS->iCurrentVideoFPS, pVDS->iDetectedFPS, pVDS->iDetectedSlices);
+      else
+         snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%s %s FPS: %d (%d-%d)", szVideoType, getOptionVideoResolutionName(pVDS->iCurrentVideoWidth, pVDS->iCurrentVideoHeight), pVDS->iCurrentVideoFPS, pVDS->iDetectedFPS, pVDS->iDetectedSlices);
+
       g_pRenderEngine->drawText(xPos, y, s_idFontStatsSmall, szBuff);
       float wtmp = g_pRenderEngine->textWidth(s_idFontStatsSmall, szBuff);
 
@@ -1684,7 +1690,7 @@ float osd_render_stats_telemetry(float xPos, float yPos, float scale)
 
    g_pRenderEngine->drawText(xPos, yPos, s_idFontStats, "Telemetry Stats");
    if ( NULL != g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].pModel )
-      sprintf(szBuff, "Update rate: %d Hz", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].pModel->telemetry_params.update_rate);
+      sprintf(szBuff, "Update rate: %d Hz", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].pModel->telemetry_params.iUpdateRateHz);
    else
       sprintf(szBuff, "N/A");
    g_pRenderEngine->drawTextLeft(rightMargin, yPos, s_idFontStats, szBuff);
@@ -1692,7 +1698,7 @@ float osd_render_stats_telemetry(float xPos, float yPos, float scale)
    float y = yPos + height_text*1.5*s_OSDStatsLineSpacing;
 
    u32 uMaxLostTime = TIMEOUT_TELEMETRY_LOST;   
-   if ( NULL != g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].pModel && g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].pModel->telemetry_params.update_rate > 10 )
+   if ( NULL != g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].pModel && g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].pModel->telemetry_params.iUpdateRateHz > 10 )
       uMaxLostTime = TIMEOUT_TELEMETRY_LOST/2;
    
    static u32 s_uTimeOSDRubyTelemetryLostShowRedUntill = 0;
@@ -3569,9 +3575,10 @@ void _osd_render_vehicle_dev_stats()
 
 
    // Tx time history graph
-   sprintf(szBuff, "Radio Tx Time (avg: %d ms)", g_VehiclesRuntimeInfo[iIndexVehicleRuntimeInfo].vehicleDebugRadioTxTimers.uComputedTotalTxTimeMilisecPerSecondAverage);
-   g_pRenderEngine->drawText(xPos, y, s_idFontStats, szBuff);
-   y += height_text;
+   // To fix 11.5
+   //sprintf(szBuff, "Radio Tx Time (avg: %d ms)", g_VehiclesRuntimeInfo[iIndexVehicleRuntimeInfo].vehicleDebugRadioTxTimers.uComputedTotalTxTimeMilisecPerSecondAverage);
+   //g_pRenderEngine->drawText(xPos, y, s_idFontStats, szBuff);
+   //y += height_text;
 
    /*
    g_pRenderEngine->drawText(xPos, y-0.2*height_text_small, height_text_small*0.9, s_idFontStatsSmall, "100%");

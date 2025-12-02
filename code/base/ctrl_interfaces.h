@@ -22,7 +22,7 @@ typedef struct
    int axesMinValue[MAX_JOYSTICK_AXES];
    int axesMaxValue[MAX_JOYSTICK_AXES];
    int axesCenterValue[MAX_JOYSTICK_AXES];
-   int axesCenterZone[MAX_JOYSTICK_AXES]; // in 0.1% increments
+   int axesCenterZone[MAX_JOYSTICK_AXES]; // as percentage number, in 0.1% increments
    int buttonsReleasedValue[MAX_JOYSTICK_BUTTONS];
    int buttonsMinValue[MAX_JOYSTICK_BUTTONS];
    int buttonsMaxValue[MAX_JOYSTICK_BUTTONS];

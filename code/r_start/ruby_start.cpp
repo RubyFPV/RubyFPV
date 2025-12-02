@@ -78,9 +78,7 @@ static bool s_bIgnoreDrivers = false;
 
 bool s_bQuit = false;
 Model modelVehicle;
-
 u32 board_type = BOARD_TYPE_NONE;
-
 
 void power_leds(int onoff)
 {
@@ -109,6 +107,55 @@ void power_leds(int onoff)
    }
    #endif
 }
+
+int _get_fast_reboot_counter()
+{
+   char szFile[MAX_FILE_PATH_SIZE];
+   strcpy(szFile, FOLDER_CONFIG);
+   strcat(szFile, FILE_CONFIG_FAST_BOOT_COUNTER);
+   FILE* fd = fopen(szFile, "r");
+   if ( NULL == fd )
+      return 0;
+   int iCounter = 0;
+   if ( 1 != fscanf(fd, "%d", &iCounter) )
+      iCounter = 0;
+   fclose(fd);
+   return iCounter;
+}
+
+void _increase_fast_reboot_counter()
+{
+   int iCounter = _get_fast_reboot_counter();
+   iCounter++;
+   char szFile[MAX_FILE_PATH_SIZE];
+   strcpy(szFile, FOLDER_CONFIG);
+   strcat(szFile, FILE_CONFIG_FAST_BOOT_COUNTER);
+   FILE* fd = fopen(szFile, "wt");
+   if ( NULL == fd )
+   {
+      printf("\nERROR: Failed to write fast reboot counter %d\n", iCounter);
+      return;
+   }
+   fprintf(fd, "%d\n", iCounter);
+   fclose(fd);
+
+   printf("\nFast reboot counter %d -> %d\n", iCounter-1, _get_fast_reboot_counter());
+}
+
+void _reset_fast_reboot_counter()
+{
+   char szFile[MAX_FILE_PATH_SIZE];
+   strcpy(szFile, FOLDER_CONFIG);
+   strcat(szFile, FILE_CONFIG_FAST_BOOT_COUNTER);
+   FILE* fd = fopen(szFile, "wt");
+   if ( NULL == fd )
+      return;
+   fprintf(fd, "%d\n", 0);
+   fclose(fd);
+
+   printf("\nDid reset fast boot counter.\n");
+}
+
 
 #if defined HW_PLATFORM_OPENIPC_CAMERA
 static int s_iLogBootStepsOIPC = 0;
@@ -152,7 +199,7 @@ void initLogFiles()
 {
    char szComm[256];
    char szSrcFile[MAX_FILE_PATH_SIZE];
-   sprintf(szComm, "rm -rf %s%s", FOLDER_LOGS, LOG_FILE_LOGGER);
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s%s", FOLDER_LOGS, LOG_FILE_LOGGER);
    hw_execute_bash_command_silent(szComm, NULL);
 
    strcpy(szSrcFile, FOLDER_LOGS);
@@ -230,6 +277,9 @@ void initLogFiles()
          hw_execute_bash_command_silent(szComm, NULL);
       }
    }
+
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s%s", FOLDER_LOGS, LOG_FILE_LIVE_VEHICLE_LOG);
+   hw_execute_bash_command_silent(szComm, NULL);
 }
 
 
@@ -343,73 +393,6 @@ void _check_update_drivers_on_update()
       fflush(stdout);
       hardware_install_drivers(1);
    }
-   #endif
-}
-
-bool _check_for_update_from_boot()
-{
-   #if defined (HW_PLATFORM_RASPBERRY) || defined (HW_PLATFORM_RADXA)
-   char szComm[2048];
-   char szFoundFile[1024];
-   char szZipFile[1024];
-   sprintf(szComm, "find %sruby_update*.zip 2>/dev/null", FOLDER_WINDOWS_PARTITION);
-
-   hw_execute_bash_command(szComm, szFoundFile);
-
-   if ( (strlen(szFoundFile) == 0) || (NULL == strstr(szFoundFile, "ruby_update")) || (NULL != strstr(szFoundFile, "No such")) )
-   {
-      log_line("No update archive found on %s folder. Skipping update from %s", FOLDER_WINDOWS_PARTITION, FOLDER_WINDOWS_PARTITION);
-      return false;
-   }
-   szFoundFile[127] = 0;
-   strcpy(szZipFile, szFoundFile);
-   log_line("Found zip archive [%s] on %s folder.", szZipFile, FOLDER_WINDOWS_PARTITION);
-
-   if ( hardware_is_vehicle() )
-   {
-      sprintf(szComm, "cp -rf %s .", szZipFile);
-      hw_execute_bash_command(szComm, NULL);
-   }
-   else
-   {
-      sprintf(szComm, "mkdir -p %s", FOLDER_USB_MOUNT);
-      hw_execute_bash_command(szComm, NULL);
-      sprintf(szComm, "cp -rf %s %s/", szZipFile, FOLDER_USB_MOUNT);
-      hw_execute_bash_command(szComm, NULL);
-   }
-
-   for( int i=0; i<20; i++ )
-   {
-      hardware_sleep_ms(100);
-      power_leds(i%2);
-   }
-   
-   hw_execute_ruby_process_wait(NULL, "ruby_update_worker", NULL, NULL, 0);
-   
-   sprintf(szComm, "rm -rf %sruby_update*.zip", FOLDER_WINDOWS_PARTITION);
-   hw_execute_bash_command(szComm, NULL);
-   hw_execute_bash_command("rm -rf ruby_update*.zip", NULL);
-   sprintf(szComm, "rm -rf %s/ruby_update*.zip", FOLDER_USB_MOUNT);
-   hw_execute_bash_command(szComm, NULL);
-
-
-   if ( hardware_is_vehicle() )
-      hw_execute_bash_command("cp -rf ruby_update ruby_update_vehicle", NULL);
-   else
-      hw_execute_bash_command("cp -rf ruby_update ruby_update_controller", NULL);
-
-   for( int i=0; i<30; i++ )
-   {
-      hardware_sleep_ms(100);
-      power_leds(i%2);
-   }
-
-   log_line("Done executing update from %s folder. Rebooting now.", FOLDER_WINDOWS_PARTITION);
-   fflush(stdout);
-   hardware_reboot();
-   return true;
-   #else
-   return false;
    #endif
 }
 
@@ -675,8 +658,45 @@ int _step_process_cmd_line(int argc, char* argv[])
 {
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
-      printf("%d.%d (b%d) ", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER);
+      printf("%d.%d (b-%d) ", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       _log_platform(false);
+      return 1;
+   }
+
+   if ( strcmp(argv[argc-1], "-resetproc") == 0 )
+   {
+      printf("\nReset processes settings...\n");
+      char szFile[MAX_FILE_PATH_SIZE];
+      strcpy(szFile, FOLDER_CONFIG);
+      strcat(szFile, FILE_CONFIG_CURRENT_VEHICLE_MODEL);
+      if ( modelVehicle.loadFromFile(szFile, true) )
+      {
+         modelVehicle.resetProcessesParams();
+         modelVehicle.saveToFile(szFile, false);
+         printf("Done\n");
+      }
+      return  1;
+   }
+
+   if ( strcmp(argv[argc-1], "-disableproc") == 0 )
+   {
+      printf("\nDisable processes settings...\n");
+      char szFile[MAX_FILE_PATH_SIZE];
+      strcpy(szFile, FOLDER_CONFIG);
+      strcat(szFile, FILE_CONFIG_CURRENT_VEHICLE_MODEL);
+      if ( modelVehicle.loadFromFile(szFile, true) )
+      {
+         modelVehicle.disableProcessesParams();
+         modelVehicle.saveToFile(szFile, false);
+         printf("Done\n");
+      }
+      return  1;
+   }
+
+   if ( (argc > 1) && (strcmp(argv[1], "-dbgproc") == 0) )
+   {
+      log_init("RubyDbg");
+      hw_log_processes(argc, argv);
       return 1;
    }
 
@@ -760,7 +780,7 @@ int _step_find_console()
    hw_execute_bash_command_silent(szComm, NULL);
    printf("\nRuby: Start on console (%s)\n", ((tty_name != NULL)? tty_name:"N/A"));
    fflush(stdout);
-      
+
    if ( g_bDebug )
       foundGoodConsole = true;
    if ( (NULL != tty_name) && strcmp(tty_name, "/dev/tty1") == 0 )
@@ -799,9 +819,9 @@ int _step_find_console()
    sprintf(szComm, "echo 'Ruby check semaphore...' >> /tmp/ruby_boot.log");
    hw_execute_bash_command_silent(szComm, NULL);
    s_pSemaphoreStarted = sem_open("/RUBY_STARTED_SEMAPHORE", O_CREAT | O_EXCL, S_IWUSR | S_IRUSR, 0);
-   if ( s_pSemaphoreStarted == SEM_FAILED && (!g_bDebug) )
+   if ( ((SEM_FAILED == s_pSemaphoreStarted) || (NULL == s_pSemaphoreStarted)) && (!g_bDebug) )
    {
-      printf("\nRuby (v %d.%d b.%d) is starting...\n", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER);
+      printf("\nRuby (v %d.%d b-%d) is starting...\n", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       fflush(stdout);
       sleep(8);
       return 0;
@@ -828,9 +848,17 @@ int _step_find_console()
 
    sprintf(szComm, "mkdir -p %s", FOLDER_CONFIG);
    hw_execute_bash_command(szComm, NULL);
-   sprintf(szComm, "chmod 777 %s", FOLDER_BINARIES);
+   sprintf(szComm, "chmod 777 %sruby* 2>/dev/null", FOLDER_BINARIES);
    hw_execute_bash_command(szComm, NULL);
-   sprintf(szComm, "chmod 777 %s*", FOLDER_BINARIES);
+   sprintf(szComm, "chmod 777 %sonyx* 2>/dev/null", FOLDER_BINARIES);
+   hw_execute_bash_command(szComm, NULL);
+
+   #if defined (HW_PLATFORM_RASPBERRY) || defined (HW_PLATFORM_RADXA)
+   hw_execute_bash_command("chown -hR root *", NULL);
+   hw_execute_bash_command("chgrp -hR root *", NULL);
+   #endif
+
+   sprintf(szComm, "chmod 777 %s* 2>/dev/null", FOLDER_CONFIG);
    hw_execute_bash_command(szComm, NULL);
 
    sprintf(szComm, "mkdir -p %s", FOLDER_CALIBRATION_FILES);
@@ -887,6 +915,7 @@ int _step_check_file_system()
       if ( readWriteRetryCount > 50 )
       {
          printf("\nError accessing the file system. Abort.\n\n");
+         log_line_forced_to_file("Error accessing the file system. Abort.");
 
          strcpy(szFile, FOLDER_LOGS);
          strcat(szFile, LOG_FILE_START);
@@ -919,28 +948,32 @@ int _step_check_file_system()
       hardware_sleep_ms(100);
       #endif
 
-      sprintf(szComm, "chmod 777 %s", FOLDER_BINARIES);
-      hw_execute_bash_command(szComm, NULL);
-      sprintf(szComm, "chmod 777 %s*", FOLDER_BINARIES);
-      hw_execute_bash_command(szComm, NULL);
-
       // For temporary fifo-s, same tmp root folder on all platforms
-      hw_execute_bash_command_silent("mkdir -p /tmp/ruby/", NULL);
+      sprintf(szComm, "mkdir -p %s", FOLDER_RUBY_FIFO_TEMP);
+      hw_execute_bash_command_silent(szComm, NULL);
+      sprintf(szComm, "chmod 777 %s 2>/dev/null", FOLDER_RUBY_FIFO_TEMP);
+      hw_execute_bash_command_silent(szComm, NULL);
+      if ( 0 < strlen(FOLDER_RUBY_FIFO_TEMP) )
+      {
+         sprintf(szComm, "rm -rf %s* 2>/dev/null", FOLDER_RUBY_FIFO_TEMP);
+         hw_execute_bash_command_silent(szComm, NULL);
+      }
 
       sprintf(szComm, "mkdir -p %s", FOLDER_RUBY_TEMP);
       hw_execute_bash_command_silent(szComm, NULL);
-      sprintf(szComm, "chmod 777 %s", FOLDER_RUBY_TEMP);
+      sprintf(szComm, "chmod 777 %s 2>/dev/null", FOLDER_RUBY_TEMP);
       hw_execute_bash_command_silent(szComm, NULL);
       if ( 0 < strlen(FOLDER_RUBY_TEMP) )
       {
-         sprintf(szComm, "rm -rf %s*", FOLDER_RUBY_TEMP);
+         sprintf(szComm, "rm -rf %s* 2>/dev/null", FOLDER_RUBY_TEMP);
          hw_execute_bash_command_silent(szComm, NULL);
       }
+
       sprintf(szComm, "mkdir -p %sruby", FOLDER_RUBY_TEMP);
       hw_execute_bash_command_silent(szComm, NULL);
       sprintf(szComm, "chmod 777 %sruby", FOLDER_RUBY_TEMP);
       hw_execute_bash_command_silent(szComm, NULL);
-      sprintf(szComm, "rm -rf %sruby/*", FOLDER_RUBY_TEMP);
+      sprintf(szComm, "rm -rf %sruby/* 2>/dev/null", FOLDER_RUBY_TEMP);
       hw_execute_bash_command_silent(szComm, NULL);
 
       sprintf(szComm, "mkdir -p %s", FOLDER_TEMP_VIDEO_MEM);
@@ -952,66 +985,76 @@ int _step_check_file_system()
 
       sprintf(szComm, "mkdir -p %s", FOLDER_LOGS);
       hw_execute_bash_command_silent(szComm, NULL);
-      sprintf(szComm, "mkdir -p %s", FOLDER_CONFIG);
-      hw_execute_bash_command_silent(szComm, NULL);
-      sprintf(szComm, "mkdir -p %s", FOLDER_CONFIG_MODELS);
-      hw_execute_bash_command_silent(szComm, NULL);
-      hw_execute_bash_command_silent("mkdir -p media", NULL);
-      hw_execute_bash_command_silent("mkdir -p updates", NULL);
-
       sprintf(szComm, "chmod 777 %s*", FOLDER_LOGS);
       hw_execute_bash_command_silent(szComm, NULL);
 
-      sprintf(szComm, "chmod 777 %s*", FOLDER_CONFIG);
+      sprintf(szComm, "mkdir -p %s", FOLDER_CONFIG);
       hw_execute_bash_command_silent(szComm, NULL);
+      sprintf(szComm, "chmod 777 %s* 2>/dev/null", FOLDER_CONFIG);
+      hw_execute_bash_command(szComm, NULL);
 
-      sprintf(szComm, "chmod 777 %s*", FOLDER_CONFIG_MODELS);
-      hw_execute_bash_command_silent(szComm, NULL);
+      sprintf(szComm, "mkdir -p %s", FOLDER_CONFIG_MODELS);
+      hw_execute_bash_command(szComm, NULL);
+      sprintf(szComm, "chmod 777 %s* 2>/dev/null", FOLDER_CONFIG_MODELS);
+      hw_execute_bash_command(szComm, NULL);
 
-      sprintf(szComm, "chmod 777 %s*", FOLDER_MEDIA);
-      hw_execute_bash_command_silent(szComm, NULL);
+      sprintf(szComm, "mkdir -p %s", FOLDER_MEDIA);
+      hw_execute_bash_command(szComm, NULL);
+      sprintf(szComm, "chmod 777 %s", FOLDER_MEDIA);
+      hw_execute_bash_command(szComm, NULL);
+      sprintf(szComm, "chmod 777 %s* 2>/dev/null", FOLDER_MEDIA);
+      hw_execute_bash_command(szComm, NULL);
 
+      sprintf(szComm, "mkdir -p %s", FOLDER_UPDATES);
+      hw_execute_bash_command(szComm, NULL);
       sprintf(szComm, "chmod 777 %s", FOLDER_UPDATES);
       hw_execute_bash_command_silent(szComm, NULL);
-      sprintf(szComm, "chmod 777 %s*", FOLDER_UPDATES);
+      sprintf(szComm, "chmod 777 %s* 2>/dev/null", FOLDER_UPDATES);
       hw_execute_bash_command_silent(szComm, NULL);
 
+      sprintf(szComm, "mkdir -p %s%s", FOLDER_UPDATES, SUBFOLDER_UPDATES_PI);
+      hw_execute_bash_command(szComm, NULL);
       sprintf(szComm, "chmod 777 %s%s", FOLDER_UPDATES, SUBFOLDER_UPDATES_PI);
       hw_execute_bash_command_silent(szComm, NULL);
-      sprintf(szComm, "chmod 777 %s%s*", FOLDER_UPDATES, SUBFOLDER_UPDATES_PI);
+      sprintf(szComm, "chmod 777 %s%s* 2>/dev/null", FOLDER_UPDATES, SUBFOLDER_UPDATES_PI);
       hw_execute_bash_command_silent(szComm, NULL);
 
+      sprintf(szComm, "mkdir -p %s%s", FOLDER_UPDATES, SUBFOLDER_UPDATES_RADXA);
+      hw_execute_bash_command(szComm, NULL);
       sprintf(szComm, "chmod 777 %s%s", FOLDER_UPDATES, SUBFOLDER_UPDATES_RADXA);
       hw_execute_bash_command_silent(szComm, NULL);
-      sprintf(szComm, "chmod 777 %s%s*", FOLDER_UPDATES, SUBFOLDER_UPDATES_RADXA);
+      sprintf(szComm, "chmod 777 %s%s* 2>/dev/null", FOLDER_UPDATES, SUBFOLDER_UPDATES_RADXA);
       hw_execute_bash_command_silent(szComm, NULL);
 
+      sprintf(szComm, "mkdir -p %s%s", FOLDER_UPDATES, SUBFOLDER_UPDATES_OIPC);
+      hw_execute_bash_command(szComm, NULL);
       sprintf(szComm, "chmod 777 %s%s", FOLDER_UPDATES, SUBFOLDER_UPDATES_OIPC);
       hw_execute_bash_command_silent(szComm, NULL);
-      sprintf(szComm, "chmod 777 %s%s*", FOLDER_UPDATES, SUBFOLDER_UPDATES_OIPC);
+      sprintf(szComm, "chmod 777 %s%s* 2>/dev/null", FOLDER_UPDATES, SUBFOLDER_UPDATES_OIPC);
       hw_execute_bash_command_silent(szComm, NULL);
 
 
+      sprintf(szComm, "mkdir -p %s%s", FOLDER_UPDATES, SUBFOLDER_UPDATES_DRIVERS);
+      hw_execute_bash_command(szComm, NULL);
       sprintf(szComm, "chmod 777 %s%s", FOLDER_UPDATES, SUBFOLDER_UPDATES_DRIVERS);
       hw_execute_bash_command_silent(szComm, NULL);
-      sprintf(szComm, "chmod 777 %s%s*", FOLDER_UPDATES, SUBFOLDER_UPDATES_DRIVERS);
+      sprintf(szComm, "chmod 777 %s%s* 2>/dev/null", FOLDER_UPDATES, SUBFOLDER_UPDATES_DRIVERS);
       hw_execute_bash_command_silent(szComm, NULL);
 
       #if defined(HW_PLATFORM_RASPBERRY) || defined(HW_PLATFORM_RADXA)
-      sprintf(szComm, "chmod 777 %sres/*", FOLDER_BINARIES);
+      sprintf(szComm, "chmod 777 %sres/* 2>/dev/null", FOLDER_BINARIES);
       hw_execute_bash_command_silent(szComm, NULL);
-      #endif
 
       sprintf(szComm, "mkdir -p %s", FOLDER_OSD_PLUGINS);
       hw_execute_bash_command_silent(szComm, NULL);
       sprintf(szComm, "chmod 777 %s", FOLDER_OSD_PLUGINS);
       hw_execute_bash_command_silent(szComm, NULL);
 
-
       sprintf(szComm, "mkdir -p %s", FOLDER_CORE_PLUGINS);
       hw_execute_bash_command_silent(szComm, NULL);
       sprintf(szComm, "chmod 777 %s", FOLDER_CORE_PLUGINS);
       hw_execute_bash_command_silent(szComm, NULL);
+      #endif
 
       strcpy(szFile, FOLDER_LOGS);
       strcat(szFile, LOG_FILE_START);
@@ -1019,6 +1062,7 @@ int _step_check_file_system()
       if ( NULL == fd )
       {
          printf("Can't access logs folder (%s)\n", FOLDER_LOGS);
+         log_line_forced_to_file("Can't access logs folder (%s)", FOLDER_LOGS);
          continue;
       }
 
@@ -1079,11 +1123,6 @@ void _step_check_binaries_and_resources()
 {
    char szComm[MAX_FILE_PATH_SIZE];
 
-   sprintf(szComm, "chmod 777 %s", FOLDER_BINARIES);
-   hw_execute_bash_command(szComm, NULL);
-   sprintf(szComm, "chmod 777 %s*", FOLDER_BINARIES);
-   hw_execute_bash_command(szComm, NULL);
-
    sprintf(szComm, "rm -rf %s%s", FOLDER_RUBY_TEMP, FILE_TEMP_UPDATE_IN_PROGRESS);
    hw_execute_bash_command(szComm, NULL);
 
@@ -1099,8 +1138,8 @@ void _step_check_binaries_and_resources()
    _log_openipc_info();
    #endif
 
-   log_line("Ruby: Start on verison %d.%d (b %d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER);
-   printf("Ruby: Start on verison %d.%d (b %d)\n", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER);
+   log_line("Ruby: Start on verison %d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
+   printf("Ruby: Start on verison %d.%d (b-%d)\n", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
    fflush(stdout);
 
    int iMajor, iMinor;
@@ -1205,14 +1244,14 @@ void _step_load_init_devices()
    printf("Ruby: Finding external I2C devices add-ons...\n");
    fflush(stdout);
    hardware_i2c_reset_enumerated_flag();
-   hardware_enumerate_i2c_busses();
+   hardware_i2c_enumerate_busses();
    // Load existing settings first
    hardware_i2c_load_device_settings();
    hardware_i2c_log_devices();
    // Save existing settings and any new devices
    hardware_i2c_save_device_settings();
-   int iKnown = hardware_get_i2c_found_count_known_devices();
-   int iConfigurable = hardware_get_i2c_found_count_configurable_devices();
+   int iKnown = hardware_i2c_get_found_count_known_devices();
+   int iConfigurable = hardware_i2c_get_found_count_configurable_devices();
    if ( 0 == iKnown && 0 == iConfigurable )
    {
       log_line("Ruby: Done finding external I2C devices add-ons. None known found." );
@@ -1231,7 +1270,7 @@ void _step_load_init_devices()
    printf("Ruby: Finding serial ports...\n");
    fflush(stdout);
 
-   int iCount = hardware_init_serial_ports();
+   int iCount = hardware_serial_init_ports();
    log_line("Ruby: Initialized %d serial ports.", iCount);
    printf("Ruby: Initialized %d serial ports\n", iCount);
    fflush(stdout);
@@ -1452,16 +1491,19 @@ void handle_sigint(int sig)
   
 int main(int argc, char *argv[])
 {
+   if ( _step_process_cmd_line(argc, argv) )
+      return 0;
+
    signal(SIGPIPE, SIG_IGN);
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
 
-
-   if ( _step_process_cmd_line(argc, argv) )
-      return 0;
-
    char szFile[MAX_FILE_PATH_SIZE];
+
+   _increase_fast_reboot_counter();
+   if ( _get_fast_reboot_counter() > 10 )
+      _reset_fast_reboot_counter();
 
    _log_oipc_boot_rotate();
    
@@ -1483,19 +1525,23 @@ int main(int argc, char *argv[])
    }
 
    if ( ! _step_find_console() )
+   {
+      _reset_fast_reboot_counter();
       return 0;
+   }
 
    _log_oipc_boot_step("Console found");
 
    log_line_forced_to_file("Found good console. Continuing...");
    log_arguments(argc, argv);
-   printf("\nRuby: Start (v %d.%d b.%d) r%d\n", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER, s_iBootCount);
+   printf("\nRuby: Start (v %d.%d b-%d) r%d\n", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER, s_iBootCount);
    fflush(stdout);
 
    if ( g_bDebug )
    {
       printf("\nRuby: Start in debug mode\n");
       fflush(stdout);
+      hw_execute_bash_command("touch /tmp/debuglog", NULL);
    }
 
    if ( s_bIgnoreDrivers )
@@ -1506,6 +1552,7 @@ int main(int argc, char *argv[])
 
    if ( _step_check_file_system() < 0 )
    {
+      _reset_fast_reboot_counter();
       #if defined HW_PLATFORM_OPENIPC_CAMERA
       hw_execute_bash_command("firstboot", NULL);
       #endif
@@ -1520,7 +1567,14 @@ int main(int argc, char *argv[])
 
    init_hardware_only_detection_pins();
    hardware_detectBoardAndSystemType();
-   
+
+   printf("-----------------------------------\n");
+   if ( hardware_is_vehicle() )
+      printf("Ruby: System detected as vehicle/relay.\n");
+   else
+      printf("Ruby: System detected as controller.\n");
+   fflush(stdout);
+
    _step_check_binaries_and_resources();
    _log_oipc_boot_step("Done check binaries.");
 
@@ -1540,23 +1594,6 @@ int main(int argc, char *argv[])
    _step_load_init_radios();
 
    _log_oipc_boot_step("Done init radios.");
-
-   #ifdef HW_PLATFORM_RADXA
-   if ( ! g_bIsFirstBoot )
-   {
-      strcpy(szFile, FOLDER_BINARIES);
-      strcat(szFile, "res/intro.h264");
-      if ( access(szFile, R_OK) != -1 )
-      {
-         strcpy(szFile, FOLDER_RUBY_TEMP);
-         strcat(szFile, FILE_TEMP_INTRO_PLAYING);
-         sprintf(szComm, "touch %s", szFile);
-         hw_execute_bash_command(szComm, NULL);
-         sprintf(szComm, "./%s -b -f res/intro.h264 15 -endexit&", VIDEO_PLAYER_OFFLINE);
-         hw_execute_bash_command_nonblock(szComm, NULL);
-      }
-   }
-   #endif
 
    sprintf(szComm, "rm -rf %s%s", FOLDER_RUBY_TEMP, FILE_CONFIG_SYSTEM_TYPE);
    hw_execute_bash_command_silent(szComm, NULL);
@@ -1609,7 +1646,7 @@ int main(int argc, char *argv[])
    // Reenable serial ports that where used for SiK radio and now are just regular serial ports
    
    bool bSerialPortsUpdated = false;
-   for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+   for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
       hw_serial_port_info_t* pSerialPort = hardware_get_serial_port_info(i);
       if ( NULL == pSerialPort )
@@ -1750,8 +1787,6 @@ int main(int argc, char *argv[])
 
    _log_oipc_boot_step("Check for update files...");
 
-   _check_for_update_from_boot();
-
    #if defined(HW_PLATFORM_RADXA)
    //hw_stop_process("wpa_supplicant");
    #endif
@@ -1765,83 +1800,6 @@ int main(int argc, char *argv[])
          modelVehicle.resetToDefaults(true);
          modelVehicle.is_spectator = false;
          modelVehicle.saveToFile(szFile, false);
-      }
-      
-      char szOutputF[4096];
-      sprintf(szComm, "ls -al %sruby_update* 2>/dev/null", FOLDER_BINARIES);
-      hw_execute_bash_command_raw(szComm, szOutputF);
-      strcat(szOutputF, "***END***");
-      log_line("Update files:");
-      log_line(szOutputF);
-
-      strcpy(szFile, FOLDER_BINARIES);
-      strcat(szFile, "ruby_update_vehicle");
-      if ( access( szFile, R_OK ) != -1 )
-         log_line("ruby_update_vehicle is present.");
-      else
-         log_line("ruby_update_vehicle is NOT present.");
-
-      strcpy(szFile, FOLDER_BINARIES);
-      strcat(szFile, "ruby_update");
-      if ( access( szFile, R_OK ) != -1 )
-         log_line("ruby_update is present.");
-      else
-         log_line("ruby_update is NOT present.");
-        
-      strcpy(szFile, FOLDER_BINARIES);
-      strcat(szFile, "ruby_update_worker");
-      if ( access( szFile, R_OK ) != -1 )
-         log_line("ruby_update_worker is present.");
-      else
-         log_line("ruby_update_worker is NOT present.");
-
-      strcpy(szFile, FOLDER_BINARIES);
-      strcat(szFile, "ruby_update_vehicle");
-      if( access( szFile, R_OK ) != -1 )
-      {
-         printf("Ruby: Executing post update changes...\n");
-         log_line("Executing post update changes...");
-         fflush(stdout);
-         hw_execute_ruby_process_wait(NULL, "ruby_update_vehicle", NULL, NULL, 1);
-         sprintf(szComm, "rm -rf %sruby_update_vehicle", FOLDER_BINARIES);
-         hw_execute_bash_command(szComm, NULL);
-         printf("Ruby: Executing post update changes on vehicle. Done.\n");
-         log_line("Executing post update changes on vehicle. Done.");
-         fflush(stdout);
-         _check_update_drivers_on_update();
-
-         strcpy(szFile, FOLDER_CONFIG);
-         strcat(szFile, FILE_CONFIG_CURRENT_VEHICLE_MODEL);
-         if ( ! modelVehicle.loadFromFile(szFile, true) )
-         {
-            modelVehicle.resetToDefaults(true);
-            modelVehicle.is_spectator = false;
-            modelVehicle.saveToFile(szFile, false);
-         }
-      }
-   }
-   else
-   {
-      if ( access( "ruby_update_controller", R_OK ) != -1 )
-         log_line("ruby_update_controller is present.");
-      else
-         log_line("ruby_update_controller is NOT present.");
-
-      if( access( "ruby_update_controller", R_OK ) != -1 )
-      {
-         printf("Ruby: Executing post update changes...\n");
-         log_line("Executing post update changes...");
-         fflush(stdout);
-         hw_execute_ruby_process_wait(NULL, "ruby_update_controller", NULL, NULL, 1);
-         hw_execute_bash_command("rm -f ruby_update_controller", NULL);
-         printf("Ruby: Executing post update changes on vehicle. Done.\n");
-         log_line("Executing post update changes on vehicle. Done.");
-         fflush(stdout);
-
-         _check_update_drivers_on_update();
-         
-         printf("Ruby: Executing post update changes on controller. Done.\n");
-         log_line("Executing post update changes on controller. Done.");
       }
    }
 
@@ -1863,6 +1821,9 @@ int main(int argc, char *argv[])
       printf("\n\n\n");
       log_line("Ruby: First install initialization complete. Rebooting now...");
       fflush(stdout);
+
+      _reset_fast_reboot_counter();
+
       #ifdef HW_PLATFORM_RASPBERRY
       hw_execute_bash_command("cp -rf /home/pi/ruby/logs/log_start.txt /home/pi/ruby/logs/log_firstboot_start.txt", NULL);
       hw_execute_bash_command("cp -rf /home/pi/ruby/logs/log_system.txt /home/pi/ruby/logs/log_firstboot.txt", NULL);
@@ -1900,6 +1861,18 @@ int main(int argc, char *argv[])
          modelVehicle.resetToDefaults(true);
          modelVehicle.is_spectator = false;
          modelVehicle.saveToFile(szFile, false);
+      }
+
+      if ( _get_fast_reboot_counter() > 3 )
+      {
+         log_line("Did 3 fast reboots. Reset current model and reboot...");
+         printf("\nDid 3 fast reboots. Reset current model and reboot...\n\n");
+         _reset_fast_reboot_counter();
+         modelVehicle.resetAllSettingsKeepPairing(true);
+         modelVehicle.saveToFile(szFile, false);
+         hardware_reboot();
+         hardware_sleep_ms(900);
+         return  0;
       }
    }
 
@@ -1962,6 +1935,9 @@ int main(int argc, char *argv[])
    hw_execute_bash_command_raw("ls /sys/class/net/", szOutput);
    log_line("Network devices found: [%s]", szOutput);
 
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s*", FOLDER_CONFIG);
+   hw_execute_bash_command(szComm, NULL);
+
    if ( s_isVehicle )
    {
       printf("Ruby: Starting vehicle...\n");
@@ -2006,9 +1982,6 @@ int main(int argc, char *argv[])
    }
    else
    {
-      sprintf(szComm, "rm -rf %s%s 2>&1 1>/dev/null", FOLDER_RUBY_TEMP, FILE_TEMP_CONTROLLER_PAUSE_WATCHDOG);
-      hw_execute_bash_command_silent(szComm, NULL);
-
       #if defined(HW_PLATFORM_RASPBERRY) || defined(HW_PLATFORM_RADXA)
 
       u32 uControllerId = controller_utils_getControllerId();
@@ -2108,9 +2081,6 @@ int main(int argc, char *argv[])
    printf("Ruby: Started processes. Checking if all ok...\n");
    fflush(stdout);
 
-   for( int i=0; i<5; i++ )
-      hardware_sleep_ms(500);
-
    for( int i=0; i<10; i++ )
       hardware_sleep_ms(500);
    
@@ -2135,21 +2105,6 @@ int main(int argc, char *argv[])
       log_line("------------------------------");
       log_line("");
 
-      hw_execute_bash_command_raw("ls /sys/class/net/", szOutput);
-      log_line("Network devices found: [%s]", szOutput);
-
-      #ifdef HW_PLATFORM_RASPBERRY
-      hw_execute_bash_command("rm -rf /boot/last_ruby_boot.txt", NULL);
-      hw_execute_bash_command("cp -rf logs/log_system.txt /boot/last_ruby_boot.txt", NULL);
-      log_line("Copy boot log to /boot partition. Done.");
-      #endif
-
-      #ifdef HW_PLATFORM_RADXA
-      hw_execute_bash_command("rm -rf /config/last_ruby_boot.txt", NULL);
-      hw_execute_bash_command("cp -rf logs/log_system.txt /config/last_ruby_boot.txt", NULL);
-      log_line("Copy boot log to /config partition. Done.");
-      #endif
-
       char szFileUpdate[128];
       strcpy(szFileUpdate, FOLDER_RUBY_TEMP);
       strcat(szFileUpdate, FILE_TEMP_UPDATE_IN_PROGRESS);
@@ -2160,40 +2115,32 @@ int main(int argc, char *argv[])
          if ( access(szFileUpdate, R_OK) != -1 )
          {
             log_line("Detected update in progress. Stop main look check.");
+            _reset_fast_reboot_counter();
             break;
          }
 
          bool bError = false;
 
          if ( hw_process_exists("ruby_start") )
-         {
-           if ( iCheckCount == 0 )
-              log_line("ruby_start is started");
-         }
+            log_line("ruby_start is started");
          else
             { log_error_and_alarm("ruby_start is not running"); bError = true; }
 
 
          if ( hw_process_exists("ruby_rt_vehicle") )
-         {
-           if ( iCheckCount == 0 )
-              log_line("ruby_rt_vehicle is started");
-         }
+            log_line("ruby_rt_vehicle is started");
          else
             { log_error_and_alarm("ruby_rt_vehicle is not running"); bError = true; }
            
          if ( hw_process_exists("ruby_tx_telemetry") )
-         {
-           if ( iCheckCount == 0 )
-              log_line("ruby_tx_telemetry is started");
-         }
+            log_line("ruby_tx_telemetry is started");
          else
             { log_error_and_alarm("ruby_tx_telemetry is not running"); bError = true; }
 
          if ( bError )
          {
-            printf("Error: Some processes are not running.\n");
-            log_line("Error: Some processes are not running.");
+            printf("Error: Some processes are not running. Check again.\n");
+            log_line("Error: Some processes are not running. Check again.");
          }
          else
          {
@@ -2204,46 +2151,76 @@ int main(int argc, char *argv[])
          }
          fflush(stdout);
          iCheckCount++;
-
-         if ( g_bDebug )
-            break;
            
-         for( int i=0; i<10; i++ )
+         for( int i=0; i<5; i++ )
             hardware_sleep_ms(500);
+
+         if ( g_bDebug || (iCheckCount > 4) || (!bError) )
+         {
+            _reset_fast_reboot_counter();
+            break;
+         }
       }
+      _log_oipc_boot_step("Done boot sequence.");
    }
-   else
+   else // Controller
    {
-      if ( hw_process_exists("ruby_central") )
-         log_line("ruby_central is started");
-      else
-         log_error_and_alarm("ruby_central is not running");
+      int iRetryCounter = 10;
+      while ( iRetryCounter > 0 )
+      {
+         hardware_sleep_ms(2000);
+         iRetryCounter--;
+         bool bAllOk = false;
+         if ( hw_process_exists("ruby_central") )
+            log_line("ruby_central is started");
+         else
+         {
+            bAllOk = false;
+            log_error_and_alarm("ruby_central is not running");
+         }
+         if ( hw_process_exists("ruby_controller") )
+            log_line("ruby_controller is started");
+         else
+         {
+            bAllOk = false;
+            log_error_and_alarm("ruby_controller is not running");
+         }
+         if ( hw_process_exists("ruby_rt_station") )
+            log_line("ruby_rt_station is started");
+         else
+         {
+            bAllOk = false;
+            log_error_and_alarm("ruby_rt_station is not running");
+         }
 
-      if ( hw_process_exists("ruby_controller") )
-         log_line("ruby_controller is started");
-      else
-         log_error_and_alarm("ruby_controller is not running");
+         if ( bAllOk )
+            break;
+      }
 
-      hw_execute_bash_command_raw("ls /sys/class/net/", szOutput);
-      log_line("Network devices found: [%s]", szOutput);
-
-      #ifdef HW_PLATFORM_RASPBERRY
-      hw_execute_bash_command("rm -rf /boot/last_ruby_boot.txt", NULL);
-      hw_execute_bash_command("cp -rf logs/log_system.txt /boot/last_ruby_boot.txt", NULL);      
-      log_line("Copy boot log to /boot partition. Done.");
-      #endif
-
-      #ifdef HW_PLATFORM_RADXA
-      hw_execute_bash_command("rm -rf /config/last_ruby_boot.txt", NULL);
-      hw_execute_bash_command("cp -rf logs/log_system.txt /config/last_ruby_boot.txt", NULL);      
-      log_line("Copy boot log to /config partition. Done.");
-      #endif
-
-      if ( ! g_bDebug )
-         system("clear");
+      //if ( ! g_bDebug )
+      //{
+      //   log_line("Clear screen");
+      //   system("clear");
+      //}
    }
 
-   _log_oipc_boot_step("Done boot sequence.");
+   _reset_fast_reboot_counter();
+
+   hw_execute_bash_command_raw("ls /sys/class/net/", szOutput);
+   log_line("Network devices found: [%s]", szOutput);
+
+   #ifdef HW_PLATFORM_RASPBERRY
+   hw_execute_bash_command("rm -rf /boot/last_ruby_boot.txt", NULL);
+   hw_execute_bash_command("cp -rf logs/log_system.txt /boot/last_ruby_boot.txt", NULL);
+   log_line("Copy boot log to /boot partition. Done.");
+   #endif
+
+   #ifdef HW_PLATFORM_RADXA
+   hw_execute_bash_command("rm -rf /config/last_ruby_boot.txt", NULL);
+   hw_execute_bash_command("cp -rf logs/log_system.txt /config/last_ruby_boot.txt", NULL);
+   log_line("Copy boot log to /config partition. Done.");
+   #endif
+
 
    if ( NULL != s_pSemaphoreStarted )
       sem_close(s_pSemaphoreStarted);

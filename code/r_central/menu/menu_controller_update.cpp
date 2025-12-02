@@ -167,7 +167,7 @@ void MenuControllerUpdate::onSelectItem()
       char szBuff2[64];
       getSystemVersionString(szBuff2, (SYSTEM_SW_VERSION_MAJOR<<8) | SYSTEM_SW_VERSION_MINOR);
 
-      sprintf(szBuff, "Your controller has software version %s (b.%d)", szBuff2, SYSTEM_SW_BUILD_NUMBER);
+      sprintf(szBuff, "Your controller has software version %s (b-%d)", szBuff2, SYSTEM_SW_BUILD_NUMBER);
 
       MenuConfirmation* pMC = new MenuConfirmation(L("Update Controller Software"), L("Insert an USB stick containing the Ruby update archive file and then press Ok to start the update process."), 1, true);
       pMC->m_yPos = 0.3;
@@ -513,11 +513,6 @@ void MenuControllerUpdate::updateControllerSoftware(const char* szUpdateFile)
    }
 
    m_bWaitingForUserFinishUpdateConfirmation = true;
-
-   memset(szOutput, 0, sizeof(szOutput)/sizeof(szOutput[0]));
-   sprintf(szComm, "./ruby_update %d %d", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR);
-   hw_execute_bash_command_raw(szComm, szOutput);
-
 
    MenuConfirmation* pMC = new MenuConfirmation(L("Update Complete"), L("Update complete. You can now remove the USB stick. The system will reboot now."), 3, true);
    pMC->m_yPos = 0.3;

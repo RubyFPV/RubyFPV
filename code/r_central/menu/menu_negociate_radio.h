@@ -27,6 +27,7 @@ typedef struct
    u32 uDurationToTest;
    u32 uTimeLastSendToVehicle;
    u32 uTimeLastConfirmationFromVehicle;
+   int iCountSendStarts;
    bool bSucceeded;
 
    int iRadioInterfacesRXPackets[MAX_RADIO_INTERFACES];
@@ -73,7 +74,7 @@ class MenuNegociateRadio: public Menu
 
       void _startTest(int iTestIndex);
       void _endCurrentTest(bool bUpdateTestState);
-      void _currentTestUpdateWhenRunning();
+      bool _currentTestUpdateWhenRunning();
       void _advance_to_next_test();
       
       void _save_new_settings_to_model();
@@ -90,6 +91,7 @@ class MenuNegociateRadio: public Menu
       u32 m_uShowTime;
       bool m_bSkipRateTests;
 
+      int m_iMainVehicleLinkIndexToTest;
       int m_iState;
       int m_iUserState;
       bool m_bCanceled;

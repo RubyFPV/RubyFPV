@@ -4,6 +4,7 @@
 #include "../base/shared_mem_controller_only.h"
 #include "../base/parser_h264.h"
 #include "video_rx_buffers.h"
+#include "shared_vars_state.h"
 
 #define MAX_RETRANSMISSION_BUFFER_HISTORY_LENGTH 20
 
@@ -18,15 +19,6 @@ typedef struct
    u32 uRetransmissionTimePreviousSumCount;
 }
 type_retransmission_stats;
-
-typedef struct
-{
-   u32 receive_time;
-   u32 stream_packet_idx;
-   u32 video_block_index;
-   u32 video_block_packet_index;
-}
-type_last_rx_packet_info;
 
 #define RX_PACKET_STATE_EMPTY 0
 #define RX_PACKET_STATE_RECEIVED 0x01
@@ -73,10 +65,10 @@ class ProcessorRxVideo
       static ProcessorRxVideo* getVideoProcessorForVehicleId(u32 uVehicleId, u32 uVideoStreamIndex);
       //static void log(const char* format, ...);
 
-      virtual bool init();
-      virtual bool uninit();
-      virtual void resetStateOnVehicleRestart();
-      virtual void discardRetransmissionsInfo();
+      bool init();
+      bool uninit();
+      void fullResetState(const char* szReason);
+      void resetReceiveState();
       void onControllerSettingsChanged();
 
       void pauseProcessing();
@@ -85,6 +77,7 @@ class ProcessorRxVideo
       void setMustParseStream(bool bParse);
       bool isParsingStream();
 
+      u32 getLastActivationTime();
       u32 getLastRetransmissionId();
       u32 getLastTimeRequestedRetransmission();
       u32 getLastTimeReceivedRetransmission();
@@ -98,37 +91,38 @@ class ProcessorRxVideo
       
       void updateHistoryStats(u32 uTimeNow);
       // Returns how many retransmission packets where requested, if any
-      int periodicLoop(u32 uTimeNow, bool bForceSyncNow);
-      void handleReceivedVideoPacket(int interfaceNb, u8* pBuffer, int length);
+      int periodicLoopProcessor(u32 uTimeNow, bool bForceSyncNow);
+      void handleReceivedVideoRetrPacket(int interfaceNb, u8* pBuffer, int iBufferLength);
+      void handleReceivedVideoPacket(int interfaceNb, u8* pBuffer, int iBufferLength);
 
       static int m_siInstancesCount;
 
       u32 m_uVehicleId;
       u8 m_uVideoStreamIndex;
       int m_iIndexVideoDecodeStats;
-      u32 m_uLatestVideoPacketReceiveTime;
       VideoRxPacketsBuffer* m_pVideoRxBuffer;
 
    protected:
-      void resetReceiveState();
-      void resetOutputState();
+      void _resetOutputState();
       
       void updateControllerRTInfoAndVideoDecodingStats(u8* pRadioPacket, int iPacketLength);
       
+      void _updateDebugStatsOnVideoPacket(u8* pRadioPacket, int iPacketLength);
       void _checkUpdateRetransmissionsState();
       void checkUpdateRetransmissionsState();
       // Returns how many retransmission packets where requested, if any
       int checkAndRequestMissingPackets(bool bForceSyncNow);
       void checkAndDiscardBlocksTooOld();
 
-      void outputAvailablePackets(bool bSkipIncompleteBlocks);
-      void processAndOutputVideoPacket(type_rx_video_block_info* pVideoBlock, type_rx_video_packet_info* pVideoPacket);
+      void _checkAndOutputAvailablePackets(type_global_state_vehicle_runtime_info* pRuntimeInfo, Model* pModel);
+      void processAndOutputVideoPacket(type_rx_video_block_info* pVideoBlock, type_rx_video_packet_info* pVideoPacket, bool bWaitFullFrame);
 
       bool m_bInitialized;
       int m_iInstanceIndex;
       bool m_bPaused;
       bool m_bPauseTempRetrUntillANewVideoPacket;
       u32 m_uTimeLastResumedTempRetrPause;
+      u32 m_uLastTimeActivated;
       
       // Configuration
 
@@ -137,26 +131,32 @@ class ProcessorRxVideo
       u32 m_uTimeIntervalMsForRequestingRetransmissions;
 
       // Output state
-
-      u32 m_uLastOutputVideoBlockTime;
-      u32 m_uLastOutputVideoBlockIndex;
-      u32 m_uLastOutputVideoBlockPacketIndex;
-      u32 m_uLastOutputVideoBlockDataPackets;
+      t_packet_header_video_segment m_LastOutputedVideoPacketInfo;
+      u32 m_uTimeLastOutputedVideoPacket;
+      u32 m_uTimeReceivedLastOutputedVideoPacket;
 
       // Rx state 
+      t_packet_header_video_segment m_NewestReceivedVideoPacketInfo;
+      u32 m_uNewestReceivedVideoPacketTime;
       bool m_bMustParseStream;
       bool m_bWasParsingStream;
       ParserH264 m_ParserH264;
 
-      type_last_rx_packet_info m_InfoLastReceivedVideoPacket;
       u8 m_uLastReceivedVideoLinkProfile;
+
+      // Debug stats
+      u32 m_uDebugStatsLastRecvFrameIndex;
+      int m_iDebugStatsCurrentFrameBytes;
+      int m_iDebugStatsCurrentFramePackets;
+      u32 m_uDebugStatsCurrentFrameFirstPacketTimeTensMS;
+      u32 m_uDebugStatsCurrentFrameLastPacketTimeTensMS;
 
       u32 m_uLastTimeCheckedForMissingPackets;
       u32 m_uRequestRetransmissionUniqueId;
       u32 m_uLastTimeRequestedRetransmission;
       u32 m_uLastTimeReceivedRetransmission;
 
-      u32 m_uLastTopBlockRequested;
+      u32 m_uLastTopBlockIdRequested;
       int m_iMaxRecvPacketTopBlockWhenRequested;
 
       u32 m_uEncodingsChangeCount;

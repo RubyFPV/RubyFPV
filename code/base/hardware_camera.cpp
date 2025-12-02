@@ -115,8 +115,9 @@ void* _thread_hardware_camera_detect_on_raspbery(void *argument)
 {
    s_bThreadToDetectCameraIsRunning = true;
    log_line("[Hardware] Started thread to detect camera...");
+   hw_log_current_thread_attributes("detect camera");
    hw_execute_bash_command_raw("vcgencmd get_camera", s_szThreadToDetectCameraBuffer);
-   hardware_sleep_ms(10);
+   hardware_sleep_ms(50);
    log_line("[Hardware] Finished thread to detect camera. Output: (%s)", s_szThreadToDetectCameraBuffer);
    s_bThreadToDetectCameraIsRunning = false;
    return NULL;
@@ -164,18 +165,18 @@ u32 _hardware_detect_camera_type()
 
    while ( retryCount > 0 )
    {
-      if ( hardware_has_i2c_device_id(I2C_DEVICE_ADDRESS_CAMERA_HDMI) )
+      if ( hardware_i2c_has_device_id(I2C_DEVICE_ADDRESS_CAMERA_HDMI) )
       {
-         s_iHardwareCameraI2CBus = hardware_get_i2c_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_HDMI);
+         s_iHardwareCameraI2CBus = hardware_i2c_get_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_HDMI);
          log_line("Hardware: HDMI Camera detected on i2c bus %d.", s_iHardwareCameraI2CBus);
          s_bHardwareHasCamera = 1;
          s_uHardwareCameraType = CAMERA_TYPE_HDMI;
          break;
       }
       
-      if ( hardware_has_i2c_device_id(I2C_DEVICE_ADDRESS_CAMERA_VEYE) )
+      if ( hardware_i2c_has_device_id(I2C_DEVICE_ADDRESS_CAMERA_VEYE) )
       {
-         s_iHardwareCameraI2CBus =  hardware_get_i2c_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
+         s_iHardwareCameraI2CBus =  hardware_i2c_get_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
          log_line("Hardware: Veye Camera detected on i2c bus %d.", s_iHardwareCameraI2CBus);
          s_bHardwareHasCamera = 1;
          s_uHardwareCameraType = CAMERA_TYPE_VEYE307;
@@ -237,16 +238,19 @@ u32 _hardware_detect_camera_type()
          s_bThreadToDetectCameraIsRunning = true;
          u32 uTimeStart = get_current_timestamp_ms();
          pthread_t pth;
-         if ( 0 != pthread_create(&pth, NULL, &_thread_hardware_camera_detect_on_raspbery, szBuff) )
+         pthread_attr_t attr;
+         hw_init_worker_thread_attrs(&attr, CORE_AFFINITY_OTHERS, -1, SCHED_OTHER, 0, "detect camera");
+         if ( 0 != pthread_create(&pth, &attr, &_thread_hardware_camera_detect_on_raspbery, szBuff) )
          {
             log_softerror_and_alarm("[Hardware] Failed to create thread to detect camera. Do it manualy.");
+            pthread_attr_destroy(&attr);
             s_bThreadToDetectCameraIsRunning = false;
             hw_execute_bash_command_raw("vcgencmd get_camera", szBuff);
             removeTrailingNewLines(szBuff);
          }
          else
          {
-            pthread_detach(pth);
+            pthread_attr_destroy(&attr);
             while ( s_bThreadToDetectCameraIsRunning )
             {
                hardware_sleep_ms(20);

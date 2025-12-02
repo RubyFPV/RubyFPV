@@ -159,11 +159,6 @@ void MenuSystemDevStats::onSelectItem()
       valuesToUI();
       return;
    }
-   if ( get_sw_version_build(g_pCurrentModel) < 278 )
-   {
-      addMessage("OSD functionality has changed. You need to update your vehicle sowftware.");
-      return;
-   }
 
    Preferences* pP = get_Preferences();
 

@@ -41,10 +41,6 @@
 #include "../base/hardware.h"
 #include "../base/hardware_files.h"
 #include "../base/hardware_procs.h"
-#include "../base/radio_utils.h"
-#include "../base/config.h"
-#include "../base/ctrl_settings.h"
-#include "../base/ctrl_interfaces.h"
 
 
 bool gbQuit = false;
@@ -376,19 +372,58 @@ int _replace_runtime_binary_files()
       hw_execute_bash_command("cp -rf ruby_capture_raspi /opt/vc/bin/raspivid", NULL);
    if ( access( "ruby_capture_veye", R_OK ) != -1 )
       hw_execute_bash_command("cp -rf ruby_capture_veye /usr/local/bin/veye_raspivid", NULL);
-   if ( access( "ruby_capture_veye307", R_OK ) != -1 )
-      hw_execute_bash_command("cp -rf ruby_capture_veye307 /usr/local/bin/307/veye_raspivid", NULL);
    if ( access( "onyxfpv_capture_raspi", R_OK ) != -1 )
       hw_execute_bash_command("cp -rf onyxfpv_capture_raspi /opt/vc/bin/raspivid", NULL);
    if ( access( "onyxfpv_capture_veye", R_OK ) != -1 )
       hw_execute_bash_command("cp -rf onyxfpv_capture_veye /usr/local/bin/veye_raspivid", NULL);
-   if ( access( "onyxfpv_capture_veye307", R_OK ) != -1 )
-      hw_execute_bash_command("cp -rf onyxfpv_capture_veye307 /usr/local/bin/307/veye_raspivid", NULL);
    #endif
 
    return 0;
 }
 
+void _copy_libraries()
+{
+   #if defined (HW_PLATFORM_RADXA)
+   int iMajor = 0;
+   int iMinor = 0;
+   get_Ruby_BaseVersion(&iMajor, &iMinor);
+   if ( iMinor >= 10 )
+      iMinor /= 10;
+
+   if ( (iMajor > 11) || ((iMajor == 11) && (iMinor > 4)) )
+   {
+      log_line("No libraries update to do on Radxa as we are already on version: %d.%d", iMajor, iMinor);
+      return;
+   }
+   log_line("Do libraries update on Radxa as we are on version: %d.%d", iMajor, iMinor);
+
+   char szOutput[4096];
+   szOutput[0] = 0;
+   hw_execute_bash_command("find /lib/aarch64-linux-gnu/libSDL.so 2>/dev/null", szOutput);
+   if ( NULL != strstr(szOutput, "libSDL.so") )
+   {
+      szOutput[0] = 0;
+      hw_execute_bash_command("find /lib/aarch64-linux-gnu/libSDL2.so 2>/dev/null", szOutput);
+      if ( NULL != strstr(szOutput, "libSDL2.so") )
+      {
+         log_line("SDL libraries are already present: [%s]", szOutput);
+         return;
+      }
+   }
+
+   char szComm[512];
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %s%slibs/* /lib/aarch64-linux-gnu/ 2>/dev/null", FOLDER_UPDATES, SUBFOLDER_UPDATES_RADXA);
+   hw_execute_bash_command(szComm, NULL);
+   hw_execute_bash_command("chmod 777 /lib/aarch64-linux-gnu/libSDL*", NULL);
+   hw_execute_bash_command("ln -s /lib/aarch64-linux-gnu/libSDL-1.2.so.0.11.4 /lib/aarch64-linux-gnu/libSDL.so 2>/dev/null", NULL);
+   hw_execute_bash_command("ln -s /lib/aarch64-linux-gnu/libSDL-1.2.so.0.11.4 /lib/aarch64-linux-gnu/libSDL-1.2.so.0 2>/dev/null", NULL);
+   hw_execute_bash_command("ln -s /lib/aarch64-linux-gnu/libSDL2-2.0.so.0.14.0 /lib/aarch64-linux-gnu/libSDL2.so 2>/dev/null", NULL);
+   hw_execute_bash_command("ln -s /lib/aarch64-linux-gnu/libSDL2-2.0.so.0.14.0 /lib/aarch64-linux-gnu/libSDL2-2.0.so 2>/dev/null", NULL);
+   hw_execute_bash_command("ln -s /lib/aarch64-linux-gnu/libSDL2-2.0.so.0.14.0 /lib/aarch64-linux-gnu/libSDL2-2.0.so.0 2>/dev/null", NULL);
+   hw_execute_bash_command("chmod 777 /lib/aarch64-linux-gnu/libSDL*", NULL);
+   log_line("Done updating Radxa libraries.");
+   #endif
+}
 
 int _copy_update_binary_files()
 {
@@ -434,6 +469,8 @@ int _copy_update_binary_files()
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s%s* 2>&1", FOLDER_UPDATES, SUBFOLDER_UPDATES_DRIVERS);
    //hw_execute_process_wait(szComm);
    hw_execute_bash_command(szComm, NULL);
+
+   _copy_libraries();
 
    hardware_sleep_ms(50);
 
@@ -611,7 +648,7 @@ int _copy_update_drivers()
    //hw_execute_process_wait(szComm);
    hw_execute_bash_command(szComm, NULL);
 
-   // Drivers are installed after reboot, by the presence of ruby_update_controller
+   // Drivers are installed after reboot
    //char szOutput[2048];
    //szOutput[0] = 0;
    //snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "find %s.ko", szDrivers);
@@ -819,7 +856,7 @@ int main(int argc, char *argv[])
 
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
-      printf("%d.%d (b%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER);
+      printf("%d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       return 0;
    }
    
@@ -910,12 +947,7 @@ int main(int argc, char *argv[])
    _write_return_code(0, "Executing update pre config");
 
    if( access( "ruby_update", R_OK ) != -1 )
-   {
       hw_execute_process_wait("./ruby_update -pre");
-      if ( g_bIsController )
-         hw_execute_bash_command("cp -rf ruby_update ruby_update_controller", NULL);
-      hw_execute_bash_command("chmod 777 ruby_update*", NULL);
-   }
 
    _write_return_code(0, "Finishing up");
 

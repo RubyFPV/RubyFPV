@@ -14,10 +14,6 @@
 
 #include "processor_rx_video.h"
 
-// Define this to get profile logs about receiving and processing rx packets times
-#define PROFILE_RX 1
-#define PROFILE_RX_MAX_TIME 5
-
 extern bool g_bQuit;
 extern bool g_bDebugState;
 
@@ -37,6 +33,8 @@ extern ProcessorRxVideo* g_pVideoProcessorRxList[MAX_VIDEO_PROCESSORS];
 
 extern controller_runtime_info g_SMControllerRTInfo;
 extern controller_runtime_info* g_pSMControllerRTInfo;
+extern controller_debug_runtime_info g_SMControllerDebugRTInfo;
+extern controller_debug_runtime_info* g_pSMControllerDebugRTInfo;
 extern vehicle_runtime_info g_SMVehicleRTInfo;
 extern vehicle_runtime_info* g_pSMVehicleRTInfo;
 
@@ -63,6 +61,9 @@ extern shared_mem_radio_stats* g_pSM_RadioStats;
 
 extern shared_mem_process_stats* g_pProcessStats;
 extern shared_mem_process_stats* g_pProcessStatsCentral;
+
+extern shared_mem_ctrl_ping_stats* g_pSMDbgPingStats;
+extern shared_mem_ctrl_ping_stats g_SMDbgPingStats;
 
 extern int g_fIPCFromCentral;
 extern int g_fIPCToCentral;

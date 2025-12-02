@@ -233,7 +233,7 @@ int getSupportedChannels(u32 supportedBands, int includeSeparator, u32* pOutChan
    };
 
    int iCountSupported = 0;
-   for( int r=0; r < sizeof(radio_hw_supported_bands)/sizeof(radio_hw_supported_bands[0]); r++ )
+   for( int r=0; r<(int)(sizeof(radio_hw_supported_bands)/sizeof(radio_hw_supported_bands[0])); r++ )
    {
       u32* puChannels = NULL;
       int iChannelsCount = _getChannelsAndCount(supportedBands & radio_hw_supported_bands[r], &puChannels);
@@ -336,7 +336,6 @@ u32 getRealDataRateFromRadioDataRate(int dataRateBPS, u32 uRadioFlags, int iIsDo
    }
    else if ( 0 == dataRateBPS )
    {
-      // To fix may 2025
       return iMultiply * DEFAULT_RADIO_DATARATE_LOWEST;
    }
    else if ( dataRateBPS < 0 )
@@ -358,7 +357,7 @@ int getRadioMinimSNRForDataRate(int iDatarate)
    {
       for( int i=0; i<MAX_MCS_INDEX; i++ )
       {
-         if ( getRealDataRateFromMCSRate(i, 0) >= iDatarate )
+         if ( getRealDataRateFromMCSRate(i, 0) >= (u32)iDatarate )
             return s_iTableRadioMCS_SNR[i];
       }
    }
@@ -373,7 +372,7 @@ int getRadioMinimDBMForDataRate(int iDatarate)
    {
       for( int i=0; i<MAX_MCS_INDEX; i++ )
       {
-         if ( getRealDataRateFromMCSRate(i, 0) >= iDatarate )
+         if ( getRealDataRateFromMCSRate(i, 0) >= (u32)iDatarate )
             return s_iTableRadioMCS_DBM[i];
       }
    }

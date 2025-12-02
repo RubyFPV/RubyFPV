@@ -28,5 +28,6 @@ class MenuVehicleDev: public Menu
       int m_IndexInjectMinorVideoFaults;
       int m_IndexInjectVideoFaults;
       int m_IndexTestAdaptive;
+      int m_IndexInsertVideoDbgTimings;
       int m_IndexResetDev;
 };

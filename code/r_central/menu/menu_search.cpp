@@ -559,6 +559,7 @@ void MenuSearch::onShow()
 void MenuSearch::startSearch()
 {
    log_line("MenuSearch::startSearch() on band %s", str_getBandName(m_SupportedBandsList[m_SearchBandIndex]));
+   ruby_pause_watchdog("start search");
 
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
    {
@@ -763,6 +764,8 @@ void MenuSearch::stopSearch()
       m_pPopupSearch = NULL;
    }
 
+   ruby_pause_watchdog("search stop");
+
    pairing_stop();
 
    log_line("MenuSearch: Controller radio interfaces configuration after stopping search:");
@@ -935,6 +938,7 @@ void MenuSearch::onSearchStep()
    // substep 0: update UI and the search frequency value for the next search frequency
    if ( substep == 0 )
    {
+      reset_vehicle_runtime_info(&g_SearchVehicleRuntimeInfo);
       m_CurrentSearchFrequencyKhz = m_pSearchChannels[step];
       g_iSearchFrequency = m_pSearchChannels[step];
       s_uVideoReceivedOnFreqKhz = 0;
@@ -993,13 +997,25 @@ void MenuSearch::onSearchStep()
       if ( 0 == g_RouterIsReadyTimestamp )
       {
          log_line("MenuSearch::onSearchStep(): waiting for router to be ready...");
+         reset_vehicle_runtime_info(&g_SearchVehicleRuntimeInfo);
          return;
       }
       char szBands[128];
       str_get_supported_bands_string(getBand(m_CurrentSearchFrequencyKhz), szBands);
-      log_line("MenuSearch::onSearchStep() Current search frequency: %s, band: %s, have SiK radios: %d", str_format_frequency(m_CurrentSearchFrequencyKhz), szBands, hardware_radio_has_sik_radios());
+      log_line("MenuSearch::onSearchStep() Router ready %u ms ago, current search frequency: %s, band: %s, have SiK radios: %d",
+        g_TimeNow - g_RouterIsReadyTimestamp, str_format_frequency(m_CurrentSearchFrequencyKhz), szBands, hardware_radio_has_sik_radios());
       
 
+      u32 uWaitTimeMs = 3*1100/DEFAULT_TELEMETRY_SEND_RATE;
+      if ( hardware_radio_has_sik_radios() )
+      if ( (getBand(m_CurrentSearchFrequencyKhz) == RADIO_HW_SUPPORTED_BAND_433) ||
+           (getBand(m_CurrentSearchFrequencyKhz) == RADIO_HW_SUPPORTED_BAND_868) ||
+           (getBand(m_CurrentSearchFrequencyKhz) == RADIO_HW_SUPPORTED_BAND_915) )
+      {
+         uWaitTimeMs = 1500;
+         log_line("MenuSearch::onSearchStep() Searching on 433/868/915 Mhz band and we have Sik radios. Increase search time to %u ms", uWaitTimeMs);
+      }
+      /*
       u32 uWaitTimeMs = 250;
       if ( 0 != s_uVideoReceivedOnFreqKhz )
       if ( s_uVideoReceivedOnFreqKhz == m_CurrentSearchFrequencyKhz )
@@ -1014,13 +1030,29 @@ void MenuSearch::onSearchStep()
             log_line("MenuSearch::onSearchStep() Searching on 433/868/915 Mhz band and we have Sik radios. Increase search time to %u ms", uWaitTimeMs);
          }
       }
-
+      */
       if ( g_TimeNow > g_RouterIsReadyTimestamp + uWaitTimeMs )
       {
          log_line("MenuSearch::onSearchStep(): Nothing found on %s after %d ms of waiting.", str_format_frequency(m_CurrentSearchFrequencyKhz), 3*1100/DEFAULT_TELEMETRY_SEND_RATE);
          render_search_step++;
          return;
       }
+
+      bool bHasVideoData = false;
+      for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
+      {
+         for( int k=STREAM_ID_VIDEO_1; k<MAX_RADIO_STREAMS; k++ )
+         {
+            if ( g_SM_RadioStats.radio_streams[i][k].totalRxPackets > 20 )
+            {
+               bHasVideoData = true;
+               break;
+            }
+         }
+      }
+      log_line("MenuSearch::onSearchStep() Has received video data? %s", bHasVideoData?"Yes":"No");
+      if ( bHasVideoData )
+         uWaitTimeMs = 2500;
 
       bool bVehicleIsOnCurrentFreq = false;
       if ( (g_SearchVehicleRuntimeInfo.bGotRubyTelemetryInfo) && (g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId != 0) )
@@ -1033,7 +1065,7 @@ void MenuSearch::onSearchStep()
             sprintf(szTmp2, "%s ", str_format_frequency(g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uRadioFrequenciesKhz[i]) );
             strcat(szTmpBuff, szTmp2);
          }
-         log_line("MenuSearch: There is a vehicle found on current frequency. Vehicle id: %u, has %d radio links: %s.", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId, g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.radio_links_count, szTmpBuff);
+         log_line("MenuSearch::onSearchStep() There is a vehicle found on current frequency. Vehicle id: %u, has %d radio links: %s.", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId, g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.radio_links_count, szTmpBuff);
          for( int i=0; i<g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.radio_links_count; i++ )
          {
             if ( g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uRadioFrequenciesKhz[i] == m_CurrentSearchFrequencyKhz )
@@ -1077,7 +1109,7 @@ void MenuSearch::onSearchStep()
          if ( m_SpectatorOnlyMode )
             pMenu->setSpectatorOnly();
          add_menu_to_stack(pMenu);
-         log_line("Added connect menu to stack");
+         log_line("MenuSearch::onSearchStep() Added connect menu to stack");
       }
       else if ( g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId != 0 )
       {
@@ -1090,6 +1122,9 @@ void MenuSearch::onSearchStep()
          log_softerror_and_alarm("Found a vehicle that emits on these frequencies %s, %s, %s, but is not on current search frequencty %s!",
             szFreq1, szFreq2, szFreq3, str_format_frequency(m_CurrentSearchFrequencyKhz) );
       }
+      else
+         log_line("MenuSearch::onSearchStep() No vehicle on current frequency (%s): got telem search info? %s, search telemetry VID: %u",
+           str_format_frequency(m_CurrentSearchFrequencyKhz), g_SearchVehicleRuntimeInfo.bGotRubyTelemetryInfo?"yes":"no", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId);
    }
 }
 
@@ -1123,6 +1158,7 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
       log_line("Pressed Skip search");
       m_bIsSearchPaused = false;
       g_bSearchFoundVehicle = false;
+      reset_vehicle_runtime_info(&g_SearchVehicleRuntimeInfo);
       invalidate();
       createSearchPopup();
       return;
@@ -1176,7 +1212,7 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
             deleteModel(pExistingModel);
       }
       Model* pModel = addSpectatorModel(g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId);
-      pModel->populateFromVehicleTelemetryData_v5(&(g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended));
+      pModel->populateFromVehicleTelemetryData_v6(&(g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended));
       pModel->is_spectator = true;
 
       set_model_main_connect_frequency(g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId, m_CurrentSearchFrequencyKhz);
@@ -1211,8 +1247,10 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
      
       if ( pExistingModel != NULL)
       {
+         log_line("There is already an existing model for VID %u, model's software ver: %d.%d b-%d", pExistingModel->uVehicleId, get_sw_version_major(pExistingModel), get_sw_version_minor(pExistingModel), get_sw_version_build(pExistingModel));
          if ( pExistingModel->is_spectator || modelIsInSpectatorList(pExistingModel->uVehicleId) )
          {
+            log_line("Delete exiting spectator model for this VID %u", pExistingModel->uVehicleId);
             deleteModel(pExistingModel);
             bIsNew = true;
          }
@@ -1223,7 +1261,7 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
       {
          log_line("Search: Adding a new vehicle model as controller");
          log_line("Creating a vehicle model for VID: %u ...", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId);
-         pModel = addNewModel();
+         pModel = addNewModel((g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.rubyVersion>>4) &0x0F, (g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.rubyVersion & 0x0F));
       }
       else
       {
@@ -1232,12 +1270,12 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
          {
             bIsNew = true;
             log_line("Creating a vehicle model for VID: %u ...", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId);
-            pModel = addNewModel();
+            pModel = addNewModel((g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.rubyVersion>>4) &0x0F, (g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.rubyVersion & 0x0F));
          }
          else
             log_line("Search: Found existing controller vehicle model for VID %u.", pModel->uVehicleId);
       }
-      pModel->populateFromVehicleTelemetryData_v5(&(g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended));
+      pModel->populateFromVehicleTelemetryData_v6(&(g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended));
       pModel->is_spectator = false;
       set_model_main_connect_frequency(g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId, m_CurrentSearchFrequencyKhz);
 
@@ -1330,7 +1368,7 @@ int MenuSearch::onBack()
          log_line("MenuSearch:onBack() no previous current model to switch back to.");
    }
 
-
+   ruby_resume_watchdog_force("search close menu");
    return Menu::onBack();
 }
 
@@ -1366,18 +1404,22 @@ void MenuSearch::onSelectItem()
    // Start/Stop Search
    if ( m_IndexStartSearch == m_SelectedIndex )
    {
-      log_line("Pressed Star/Stop search button");
+      log_line("Pressed Start/Stop search button");
       if ( 0 == iCountValidRadioInterfaces )
       {
          addMessage2(0, L("No active radio interfaces."), L("All your controller's radio interfaces are disabled. Enable at least a radio interface (from the Radio menu) to be able to search for vehicles."));
          return;
       }
       if ( ! m_bIsSearchingAuto )
+      {
+         ruby_pause_watchdog("search manual freq");
          startSearch();
+      }
       else
       {
          hardware_blockCurrentPressedKeys();
          stopSearch();
+         ruby_resume_watchdog("stop search manual freq");
       }
       return;
    }
@@ -1393,6 +1435,7 @@ void MenuSearch::onSelectItem()
          return;
       }
 
+      ruby_pause_watchdog("search on a freq");
       createSearchPopup();
       g_bSearching = true;
       render_all(get_current_timestamp_ms(), true);

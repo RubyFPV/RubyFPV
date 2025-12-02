@@ -43,23 +43,39 @@
 ControllerSettings s_CtrlSettings;
 int s_CtrlSettingsLoaded = 0;
 
+void reset_ControllerPriorities()
+{
+   s_CtrlSettings.iCoresAdjustment = 1;
+   s_CtrlSettings.iPrioritiesAdjustment = 1;
+
+   s_CtrlSettings.iThreadPriorityRouter = DEFAULT_PRIORITY_CTRL_THREAD_ROUTER;
+   s_CtrlSettings.iThreadPriorityRadioRx = DEFAULT_PRIORITY_CTRL_THREAD_RADIO_RX;
+   s_CtrlSettings.iThreadPriorityRadioTx = DEFAULT_PRIORITY_CTRL_THREAD_RADIO_TX;
+   s_CtrlSettings.iThreadPriorityCentral = DEFAULT_PRIORITY_CTRL_THREAD_CENTRAL;
+   s_CtrlSettings.iThreadPriorityVideo = DEFAULT_PRIORITY_CTRL_THREAD_VIDEO_RX;
+   s_CtrlSettings.iThreadPriorityVideoRecording = DEFAULT_PRIORITY_CTRL_THREAD_VIDEO_REC;
+   s_CtrlSettings.iThreadPriorityRC = DEFAULT_PRIORITY_CTRL_THREAD_TX_RC;
+   s_CtrlSettings.iThreadPriorityOthers = DEFAULT_PRIORITY_CTRL_OTHERS;
+
+   s_CtrlSettings.ioNiceRouter = DEFAULT_IO_PRIORITY_ROUTER_CTRL;
+   s_CtrlSettings.ioNiceRxVideo = DEFAULT_IO_PRIORITY_VIDEO_RX;
+
+   if ( s_CtrlSettingsLoaded )
+      log_line("Reseted controller processes priorities.");
+}
+
 void reset_ControllerSettings()
 {
    memset(&s_CtrlSettings, 0, sizeof(s_CtrlSettings));
+   reset_ControllerPriorities();
+
    s_CtrlSettings.iUseBrokenVideoCRC = 0;
    s_CtrlSettings.iFixedTxPower = 0;
    s_CtrlSettings.iHDMIBoost = 6;
-   s_CtrlSettings.iCoresAdjustment = 1;
-   s_CtrlSettings.iPrioritiesAdjustment = 1;
    s_CtrlSettings.iOverVoltage = 0;
    s_CtrlSettings.iFreqARM = 0;
    s_CtrlSettings.iFreqGPU = 0;
 
-   s_CtrlSettings.iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-   s_CtrlSettings.ioNiceRouter = DEFAULT_IO_PRIORITY_ROUTER;
-   s_CtrlSettings.iNiceCentral = DEFAULT_PRIORITY_PROCESS_CENTRAL;
-   s_CtrlSettings.iNiceRXVideo = DEFAULT_PRIORITY_PROCESS_VIDEO_RX;
-   s_CtrlSettings.ioNiceRXVideo = DEFAULT_IO_PRIORITY_VIDEO_RX;
    s_CtrlSettings.iVideoForwardUSBType = 0;
    s_CtrlSettings.iVideoForwardUSBPort = 5001;
    s_CtrlSettings.iVideoForwardUSBPacketSize = 1024;
@@ -104,14 +120,15 @@ void reset_ControllerSettings()
    s_CtrlSettings.uShowBigRxHistoryInterface = 0;
    s_CtrlSettings.iSiKPacketSize = DEFAULT_SIK_PACKET_SIZE;
 
-   s_CtrlSettings.iRadioRxThreadPriority = DEFAULT_PRIORITY_THREAD_RADIO_RX;
-   s_CtrlSettings.iRadioTxThreadPriority = DEFAULT_PRIORITY_THREAD_RADIO_TX;
    s_CtrlSettings.iRadioTxUsesPPCAP = DEFAULT_USE_PPCAP_FOR_TX;
    s_CtrlSettings.iRadioBypassSocketBuffers = DEFAULT_BYPASS_SOCKET_BUFFERS;
-   s_CtrlSettings.iStreamerOutputMode = 0;
+   s_CtrlSettings.iStreamerOutputMode = 1;
    s_CtrlSettings.iVideoMPPBuffersSize = DEFAULT_MPP_BUFFERS_SIZE;
    s_CtrlSettings.iHDMIVSync = 1;
    s_CtrlSettings.iEasterEgg1 = 0;
+   s_CtrlSettings.iDbgPingGraphs = 0;
+   s_CtrlSettings.iEnableDebugStats = 0;
+   s_CtrlSettings.iWaitFullFrameForOutput = 0;
    if ( s_CtrlSettingsLoaded )
       log_line("Reseted controller settings.");
 }
@@ -131,7 +148,7 @@ int save_ControllerSettings()
    fprintf(fd, "%d %d %d\n", s_CtrlSettings.iDeveloperMode, s_CtrlSettings.iUseBrokenVideoCRC, s_CtrlSettings.iHDMIBoost);
    fprintf(fd, "%d %d %d\n", s_CtrlSettings.iOverVoltage, s_CtrlSettings.iFreqARM, s_CtrlSettings.iFreqGPU);
 
-   fprintf(fd, "%d %d %d\n%d %d\n", s_CtrlSettings.iNiceRouter, s_CtrlSettings.iNiceCentral, s_CtrlSettings.iNiceRXVideo, s_CtrlSettings.ioNiceRouter, s_CtrlSettings.ioNiceRXVideo);
+   fprintf(fd, "%d %d %d\n%d %d\n", s_CtrlSettings.iThreadPriorityRouter, s_CtrlSettings.iThreadPriorityCentral, s_CtrlSettings.iThreadPriorityVideo, s_CtrlSettings.ioNiceRouter, s_CtrlSettings.ioNiceRxVideo);
 
    fprintf(fd, "video_usb: %d %d %d\n", s_CtrlSettings.iVideoForwardUSBType, s_CtrlSettings.iVideoForwardUSBPort, s_CtrlSettings.iVideoForwardUSBPacketSize);
    fprintf(fd, "telem_usb: %d %d %d\n", s_CtrlSettings.iTelemetryForwardUSBType, s_CtrlSettings.iTelemetryForwardUSBPort, s_CtrlSettings.iTelemetryForwardUSBPacketSize);
@@ -162,11 +179,14 @@ int save_ControllerSettings()
    fprintf(fd, "%d %d\n", s_CtrlSettings.iAudioOutputDevice, s_CtrlSettings.iAudioOutputVolume);
    fprintf(fd, "%d %u\n", s_CtrlSettings.iDevRxLoopTimeout, s_CtrlSettings.uShowBigRxHistoryInterface);
    fprintf(fd, "%d\n", s_CtrlSettings.iSiKPacketSize);
-   fprintf(fd, "%d %d\n", s_CtrlSettings.iRadioRxThreadPriority, s_CtrlSettings.iRadioTxThreadPriority);
+   fprintf(fd, "%d %d\n", s_CtrlSettings.iThreadPriorityRadioRx, s_CtrlSettings.iThreadPriorityRadioTx);
    fprintf(fd, "%d %d %d\n", s_CtrlSettings.iRadioTxUsesPPCAP, s_CtrlSettings.iRadioBypassSocketBuffers, s_CtrlSettings.iFixedTxPower);
    fprintf(fd, "%d %d\n", s_CtrlSettings.iCoresAdjustment, s_CtrlSettings.iPrioritiesAdjustment);
    fprintf(fd, "%d %d\n", s_CtrlSettings.iStreamerOutputMode, s_CtrlSettings.iVideoMPPBuffersSize);
    fprintf(fd, "%d %d\n", s_CtrlSettings.iHDMIVSync, s_CtrlSettings.iEasterEgg1);
+   fprintf(fd, "%d %d %d\n", s_CtrlSettings.iThreadPriorityVideoRecording, s_CtrlSettings.iThreadPriorityRC, s_CtrlSettings.iThreadPriorityOthers);
+   fprintf(fd, "%d %d\n", s_CtrlSettings.iDbgPingGraphs, s_CtrlSettings.iEnableDebugStats);
+   fprintf(fd, "%d\n", s_CtrlSettings.iWaitFullFrameForOutput);
    fclose(fd);
 
    log_line("Saved controller settings to file: %s", szFile);
@@ -214,7 +234,7 @@ int load_ControllerSettings()
    if ( 3 != fscanf(fd, "%d %d %d", &s_CtrlSettings.iOverVoltage, &s_CtrlSettings.iFreqARM, &s_CtrlSettings.iFreqGPU) )
       { failed = 1; log_softerror_and_alarm("Load ctrl settings, failed on line 2"); }
 
-   if ( 5 != fscanf(fd, "%d %d %d %d %d", &s_CtrlSettings.iNiceRouter, &s_CtrlSettings.iNiceCentral, &s_CtrlSettings.iNiceRXVideo, &s_CtrlSettings.ioNiceRouter, &s_CtrlSettings.ioNiceRXVideo) )
+   if ( 5 != fscanf(fd, "%d %d %d %d %d", &s_CtrlSettings.iThreadPriorityRouter, &s_CtrlSettings.iThreadPriorityCentral, &s_CtrlSettings.iThreadPriorityVideo, &s_CtrlSettings.ioNiceRouter, &s_CtrlSettings.ioNiceRxVideo) )
       { failed = 1; log_softerror_and_alarm("Load ctrl settings, failed on line 3"); }
 
 
@@ -278,7 +298,7 @@ int load_ControllerSettings()
    if ( 1 != fscanf(fd, "%d", &s_CtrlSettings.iSiKPacketSize) )
       { failed = 1; log_softerror_and_alarm("Load ctrl settings, failed on line 22"); }
 
-   if ( 2 != fscanf(fd, "%d %d", &s_CtrlSettings.iRadioRxThreadPriority, &s_CtrlSettings.iRadioTxThreadPriority) )
+   if ( 2 != fscanf(fd, "%d %d", &s_CtrlSettings.iThreadPriorityRadioRx, &s_CtrlSettings.iThreadPriorityRadioTx) )
       { failed = 1; log_softerror_and_alarm("Load ctrl settings, failed on line 23"); }
 
    if ( 3 != fscanf(fd, "%d %d %d", &s_CtrlSettings.iRadioTxUsesPPCAP, &s_CtrlSettings.iRadioBypassSocketBuffers, &s_CtrlSettings.iFixedTxPower) )
@@ -290,7 +310,7 @@ int load_ControllerSettings()
 
    if ( 1 != fscanf(fd, "%d", &s_CtrlSettings.iStreamerOutputMode) )
       { log_softerror_and_alarm("Load ctrl settings, failed on line 26");
-        s_CtrlSettings.iStreamerOutputMode = 0;
+        s_CtrlSettings.iStreamerOutputMode = 1;
       }
    if ( 1 != fscanf(fd, "%d", &s_CtrlSettings.iVideoMPPBuffersSize) )
       { log_softerror_and_alarm("Load ctrl settings, failed on line 27");
@@ -305,13 +325,23 @@ int load_ControllerSettings()
 
    if ( 1 != fscanf(fd, "%d", &s_CtrlSettings.iEasterEgg1) )
       s_CtrlSettings.iEasterEgg1 = 0;
+
+   fscanf(fd, "%d %d %d", &s_CtrlSettings.iThreadPriorityVideoRecording, &s_CtrlSettings.iThreadPriorityRC, &s_CtrlSettings.iThreadPriorityOthers);
+
+   if ( 1 != fscanf(fd, "%d", &s_CtrlSettings.iDbgPingGraphs) )
+      s_CtrlSettings.iDbgPingGraphs = 0;
+
+   if ( 1 != fscanf(fd, "%d", &s_CtrlSettings.iEnableDebugStats) )
+      s_CtrlSettings.iEnableDebugStats = 0;
+   if ( 1 != fscanf(fd, "%d", &s_CtrlSettings.iWaitFullFrameForOutput) )
+      s_CtrlSettings.iWaitFullFrameForOutput = 0;
    fclose(fd);
 
    //--------------------------------------------------------
    // Validate settings
 
    if ( (s_CtrlSettings.iStreamerOutputMode < 0) || (s_CtrlSettings.iStreamerOutputMode > 2) )
-      s_CtrlSettings.iStreamerOutputMode = 0;
+      s_CtrlSettings.iStreamerOutputMode = 1;
 
    if ( (s_CtrlSettings.iVideoMPPBuffersSize < 5) || (s_CtrlSettings.iVideoMPPBuffersSize > 128) )
       s_CtrlSettings.iVideoMPPBuffersSize = DEFAULT_MPP_BUFFERS_SIZE;
@@ -322,12 +352,22 @@ int load_ControllerSettings()
    if ( s_CtrlSettings.iTelemetryForwardUSBType < 0 || s_CtrlSettings.iTelemetryForwardUSBType > 1 ||  s_CtrlSettings.iTelemetryForwardUSBPort == 0 ||  s_CtrlSettings.iTelemetryForwardUSBPacketSize == 0 )
       { s_CtrlSettings.iTelemetryForwardUSBType = 0; s_CtrlSettings.iTelemetryForwardUSBPort = 0; s_CtrlSettings.iTelemetryForwardUSBPacketSize = 1024; }
 
-   if ( s_CtrlSettings.iNiceRouter < -18 || s_CtrlSettings.iNiceRouter > 0 )
-      s_CtrlSettings.iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-   if ( s_CtrlSettings.iNiceRXVideo < -18 || s_CtrlSettings.iNiceRXVideo > 0 )
-      s_CtrlSettings.iNiceRXVideo = DEFAULT_PRIORITY_PROCESS_VIDEO_RX;
-   if ( s_CtrlSettings.iNiceCentral < -16 || s_CtrlSettings.iNiceCentral > 0 )
-      s_CtrlSettings.iNiceCentral = DEFAULT_PRIORITY_PROCESS_CENTRAL;
+   if ( (s_CtrlSettings.iThreadPriorityRouter < 0) || (s_CtrlSettings.iThreadPriorityRouter >= 140) )
+      reset_ControllerPriorities();
+   if ( (s_CtrlSettings.iThreadPriorityVideo < 0) || (s_CtrlSettings.iThreadPriorityVideo >= 140) )
+      reset_ControllerPriorities();
+   if ( (s_CtrlSettings.iThreadPriorityVideoRecording < 0) || (s_CtrlSettings.iThreadPriorityVideoRecording >= 140) )
+      reset_ControllerPriorities();
+   if ( (s_CtrlSettings.iThreadPriorityCentral < 0) || (s_CtrlSettings.iThreadPriorityCentral >= 140) )
+      reset_ControllerPriorities();
+   if ( (s_CtrlSettings.iThreadPriorityRC < 0) || (s_CtrlSettings.iThreadPriorityRC >= 140) )
+      reset_ControllerPriorities();
+   if ( (s_CtrlSettings.iThreadPriorityOthers < 0) || (s_CtrlSettings.iThreadPriorityOthers >= 140) )
+      reset_ControllerPriorities();
+   if ( (s_CtrlSettings.iThreadPriorityRadioRx < 0) || (s_CtrlSettings.iThreadPriorityRadioRx >= 140) )
+      reset_ControllerPriorities();
+   if ( (s_CtrlSettings.iThreadPriorityRadioTx < 0) || (s_CtrlSettings.iThreadPriorityRadioTx >= 140) )
+      reset_ControllerPriorities();
      
    if ( s_CtrlSettings.iRenderFPS < 10 || s_CtrlSettings.iRenderFPS > 30 )
       s_CtrlSettings.iRenderFPS = 10;
@@ -384,6 +424,7 @@ u32 compute_ping_interval_ms(u32 uModelFlags, u32 uRxTxSyncType, u32 uCurrentVid
 int save_ControllerSettings() { return 0; }
 int load_ControllerSettings() { return 0; }
 void reset_ControllerSettings() {}
+void reset_ControllerPriorities() {}
 ControllerSettings* get_ControllerSettings() { return NULL; }
 
 u32 compute_ping_interval_ms(u32 uModelFlags, u32 uRxTxSyncType, u32 uCurrentVideoProfileFlags) { return 200000; }

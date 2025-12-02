@@ -28,13 +28,14 @@ class MenuVehicleVideoBidirectional: public Menu
       int m_IndexAdaptiveVideoLevel, m_IndexAdaptiveAlgorithm, m_IndexAdaptiveUseControllerToo;
       int m_IndexVideoLinkLost, m_IndexAdaptiveAdjustmentStrength;
       int m_IndexRetransmissionsFast;
-      int m_IndexRetransmissionsAlgo;
+      int m_IndexRetransmissionsGuardInterval;
       int m_IndexLevelRSSI;
       int m_IndexLevelSNR;
       int m_IndexLevelRetr;
       int m_IndexLevelRXLost;
       int m_IndexLevelECUsed;
       int m_IndexLevelECMax;
+      int m_IndexLevelTimeToSwitchUp;
 
       MenuItemSlider* m_pItemsSlider[15];
       MenuItemSelect* m_pItemsSelect[15];
@@ -44,6 +45,7 @@ class MenuVehicleVideoBidirectional: public Menu
       u32 m_uTempAdaptiveWeights;
       type_adaptive_metrics m_AdaptiveMetrics;
       MenuItemText* m_pMenuItemAdaptiveTimers;
+      MenuItemText* m_pMenuItemTimeToSwitchUp;
       MenuItemText* m_pMenuItemRSSI;
       MenuItemText* m_pMenuItemSNR;
       MenuItemText* m_pMenuItemRetr;

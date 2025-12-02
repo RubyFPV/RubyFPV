@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
             u8* pBuffer = NULL;
             int bCRCOk = 0;
             int okPacket = 0;
-            pBuffer = radio_process_wlan_data_in(i, &length, g_TimeNow); 
+            pBuffer = radio_process_wlan_data_in(i, &length, NULL, g_TimeNow); 
             if ( NULL == pBuffer )
             {
                printf("NULL receive buffer. Ignoring...");

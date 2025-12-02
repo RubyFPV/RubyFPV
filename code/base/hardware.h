@@ -86,7 +86,8 @@ typedef struct
    int buttonsValues[MAX_JOYSTICK_BUTTONS];
    int axesValuesPrev[MAX_JOYSTICK_AXES];
    int buttonsValuesPrev[MAX_JOYSTICK_BUTTONS];
-   int fd;
+   int fd; // Non persistent, for raw opening a joystick input device;
+   void* pObject; // Non persistent, For SDL opening a joystick, points to a SDL joystick object
 } hw_joystick_info_t;
 
 
@@ -167,6 +168,7 @@ int hardware_get_gpu_speed(); // in Mhz
 int hardware_get_cpu_temp();
 
 void hardware_set_oipc_freq_boost(int iFreqCPUMhz, int iGPUBoost);
+void hardware_set_oipc_cpu_freq(int iFreqCPUMhz);
 void hardware_set_oipc_gpu_boost(int iGPUBoost);
 void hardware_balance_interupts();
 #ifdef __cplusplus

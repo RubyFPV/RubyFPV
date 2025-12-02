@@ -34,11 +34,12 @@ typedef struct
    u8  uPacketsAreShort[MAX_RX_PACKETS_QUEUE];
    u8  uPacketsRxInterface[MAX_RX_PACKETS_QUEUE];
    int iQueueSize;
-   volatile int iCurrentPacketIndexToWrite; // Where next packet will be added
-   volatile int iCurrentPacketIndexToConsume; // Where the first packet to read/consume is
+   _ATOMIC_PREFIX int iCurrentPacketIndexToWrite; // Where next packet will be added
+   _ATOMIC_PREFIX int iCurrentPacketIndexToConsume; // Where the first packet to read/consume is
    int iStatsMaxPacketsInQueue;
    int iStatsMaxPacketsInQueueLastMinute;
 
+   pthread_mutex_t mutexLock;
    sem_t* pSemaphoreWrite;
    sem_t* pSemaphoreRead;
 } ALIGN_STRUCT_SPEC_INFO t_radio_rx_state_packets_queue;
@@ -75,7 +76,8 @@ void * _thread_radio_rx(void *argument);
 int radio_rx_start_rx_thread(shared_mem_radio_stats* pSMRadioStats, int iSearchMode, u32 uAcceptedFirmwareType);
 void radio_rx_stop_rx_thread();
 
-void radio_rx_set_custom_thread_priority(int iPriority);
+void radio_rx_set_cpu_affinity(int iCPUCore);
+void radio_rx_set_custom_thread_raw_priority(int iRawPriority);
 void radio_rx_set_timeout_interval(int iMiliSec);
 
 void radio_rx_pause_interface(int iInterfaceIndex, const char* szReason);
@@ -99,6 +101,9 @@ u32 radio_rx_get_and_reset_max_loop_time();
 u32 radio_rx_get_and_reset_max_loop_time_read();
 u32 radio_rx_get_and_reset_max_loop_time_queue();
 
+u32 radio_rx_get_current_frame_start_time();
+u32 radio_rx_get_current_frame_end_time();
+u16 radio_rx_get_current_frame_number();
 u8* radio_rx_wait_get_next_received_high_prio_packet(u32 uTimeoutMicroSec, int* pLength, int* pIsShortPacket, int* pRadioInterfaceIndex);
 u8* radio_rx_wait_get_next_received_reg_prio_packet(u32 uTimeoutMicroSec, int* pLength, int* pIsShortPacket, int* pRadioInterfaceIndex);
 

@@ -978,22 +978,22 @@ void compute_adaptive_metrics(type_adaptive_metrics* pAdaptiveMetrics, int iAdap
       return;
 
    pAdaptiveMetrics->uMinimumTimeToSwitchLower = 20;
-   pAdaptiveMetrics->uMinimumTimeToSwitchHigher = 500 + (11 - iAdaptiveStrength) * 250;
-
+   pAdaptiveMetrics->uMinimumTimeToSwitchHigher = 500 + (11 - iAdaptiveStrength) * 100;
+   pAdaptiveMetrics->uMinimumGoodTimeToSwitchHigher = 100 + (11-iAdaptiveStrength) * ((uAdaptiveWeights >> 24) & 0x0F) * 50;
    pAdaptiveMetrics->iMinimRSSIThreshold = -1000;
    if ( (uAdaptiveWeights & 0x0F) != 0 )
-      pAdaptiveMetrics->iMinimRSSIThreshold = -5 + (iAdaptiveStrength + ((uAdaptiveWeights & 0x0F) - 10))*2;
+      pAdaptiveMetrics->iMinimRSSIThreshold = -6 + (iAdaptiveStrength + ((uAdaptiveWeights & 0x0F) - 10))*2;
 
    pAdaptiveMetrics->iMinimSNRThreshold = -1000;
    if ( ((uAdaptiveWeights >> 4) & 0x0F) != 0 )
-      pAdaptiveMetrics->iMinimSNRThreshold = 2 + iAdaptiveStrength*2/3 + (((uAdaptiveWeights >> 4) & 0x0F) - 10);
+      pAdaptiveMetrics->iMinimSNRThreshold = 1 + iAdaptiveStrength*2/3 + (((uAdaptiveWeights >> 4) & 0x0F) - 10);
 
    pAdaptiveMetrics->uTimeToLookBackForRetr = MAX_U32;
    pAdaptiveMetrics->iMaxRetr = 2000;
    if ( ((uAdaptiveWeights >> 8) & 0x0F) != 0 )
    {
       pAdaptiveMetrics->uTimeToLookBackForRetr = 200 + (iAdaptiveStrength + (((uAdaptiveWeights >> 8) & 0x0F) - 12))*30;
-      pAdaptiveMetrics->iMaxRetr = ( (11-iAdaptiveStrength) * 2 * (16-((uAdaptiveWeights >> 8) & 0x0F)) )/10 + 1;
+      pAdaptiveMetrics->iMaxRetr = ( (11-iAdaptiveStrength) * 3 * (16-((uAdaptiveWeights >> 8) & 0x0F)) )/10 + 1;
    }
 
    pAdaptiveMetrics->uTimeToLookBackForRxLost = MAX_U32;
@@ -1002,7 +1002,7 @@ void compute_adaptive_metrics(type_adaptive_metrics* pAdaptiveMetrics, int iAdap
    {
       pAdaptiveMetrics->uTimeToLookBackForRxLost = 200 + (11-iAdaptiveStrength)*30;
       pAdaptiveMetrics->uTimeToLookBackForRxLost -= (((uAdaptiveWeights >> 12) & 0x0F) - 7) * 20;
-      pAdaptiveMetrics->iMaxRxLostPercent = 50 - iAdaptiveStrength * 4;
+      pAdaptiveMetrics->iMaxRxLostPercent = 60 - iAdaptiveStrength * 5;
       pAdaptiveMetrics->iMaxRxLostPercent += (15-((uAdaptiveWeights >> 12) & 0x0F))/2;
       pAdaptiveMetrics->iMaxRxLostPercent = (pAdaptiveMetrics->iMaxRxLostPercent * ((16-((uAdaptiveWeights >> 12) & 0x0F)))) / 10;
    }
@@ -1016,8 +1016,60 @@ void compute_adaptive_metrics(type_adaptive_metrics* pAdaptiveMetrics, int iAdap
    if ( ((uAdaptiveWeights >> 20) & 0x0F) != 0 )
       pAdaptiveMetrics->uTimeToLookBackForECMax = 100 + ( (10-iAdaptiveStrength) + (15-((uAdaptiveWeights >> 20) & 0x0F)) )*20;
 
-   pAdaptiveMetrics->iPercentageECUsed = 90 - ((iAdaptiveStrength*(((uAdaptiveWeights >> 16) & 0x0F)-1))/10 )*8;
+   pAdaptiveMetrics->iPercentageECUsed = 95 - ((iAdaptiveStrength*(((uAdaptiveWeights >> 16) & 0x0F)-1))/10 )*8;
    //pAdaptiveMetrics->iPercentageECMax = 35 - ((iAdaptiveStrength*(((uAdaptiveWeights >> 20) & 0x0F)-1))/10 )*3;
-   pAdaptiveMetrics->iPercentageECMax = 35 - iAdaptiveStrength*3;
+   pAdaptiveMetrics->iPercentageECMax = 40 - iAdaptiveStrength*3;
    pAdaptiveMetrics->iPercentageECMax = (pAdaptiveMetrics->iPercentageECMax * (16-((uAdaptiveWeights >> 20) & 0x0F)))/5;
+}
+
+void log_adaptive_metrics(Model* pModel, type_adaptive_metrics* pAdaptiveMetrics, int iAdaptiveStrength, u32 uAdaptiveWeights)
+{
+   if ( (NULL == pModel) || (NULL == pAdaptiveMetrics) )
+   {
+      log_softerror_and_alarm("Can't log adaptive metrics. Invalid params, null model or null metrics.");
+      return;
+   }
+   log_line("* Adaptive metrics for VID %u: Adaptive strength: %d", pModel->uVehicleId, iAdaptiveStrength);
+   log_line("* Adaptive metrics for VID %u: Min time to switch down: %u ms", pModel->uVehicleId, pAdaptiveMetrics->uMinimumTimeToSwitchLower);
+   log_line("* Adaptive metrics for VID %u: Min time to switch up: %u ms", pModel->uVehicleId, pAdaptiveMetrics->uMinimumTimeToSwitchHigher);
+   log_line("* Adaptive metrics for VID %u: Min good time to switch up (weight: %d): %u ms", pModel->uVehicleId, ((uAdaptiveWeights >> 24) & 0x0F), pAdaptiveMetrics->uMinimumGoodTimeToSwitchHigher);
+
+   log_line("* Adaptive metrics for VID %u: Weight RSSI: %u", pModel->uVehicleId, uAdaptiveWeights & 0x0F);
+   log_line("* Adaptive metrics for VID %u: Weight SNR: %u", pModel->uVehicleId, (uAdaptiveWeights >> 4) & 0x0F);
+   log_line("* Adaptive metrics for VID %u: Weight Retransmissions: %u", pModel->uVehicleId, (uAdaptiveWeights >> 8) & 0x0F);
+   log_line("* Adaptive metrics for VID %u: Weight Rx Lost: %u", pModel->uVehicleId, (uAdaptiveWeights >> 12) & 0x0F);
+   log_line("* Adaptive metrics for VID %u: Weight EC Used: %u", pModel->uVehicleId, (uAdaptiveWeights >> 16) & 0x0F);
+   log_line("* Adaptive metrics for VID %u: Weight EC Max Used: %u", pModel->uVehicleId, (uAdaptiveWeights >> 20) & 0x0F);
+   log_line("* Adaptive metrics for VID %u: Weight Time to switch up: %u", pModel->uVehicleId, (uAdaptiveWeights >> 24) & 0x0F);
+}
+
+void utils_log_radio_packets_sizes()
+{
+   char szBuff[128];
+   sprintf(szBuff, "[Utils] Size of radio t_packet_header: %d bytes", (int)sizeof(t_packet_header));
+   log_always(szBuff);
+   sprintf(szBuff, "[Utils] Size of radio t_packet_header_command: %d bytes", (int)sizeof(t_packet_header_command));
+   log_always(szBuff);
+   sprintf(szBuff, "[Utils] Size of radio t_packet_header_command_response: %d bytes", (int)sizeof(t_packet_header_command_response));
+   log_always(szBuff);
+   sprintf(szBuff, "[Utils] Size of radio t_packet_header_video_segment: %d bytes", (int)sizeof(t_packet_header_video_segment));
+   log_always(szBuff);
+   sprintf(szBuff, "[Utils] Size of radio t_packet_header_video_segment_important: %d bytes", (int)sizeof(t_packet_header_video_segment_important));
+   log_always(szBuff);
+   sprintf(szBuff, "[Utils] Size of radio t_packet_header_ruby_telemetry_short: %d bytes", (int)sizeof(t_packet_header_ruby_telemetry_short));
+   log_always(szBuff);
+   sprintf(szBuff, "[Utils] Size of radio t_packet_header_ruby_telemetry_extended_v4: %d bytes", (int)sizeof(t_packet_header_ruby_telemetry_extended_v4));
+   log_always(szBuff);
+   sprintf(szBuff, "[Utils] Size of radio t_packet_header_ruby_telemetry_extended_v5: %d bytes", (int)sizeof(t_packet_header_ruby_telemetry_extended_v5));
+   log_always(szBuff);
+   sprintf(szBuff, "[Utils] Size of radio t_packet_header_ruby_telemetry_extended_v6: %d bytes", (int)sizeof(t_packet_header_ruby_telemetry_extended_v6));
+   log_always(szBuff);
+   sprintf(szBuff, "[Utils] Size of radio t_packet_header_ruby_telemetry_extended_extra_info: %d bytes", (int)sizeof(t_packet_header_ruby_telemetry_extended_extra_info));
+   log_always(szBuff);
+   sprintf(szBuff, "[Utils] Size of radio t_packet_header_ruby_telemetry_extended_extra_info_retransmissions: %d bytes", (int)sizeof(t_packet_header_ruby_telemetry_extended_extra_info_retransmissions));
+   log_always(szBuff);
+   sprintf(szBuff, "[Utils] Size of radio t_packet_header_fc_telemetry: %d bytes", (int)sizeof(t_packet_header_fc_telemetry));
+   log_always(szBuff);
+   sprintf(szBuff, "[Utils] Size of radio t_packet_header_fc_extra: %d bytes", (int)sizeof(t_packet_header_fc_extra));
+   log_always(szBuff);
 }

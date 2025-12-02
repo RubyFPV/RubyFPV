@@ -11,9 +11,9 @@
         * Redistributions in binary form (partially or complete) must reproduce
         the above copyright notice, this list of conditions and the following disclaimer
         in the documentation and/or other materials provided with the distribution.
-         * Copyright info and developer info must be preserved as is in the user
+        * Copyright info and developer info must be preserved as is in the user
         interface, additions could be made to that info.
-       * Neither the name of the organization nor the
+        * Neither the name of the organization nor the
         names of its contributors may be used to endorse or promote products
         derived from this software without specific prior written permission.
         * Military use is not permitted.
@@ -47,7 +47,7 @@
 MenuVehicleVideoBidirectional::MenuVehicleVideoBidirectional(void)
 :Menu(MENU_ID_VEHICLE_VIDEO_BIDIRECTIONAL, L("Bidirectional Video Settings"), NULL)
 {
-   m_Width = 0.36;
+   m_Width = 0.38;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.1;
 
    float dxMargin = 0.016 * Menu::getScaleFactor();
@@ -59,8 +59,10 @@ MenuVehicleVideoBidirectional::MenuVehicleVideoBidirectional(void)
    m_IndexLevelRXLost = -1;
    m_IndexLevelECUsed = -1;
    m_IndexLevelECMax = -1;
+   m_IndexLevelTimeToSwitchUp = -1;
 
    m_pMenuItemAdaptiveTimers = NULL;
+   m_pMenuItemTimeToSwitchUp = NULL;
    m_pMenuItemRSSI = NULL;
    m_pMenuItemSNR = NULL;
    m_pMenuItemRetr = NULL;
@@ -71,6 +73,7 @@ MenuVehicleVideoBidirectional::MenuVehicleVideoBidirectional(void)
    m_iTempAdaptiveStrength = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iAdaptiveAdjustmentStrength;
    m_uTempAdaptiveWeights = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uAdaptiveWeights;
    compute_adaptive_metrics(&m_AdaptiveMetrics, m_iTempAdaptiveStrength, m_uTempAdaptiveWeights);
+   log_adaptive_metrics(g_pCurrentModel, &m_AdaptiveMetrics, m_iTempAdaptiveStrength, m_uTempAdaptiveWeights);
 
    m_pItemsRadio[0] = new MenuItemRadio("", L("Set the way video link behaves: fixed broadcast video, or auto adaptive video link and stream."));
    m_pItemsRadio[0]->addSelection(L("Fixed One Way Video Link"), L("The radio video link will be one way broadcast only, no retransmissions will take place, video quality and video parameters will not be adjusted in real time."));
@@ -85,6 +88,9 @@ MenuVehicleVideoBidirectional::MenuVehicleVideoBidirectional(void)
    m_pItemsSelect[4]->setIsEditable();
    m_IndexRetransmissions = addMenuItem(m_pItemsSelect[4]);
 
+   m_IndexRetransmissionsFast = -1;
+   m_IndexRetransmissionsGuardInterval = -1;
+   /*
    m_pItemsSelect[6] = new MenuItemSelect(L("Retransmissions Algorithm"), L("Change the way retransmissions are requested."));  
    m_pItemsSelect[6]->addSelection(L("Regular"));
    m_pItemsSelect[6]->addSelection(L("Aggressive"));
@@ -93,6 +99,10 @@ MenuVehicleVideoBidirectional::MenuVehicleVideoBidirectional(void)
    m_pItemsSelect[6]->setExtraHeight(1.0* g_pRenderEngine->textHeight(g_idFontMenu) * MENU_ITEM_SPACING);
    m_IndexRetransmissionsFast = addMenuItem(m_pItemsSelect[6]);
 
+   m_pItemsSlider[8] = new MenuItemSlider(L("Retransmissions Sensitivity (ms)"), L("How sensitive should the retransmissions detection be. Lower values means more sensitive and more proactive retransmissions done."), 0,15,5, fSliderWidth);
+   m_pItemsSlider[8]->setMargin(dxMargin);
+   m_IndexRetransmissionsGuardInterval = addMenuItem(m_pItemsSlider[8]);
+   */
    m_IndexAdaptiveVideo = -1;
    m_IndexAdaptiveVideoLevel = -1;
    m_IndexAdaptiveAlgorithm = -1;
@@ -124,7 +134,7 @@ MenuVehicleVideoBidirectional::MenuVehicleVideoBidirectional(void)
    }
    else
    {
-      m_pItemsSelect[5] = new MenuItemSelect(L("Adaptive Level"), L("Automatically adjust video and radio transmission parameters when the radio link quality and the video link quality goes lower in order to improve range, video link and quality. Full: go to lowest video quality and best transmission if needed. Medium: Moderate lower quality."));
+      m_pItemsSelect[5] = new MenuItemSelect(L("Adaptive Level"), L("Automatically adjust video and radio transmission parameters when the radio link quality goes lower. Full: go all the way to lowest video quality and best transmission if needed. Medium: Moderate lower quality."));
       m_pItemsSelect[5]->addSelection(L("Medium"));
       m_pItemsSelect[5]->addSelection(L("Full"));
       m_pItemsSelect[5]->setIsEditable();
@@ -152,6 +162,9 @@ MenuVehicleVideoBidirectional::MenuVehicleVideoBidirectional(void)
          m_pMenuItemAdaptiveTimers->setTextColor(get_Color_Dev());
          addMenuItem(m_pMenuItemAdaptiveTimers);
 
+         m_pMenuItemTimeToSwitchUp = new MenuItemText("Good interval to switch up:", true);
+         m_pMenuItemTimeToSwitchUp->setTextColor(get_Color_Dev());
+         addMenuItem(m_pMenuItemTimeToSwitchUp);
          m_pMenuItemRSSI = new MenuItemText("RSSI/SNR:", true);
          m_pMenuItemRSSI->setTextColor(get_Color_Dev());
          addMenuItem(m_pMenuItemRSSI);
@@ -191,6 +204,11 @@ MenuVehicleVideoBidirectional::MenuVehicleVideoBidirectional(void)
          m_pItemsSlider[6]->setMargin(dxMargin);
          m_pItemsSlider[6]->setTextColor(get_Color_Dev());
          m_IndexLevelECMax = addMenuItem(m_pItemsSlider[6]);
+
+         m_pItemsSlider[7] = new MenuItemSlider(L("Switch Up Delay"), L("Weight of good time to switch up. 0 for disabled."), 0,15,5, fSliderWidth);
+         m_pItemsSlider[7]->setMargin(dxMargin);
+         m_pItemsSlider[7]->setTextColor(get_Color_Dev());
+         m_IndexLevelTimeToSwitchUp = addMenuItem(m_pItemsSlider[7]);
       }
 
       /*
@@ -240,7 +258,7 @@ void MenuVehicleVideoBidirectional::valuesToUI()
    int adaptiveVideo = ((g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags) & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_LINK)?1:0;
    int useControllerInfo = ((g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags) & VIDEO_PROFILE_ENCODING_FLAG_ADAPTIVE_VIDEO_LINK_USE_CONTROLLER_INFO_TOO)?1:0;
    int controllerLinkLost = ((g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags) & VIDEO_PROFILE_ENCODING_FLAG_ADAPTIVE_VIDEO_LINK_GO_LOWER_ON_LINK_LOST)?1:0;
-   
+   u32 uProfileFlags = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileFlags;
    if ( hardware_board_is_goke(g_pCurrentModel->hwCapabilities.uBoardType) )
       adaptiveVideo = 0;
 
@@ -271,22 +289,30 @@ void MenuVehicleVideoBidirectional::valuesToUI()
       m_pItemsSelect[4]->setEnabled(false);
       if ( -1 != m_IndexRetransmissionsFast )
          m_pItemsSelect[6]->setEnabled(false);
+      if ( -1 != m_IndexRetransmissionsGuardInterval )
+         m_pItemsSlider[8]->setEnabled(false);
    }
    else if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_RETRANSMISSIONS )
    {
       m_pItemsSelect[4]->setSelectedIndex(1);
       if ( -1 != m_IndexRetransmissionsFast )
          m_pItemsSelect[6]->setEnabled(true);
+      if ( -1 != m_IndexRetransmissionsGuardInterval )
+         m_pItemsSlider[8]->setEnabled(true);
    }
    else
    {
       m_pItemsSelect[4]->setSelectedIndex(0);
       if ( -1 != m_IndexRetransmissionsFast )
          m_pItemsSelect[6]->setEnabled(false);
+      if ( -1 != m_IndexRetransmissionsGuardInterval )
+         m_pItemsSlider[8]->setEnabled(false);
    }
    
    if ( -1 != m_IndexRetransmissionsFast )
-      m_pItemsSelect[6]->setSelectedIndex((g_pCurrentModel->video_params.uVideoExtraFlags & VIDEO_FLAG_RETRANSMISSIONS_FAST)?1:0);
+      m_pItemsSelect[6]->setSelectedIndex((uProfileFlags & VIDEO_PROFILE_FLAG_RETRANSMISSIONS_AGGRESIVE)?1:0);
+   if ( -1 != m_IndexRetransmissionsGuardInterval )
+      m_pItemsSlider[8]->setCurrentValue((uProfileFlags & VIDEO_PROFILE_FLAG_MASK_RETRANSMISSIONS_GUARD_MASK) >> 8);
 
    if ( -1 != m_IndexAdaptiveVideo )
    {
@@ -341,6 +367,8 @@ void MenuVehicleVideoBidirectional::valuesToUI()
          m_pItemsSlider[5]->setEnabled(true);
       if ( -1 != m_IndexLevelECMax )
          m_pItemsSlider[6]->setEnabled(true);
+      if ( -1 != m_IndexLevelTimeToSwitchUp )
+         m_pItemsSlider[7]->setEnabled(true);
    }
    else
    {
@@ -365,6 +393,8 @@ void MenuVehicleVideoBidirectional::valuesToUI()
          m_pItemsSlider[5]->setEnabled(false);
       if ( -1 != m_IndexLevelECMax )
          m_pItemsSlider[6]->setEnabled(false);
+      if ( -1 != m_IndexLevelTimeToSwitchUp )
+         m_pItemsSlider[7]->setEnabled(false);
    }
 
    u32 uWeights = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uAdaptiveWeights;
@@ -380,6 +410,8 @@ void MenuVehicleVideoBidirectional::valuesToUI()
       m_pItemsSlider[5]->setCurrentValue((uWeights >> 16) & 0x0F);
    if ( -1 != m_IndexLevelECMax )
       m_pItemsSlider[6]->setCurrentValue((uWeights >> 20) & 0x0F);
+   if ( -1 != m_IndexLevelTimeToSwitchUp )
+      m_pItemsSlider[7]->setCurrentValue((uWeights >> 24) & 0x0F);
 }
 
 void MenuVehicleVideoBidirectional::_updateDevValues()
@@ -402,6 +434,12 @@ void MenuVehicleVideoBidirectional::_updateDevValues()
       else
          sprintf(szText, "RSSI: Disabled / SNR: %d dbm margin", m_AdaptiveMetrics.iMinimSNRThreshold);
       m_pMenuItemRSSI->setTitle(szText);
+   }
+
+   if ( NULL != m_pMenuItemTimeToSwitchUp )
+   {
+      sprintf(szText, "Good interval to switch up: %u ms", m_AdaptiveMetrics.uMinimumGoodTimeToSwitchHigher);
+      m_pMenuItemTimeToSwitchUp->setTitle(szText);    
    }
 
    if ( NULL != m_pMenuItemRetr )
@@ -444,12 +482,6 @@ void MenuVehicleVideoBidirectional::Render()
 
 void MenuVehicleVideoBidirectional::sendVideoSettings(bool bIsInlineFastChange)
 {
-   if ( get_sw_version_build(g_pCurrentModel) < 289 )
-   {
-      addMessage(L("Video functionality has changed. You need to update your vehicle sowftware."));
-      return;
-   }
-
    video_parameters_t paramsNew;
    type_video_link_profile profileNew;
    memcpy(&paramsNew, &g_pCurrentModel->video_params, sizeof(video_parameters_t));
@@ -466,9 +498,15 @@ void MenuVehicleVideoBidirectional::sendVideoSettings(bool bIsInlineFastChange)
 
    if ( -1 != m_IndexRetransmissionsFast )
    {
-      paramsNew.uVideoExtraFlags &= ~VIDEO_FLAG_RETRANSMISSIONS_FAST;
+      profileNew.uProfileFlags &= ~VIDEO_PROFILE_FLAG_RETRANSMISSIONS_AGGRESIVE;
       if ( 1 == m_pItemsSelect[6]->getSelectedIndex() )
-         paramsNew.uVideoExtraFlags |= VIDEO_FLAG_RETRANSMISSIONS_FAST;
+         profileNew.uProfileFlags |= VIDEO_PROFILE_FLAG_RETRANSMISSIONS_AGGRESIVE;
+   }
+
+   if ( -1 != m_IndexRetransmissionsGuardInterval )
+   {
+      profileNew.uProfileFlags &= ~VIDEO_PROFILE_FLAG_MASK_RETRANSMISSIONS_GUARD_MASK;
+      profileNew.uProfileFlags |= (((u32)(m_pItemsSlider[8]->getCurrentValue())) << 8);
    }
 
    if ( -1 != m_IndexAdaptiveUseControllerToo )
@@ -487,7 +525,8 @@ void MenuVehicleVideoBidirectional::sendVideoSettings(bool bIsInlineFastChange)
          (((m_pItemsSlider[3]->getCurrentValue()) & 0x0F) << 8) |
          (((m_pItemsSlider[4]->getCurrentValue()) & 0x0F) << 12) |
          (((m_pItemsSlider[5]->getCurrentValue()) & 0x0F) << 16) |
-         (((m_pItemsSlider[6]->getCurrentValue()) & 0x0F) << 20);
+         (((m_pItemsSlider[6]->getCurrentValue()) & 0x0F) << 20) |
+         (((m_pItemsSlider[7]->getCurrentValue()) & 0x0F) << 24);
    }
 
    if ( -1 != m_IndexVideoLinkLost )
@@ -540,8 +579,8 @@ void MenuVehicleVideoBidirectional::sendVideoSettings(bool bIsInlineFastChange)
    }
    else
    {
-      log_line("MenuVehicleVideoBidirectional: Will switch to user profile, current video profile was: %s", szCurrentProfile);
-      paramsNew.iCurrentVideoProfile = VIDEO_PROFILE_USER;
+      log_line("MenuVehicleVideoBidirectional: Will switch to custom profile, current video profile was: %s", szCurrentProfile);
+      paramsNew.iCurrentVideoProfile = VIDEO_PROFILE_CUST;
    }
    memcpy((u8*)&profiles[paramsNew.iCurrentVideoProfile ], &profileNew, sizeof(type_video_link_profile));
    g_pCurrentModel->logVideoSettingsDifferences(&paramsNew, &profileNew);
@@ -592,7 +631,8 @@ void MenuVehicleVideoBidirectional::onItemValueChanged(int itemIndex)
         (itemIndex == m_IndexLevelRetr) ||
         (itemIndex == m_IndexLevelRXLost) ||
         (itemIndex == m_IndexLevelECUsed) ||
-        (itemIndex == m_IndexLevelECMax) )
+        (itemIndex == m_IndexLevelECMax) ||
+        (itemIndex == m_IndexLevelTimeToSwitchUp) )
       bUpdate = true;
 
    if ( ! bUpdate )
@@ -606,7 +646,8 @@ void MenuVehicleVideoBidirectional::onItemValueChanged(int itemIndex)
          (((m_pItemsSlider[3]->getCurrentValue()) & 0x0F) << 8) |
          (((m_pItemsSlider[4]->getCurrentValue()) & 0x0F) << 12) |
          (((m_pItemsSlider[5]->getCurrentValue()) & 0x0F) << 16) |
-         (((m_pItemsSlider[6]->getCurrentValue()) & 0x0F) << 20);
+         (((m_pItemsSlider[6]->getCurrentValue()) & 0x0F) << 20) |
+         (((m_pItemsSlider[7]->getCurrentValue()) & 0x0F) << 24);
 
    compute_adaptive_metrics(&m_AdaptiveMetrics, m_iTempAdaptiveStrength, m_uTempAdaptiveWeights);
    _updateDevValues();
@@ -656,11 +697,6 @@ void MenuVehicleVideoBidirectional::onSelectItem()
 
    if ( (-1 != m_IndexAdaptiveAlgorithm) && (m_IndexAdaptiveAlgorithm == m_SelectedIndex) )
    {
-      if ( get_sw_version_build(g_pCurrentModel) < 289 )
-      {
-         addMessage(L("Video functionality has changed. You need to update your vehicle sowftware."));
-         return;
-      }
       sendVideoSettings(false);
       return;
    }
@@ -673,7 +709,8 @@ void MenuVehicleVideoBidirectional::onSelectItem()
       return;
    }
 
-   if ( m_IndexRetransmissions == m_SelectedIndex || 
+   if ( (m_IndexRetransmissions == m_SelectedIndex) ||
+        ((-1 != m_IndexRetransmissionsGuardInterval) && (m_IndexRetransmissionsGuardInterval == m_SelectedIndex)) || 
         ((-1 != m_IndexVideoLinkLost) && (m_IndexVideoLinkLost == m_SelectedIndex)) )
    {
       sendVideoSettings(false);
@@ -682,9 +719,9 @@ void MenuVehicleVideoBidirectional::onSelectItem()
 
    if ( (-1 != m_IndexRetransmissionsFast) && (m_IndexRetransmissionsFast == m_SelectedIndex) )
    {
-      if ( get_sw_version_build(g_pCurrentModel) < 289 )
+      if ( ! is_sw_version_atleast(g_pCurrentModel, 11, 6) )
       {
-         addMessage(L("Video functionality has changed. You need to update your vehicle sowftware."));
+         addMessage(L("Video functionality has changed. You need to update your vehicle software."));
          return;
       }
       sendVideoSettings(true);
@@ -707,11 +744,6 @@ void MenuVehicleVideoBidirectional::onSelectItem()
 
    if ( (-1 != m_IndexAdaptiveAdjustmentStrength) && (m_IndexAdaptiveAdjustmentStrength == m_SelectedIndex) )
    {
-      if ( get_sw_version_build(g_pCurrentModel) < 283 )
-      {
-         addMessage(L("Video functionality has changed. You need to update your vehicle sowftware."));
-         return;
-      }
       sendVideoSettings(true);
       return;
    }
@@ -721,13 +753,9 @@ void MenuVehicleVideoBidirectional::onSelectItem()
         ((-1 != m_IndexLevelRetr) && (m_SelectedIndex == m_IndexLevelRetr)) ||
         ((-1 != m_IndexLevelRXLost) && (m_SelectedIndex == m_IndexLevelRXLost)) ||
         ((-1 != m_IndexLevelECUsed) && (m_SelectedIndex == m_IndexLevelECUsed)) ||
-        ((-1 != m_IndexLevelECMax) && (m_SelectedIndex == m_IndexLevelECMax)) )
+        ((-1 != m_IndexLevelECMax) && (m_SelectedIndex == m_IndexLevelECMax)) ||
+        ((-1 != m_IndexLevelTimeToSwitchUp) && (m_SelectedIndex == m_IndexLevelTimeToSwitchUp)) )
    {
-      if ( get_sw_version_build(g_pCurrentModel) < 283 )
-      {
-         addMessage(L("Video functionality has changed. You need to update your vehicle sowftware."));
-         return;
-      }
       sendVideoSettings(true);
       return;
    }

@@ -37,6 +37,7 @@
 #include "../base/controller_rt_info.h"
 #include "../base/parser_h264.h"
 #include "../common/relay_utils.h"
+#include "../radio/radio_rx.h"
 #include "adaptive_video.h"
 #include "shared_vars.h"
 #include "timers.h"
@@ -90,69 +91,50 @@ ProcessorRxVideo* _find_create_rx_video_processor(u32 uVehicleId, u32 uVideoStre
    return g_pVideoProcessorRxList[iFirstFreeSlot];
 }
 
-// Returns 1 if end of a video block was reached
-// Returns -1 if the packet is not for this vehicle or was not processed
-int _process_received_video_data_packet(int iInterfaceIndex, u8* pPacket, int iPacketLength)
-{
-   t_packet_header* pPH = (t_packet_header*)pPacket;
-   u32 uVehicleId = pPH->vehicle_id_src;
-   Model* pModel = findModelWithId(uVehicleId, 111);
-   if ( NULL == pModel )
-      return -1;
-
-   bool bIsRelayedPacket = relay_controller_is_vehicle_id_relayed_vehicle(g_pCurrentModel, uVehicleId);
-   u32 uVideoStreamIndex = 0;
-   ProcessorRxVideo* pProcessorVideo = _find_create_rx_video_processor(uVehicleId, uVideoStreamIndex);
-
-   if ( NULL == pProcessorVideo )
-      return -1;
-
-   pProcessorVideo->handleReceivedVideoPacket(iInterfaceIndex, pPacket, iPacketLength);
-
-// To fix
-     /*
-
-   if ( bIsRelayedPacket )
-   {
-      if ( relay_controller_must_display_remote_video(g_pCurrentModel) )
-         nRet = g_pVideoProcessorRxList[iRuntimeIndex]->handleReceivedVideoPacket(iInterfaceIndex, pPacket, pPH->total_length);
-   }
-   else
-   {
-      if ( relay_controller_must_display_main_video(g_pCurrentModel) )
-         nRet = g_pVideoProcessorRxList[iRuntimeIndex]->handleReceivedVideoPacket(iInterfaceIndex, pPacket, pPH->total_length);
-   }
-   return nRet;
-   */
-   return 0;
-}
-
-// Returns 1 if end of a video block was reached
-// Returns -1 if the packet is not for this vehicle or was not processed
-
-int process_received_video_packet(int iInterfaceIndex, u8* pPacket, int iPacketLength)
+void process_received_video_component_packet(int iInterfaceIndex, u8* pPacket, int iPacketLength)
 {
    if ( g_bSearching || (NULL == pPacket) || (iPacketLength <= 0) )
-         return -1;
+         return ;
 
    t_packet_header* pPH = (t_packet_header*)pPacket;
 
    u32 uVehicleId = pPH->vehicle_id_src;
    Model* pModel = findModelWithId(uVehicleId, 111);
-   if ( (NULL == pModel) || (get_sw_version_build(pModel) < 290) )
-      return -1;
 
-   if ( ! is_sw_version_atleast(pModel, 10, 6) )
-      return -1;
+   if ( (NULL == pModel) || ( ! is_sw_version_atleast(pModel, 11, 6)) )
+      return ;
 
-   if ( get_sw_version_build(pModel) > SYSTEM_SW_BUILD_NUMBER )
-      return -1;
-
-   int nRet = 0;
-  
    if ( pPH->packet_type == PACKET_TYPE_VIDEO_DATA )
    {
-      nRet = _process_received_video_data_packet(iInterfaceIndex, pPacket, iPacketLength);
+      /*
+      t_packet_header_video_segment* pPHVS = (t_packet_header_video_segment*) (pPacket+sizeof(t_packet_header));
+      int iDbgDR = (int) pPH->uCRC;
+      log_line("DBG %c%d [%u/%02d of %02d] sch %d/%d, framep %d/%d, EOF in %d+%d, %u ms from now, NAL %s%s-%s%s%s, eof?%d DR: %d", 
+          (pPH->packet_flags & PACKET_FLAGS_BIT_RETRANSMITED)?'r':'f',
+          pPHVS->uH264FrameIndex, pPHVS->uCurrentBlockIndex, pPHVS->uCurrentBlockPacketIndex,
+          pPHVS->uCurrentBlockDataPackets + pPHVS->uCurrentBlockECPackets,
+          pPHVS->uCurrentBlockDataPackets, pPHVS->uCurrentBlockECPackets,
+          pPHVS->uFramePacketsInfo & 0xFF, pPHVS->uFramePacketsInfo >> 8,
+          pPHVS->uVideoStatusFlags2 & 0xFF,
+          (pPHVS->uVideoStatusFlags2 >> 16) & 0xFF,
+          radio_rx_get_current_frame_end_time() - g_TimeNow,
+          (pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_IS_NAL_START)?"s":"",
+          (pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_IS_NAL_END)?"e":"",
+          (pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_IS_NAL_I)?"i":"",
+          (pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_IS_NAL_P)?"p":"",
+          (pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_IS_NAL_O)?"o":"",
+          (pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_IS_END_OF_FRAME)?1:0,
+          iDbgDR);
+      /**/
+      ProcessorRxVideo* pProcessorVideo = _find_create_rx_video_processor(uVehicleId, 0);
+
+      if ( NULL == pProcessorVideo )
+         return;
+
+      if ( pPH->packet_flags & PACKET_FLAGS_BIT_RETRANSMITED )
+         pProcessorVideo->handleReceivedVideoRetrPacket(iInterfaceIndex, pPacket, iPacketLength);
+      else
+         pProcessorVideo->handleReceivedVideoPacket(iInterfaceIndex, pPacket, iPacketLength);
    }
 
    if ( pPH->packet_type == PACKET_TYPE_VIDEO_ADAPTIVE_VIDEO_PARAMS_ACK )
@@ -161,5 +143,4 @@ int process_received_video_packet(int iInterfaceIndex, u8* pPacket, int iPacketL
       memcpy((u8*)&uRequestId, pPacket + sizeof(t_packet_header), sizeof(u32));
       adaptive_video_received_vehicle_msg_ack(uRequestId, pPH->vehicle_id_src, iInterfaceIndex);
    }
-   return nRet;
 }

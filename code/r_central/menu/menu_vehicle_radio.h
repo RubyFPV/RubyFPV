@@ -3,6 +3,7 @@
 #include "menu_item_select.h"
 #include "menu_item_edit.h"
 #include "menu_item_slider.h"
+#include "../popup_radio_int.h"
 
 class MenuVehicleRadioConfig: public Menu
 {
@@ -12,6 +13,7 @@ class MenuVehicleRadioConfig: public Menu
       virtual void onAddToStack();
       virtual void onShow();
       virtual int onBack();
+      virtual void onFocusedItemChanged();
       virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void Render();
       virtual void valuesToUI();
@@ -38,6 +40,9 @@ class MenuVehicleRadioConfig: public Menu
       bool m_bControllerHasKey;
       int m_iMaxPowerMw;
 
+      PopupRadioInterface* m_pPopupRadioInterface;
+      int m_iLastLinkAddedPopupFor;
+      bool m_bDisablePopupCreation;
       void populate();
       void populateFrequencies();
       void populateTxPowers();

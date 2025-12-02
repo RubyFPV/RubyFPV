@@ -35,6 +35,7 @@
 #include "menu_text.h"
 #include "menu_confirmation.h"
 #include "menu_controller_expert.h"
+#include "menu_controller_cpu_priorities.h"
 #include "menu_item_section.h"
 #include "../process_router_messages.h"
 #include "../../base/hardware_files.h"
@@ -54,13 +55,6 @@ MenuControllerExpert::MenuControllerExpert(void)
    readConfigFile();
    addTopInfo();
 
-   m_IndexEnableRadioThreadsPriority = -1;
-   m_IndexRadioRxPriority = -1;
-   m_IndexRadioTxPriority = -1;
-
-   m_iIndexCoresAdjustment = -1;
-   m_iIndexPrioritiesAdjustment = -1;
-
    m_IndexCPUEnabled = -1;
    m_IndexCPUSpeed = -1;
    m_IndexGPUEnabled = -1;
@@ -68,10 +62,9 @@ MenuControllerExpert::MenuControllerExpert(void)
    m_IndexVoltageEnabled = -1;
    m_IndexVoltage = -1;
    m_IndexReset = -1;
+   m_iIndexPriorities = -1;
 
    #if defined(HW_PLATFORM_RASPBERRY)
-   addMenuItem(new MenuItemSection("CPU"));
-
    m_pItemsSelect[2] = new MenuItemSelect(L("Enable CPU Overclocking"), L("Enables overclocking of the main CPU."));
    m_pItemsSelect[2]->addSelection(L("No"));
    m_pItemsSelect[2]->addSelection(L("Yes"));
@@ -103,70 +96,15 @@ MenuControllerExpert::MenuControllerExpert(void)
    m_IndexReset = addMenuItem(new MenuItem(L("Reset CPU Freq"), L("Resets the controller CPU and GPU frequencies to default values.")));
    #endif
 
-   addMenuItem(new MenuItemSection(L("Priorities")));
-
-   m_pItemsSelect[10] = new MenuItemSelect(L("Enable CPU Cores Auto Adjustment"), L("Automatically adjust the work load on each CPU core."));
-   m_pItemsSelect[10]->addSelection(L("No"));
-   m_pItemsSelect[10]->addSelection(L("Yes"));
-   m_pItemsSelect[10]->setIsEditable();
-   m_iIndexCoresAdjustment = addMenuItem(m_pItemsSelect[10]);
-
-   m_pItemsSelect[11] = new MenuItemSelect("Enable Priorities Adjustment", "Enable adjustment of processes priorities or use default priorities.");
-   m_pItemsSelect[11]->addSelection(L("No"));
-   m_pItemsSelect[11]->addSelection(L("Yes"));
-   m_pItemsSelect[11]->setIsEditable();
-   m_iIndexPrioritiesAdjustment = addMenuItem(m_pItemsSelect[11]);
-
-   m_pItemsSlider[0] = new MenuItemSlider("Core Priority",  "Sets the priority for the Ruby core functionality. Higher values means higher priority.", 0,18,11, fSliderWidth);
-   m_IndexNiceRouter = addMenuItem(m_pItemsSlider[0]);
-
-   m_pItemsSelect[0] = new MenuItemSelect("Core I/O Boost", "Sets a higher priority for the I/O operations and data flows for the core Ruby components. Other components might work slower.");  
-   m_pItemsSelect[0]->addSelection(L("No"));
-   m_pItemsSelect[0]->addSelection(L("Yes"));
-   m_pItemsSelect[0]->setUseMultiViewLayout();
-   m_IndexIONiceRouter = addMenuItem(m_pItemsSelect[0]);
-
-   m_pItemsSlider[1] = new MenuItemSlider("Core I/O Priority", "Sets the I/O priority value for the core Ruby components, 1 is highest priority, 7 is lowest priority.", 1,7,4, fSliderWidth);
-   m_IndexIONiceRouterValue = addMenuItem(m_pItemsSlider[1]);
-
-   m_pItemsSelect[5] = new MenuItemSelect("Video Priority", "Sets a manual CPU and IO priority for the video renderer process.");  
-   m_pItemsSelect[5]->addSelection(L("Auto"));
-   m_pItemsSelect[5]->addSelection(L("Manual"));
-   m_pItemsSelect[5]->setIsEditable();
-   m_IndexAutoRxVideo = addMenuItem(m_pItemsSelect[5]);
-
-   m_pItemsSlider[2] = new MenuItemSlider("   Video CPU Priority",  "Sets the priority for the video RX pipeline. Higher values means higher priority.", 0,15,9, fSliderWidth);
-   m_IndexNiceRXVideo = addMenuItem(m_pItemsSlider[2]);
-
-   m_pItemsSelect[1] = new MenuItemSelect("   Video I/O Boost", "Sets a higher priority for the I/O operations and data flows for the received video stream. Other components might work slower.");  
-   m_pItemsSelect[1]->addSelection(L("No"));
-   m_pItemsSelect[1]->addSelection(L("Yes"));
-   m_pItemsSelect[1]->setUseMultiViewLayout();
-   m_IndexIONiceRXVideo = addMenuItem(m_pItemsSelect[1]);
-
-   m_pItemsSlider[3] = new MenuItemSlider("   Video I/O Priority", "Sets the I/O priority value for RX video pipeline, 1 is highest priority, 7 is lowest priority.", 1,7,4, fSliderWidth);
-   m_IndexIONiceValueRXVideo = addMenuItem(m_pItemsSlider[3]);
-
-
-   m_pItemsSlider[4] = new MenuItemSlider("Ruby UI/OSD priority", "Sets the priority for the Ruby UI process. Higher values means higher priority.", 0,15,5, fSliderWidth);
-   m_IndexNiceCentral = addMenuItem(m_pItemsSlider[4]);
-
-
-   m_pItemsSelect[8] = new MenuItemSelect("Radio Threads Adjustment", "Change the way the priority of Ruby radio threads is adjusted.");
-   m_pItemsSelect[8]->addSelection("Default");
-   m_pItemsSelect[8]->addSelection("Custom");
-   m_pItemsSelect[8]->setIsEditable();
-   m_IndexEnableRadioThreadsPriority = addMenuItem(m_pItemsSelect[8]);
-
-   m_pItemsSlider[8] = new MenuItemSlider("   Rx Threads Priority", "Sets the priority for the Ruby radio Rx threads. Higher values means higher priority.", 0,90,10, fSliderWidth);
-   m_IndexRadioRxPriority = addMenuItem(m_pItemsSlider[8]);
-
-   m_pItemsSlider[9] = new MenuItemSlider("   Tx Threads Priority", "Sets the priority for the Ruby radio Rx threads. Higher values means higher priority.", 0,90,10, fSliderWidth);
-   m_IndexRadioTxPriority = addMenuItem(m_pItemsSlider[9]);
-
-
+   m_iIndexPriorities = -1;
+   ControllerSettings* pCS = get_ControllerSettings();
+   if ( (NULL != pCS) && pCS->iDeveloperMode )
+   {
+      m_iIndexPriorities = addMenuItem(new MenuItem(L("Processes Priorities"), L("Sets controller processes priorities.")));
+      m_pMenuItems[m_iIndexPriorities]->showArrow();
+      m_pMenuItems[m_iIndexPriorities]->setTextColor(get_Color_Dev());
+   }
    m_IndexVersions = addMenuItem(new MenuItem(L("Modules versions"), L("Get all modules versions.")));
-   m_IndexResetPriorities = addMenuItem(new MenuItem(L("Reset Priorities"), L("Resets all controller priorities.")));
    m_IndexReboot = addMenuItem(new MenuItem(L("Restart"), L("Restarts the controller.")));
 }
 
@@ -178,83 +116,6 @@ void MenuControllerExpert::valuesToUI()
       log_softerror_and_alarm("Failed to get pointer to controller settings structure");
       return;
    }
-
-   m_pItemsSelect[10]->setSelectedIndex(pcs->iCoresAdjustment);
-   m_pItemsSelect[11]->setSelectedIndex(pcs->iPrioritiesAdjustment);
-   
-   m_pItemsSlider[0]->setCurrentValue(-pcs->iNiceRouter);
-   m_pItemsSlider[4]->setCurrentValue(-pcs->iNiceCentral);
-
-   m_pItemsSelect[0]->setSelection(pcs->ioNiceRouter > 0);
-   if ( pcs->ioNiceRouter > 0 )
-      m_pItemsSlider[1]->setCurrentValue( pcs->ioNiceRouter);
-   else
-      m_pItemsSlider[1]->setCurrentValue(-pcs->ioNiceRouter);
-   m_pItemsSlider[1]->setEnabled( pcs->ioNiceRouter > 0);
-
-   if ( pcs->iNiceRXVideo < 0 )
-   {
-      m_pItemsSelect[5]->setSelectedIndex(1);
-      m_pItemsSelect[1]->setEnabled(true);
-      m_pItemsSlider[2]->setEnabled(true);
-      m_pItemsSlider[3]->setEnabled(true);
-
-      m_pItemsSlider[2]->setCurrentValue(-pcs->iNiceRXVideo);
-      m_pItemsSelect[1]->setSelection(pcs->ioNiceRXVideo > 0);
-      if ( pcs->ioNiceRXVideo > 0 )
-         m_pItemsSlider[3]->setCurrentValue( pcs->ioNiceRXVideo);
-      else
-         m_pItemsSlider[3]->setCurrentValue(-pcs->ioNiceRXVideo);
-      m_pItemsSlider[3]->setEnabled( pcs->ioNiceRXVideo > 0);
-   }
-   else
-   {
-      m_pItemsSelect[5]->setSelectedIndex(0);
-      m_pItemsSelect[1]->setEnabled(false);
-      m_pItemsSlider[2]->setEnabled(false);
-      m_pItemsSlider[3]->setEnabled(false);
-   }
-
-   // Radio Threads
-
-   if ( (pcs->iRadioRxThreadPriority <= 0) || (pcs->iRadioTxThreadPriority <= 0) )
-   {
-      m_pItemsSelect[8]->setSelectedIndex(0);
-
-      m_pItemsSlider[8]->setEnabled(false);
-      m_pItemsSlider[9]->setEnabled(false);
-      m_pItemsSlider[9]->setCurrentValue(0);
-      m_pItemsSlider[8]->setCurrentValue(0);
-   }
-   else
-   {
-      m_pItemsSelect[8]->setSelectedIndex(1);
-      if ( pcs->iRadioRxThreadPriority < 1 )
-         pcs->iRadioRxThreadPriority = 1;
-      if ( pcs->iRadioTxThreadPriority < 1 )
-         pcs->iRadioTxThreadPriority = 1;
-      m_pItemsSlider[8]->setCurrentValue(pcs->iRadioRxThreadPriority);
-      m_pItemsSlider[9]->setCurrentValue(pcs->iRadioTxThreadPriority);
-      if ( ! pcs->iPrioritiesAdjustment )
-      {
-         m_pItemsSlider[9]->setCurrentValue(0);
-         m_pItemsSlider[8]->setCurrentValue(0);       
-      }
-      m_pItemsSlider[8]->setEnabled(pcs->iPrioritiesAdjustment);
-      m_pItemsSlider[9]->setEnabled(pcs->iPrioritiesAdjustment);
-
-   }
-
-   m_pItemsSlider[0]->setEnabled(pcs->iPrioritiesAdjustment);
-   m_pItemsSlider[1]->setEnabled(pcs->iPrioritiesAdjustment);
-   m_pItemsSlider[2]->setEnabled(pcs->iPrioritiesAdjustment);
-   m_pItemsSlider[3]->setEnabled(pcs->iPrioritiesAdjustment);
-   m_pItemsSlider[4]->setEnabled(pcs->iPrioritiesAdjustment);
-   
-   m_pItemsSelect[0]->setEnabled(pcs->iPrioritiesAdjustment);
-   m_pItemsSelect[1]->setEnabled(pcs->iPrioritiesAdjustment);
-   m_pItemsSelect[5]->setEnabled(pcs->iPrioritiesAdjustment);
-   m_pItemsSelect[8]->setEnabled(pcs->iPrioritiesAdjustment);
 
    // CPU
 
@@ -480,216 +341,6 @@ void MenuControllerExpert::onSelectItem()
       return;
    }
 
-   if ( (-1 != m_iIndexCoresAdjustment) && (m_iIndexCoresAdjustment == m_SelectedIndex) )
-   {
-      if ( pcs->iCoresAdjustment != m_pItemsSelect[10]->getSelectedIndex() )
-         addMessage(L("You must restart your controller for changes to take effect."));
-      pcs->iCoresAdjustment = m_pItemsSelect[10]->getSelectedIndex();
-      save_ControllerSettings();
-      valuesToUI();
-      return;
-   }
-
-   if ( (-1 != m_iIndexPrioritiesAdjustment) && (m_iIndexPrioritiesAdjustment == m_SelectedIndex) )
-   {
-      if ( pcs->iPrioritiesAdjustment != m_pItemsSelect[11]->getSelectedIndex() )
-         addMessage(L("You must restart your controller for changes to take effect."));
-      pcs->iPrioritiesAdjustment = m_pItemsSelect[11]->getSelectedIndex();
-      save_ControllerSettings();
-      valuesToUI();
-      return;
-   }
-
-   if ( m_IndexNiceRouter == m_SelectedIndex )
-   {
-      pcs->iNiceRouter = -m_pItemsSlider[0]->getCurrentValue();
-      char szBuff[1024];
-      char szPids[1024];
-      hw_execute_bash_command("prep ruby_rt_station", szPids);
-      if ( strlen(szPids) > 2 )
-      {
-         snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "renice -n %d -p %s", pcs->iNiceRouter, szPids);
-         hw_execute_bash_command(szBuff, NULL);
-      }
-   }
-
-   if ( m_IndexAutoRxVideo == m_SelectedIndex )
-   {
-      if ( 0 == m_pItemsSelect[5]->getSelectedIndex() )
-         pcs->iNiceRXVideo = 0;
-      else
-         pcs->iNiceRXVideo = -10;
-      valuesToUI();
-
-      #if defined (HW_PLATFORM_RASPBERRY)
-      char szBuff[1024];
-      char szPIDs[1024];
-      hw_process_get_pids(VIDEO_PLAYER_SM, szPIDs);
-      removeTrailingNewLines(szPIDs);
-      replaceNewLinesToSpaces(szPIDs);
-      if ( strlen(szPIDs) > 2 )
-      {
-         snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "renice -n %d -p %s", pcs->iNiceRXVideo, szPIDs);
-         hw_execute_bash_command(szBuff, NULL);
-      }
-      #endif
-   }
-
-   if ( m_IndexNiceRXVideo == m_SelectedIndex )
-   {
-      pcs->iNiceRXVideo = -m_pItemsSlider[2]->getCurrentValue();
-      #if defined (HW_PLATFORM_RASPBERRY)
-      char szBuff[1024];
-      char szPIDs[1024];
-
-      hw_process_get_pids(VIDEO_PLAYER_SM, szPIDs);
-      removeTrailingNewLines(szPIDs);
-      replaceNewLinesToSpaces(szPIDs);
-      if ( strlen(szPIDs) > 2 )
-      {
-         snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "renice -n %d -p %s", pcs->iNiceRXVideo, szPIDs);
-         hw_execute_bash_command(szBuff, NULL);
-      }
-      #endif
-   }
-
-   if ( m_IndexNiceCentral == m_SelectedIndex )
-   {
-      pcs->iNiceCentral = -m_pItemsSlider[4]->getCurrentValue();     
-      log_line("Set Ruby UI/OSD Central nice priority to: %d", pcs->iNiceCentral); 
-      hw_set_priority_current_proc(pcs->iNiceCentral); 
-   }
-
-
-   if ( m_IndexIONiceRouter == m_SelectedIndex )
-   {
-      int ioNice = pcs->ioNiceRouter;
-      if ( ioNice < 0 )
-         ioNice = -ioNice;
-      if ( ioNice == 0 )
-         ioNice = 5;
-
-      if ( 0 == m_pItemsSelect[0]->getSelectedIndex() )
-         ioNice = -ioNice;
-
-      pcs->ioNiceRouter = ioNice;
-
-      #ifdef HW_CAPABILITY_IONICE
-      char szBuff[1024];
-      char szPIDs[1024];
-      hw_process_get_pids("ruby_rt_station", szPIDs);
-      removeTrailingNewLines(szPIDs);
-      replaceNewLinesToSpaces(szPIDs);
-      if ( strlen(szPIDs) > 2 )
-      {
-         if ( pcs->ioNiceRouter > 0 )
-            snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "ionice -c 1 -n %d -p %s", pcs->ioNiceRouter, szPIDs);
-         else
-            snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "ionice -c 2 -n 5 -p %s", szPIDs);
-         hw_execute_bash_command(szBuff, NULL);
-      }
-      #endif
-      valuesToUI();
-   }
-
-   if ( m_IndexIONiceRXVideo == m_SelectedIndex )
-   {
-      int ioNice = pcs->ioNiceRXVideo;
-      if ( ioNice < 0 )
-         ioNice = -ioNice;
-      if ( ioNice == 0 )
-         ioNice = 5;
-
-      if ( 0 == m_pItemsSelect[1]->getSelectedIndex() )
-         ioNice = -ioNice;
-
-      pcs->ioNiceRXVideo = ioNice;
-
-      #if defined (HW_PLATFORM_RASPBERRY)
-      #ifdef HW_CAPABILITY_IONICE
-      char szBuff[1024];
-      char szPIDs[1024];
-      hw_process_get_pids(VIDEO_PLAYER_SM, szPIDs);
-      removeTrailingNewLines(szPIDs);
-      replaceNewLinesToSpaces(szPIDs);
-      if ( strlen(szPIDs) > 2 )
-      {
-         if ( pcs->ioNiceRXVideo > 0 )
-            snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "ionice -c 1 -n %d -p %s", pcs->ioNiceRXVideo, szPIDs);
-         else
-            snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "ionice -c 2 -n 5 -p %s", szPIDs);
-         hw_execute_bash_command(szBuff, NULL);
-      }
-      #endif
-      #endif
-      valuesToUI();
-   }
-
-   if ( m_IndexIONiceRouterValue == m_SelectedIndex )
-   {
-      pcs->ioNiceRouter = m_pItemsSlider[1]->getCurrentValue();
-      #ifdef HW_CAPABILITY_IONICE
-      char szBuff[1024];
-      char szPIDs[1024];
-      hw_process_get_pids("ruby_rt_station", szPIDs);
-      removeTrailingNewLines(szPIDs);
-      replaceNewLinesToSpaces(szPIDs);
-      if ( strlen(szPIDs) > 2 )
-      {
-         snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "ionice -c 1 -n %d -p %s", pcs->ioNiceRouter, szPIDs);
-         hw_execute_bash_command(szBuff, NULL);
-      }
-      #endif
-   }
-
-
-   if ( m_IndexIONiceValueRXVideo == m_SelectedIndex )
-   {
-      pcs->ioNiceRXVideo = m_pItemsSlider[3]->getCurrentValue();
-      #if defined (HW_PLATFORM_RASPBERRY)
-      #ifdef HW_CAPABILITY_IONICE
-      char szBuff[1024];
-      char szPIDs[1024];
-      hw_process_get_pids(VIDEO_PLAYER_SM, szPIDs);
-      removeTrailingNewLines(szPIDs);
-      replaceNewLinesToSpaces(szPIDs);
-      if ( strlen(szPIDs) > 2 )
-      {
-         snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "ionice -c 1 -n %d -p %s", pcs->ioNiceRXVideo, szPIDs);
-         hw_execute_bash_command(szBuff, NULL);
-      }
-      #endif
-      #endif
-   }
-
-   if ( m_IndexEnableRadioThreadsPriority == m_SelectedIndex )
-   {
-      if ( 0 == m_pItemsSelect[8]->getSelectedIndex() )
-      {
-         pcs->iRadioRxThreadPriority = -1;
-         pcs->iRadioTxThreadPriority = -1;
-      }
-      else
-      {
-         pcs->iRadioRxThreadPriority = m_pItemsSlider[8]->getCurrentValue();
-         pcs->iRadioTxThreadPriority = m_pItemsSlider[9]->getCurrentValue();
-      }
-      save_ControllerSettings();
-      valuesToUI();
-      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
-      return;
-   }
-   if ( (m_IndexRadioRxPriority == m_SelectedIndex) || (m_IndexRadioTxPriority == m_SelectedIndex) )
-   {
-      pcs->iRadioRxThreadPriority = m_pItemsSlider[8]->getCurrentValue();
-      pcs->iRadioTxThreadPriority = m_pItemsSlider[9]->getCurrentValue();
-      save_ControllerSettings();
-      valuesToUI();
-      log_line("MenuControllerCPU: New Radio Rx/Tx priorities: %d/%d", pcs->iRadioRxThreadPriority, pcs->iRadioTxThreadPriority);
-      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
-      return;
-   }
-
    if ( m_IndexReboot == m_SelectedIndex )
    {
       if ( g_VehiclesRuntimeInfo[g_iCurrentActiveVehicleRuntimeInfoIndex].bGotFCTelemetry )
@@ -776,20 +427,9 @@ void MenuControllerExpert::onSelectItem()
       bUpdatedConfig = true;
    }
 
-   if ( m_IndexResetPriorities == m_SelectedIndex )
+   if ( (m_iIndexPriorities != -1) && (m_iIndexPriorities == m_SelectedIndex) )
    {
-      pcs->iCoresAdjustment = 1;
-      pcs->iPrioritiesAdjustment = 1;
-      pcs->iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-      pcs->ioNiceRouter = DEFAULT_IO_PRIORITY_ROUTER;
-      pcs->iNiceCentral = DEFAULT_PRIORITY_PROCESS_CENTRAL;
-      pcs->iNiceRXVideo = DEFAULT_PRIORITY_PROCESS_VIDEO_RX;
-      pcs->ioNiceRXVideo = DEFAULT_IO_PRIORITY_VIDEO_RX;
-      pcs->iRadioRxThreadPriority = DEFAULT_PRIORITY_THREAD_RADIO_RX;
-      pcs->iRadioTxThreadPriority = DEFAULT_PRIORITY_THREAD_RADIO_TX;
-      save_ControllerSettings();
-      valuesToUI();
-      addMessage("Controller processes priorities have been reset.");
+      add_menu_to_stack(new MenuControllerCPUPriorities());
       return;
    }
 

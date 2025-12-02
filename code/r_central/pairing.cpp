@@ -69,8 +69,6 @@ bool s_isRXStarted = false;
 bool s_isVideoReceiving = false;
 bool s_bPairingIsRouterReady = false;
 
-u32 s_uTimeToSetAffinities = 0;
-
 void _pairing_open_shared_mem();
 void _pairing_close_shared_mem();
 
@@ -142,8 +140,6 @@ bool _pairing_start()
 
    g_bMenuPopupUpdateVehicleShown = false;
 
-   s_uTimeToSetAffinities = g_TimeNow + 3000;
-   
    log_line("-----------------------------------------");
    log_line("Started pairing processes successfully.");
    log_line("-----------------------------------------");
@@ -220,7 +216,6 @@ bool pairing_stop()
    log_line("----------------------------------");
    log_line("Stopping pairing processes...");
 
-   s_uTimeToSetAffinities = 0;
    s_uPairingStartTime = 0;
    onEventBeforePairingStop();
    s_bPairingIsRouterReady = false;
@@ -295,6 +290,18 @@ void _pairing_open_shared_mem()
       iAnyNewOpen++;
    }
    if ( NULL == g_pSMControllerRTInfo )
+      iAnyFailed++;
+
+   for(int i=0; i<iRetryCount; i++ )
+   {
+      if ( NULL != g_pSMControllerDebugRTInfo )
+         break;
+      g_pSMControllerDebugRTInfo = controller_debug_rt_info_open_for_read();
+      
+      hardware_sleep_ms(2);
+      iAnyNewOpen++;
+   }
+   if ( NULL == g_pSMControllerDebugRTInfo )
       iAnyFailed++;
 
    for(int i=0; i<iRetryCount; i++ )
@@ -426,6 +433,9 @@ void _pairing_close_shared_mem()
    controller_rt_info_close(g_pSMControllerRTInfo);
    g_pSMControllerRTInfo = NULL;
 
+   controller_debug_rt_info_close(g_pSMControllerDebugRTInfo);
+   g_pSMControllerDebugRTInfo = NULL;
+
    vehicle_rt_info_close(g_pSMVehicleRTInfo);
    g_pSMVehicleRTInfo = NULL;
 
@@ -481,12 +491,4 @@ void pairing_loop()
    
    if ( g_bSearching )
       return;
-
-
-   if ( (s_uTimeToSetAffinities != 0) && s_isRXStarted )
-   if ( g_TimeNow > s_uTimeToSetAffinities )
-   {
-      controller_check_update_processes_affinities();
-      s_uTimeToSetAffinities = 0;
-   }
 }

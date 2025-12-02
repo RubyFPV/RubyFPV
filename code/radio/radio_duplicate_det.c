@@ -225,7 +225,7 @@ int radio_dup_detection_is_duplicate_on_stream(int iRadioInterfaceIndex, u8* pPa
    if ( hardware_radio_index_is_serial_radio(iRadioInterfaceIndex) )
       uMaxDeltaForDataStream = 200;
 
-   if ( uStreamIndex < STREAM_ID_VIDEO_1 )
+   if ( (uStreamIndex != STREAM_ID_AUDIO) && (uStreamIndex < STREAM_ID_VIDEO_1) )
    if ((pDupInfo->streamsPacketsHistory[uStreamIndex].uMaxReceivedPacketIndex > uMaxDeltaForDataStream ) && 
            (uStreamPacketIndex < pDupInfo->streamsPacketsHistory[uStreamIndex].uMaxReceivedPacketIndex - uMaxDeltaForDataStream) )
    if ( pDupInfo->streamsPacketsHistory[uStreamIndex].uLastTimeReceivedPacket > uTimeNow - 4000 )
@@ -243,11 +243,11 @@ int radio_dup_detection_is_duplicate_on_stream(int iRadioInterfaceIndex, u8* pPa
 
    int iStreamRestarted = 0;
 
-   if ( uStreamIndex >= STREAM_ID_VIDEO_1 )
+   if ( (uStreamIndex == STREAM_ID_AUDIO) || (uStreamIndex >= STREAM_ID_VIDEO_1) )
    if ( pDupInfo->streamsPacketsHistory[uStreamIndex].uMaxReceivedPacketIndex > uStreamPacketIndex + uMaxDeltaForVideoStream )
       iStreamRestarted = 1;
 
-   if ( uStreamIndex < STREAM_ID_VIDEO_1 )
+   if ( (uStreamIndex != STREAM_ID_AUDIO) && (uStreamIndex < STREAM_ID_VIDEO_1) )
    if ( pDupInfo->streamsPacketsHistory[uStreamIndex].uMaxReceivedPacketIndex > uStreamPacketIndex + uMaxDeltaForDataStream )
       iStreamRestarted = 1;
 

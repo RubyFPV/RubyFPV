@@ -123,25 +123,25 @@ int hardware_radio_serial_add_radio_interface_for_port(hw_serial_port_info_t* pS
 
 int hardware_radio_serial_parse_and_add_from_serial_ports_config()
 {
-   log_line("[HardwareRadioSerial] Parsing serial ports and adding hardware radio info...");
+   log_line("[HW-RS] Parsing serial ports and adding hardware radio info...");
    int iCountAdded = 0;
 
-   int iCountSerialPorts = hardware_get_serial_ports_count();
+   int iCountSerialPorts = hardware_serial_get_ports_count();
    for( int i=0; i<iCountSerialPorts; i++ )
    {
       hw_serial_port_info_t* pSerialPortInfo = hardware_get_serial_port_info(i);
       if ( NULL == pSerialPortInfo )
          continue;
-      log_line("[HardwareRadioSerial] Inspecting serial port %d: %s %s...", i, pSerialPortInfo->szName, pSerialPortInfo->szPortDeviceName);
+      log_line("[HW-RS] Inspecting serial port %d: %s %s...", i, pSerialPortInfo->szName, pSerialPortInfo->szPortDeviceName);
       if ( pSerialPortInfo->iPortUsage != SERIAL_PORT_USAGE_SERIAL_RADIO_ELRS_433 )
       if ( pSerialPortInfo->iPortUsage != SERIAL_PORT_USAGE_SERIAL_RADIO_ELRS_868 )
       if ( pSerialPortInfo->iPortUsage != SERIAL_PORT_USAGE_SERIAL_RADIO_ELRS_915 )
       if ( pSerialPortInfo->iPortUsage != SERIAL_PORT_USAGE_SERIAL_RADIO_ELRS_24 )
          continue;
-      log_line("[HardwareRadioSerial] Port %s is used for ELRS radio", pSerialPortInfo->szPortDeviceName);
+      log_line("[HW-RS] Port %s is used for ELRS radio", pSerialPortInfo->szPortDeviceName);
       iCountAdded += hardware_radio_serial_add_radio_interface_for_port(pSerialPortInfo);
    }
-   log_line("[HardwareRadioSerial] Parsed serial ports. Added %d hardware radio serial interfaces.", iCountAdded);
+   log_line("[HW-RS] Parsed serial ports. Added %d hardware radio serial interfaces.", iCountAdded);
    
    if ( iCountAdded > 0 )
    {
@@ -156,12 +156,12 @@ int hardware_radio_serial_open_for_read_write(int iHWRadioInterfaceIndex)
    radio_hw_info_t* pRadioInfo = hardware_get_radio_info(iHWRadioInterfaceIndex);
    if ( NULL == pRadioInfo )
    {
-      log_softerror_and_alarm("[HardwareRadio] Open: Failed to get serial radio hardware info for hardware radio interface %d.", iHWRadioInterfaceIndex+1);
+      log_softerror_and_alarm("[HW-RS] Open: Failed to get serial radio hardware info for hardware radio interface %d.", iHWRadioInterfaceIndex+1);
       return 0;
    }
    if ( ! hardware_radio_is_serial_radio(pRadioInfo) )
    {
-      log_softerror_and_alarm("[HardwareRadio] Open: Tried to open hardware radio interface %d which is not a serial radio.", iHWRadioInterfaceIndex+1);
+      log_softerror_and_alarm("[HW-RS] Open: Tried to open hardware radio interface %d which is not a serial radio.", iHWRadioInterfaceIndex+1);
       return 0;
    }
 
@@ -169,14 +169,14 @@ int hardware_radio_serial_open_for_read_write(int iHWRadioInterfaceIndex)
   
    if ( NULL == pSerialPort )
    {
-      log_error_and_alarm("[HardwareRadio] Open: Failed to find serial port configuration for serial radio %s.", pRadioInfo->szDriver);
+      log_error_and_alarm("[HW-RS] Open: Failed to find serial port configuration for serial radio %s.", pRadioInfo->szDriver);
       return 0;
    }
 
    int iSerialPortFD = hardware_open_serial_port(pRadioInfo->szDriver, pSerialPort->lPortSpeed);
    if ( iSerialPortFD <= 0 )
    {
-      log_error_and_alarm("[HardwareRadio] Open: Failed to open serial port for serial radio %s at %ld bps.", pRadioInfo->szDriver, pSerialPort->lPortSpeed);
+      log_error_and_alarm("[HW-RS] Open: Failed to open serial port for serial radio %s at %ld bps.", pRadioInfo->szDriver, pSerialPort->lPortSpeed);
       return 0;
    }
    pRadioInfo->openedForWrite = 1;
@@ -184,7 +184,7 @@ int hardware_radio_serial_open_for_read_write(int iHWRadioInterfaceIndex)
    pRadioInfo->runtimeInterfaceInfoRx.selectable_fd = iSerialPortFD;
    pRadioInfo->runtimeInterfaceInfoTx.selectable_fd = iSerialPortFD;
 
-   log_line("[HardwareRadio] Opened serial radio interface %d for read/write. fd=%d", iHWRadioInterfaceIndex+1, iSerialPortFD);
+   log_line("[HW-RS] Opened serial radio interface %d for read/write. fd=%d", iHWRadioInterfaceIndex+1, iSerialPortFD);
    return 1;
 }
 
@@ -193,12 +193,12 @@ int hardware_radio_serial_close(int iHWRadioInterfaceIndex)
    radio_hw_info_t* pRadioInfo = hardware_get_radio_info(iHWRadioInterfaceIndex);
    if ( NULL == pRadioInfo )
    {
-      log_softerror_and_alarm("[HardwareRadio] Close: Failed to get serial radio hardware info for hardware radio interface %d.", iHWRadioInterfaceIndex+1);
+      log_softerror_and_alarm("[HW-RS] Close: Failed to get serial radio hardware info for hardware radio interface %d.", iHWRadioInterfaceIndex+1);
       return 0;
    }
    if ( ! hardware_radio_is_serial_radio(pRadioInfo) )
    {
-      log_softerror_and_alarm("[HardwareRadio] Close: Tried to close hardware radio interface %d which is not a serial radio.", iHWRadioInterfaceIndex+1);
+      log_softerror_and_alarm("[HW-RS] Close: Tried to close hardware radio interface %d which is not a serial radio.", iHWRadioInterfaceIndex+1);
       return 0;
    }
 
@@ -221,25 +221,25 @@ int hardware_radio_serial_write_packet(int iHWRadioInterfaceIndex, u8* pData, in
 {
    if ( (NULL == pData) || (iLength <= 0) )
    {
-      log_softerror_and_alarm("[HardwareRadio] Write Serial: Invalid parameters: NULL buffer or 0 length.");
+      log_softerror_and_alarm("[HW-RS] Write Serial: Invalid parameters: NULL buffer or 0 length.");
       return 0;
    }
 
    radio_hw_info_t* pRadioInfo = hardware_get_radio_info(iHWRadioInterfaceIndex);
    if ( NULL == pRadioInfo )
    {
-      log_softerror_and_alarm("[HardwareRadio] Write Serial: Failed to get serial radio hardware info for hardware radio interface %d.", iHWRadioInterfaceIndex+1);
+      log_softerror_and_alarm("[HW-RS] Write Serial: Failed to get serial radio hardware info for hardware radio interface %d.", iHWRadioInterfaceIndex+1);
       return 0;
    }
    if ( ! hardware_radio_is_serial_radio(pRadioInfo) )
    {
-      log_softerror_and_alarm("[HardwareRadio] Write Serial: Tried to write to hardware radio interface %d which is not a serial radio.", iHWRadioInterfaceIndex+1);
+      log_softerror_and_alarm("[HW-RS] Write Serial: Tried to write to hardware radio interface %d which is not a serial radio.", iHWRadioInterfaceIndex+1);
       return 0;
    }
 
    if ( (! pRadioInfo->openedForWrite) || (pRadioInfo->runtimeInterfaceInfoTx.selectable_fd <= 0) )
    {
-      log_softerror_and_alarm("[HardwareRadio] Write Serial: Interface is not opened for write.");
+      log_softerror_and_alarm("[HW-RS] Write Serial: Interface is not opened for write.");
       return 0;
    }
 
@@ -247,7 +247,7 @@ int hardware_radio_serial_write_packet(int iHWRadioInterfaceIndex, u8* pData, in
 
    if ( iRes != iLength )
    {
-      log_softerror_and_alarm("[HardwareRadio] Write Serial: Failed to write. Written %d bytes of %d bytes.", iRes, iLength);
+      log_softerror_and_alarm("[HW-RS] Write Serial: Failed to write. Written %d bytes of %d bytes.", iRes, iLength);
       return 0;
    }
 

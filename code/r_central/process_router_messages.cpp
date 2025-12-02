@@ -36,6 +36,7 @@
 #include "../base/ruby_ipc.h"
 #include "../base/ctrl_interfaces.h"
 #include "../base/ctrl_preferences.h"
+#include "../base/ctrl_settings.h"
 #include "../common/models_connect_frequencies.h"
 #include "../common/string_utils.h"
 #include "menu/menu.h"
@@ -62,14 +63,17 @@
 #include "ui_alarms.h"
 #include "parse_msp.h"
 
-#define MAX_ROUTER_MESSAGES 80
+#define MAX_ROUTER_MESSAGES 200
 
 pthread_t s_pThreadIPC;
 pthread_mutex_t s_pThreadIPCMutex;
 bool s_bThreadInitOk = false;
 u8 s_pMessagesFromRouter[MAX_ROUTER_MESSAGES][MAX_PACKET_TOTAL_SIZE];
 int s_MessagesFromRouterSize[MAX_ROUTER_MESSAGES];
+u8  s_MessagesFromRouterTypes[MAX_ROUTER_MESSAGES];
+u8  s_MessagesFromRouterFlags[MAX_ROUTER_MESSAGES];
 int s_iCountMessagesFromRouter = 0;
+u32 s_uTimeLastRouterIPCFullAlarm = 0;
 
 int s_fIPCToRouter = -1;
 int s_fIPCFromRouter = -1;
@@ -111,20 +115,30 @@ void start_pipes_to_router()
 
    s_BufferTmpOutputRouterMessagePos = 0;
    
+   pthread_attr_t attr;
+   int iPrio = g_pControllerSettings->iThreadPriorityCentral;
+   if ( g_pControllerSettings->iPrioritiesAdjustment && (iPrio > 2) && (iPrio < 99) )
+   {
+      iPrio++;
+      hw_init_worker_thread_attrs(&attr, (g_pControllerSettings->iCoresAdjustment?CORE_AFFINITY_CENTRAL_UI:-1), -1, SCHED_FIFO, iPrio, "central IPC");
+   }
+   else
+      hw_init_worker_thread_attrs(&attr, (g_pControllerSettings->iCoresAdjustment?CORE_AFFINITY_CENTRAL_UI:-1), -1, SCHED_OTHER, 0, "central IPC");
+    
    s_iCountMessagesFromRouter = 0;
    if ( 0 != pthread_mutex_init(&s_pThreadIPCMutex, NULL) )
       log_softerror_and_alarm("[Router COMM] Failed to init mutex for router IPC");
-   else if ( 0 != pthread_create(&s_pThreadIPC, NULL, &_router_ipc_thread_func, NULL) )
+   else if ( 0 != pthread_create(&s_pThreadIPC, &attr, &_router_ipc_thread_func, NULL) )
    {
       log_softerror_and_alarm("[Router COMM] Failed to create thread for router IPC");
       pthread_mutex_destroy(&s_pThreadIPCMutex);
    }
    else
    {
-      pthread_detach(s_pThreadIPC);
       s_bThreadInitOk = true;
       log_line("[Router COMM] Created IPC receiving thread.");
    }
+   pthread_attr_destroy(&attr);
 }
 
 void stop_pipes_to_router()
@@ -237,6 +251,8 @@ t_structure_vehicle_info* _get_runtime_info_for_packet(u8* pPacketBuffer)
    // Searching ?
    if ( g_bSearching )
    {
+      if ( g_SearchVehicleRuntimeInfo.uVehicleId != pPH->vehicle_id_src )
+         log_line("Process data from router: Set search-vehicle-runtime-info to this new VID: %u (old VID was %u)", pPH->vehicle_id_src, g_SearchVehicleRuntimeInfo.uVehicleId);
       g_SearchVehicleRuntimeInfo.uVehicleId = pPH->vehicle_id_src;
       g_SearchVehicleRuntimeInfo.pModel = NULL;
       if ( controllerHasModelWithId(pPH->vehicle_id_src) )
@@ -249,6 +265,7 @@ t_structure_vehicle_info* _get_runtime_info_for_packet(u8* pPacketBuffer)
    {
       if ( NULL != g_pCurrentModel )
       {
+         log_line("Process data from router: Set vehicle-runtime-info[0] to this new VID: %u (old VID was %u)", pPH->vehicle_id_src, g_VehiclesRuntimeInfo[0].uVehicleId);
          g_VehiclesRuntimeInfo[0].uVehicleId = g_pCurrentModel->uVehicleId;
          g_VehiclesRuntimeInfo[0].pModel = g_pCurrentModel;
       }
@@ -256,14 +273,41 @@ t_structure_vehicle_info* _get_runtime_info_for_packet(u8* pPacketBuffer)
    }
 
    // Find it in the expected vehicles list
-
+   int iIndexFirstEmpty = -1;
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
    {
       if ( g_VehiclesRuntimeInfo[i].uVehicleId == pPH->vehicle_id_src )
          return &(g_VehiclesRuntimeInfo[i]);
+      if ( g_VehiclesRuntimeInfo[i].uVehicleId == 0 )
+      if ( iIndexFirstEmpty == -1 )
+         iIndexFirstEmpty = i;
+   }
+
+   // We did not find it already. Add it if it's a vehicle we exepct
+
+   if ( (NULL != g_pCurrentModel ) && (pPH->vehicle_id_src == g_pCurrentModel->uVehicleId) )
+   if ( iIndexFirstEmpty != -1 )
+   {
+      log_line("Process data from router: Add VID %u as a new known vehicle runtime info, to position index %d.", pPH->vehicle_id_src, iIndexFirstEmpty);
+      g_VehiclesRuntimeInfo[iIndexFirstEmpty].uVehicleId = g_pCurrentModel->uVehicleId;
+      g_VehiclesRuntimeInfo[iIndexFirstEmpty].pModel = g_pCurrentModel;
+      log_current_runtime_vehicles_info();
+      return &(g_VehiclesRuntimeInfo[iIndexFirstEmpty]);
+   }
+   if ( (NULL != g_pCurrentModel ) && (g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId >= 0) && (g_pCurrentModel->relay_params.uRelayedVehicleId > 0) && (pPH->vehicle_id_src == g_pCurrentModel->relay_params.uRelayedVehicleId) )
+   if ( iIndexFirstEmpty != -1 )
+   {
+      log_line("Process data from router: Add relayed VID %u as a new known vehicle runtime info, to position index %d.", pPH->vehicle_id_src, iIndexFirstEmpty);
+      g_VehiclesRuntimeInfo[iIndexFirstEmpty].uVehicleId = g_pCurrentModel->relay_params.uRelayedVehicleId;
+      g_VehiclesRuntimeInfo[iIndexFirstEmpty].pModel = findModelWithId(g_pCurrentModel->relay_params.uRelayedVehicleId, 415);
+      log_current_runtime_vehicles_info();
+      return &(g_VehiclesRuntimeInfo[iIndexFirstEmpty]);
    }
 
    // Unexpected vehicle
+
+   if ( g_UnexpectedVehicleRuntimeInfo.uVehicleId != pPH->vehicle_id_src )
+      log_line("Process data from router: Set unexpected-vehicle-runtime-info to this new VID: %u (old VID was %u)", pPH->vehicle_id_src, g_UnexpectedVehicleRuntimeInfo.uVehicleId);
 
    g_UnexpectedVehicleRuntimeInfo.uVehicleId = pPH->vehicle_id_src;
    g_UnexpectedVehicleRuntimeInfo.pModel = NULL;
@@ -304,6 +348,13 @@ void _process_received_ruby_telemetry_extended(u8* pPacketBuffer)
    if ( pPH->total_length == ((u16)sizeof(t_packet_header)+(u16)sizeof(t_packet_header_ruby_telemetry_extended_v5) + (u16)sizeof(t_packet_header_ruby_telemetry_extended_extra_info) + (u16)sizeof(t_packet_header_ruby_telemetry_extended_extra_info_retransmissions)) )
       iTelemetryVersion = 5;
 
+   if ( pPH->total_length == ((u16)sizeof(t_packet_header)+(u16)sizeof(t_packet_header_ruby_telemetry_extended_v6)) )
+      iTelemetryVersion = 6;
+   if ( pPH->total_length == ((u16)sizeof(t_packet_header)+(u16)sizeof(t_packet_header_ruby_telemetry_extended_v6) + (u16)sizeof(t_packet_header_ruby_telemetry_extended_extra_info)) )
+      iTelemetryVersion = 6;
+   if ( pPH->total_length == ((u16)sizeof(t_packet_header)+(u16)sizeof(t_packet_header_ruby_telemetry_extended_v6) + (u16)sizeof(t_packet_header_ruby_telemetry_extended_extra_info) + (u16)sizeof(t_packet_header_ruby_telemetry_extended_extra_info_retransmissions)) )
+      iTelemetryVersion = 6;
+
    if ( iTelemetryVersion == 0 )
    {
       log_softerror_and_alarm("Received unknown ruby telemetry version from vehicle id %u", pPH->vehicle_id_src);
@@ -340,7 +391,7 @@ void _process_received_ruby_telemetry_extended(u8* pPacketBuffer)
    if ( 3 == iTelemetryVersion )
    {
       t_packet_header_ruby_telemetry_extended_v3* pPHRTE = (t_packet_header_ruby_telemetry_extended_v3*)(pPacketBuffer+sizeof(t_packet_header));
-      radio_populate_ruby_telemetry_v5_from_ruby_telemetry_v3(&(pRuntimeInfo->headerRubyTelemetryExtended), pPHRTE);
+      radio_populate_ruby_telemetry_v6_from_ruby_telemetry_v3(&(pRuntimeInfo->headerRubyTelemetryExtended), pPHRTE);
 
       int dx = sizeof(t_packet_header) + sizeof(t_packet_header_ruby_telemetry_extended_v3);
       int totalLength = sizeof(t_packet_header) + sizeof(t_packet_header_ruby_telemetry_extended_v3);
@@ -375,7 +426,7 @@ void _process_received_ruby_telemetry_extended(u8* pPacketBuffer)
    if ( 4 == iTelemetryVersion )
    {
       t_packet_header_ruby_telemetry_extended_v4* pPHRTE = (t_packet_header_ruby_telemetry_extended_v4*)(pPacketBuffer+sizeof(t_packet_header));
-      radio_populate_ruby_telemetry_v5_from_ruby_telemetry_v4(&(pRuntimeInfo->headerRubyTelemetryExtended), pPHRTE);
+      radio_populate_ruby_telemetry_v6_from_ruby_telemetry_v4(&(pRuntimeInfo->headerRubyTelemetryExtended), pPHRTE);
 
       int dx = sizeof(t_packet_header) + sizeof(t_packet_header_ruby_telemetry_extended_v4);
       int totalLength = sizeof(t_packet_header) + sizeof(t_packet_header_ruby_telemetry_extended_v4);
@@ -410,8 +461,7 @@ void _process_received_ruby_telemetry_extended(u8* pPacketBuffer)
    if ( 5 == iTelemetryVersion )
    {
       t_packet_header_ruby_telemetry_extended_v5* pPHRTE = (t_packet_header_ruby_telemetry_extended_v5*)(pPacketBuffer+sizeof(t_packet_header));
-
-      memcpy(&(pRuntimeInfo->headerRubyTelemetryExtended), pPacketBuffer+sizeof(t_packet_header), sizeof(t_packet_header_ruby_telemetry_extended_v5) );
+      radio_populate_ruby_telemetry_v6_from_ruby_telemetry_v5(&(pRuntimeInfo->headerRubyTelemetryExtended), pPHRTE);
 
       int dx = sizeof(t_packet_header) + sizeof(t_packet_header_ruby_telemetry_extended_v5);
       int totalLength = sizeof(t_packet_header) + sizeof(t_packet_header_ruby_telemetry_extended_v5);
@@ -442,13 +492,49 @@ void _process_received_ruby_telemetry_extended(u8* pPacketBuffer)
       }
    }
 
+   // v6 ruby telemetry
+   if ( 6 == iTelemetryVersion )
+   {
+      t_packet_header_ruby_telemetry_extended_v6* pPHRTE = (t_packet_header_ruby_telemetry_extended_v6*)(pPacketBuffer+sizeof(t_packet_header));
+
+      memcpy(&(pRuntimeInfo->headerRubyTelemetryExtended), pPacketBuffer+sizeof(t_packet_header), sizeof(t_packet_header_ruby_telemetry_extended_v6) );
+
+      int dx = sizeof(t_packet_header) + sizeof(t_packet_header_ruby_telemetry_extended_v6);
+      int totalLength = sizeof(t_packet_header) + sizeof(t_packet_header_ruby_telemetry_extended_v6);
+   
+      if ( pPHRTE->uRubyFlags & FLAG_RUBY_TELEMETRY_HAS_EXTENDED_INFO )
+      {
+         t_packet_header_ruby_telemetry_extended_extra_info* pPHRTExtraInfo = (t_packet_header_ruby_telemetry_extended_extra_info*)(pPacketBuffer + dx);
+         dx += sizeof(t_packet_header_ruby_telemetry_extended_extra_info);
+         totalLength += sizeof(t_packet_header_ruby_telemetry_extended_extra_info);
+         
+         if ( ! pRuntimeInfo->bGotRubyTelemetryExtraInfo )
+         {
+            pRuntimeInfo->bGotRubyTelemetryExtraInfo = true;
+            log_line("Start receiving Ruby telemetry (v6) extra info from router for VID %u", pRuntimeInfo->uVehicleId);
+            log_current_runtime_vehicles_info();
+         }
+         memcpy(&(pRuntimeInfo->headerRubyTelemetryExtraInfo), pPHRTExtraInfo, sizeof(t_packet_header_ruby_telemetry_extended_extra_info));
+      }
+
+      if ( pPHRTE->extraSize > 0 )
+      if ( pPHRTE->extraSize == sizeof(t_packet_header_ruby_telemetry_extended_extra_info_retransmissions) )
+      if ( pPH->total_length == (totalLength + sizeof(t_packet_header_ruby_telemetry_extended_extra_info_retransmissions)) )
+      {
+          if ( ! pRuntimeInfo->bGotRubyTelemetryExtraInfoRetransmissions )
+            log_line("Start receiving Ruby telemetry (v6) retransmissions extra info from router for VID %u", pRuntimeInfo->uVehicleId);
+         pRuntimeInfo->bGotRubyTelemetryExtraInfoRetransmissions = true;
+         memcpy(&(pRuntimeInfo->headerRubyTelemetryExtraInfoRetransmissions), pPacketBuffer + dx, sizeof(t_packet_header_ruby_telemetry_extended_extra_info_retransmissions));
+      }
+   }
+
    if ( bFirstTimeGotTelemetry )
    {
       log_line("Received telemetry has camera flag set? %s",
           (pRuntimeInfo->headerRubyTelemetryExtended.uRubyFlags & FLAG_RUBY_TELEMETRY_VEHICLE_HAS_CAMERA)?"yes":"no");
-      onEventPairingStartReceivingData();
+      onEventPairingStartReceivingData(pPH->vehicle_id_src);
    }
-   
+
    if ( g_bSearching )
    {
       char szFreq1[64];
@@ -459,10 +545,10 @@ void _process_received_ruby_telemetry_extended(u8* pPacketBuffer)
       strcpy(szFreq3, str_format_frequency(pRuntimeInfo->headerRubyTelemetryExtended.uRadioFrequenciesKhz[2]) );
       
       static u32 s_uTimeLastLogTelemetrySearch = 0;
-      if ( g_TimeNow > s_uTimeLastLogTelemetrySearch + 2000 )
+      if ( g_TimeNow > s_uTimeLastLogTelemetrySearch + 200 )
       {
          s_uTimeLastLogTelemetrySearch = g_TimeNow;
-         log_line("Received a Ruby telemetry packet while searching: vehicle ID: %u, radio links (%d): %s, %s, %s",
+         log_line("Received a Ruby telemetry packet while searching: telem vehicle ID: %u, radio links (%d): %s, %s, %s",
             pRuntimeInfo->headerRubyTelemetryExtended.uVehicleId, pRuntimeInfo->headerRubyTelemetryExtended.radio_links_count,
             szFreq1, szFreq2, szFreq3 );
       }
@@ -479,6 +565,10 @@ void _process_received_msp_telemetry(u8* pPacketBuffer)
       return;
    }
    t_packet_header_telemetry_msp* pPHMSP = (t_packet_header_telemetry_msp*)(pPacketBuffer + sizeof(t_packet_header));
+
+   if ( (pPHMSP->uSegmentIdAndExtraInfo & 0xFFFF) <= (pRuntimeInfo->mspState.headerTelemetryMSP.uSegmentIdAndExtraInfo & 0xFFFF) )
+   if ( (pRuntimeInfo->mspState.headerTelemetryMSP.uSegmentIdAndExtraInfo & 0xFFFF) - (pPHMSP->uSegmentIdAndExtraInfo & 0xFFFF) < 5 )
+      return;
    memcpy(&(pRuntimeInfo->mspState.headerTelemetryMSP), pPHMSP, sizeof(t_packet_header_telemetry_msp));
 
    parse_msp_incoming_data(pRuntimeInfo, pPacketBuffer + sizeof(t_packet_header) + sizeof(t_packet_header_telemetry_msp), pPH->total_length - sizeof(t_packet_header) - sizeof(t_packet_header_telemetry_msp));
@@ -498,7 +588,7 @@ void _process_received_model_settings(u8* pPacketBuffer)
    int iDataSize = (int)pPH->total_length - sizeof(t_packet_header);
 
    u32 uStartFlag = MAX_U32;
-   if ( (pRuntimeInfo->pModel->sw_version >> 16) > 79 ) // v 7.7
+   if ( (get_sw_version_build(pRuntimeInfo->pModel) > 79) || (get_sw_version_major(pRuntimeInfo->pModel) >= 10) ) // v 7.7
    {
       memcpy((u8*)&uStartFlag, pData, sizeof(u32));
       pData += 2*sizeof(u32) + sizeof(u8);
@@ -511,7 +601,7 @@ void _process_received_model_settings(u8* pPacketBuffer)
    // Received all settings in a single segment?
    if ( iDataSize > 255 )
    {
-      if ( (pRuntimeInfo->pModel->sw_version >> 16) > 79 )
+      if ( (get_sw_version_build(pRuntimeInfo->pModel) > 79) || (get_sw_version_major(pRuntimeInfo->pModel) >= 10) ) // v 7.7
       {
          u32 uTransferId = 0;
          memcpy((u8*)&uTransferId, pPacketBuffer + sizeof(t_packet_header) + sizeof(u32), sizeof(u32));
@@ -526,7 +616,7 @@ void _process_received_model_settings(u8* pPacketBuffer)
       return;
    }
 
-   if ( (pRuntimeInfo->pModel->sw_version >> 16) < 79 ) // v 7.7
+   if ( (get_sw_version_build(pRuntimeInfo->pModel) < 79) && (get_sw_version_major(pRuntimeInfo->pModel) < 10) ) // v 7.7
    {
       u8* pData = pPacketBuffer + sizeof(t_packet_header);
       int iSegmentId = (int)(*pData);
@@ -812,8 +902,17 @@ int _process_received_message_from_router(u8* pPacketBuffer)
       {
          if ( pPH->total_length >= sizeof(t_packet_header) + sizeof(type_u32_couters) )
             memcpy(&(pRuntimeInfo->vehicleDebugRouterCounters), pPacketBuffer + sizeof(t_packet_header), sizeof(type_u32_couters));
-         if ( pPH->total_length >= sizeof(t_packet_header) + sizeof(type_u32_couters) + sizeof(type_radio_tx_timers) )
-            memcpy(&(pRuntimeInfo->vehicleDebugRadioTxTimers), pPacketBuffer + sizeof(t_packet_header) + sizeof(type_u32_couters), sizeof(type_radio_tx_timers));
+      }
+      return 0;
+   }
+
+   if ( pPH->packet_type == PACKET_TYPE_RUBY_RELAY_RADIO_INFO )
+   {
+      t_structure_vehicle_info* pRuntimeInfo = _get_runtime_info_for_packet(pPacketBuffer);
+      if ( NULL != pRuntimeInfo )
+      {
+         if ( pPH->total_length >= sizeof(t_packet_header) + sizeof(t_packet_header_relay_radio_info) )
+            memcpy(&(pRuntimeInfo->headerRelayRadioLinksInfo), pPacketBuffer + sizeof(t_packet_header), sizeof(t_packet_header_relay_radio_info));
       }
       return 0;
    }
@@ -867,8 +966,7 @@ int _process_received_message_from_router(u8* pPacketBuffer)
    if ( pPH->packet_type == PACKET_TYPE_TEST_RADIO_LINK )
    { 
       g_TimeNow = get_current_timestamp_ms();
-      if ( (get_sw_version_major(g_pCurrentModel) < 9) ||
-           ((get_sw_version_major(g_pCurrentModel) == 9) && (get_sw_version_minor(g_pCurrentModel) <= 20)) )
+      if ( ! is_sw_version_atleast(g_pCurrentModel, 10, 0) )
          return 0;
       if ( pPH->total_length < (int)sizeof(t_packet_header) + PACKET_TYPE_TEST_RADIO_LINK_HEADER_SIZE )
       {
@@ -1023,7 +1121,7 @@ int _process_received_message_from_router(u8* pPacketBuffer)
          pRuntimeInfo->bGotRubyTelemetryInfo = true;
          log_line("Start receiving short Ruby telemetry from router for vehicle id %u.", pRuntimeInfo->uVehicleId);
          log_current_runtime_vehicles_info();
-         onEventPairingStartReceivingData();
+         onEventPairingStartReceivingData(pPH->vehicle_id_src);
       }
 
       pRuntimeInfo->bGotFCTelemetryShort = true;
@@ -1060,11 +1158,11 @@ int _process_received_message_from_router(u8* pPacketBuffer)
       
       memcpy(&(pRuntimeInfo->headerFCTelemetry), (u8*)&PHFCT, sizeof(t_packet_header_fc_telemetry) );
       
-      t_packet_header_ruby_telemetry_extended_v5 PHRTE;
+      t_packet_header_ruby_telemetry_extended_v6 PHRTE;
       if ( pRuntimeInfo->bGotRubyTelemetryInfo )
-         memcpy((u8*)&PHRTE, &(pRuntimeInfo->headerRubyTelemetryExtended), sizeof(t_packet_header_ruby_telemetry_extended_v5));
+         memcpy((u8*)&PHRTE, &(pRuntimeInfo->headerRubyTelemetryExtended), sizeof(t_packet_header_ruby_telemetry_extended_v6));
       else
-         memset((u8*)&PHRTE, 0, sizeof(t_packet_header_ruby_telemetry_extended_v5));
+         memset((u8*)&PHRTE, 0, sizeof(t_packet_header_ruby_telemetry_extended_v6));
 
       PHRTE.uVehicleId = pPH->vehicle_id_src;
       PHRTE.rubyVersion = pPHRTS->rubyVersion;
@@ -1074,7 +1172,7 @@ int _process_received_message_from_router(u8* pPacketBuffer)
       for( int i=0; i<PHRTE.radio_links_count; i++ )
          PHRTE.uRadioFrequenciesKhz[i] = pPHRTS->uRadioFrequenciesKhz[i];
 
-      memcpy(&(pRuntimeInfo->headerRubyTelemetryExtended), (u8*)&PHRTE, sizeof(t_packet_header_ruby_telemetry_extended_v5) );
+      memcpy(&(pRuntimeInfo->headerRubyTelemetryExtended), (u8*)&PHRTE, sizeof(t_packet_header_ruby_telemetry_extended_v6));
       
       return 0;
    }
@@ -1309,14 +1407,21 @@ int _process_received_message_from_router(u8* pPacketBuffer)
       return 0;
    }
 
-
    if ( pPH->packet_type == PACKET_TYPE_TELEMETRY_RAW_DOWNLOAD )
    {
+      t_structure_vehicle_info* pRuntimeInfo = _get_runtime_info_for_packet(pPacketBuffer);
+      if ( (NULL == pRuntimeInfo) || (NULL == pRuntimeInfo->pModel) )
+         return 0;
+
+      int iDataLen = pPH->total_length - sizeof(t_packet_header)-sizeof(t_packet_header_telemetry_raw);
+      u8* pTelemetryData = pPacketBuffer + sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_raw);
+
+      if ( pRuntimeInfo->pModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MSP )
+         parse_msp_incoming_data(pRuntimeInfo, pTelemetryData, iDataLen);
+
       if ( g_bOSDPluginsNeedTelemetryStreams )
       {
          t_packet_header* pPH = (t_packet_header*)pPacketBuffer;
-         int len = pPH->total_length - sizeof(t_packet_header)-sizeof(t_packet_header_telemetry_raw);
-         u8* pTelemetryData = pPacketBuffer + sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_raw);
 
          for( int i=0; i<g_iPluginsOSDCount; i++ )
          {
@@ -1327,7 +1432,7 @@ int _process_received_message_from_router(u8* pPacketBuffer)
 
             int iRes = (*(g_pPluginsOSD[i]->pFunctionRequestTelemetryStreams))();
             if ( iRes )
-               (*(g_pPluginsOSD[i]->pFunctionOnTelemetryStreamData))(pTelemetryData, len, g_pCurrentModel->telemetry_params.fc_telemetry_type);
+               (*(g_pPluginsOSD[i]->pFunctionOnTelemetryStreamData))(pTelemetryData, iDataLen, g_pCurrentModel->telemetry_params.fc_telemetry_type);
          }
       }
       return 0;
@@ -1468,6 +1573,17 @@ int _process_received_message_from_router(u8* pPacketBuffer)
          int length = pPHFS->segment_size;
          u8* pData = pPacketBuffer + sizeof(t_packet_header) + sizeof(t_packet_header_file_segment);
          memcpy((&(s_BufferVehicleLogFileData[0])) + s_BufferVehicleLogFilePos, pData, length);
+         
+         FILE* fpLiveLog = NULL;
+         char szFileName[MAX_FILE_PATH_SIZE];
+         strcpy(szFileName, FOLDER_LOGS);
+         strcat(szFileName, LOG_FILE_LIVE_VEHICLE_LOG);
+         fpLiveLog = fopen(szFileName, "a");
+         if ( NULL != fpLiveLog )
+         {
+            fwrite(pData, 1, length, fpLiveLog);
+            fclose(fpLiveLog);
+         } 
          s_BufferVehicleLogFilePos += length;
          int parsePos = 0;
          while ( parsePos < s_BufferVehicleLogFilePos )
@@ -1556,7 +1672,8 @@ int _process_received_message_from_router(u8* pPacketBuffer)
 
 int try_read_messages_from_router(u32 uMaxMiliseconds)
 {
-   u32 uTimeStart = g_TimeNow = get_current_timestamp_ms();
+   g_TimeNow = get_current_timestamp_ms();
+   u32 uTimeStart = g_TimeNow;
    if ( -1 == s_fIPCFromRouter )
    {
        hardware_sleep_ms(uMaxMiliseconds/2+1);
@@ -1573,11 +1690,19 @@ int try_read_messages_from_router(u32 uMaxMiliseconds)
    u8 uTmpMsg[MAX_PACKET_TOTAL_SIZE];
 
    int iCountMessagesProcessed = 0;
+   int iCountMessagesProcessedTelemetry = 0;
+   int iCountMessagesProcessedRuby = 0;
+   int iCountMessagesProcessedLocal = 0;
    while(true)
    {
       u8* pResult = NULL;
       if ( s_bThreadInitOk )
       {
+         if ( 0 != s_uTimeLastRouterIPCFullAlarm )
+         {
+            log_line("[Router COMM] Will start to consume again IPC messages from thread, after alarm. Alarm was %u ms ago", get_current_timestamp_ms() - s_uTimeLastRouterIPCFullAlarm);
+            s_uTimeLastRouterIPCFullAlarm = 0;
+         }
          pthread_mutex_lock(&s_pThreadIPCMutex);
          g_pProcessStatsCentral->lastIPCIncomingTime = g_TimeNow;
          int iTmpCount = s_iCountMessagesFromRouter;
@@ -1595,27 +1720,45 @@ int try_read_messages_from_router(u32 uMaxMiliseconds)
             for( int i=0; i<s_iCountMessagesFromRouter; i++ )
             {
                s_MessagesFromRouterSize[i] = s_MessagesFromRouterSize[i+1];
+               s_MessagesFromRouterTypes[i] = s_MessagesFromRouterTypes[i+1];
+               s_MessagesFromRouterFlags[i] = s_MessagesFromRouterFlags[i+1];
                memcpy(&(s_pMessagesFromRouter[i][0]), &(s_pMessagesFromRouter[i+1][0]), s_MessagesFromRouterSize[i+1]);
             }
             pthread_mutex_unlock(&s_pThreadIPCMutex);
          }        
       }
       else
+      {
+         if ( 0 != s_uTimeLastRouterIPCFullAlarm )
+         {
+            log_line("[Router COMM] Will start to consume again IPC messages directly, after alarm. Alarm was %u ms ago", get_current_timestamp_ms() - s_uTimeLastRouterIPCFullAlarm);
+            s_uTimeLastRouterIPCFullAlarm = 0;
+         }
          pResult = ruby_ipc_try_read_message(s_fIPCFromRouter, s_BufferTmpOutputRouterMessage, &s_BufferTmpOutputRouterMessagePos, s_BufferPipeFromRouter);
-      
+      }
+
       if ( NULL != pResult )
       {
          t_packet_header* pPH = (t_packet_header*) pResult;
          iCountMessagesProcessed++;
+         if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_TELEMETRY )
+            iCountMessagesProcessedTelemetry++;
+         if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_RUBY )
+            iCountMessagesProcessedRuby++;
+         if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_LOCAL_CONTROL )
+            iCountMessagesProcessedLocal++;
+
          if ( ! radio_packet_check_crc(pResult, pPH->total_length) )
              log_softerror_and_alarm("[Router COMM] Received invalid message (invalid CRC) from router. Ignoring it.");
          else
          {
              _process_received_message_from_router(pResult);
          }
-         if ( iCountMessagesProcessed > MAX_ROUTER_MESSAGES/3 )
+         if ( iCountMessagesProcessed > MAX_ROUTER_MESSAGES/4 )
          {
-            log_softerror_and_alarm("Processing too many messages from router (%d messages)", iCountMessagesProcessed);
+            log_softerror_and_alarm("[Router COMM] Processing too many messages from router (%d messages: %d telem, %d Ruby, %d local, %d others)",
+               iCountMessagesProcessed, iCountMessagesProcessedTelemetry, iCountMessagesProcessedRuby, iCountMessagesProcessedLocal,
+               iCountMessagesProcessed - iCountMessagesProcessedTelemetry - iCountMessagesProcessedRuby - iCountMessagesProcessedLocal);
             return iCountMessagesProcessed;
          }
       }
@@ -1629,6 +1772,10 @@ int try_read_messages_from_router(u32 uMaxMiliseconds)
 
 void * _router_ipc_thread_func(void *ignored_argument)
 {
+   ControllerSettings* pCS = get_ControllerSettings();
+   if ( pCS->iPrioritiesAdjustment )
+      hw_set_current_thread_raw_priority("central IPC", pCS->iThreadPriorityCentral);
+   hw_log_current_thread_attributes("central IPC");
    u32 uWaitTimeMs = 5;
    while ( true )
    {
@@ -1637,9 +1784,9 @@ void * _router_ipc_thread_func(void *ignored_argument)
          pResult = ruby_ipc_try_read_message(s_fIPCFromRouter, s_BufferTmpOutputRouterMessage, &s_BufferTmpOutputRouterMessagePos, s_BufferPipeFromRouter);
       if ( NULL == pResult )
       {
-         if ( uWaitTimeMs < 30 )
-            uWaitTimeMs += 5;
          hardware_sleep_ms(uWaitTimeMs);
+         if ( uWaitTimeMs < 50 )
+            uWaitTimeMs += 2;
          if ( ruby_ipc_get_read_continous_error_count() > 100 )
          {
             log_line("Too many read errors on pipe from router. Flag read error.");
@@ -1647,21 +1794,60 @@ void * _router_ipc_thread_func(void *ignored_argument)
          }
          continue;
       }
-      uWaitTimeMs = 5;
+      uWaitTimeMs = 1;
       pthread_mutex_lock(&s_pThreadIPCMutex);
       t_packet_header* pPH = (t_packet_header*)pResult;
       if ( s_iCountMessagesFromRouter >= MAX_ROUTER_MESSAGES )
       {
          log_softerror_and_alarm("[Router COMM] The local router message queue is full (%d messages pending consumption, last consumed %u ms ago). Ignoring message received from router (msg type: %s)",
              s_iCountMessagesFromRouter, get_current_timestamp_ms() - g_pProcessStatsCentral->lastIPCIncomingTime, str_get_packet_type(pPH->packet_type));
+         int iCountTelemMsg = 0;
+         for( int i=s_iCountMessagesFromRouter-1; i>0; i-- )
+         {
+            if ( (s_MessagesFromRouterFlags[i] & PACKET_FLAGS_MASK_MODULE) != PACKET_COMPONENT_TELEMETRY )
+               continue;
+            for( int k=i; k<s_iCountMessagesFromRouter-1; k++ )
+            {
+               s_MessagesFromRouterSize[k] = s_MessagesFromRouterSize[k+1];
+               s_MessagesFromRouterTypes[k] = s_MessagesFromRouterTypes[k+1];
+               s_MessagesFromRouterFlags[k] = s_MessagesFromRouterFlags[k+1];
+               memcpy(&(s_pMessagesFromRouter[k][0]), &(s_pMessagesFromRouter[k+1][0]), s_MessagesFromRouterSize[k+1]);
+            }
+            s_iCountMessagesFromRouter--;
+            iCountTelemMsg++;
+            if ( iCountTelemMsg > 50 )
+               break;
+         }
+         log_softerror_and_alarm("[Router COM] Discarded %d telemetry IPC messages from queue");
       }
-      else
+
+      if ( s_iCountMessagesFromRouter < MAX_ROUTER_MESSAGES )
       {
          if ( s_iCountMessagesFromRouter >= MAX_ROUTER_MESSAGES/2 )
-            log_softerror_and_alarm("[Router COMM] The local router message queue is getting full (%d messages pending consumption of max %d, last consumed %u ms ago). Ignoring message received from router (msg type: %s)",
-                s_iCountMessagesFromRouter, MAX_ROUTER_MESSAGES, get_current_timestamp_ms() - g_pProcessStatsCentral->lastIPCIncomingTime, str_get_packet_type(pPH->packet_type));
+         {
+            int iCountTelemMsg = 0;
+            int iCountRubyMsg = 0;
+            int iCountLocalMsg = 0;
+            for( int i=0; i<s_iCountMessagesFromRouter; i++ )
+            {
+               if ( (s_MessagesFromRouterFlags[i] & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_TELEMETRY )
+                  iCountTelemMsg++;
+               if ( (s_MessagesFromRouterFlags[i] & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_RUBY )
+                  iCountRubyMsg++;
+               if ( (s_MessagesFromRouterFlags[i] & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_LOCAL_CONTROL )
+                  iCountLocalMsg++;
+            }
+            log_softerror_and_alarm("[Router COMM] The local router message queue is getting full (%d messages (%d telem, %d Ruby, %d local, %d others) pending consumption of max %d, last consumed %u ms ago). Ignoring message received from router (msg type: %s)",
+                s_iCountMessagesFromRouter,
+                iCountTelemMsg, iCountRubyMsg, iCountLocalMsg,
+                s_iCountMessagesFromRouter - iCountTelemMsg - iCountRubyMsg - iCountLocalMsg,
+                MAX_ROUTER_MESSAGES, get_current_timestamp_ms() - g_pProcessStatsCentral->lastIPCIncomingTime, str_get_packet_type(pPH->packet_type));
+            s_uTimeLastRouterIPCFullAlarm = get_current_timestamp_ms();
+         }
 
          s_MessagesFromRouterSize[s_iCountMessagesFromRouter] = pPH->total_length;
+         s_MessagesFromRouterTypes[s_iCountMessagesFromRouter] = pPH->packet_type;
+         s_MessagesFromRouterFlags[s_iCountMessagesFromRouter] = pPH->packet_flags;
          if ( (pPH->total_length >= MAX_PACKET_TOTAL_SIZE) || (pPH->total_length < sizeof(t_packet_header)) )
             log_softerror_and_alarm("[Router COMM] Received message from router too big or small (%d bytes). Ignoring it.", (int)pPH->total_length);
          else

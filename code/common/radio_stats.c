@@ -468,6 +468,14 @@ void radio_stats_reset_interfaces_rx_info(shared_mem_radio_stats* pSMRS, const c
       pSMRS->radio_interfaces[i].hist_tmp_rxPacketsLostCountVideo = 0;
       pSMRS->radio_interfaces[i].hist_tmp_rxPacketsLostCountData = 0;
    }
+
+   for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
+   {
+      for( int k=0; k<MAX_RADIO_STREAMS; k++ )
+      {
+         pSMRS->radio_streams[i][k].totalRxPackets = 0;
+      }
+   }   
 }
 
 void radio_stats_set_graph_refresh_interval(shared_mem_radio_stats* pSMRS, int graphRefreshInterval)
@@ -486,14 +494,18 @@ void radio_stats_enable_history_monitor(int iEnable)
 void radio_stats_log_info(shared_mem_radio_stats* pSMRS, u32 uTimeNow)
 {
    static int sl_iEnableRadioStatsLog = 0;
+   static int sl_iEnableRadioStreamsStatsLog = 1;
    static int sl_iEnableRadioStatsLogTx = 0;
 
    static u32 sl_uLastTimeLoggedRadioStats = 0;
 
-   if ( (0 == sl_iEnableRadioStatsLog) && (0 == sl_iEnableRadioStatsLogTx) )
+   if ( (0 == sl_iEnableRadioStatsLog) && (0 == sl_iEnableRadioStatsLogTx) && (0 == sl_iEnableRadioStreamsStatsLog) )
       return;
 
-   if ( uTimeNow < sl_uLastTimeLoggedRadioStats + 5000 )
+   u32 uInterval = 5000;
+   if ( sl_iEnableRadioStreamsStatsLog )
+      uInterval = 1000;
+   if ( uTimeNow < sl_uLastTimeLoggedRadioStats + uInterval )
       return;
 
    sl_uLastTimeLoggedRadioStats = uTimeNow;
@@ -518,6 +530,22 @@ void radio_stats_log_info(shared_mem_radio_stats* pSMRS, u32 uTimeNow)
          strcat(szBuff, szBuff2);
       }
       log_line(szBuff);
+      return;
+   }
+
+   if ( sl_iEnableRadioStreamsStatsLog )
+   {
+      strcpy(szBuff, "Radio Streams total RX packets/sec: ");
+      for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
+      {
+         if ( pSMRS->radio_streams[i][0].uVehicleId == 0 )
+            continue;
+         for( int k=0; k<MAX_RADIO_STREAMS; k++ )
+         {
+            if ( 0 < pSMRS->radio_streams[i][k].rxPacketsPerSec )
+               log_line("RX: VID %u, Stream %s: %d packets/sec (%d bytes/sec)", pSMRS->radio_streams[i][0].uVehicleId, str_get_radio_stream_name(k), pSMRS->radio_streams[i][k].rxPacketsPerSec, pSMRS->radio_streams[i][k].rxBytesPerSec);
+         }
+      }
       return;
    }
 
@@ -613,7 +641,7 @@ void radio_stats_log_info(shared_mem_radio_stats* pSMRS, u32 uTimeNow)
    log_line(szBuff);
 
    
-   log_line( "Radio streams throughput (global):");
+   log_line( "Radio streams RX throughput (global):");
    for( int k=0; k<MAX_CONCURENT_VEHICLES; k++ )
    {
       szBuff[0] = 0;
@@ -632,7 +660,8 @@ void radio_stats_log_info(shared_mem_radio_stats* pSMRS, u32 uTimeNow)
          log_line(szBuff);
    }
 }
-void radio_stats_log_tx_info(shared_mem_radio_stats* pSMRS, u32 uTimeNow)
+
+void radio_stats_log_tx_info(shared_mem_radio_stats* pSMRS, u32 uVehicleId, u32 uControllerId, u32 uTimeNow)
 {
    if ( NULL == pSMRS )
       return;
@@ -647,6 +676,10 @@ void radio_stats_log_tx_info(shared_mem_radio_stats* pSMRS, u32 uTimeNow)
          {
             if ( pSMRS->radio_streams[iVehicle][i].uVehicleId == BROADCAST_VEHICLE_ID )
                log_line("%d. To VID  Broadcast, Stream %d (%s): %s / %u pckts/s", iVehicle+1, i, str_get_radio_stream_name(i), str_format_bitrate_inline(pSMRS->radio_streams[iVehicle][i].txBytesPerSec*8), pSMRS->radio_streams[iVehicle][i].txPacketsPerSec);
+            else if ( (uControllerId != 0) && (uControllerId != MAX_U32) && (uControllerId == pSMRS->radio_streams[iVehicle][i].uVehicleId) )
+               log_line("%d. To CID %u, Stream %d (%s): %s / %u pckts/s", iVehicle+1, pSMRS->radio_streams[iVehicle][i].uVehicleId, i, str_get_radio_stream_name(i), str_format_bitrate_inline(pSMRS->radio_streams[iVehicle][i].txBytesPerSec*8), pSMRS->radio_streams[iVehicle][i].txPacketsPerSec);
+            else if ( (uVehicleId != 0) && (uVehicleId != MAX_U32) && (uVehicleId == pSMRS->radio_streams[iVehicle][i].uVehicleId) )
+               log_line("%d. To VID %u (self), Stream %d (%s): %s / %u pckts/s", iVehicle+1, pSMRS->radio_streams[iVehicle][i].uVehicleId, i, str_get_radio_stream_name(i), str_format_bitrate_inline(pSMRS->radio_streams[iVehicle][i].txBytesPerSec*8), pSMRS->radio_streams[iVehicle][i].txPacketsPerSec);
             else
                log_line("%d. To VID %u, Stream %d (%s): %s / %u pckts/s", iVehicle+1, pSMRS->radio_streams[iVehicle][i].uVehicleId, i, str_get_radio_stream_name(i), str_format_bitrate_inline(pSMRS->radio_streams[iVehicle][i].txBytesPerSec*8), pSMRS->radio_streams[iVehicle][i].txPacketsPerSec);
          }
@@ -776,7 +809,7 @@ int radio_stats_periodic_update(shared_mem_radio_stats* pSMRS, u32 timeNow)
       int iIntervalsToUse = iTimeIntervalToInspect / pSMRS->graphRefreshIntervalMs;
       if ( iIntervalsToUse < 3 )
          iIntervalsToUse = 3;
-      if ( iIntervalsToUse >= sizeof(pSMRS->radio_interfaces[0].hist_rxPacketsCount)/sizeof(pSMRS->radio_interfaces[0].hist_rxPacketsCount[0]) )
+      if ( iIntervalsToUse >= (int)(sizeof(pSMRS->radio_interfaces[0].hist_rxPacketsCount)/sizeof(pSMRS->radio_interfaces[0].hist_rxPacketsCount[0])) )
          iIntervalsToUse = sizeof(pSMRS->radio_interfaces[0].hist_rxPacketsCount)/sizeof(pSMRS->radio_interfaces[0].hist_rxPacketsCount[0]) - 1;
 
       pSMRS->iMaxRxQuality = 0;
@@ -884,8 +917,6 @@ int radio_stats_periodic_update(shared_mem_radio_stats* pSMRS, u32 timeNow)
          pSMRS->radio_interfaces[i].hist_tmp_rxPacketsLostCountData = 0;
       }
    }
-
-
    
    if ( iReturn == 1 )
    {
@@ -974,13 +1005,16 @@ int radio_stats_update_on_new_radio_packet_received(shared_mem_radio_stats* pSMR
       log_softerror_and_alarm("Tried to update radio stats on invalid radio interface number %d. Invalid radio info.", iInterfaceIndex+1);
       return -1;
    }
-   int iIsVideoData = 0;
+   int iIsAudioVideoData = 0;
    if ( ! iIsShortPacket )
    {
       t_packet_header* pPH = (t_packet_header*)pPacketBuffer;
-      if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_VIDEO )
-      if ( pPH->packet_type == PACKET_TYPE_VIDEO_DATA )
-         iIsVideoData = 1;
+      //if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_VIDEO )
+      //if ( pPH->packet_type == PACKET_TYPE_VIDEO_DATA )
+      if ( (pPH->stream_packet_idx >> PACKET_FLAGS_MASK_SHIFT_STREAM_INDEX) == STREAM_ID_AUDIO )
+         iIsAudioVideoData = 1;
+      if ( (pPH->stream_packet_idx >> PACKET_FLAGS_MASK_SHIFT_STREAM_INDEX) >= STREAM_ID_VIDEO_1 )
+         iIsAudioVideoData = 1;
    }
    pSMRS->timeLastRxPacket = timeNow;
 
@@ -991,7 +1025,8 @@ int radio_stats_update_on_new_radio_packet_received(shared_mem_radio_stats* pSMR
    memcpy((u8*)&(pSMRS->radio_interfaces[iInterfaceIndex].signalInfo.signalInfoVideo), (u8*)&(pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoVideo), sizeof(type_runtime_radio_rx_signal_info));
    memcpy((u8*)&(pSMRS->radio_interfaces[iInterfaceIndex].signalInfo.signalInfoData), (u8*)&(pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoData), sizeof(type_runtime_radio_rx_signal_info));
 
-   if ( iIsVideoData )
+   pSMRS->radio_interfaces[iInterfaceIndex].lastRecvDataRate = pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nDataRateBPSMCS;
+   if ( iIsAudioVideoData )
       pSMRS->radio_interfaces[iInterfaceIndex].lastRecvDataRateVideo = pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nDataRateBPSMCS;
    else
       pSMRS->radio_interfaces[iInterfaceIndex].lastRecvDataRateData = pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nDataRateBPSMCS;

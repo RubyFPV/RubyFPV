@@ -92,6 +92,7 @@ void _parse_msp_osd_command(t_structure_vehicle_info* pRuntimeInfo)
 
    pRuntimeInfo->mspState.uMSPDisplayPortPreviousCommand = pRuntimeInfo->mspState.uMSPDisplayPortCommand;
    pRuntimeInfo->mspState.uMSPDisplayPortCommand = pRuntimeInfo->mspState.uMSPCommandPayload[0];
+
    switch ( pRuntimeInfo->mspState.uMSPDisplayPortCommand )
    {
       case MSP_DISPLAYPORT_CLEAR:

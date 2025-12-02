@@ -124,6 +124,8 @@ void _negociate_radio_link_end(bool bApply, u32 uRadioFlagsToApply, int iDataRat
    g_pCurrentModel->validateRadioSettings();
    saveCurrentModel();
 
+   log_line("[NegociateRadioLink] Notify other processes to reload model, has negociated radio: %s",
+      (g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS)?"yes":"no");
    t_packet_header PH;
    radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_LOCAL_CONTROL_MODEL_CHANGED, STREAM_ID_DATA);
    PH.vehicle_id_src = PACKET_COMPONENT_RUBY | (MODEL_CHANGED_GENERIC<<8);
@@ -147,7 +149,7 @@ int negociate_radio_process_received_radio_link_messages(u8* pPacketBuffer)
    if ( NULL == pPacketBuffer )
       return 0;
 
-   static u8 s_uLastPacketNegociateReply[MAX_PACKET_TOTAL_SIZE];
+   static u8 s_uBufferLastPacketNegociateReplyToController[MAX_PACKET_TOTAL_SIZE];
 
    s_uTimeLastNegociateRadioLinksReceivedCommand = g_TimeNow;
 
@@ -176,7 +178,7 @@ int negociate_radio_process_received_radio_link_messages(u8* pPacketBuffer)
    {
       log_line("[NegociateRadioLink] Received duplicate test %d, command %d, tx power %d mW, just send reply back.", uTestIndex, uCommand, iTxPowerMw);
       if ( uCommand != NEGOCIATE_RADIO_KEEP_ALIVE )
-         packets_queue_add_packet(&g_QueueRadioPacketsOut, s_uLastPacketNegociateReply);
+         packets_queue_add_packet(&g_QueueRadioPacketsOut, s_uBufferLastPacketNegociateReplyToController);
       return 0;
    }
 
@@ -231,8 +233,8 @@ int negociate_radio_process_received_radio_link_messages(u8* pPacketBuffer)
       PH.vehicle_id_dest = g_uControllerId;
       PH.total_length = sizeof(t_packet_header) + 3*sizeof(u8) + sizeof(u32) + 2*sizeof(int);
 
-      memcpy(s_uLastPacketNegociateReply, (u8*)&PH, sizeof(t_packet_header));
-      u8* pBuffer = &(s_uLastPacketNegociateReply[sizeof(t_packet_header)]);
+      memcpy(s_uBufferLastPacketNegociateReplyToController, (u8*)&PH, sizeof(t_packet_header));
+      u8* pBuffer = &(s_uBufferLastPacketNegociateReplyToController[sizeof(t_packet_header)]);
       *pBuffer = uTestIndex;
       pBuffer++;
       *pBuffer = uCommand;
@@ -245,7 +247,7 @@ int negociate_radio_process_received_radio_link_messages(u8* pPacketBuffer)
       pBuffer += sizeof(u32);
       memcpy(pBuffer, &iTxPowerMw, sizeof(int));
       pBuffer += sizeof(int);
-      packets_queue_add_packet(&g_QueueRadioPacketsOut, s_uLastPacketNegociateReply);
+      packets_queue_add_packet(&g_QueueRadioPacketsOut, s_uBufferLastPacketNegociateReplyToController);
    }
 
    if ( uCommand == NEGOCIATE_RADIO_END_TESTS )
@@ -267,6 +269,8 @@ int negociate_radio_process_received_radio_link_messages(u8* pPacketBuffer)
          g_pCurrentModel->validateRadioSettings();
          saveCurrentModel();
          
+         log_line("[NegociateRadioLink] Notify other processes to reload model, has negociated radio: %s",
+            (g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS)?"yes":"no");
          radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_LOCAL_CONTROL_MODEL_CHANGED, STREAM_ID_DATA);
          PH.vehicle_id_src = PACKET_COMPONENT_RUBY | (MODEL_CHANGED_GENERIC<<8);
          PH.total_length = sizeof(t_packet_header);
@@ -287,15 +291,15 @@ int negociate_radio_process_received_radio_link_messages(u8* pPacketBuffer)
       PH.vehicle_id_dest = g_uControllerId;
       PH.total_length = sizeof(t_packet_header) + 3*sizeof(u8);
 
-      memcpy(s_uLastPacketNegociateReply, (u8*)&PH, sizeof(t_packet_header));
-      u8* pBuffer = &(s_uLastPacketNegociateReply[sizeof(t_packet_header)]);
+      memcpy(s_uBufferLastPacketNegociateReplyToController, (u8*)&PH, sizeof(t_packet_header));
+      u8* pBuffer = &(s_uBufferLastPacketNegociateReplyToController[sizeof(t_packet_header)]);
       *pBuffer = uTestIndex;
       pBuffer++;
       *pBuffer = uCommand;
       pBuffer++;
       *pBuffer = uCanceled;
       pBuffer++;
-      packets_queue_add_packet(&g_QueueRadioPacketsOut, s_uLastPacketNegociateReply);
+      packets_queue_add_packet(&g_QueueRadioPacketsOut, s_uBufferLastPacketNegociateReplyToController);
    }
    return 0;
 }
@@ -304,6 +308,28 @@ void negociate_radio_periodic_loop()
 {
    if ( (! s_bIsNegociatingRadioLinks) || (0 == s_uTimeStartOfNegociatingRadioLinks) || (0 == s_uTimeLastNegociateRadioLinksReceivedCommand) )
       return;
+
+   if ( ! g_pCurrentModel->hasCamera() )
+   {
+      for( int i=0; i<3; i++ )
+      {
+         u8 uBuffer[1024];
+         t_packet_header PH;
+         radio_packet_init(&PH, PACKET_COMPONENT_RUBY, PACKET_TYPE_NEGOCIATE_RADIO_LINKS, STREAM_ID_DATA);
+         PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
+         PH.vehicle_id_dest = g_uControllerId;
+         PH.total_length = 1023;
+
+         memcpy(uBuffer, (u8*)&PH, sizeof(t_packet_header));
+         u8* pBuffer = &(uBuffer[sizeof(t_packet_header)]);
+         *pBuffer = 0;
+         pBuffer++;
+         *pBuffer = NEGOCIATE_RADIO_KEEP_ALIVE;
+         pBuffer++;
+         packets_queue_add_packet(&g_QueueRadioPacketsOut, uBuffer);
+         hardware_sleep_micros(50);
+      }
+   }
 
    if ( (g_TimeNow > s_uTimeStartOfNegociatingRadioLinks + 60*2*1000) || (g_TimeNow > s_uTimeLastNegociateRadioLinksReceivedCommand + 12000) )
    {

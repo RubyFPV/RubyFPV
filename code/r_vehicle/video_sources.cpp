@@ -57,13 +57,21 @@
 #include "video_source_majestic.h"
 #include "negociate_radio.h"
 #include "packets_utils.h"
+#include "ruby_rt_vehicle.h"
 
-
-u32 s_uLastVideoSourcesStreamData = 0;
+u32 s_uLastVideoSourcesStreamDataAvailable = 0;
 u32 s_uTotalVideoSourceReadBytes = 0;
 u32 s_uLastSetVideoBitrateBPS = 0;
 int s_iLastSetIPQDelta = -1000;
 int s_iLastSetVideoKeyframeMs = 0;
+
+void video_sources_init()
+{
+}
+
+void video_sources_uninit()
+{
+}
 
 void video_sources_start_capture()
 {
@@ -77,6 +85,8 @@ void video_sources_start_capture()
       return;
    }
 
+   signal_start_long_op();
+
    log_line("[VideoSources] Current camera type: %s", str_get_hardware_camera_type_string(g_pCurrentModel->getActiveCameraType()));
    u32 uInitialVideoBitrate = 0;
    int iInitialKeyframeMs = 0;
@@ -88,6 +98,9 @@ void video_sources_start_capture()
    s_uLastSetVideoBitrateBPS = uInitialVideoBitrate;
    s_iLastSetVideoKeyframeMs = iInitialKeyframeMs;
 
+   signal_end_long_op();
+
+   log_line("[VideoSources] Started capture with video bitrate: %.1f Mbps, DR for it: %d", (float)s_uLastSetVideoBitrateBPS/1000.0/1000.0, g_pCurrentModel->getRadioDataRateForVideoBitrate(s_uLastSetVideoBitrateBPS, 0));
    log_line("[VideoSources] Start capture completed.");
 }
 
@@ -101,12 +114,38 @@ void video_sources_stop_capture()
       return;
    }
 
+   signal_start_long_op();
+
    if ( (NULL != g_pCurrentModel) && g_pCurrentModel->isActiveCameraOpenIPC() )
       video_source_majestic_stop_program();
    else
       video_source_csi_stop_program();
 
+   signal_end_long_op();
+
    log_line("[VideoSources] Stop capture completed.");
+}
+
+bool video_sources_is_caputure_process_running()
+{
+   if ( (NULL == g_pCurrentModel) || (! g_pCurrentModel->hasCamera()) )
+      return false;
+   char szOutput[1024];
+   if ( (NULL != g_pCurrentModel) && g_pCurrentModel->isActiveCameraOpenIPC() )
+   {
+      szOutput[0] = 0;
+      hw_execute_bash_command("ps -aef | grep maj | grep estic", szOutput);
+      if ( NULL != strstr(szOutput, "majestic") )
+         return true;
+   }
+   else
+   {
+      szOutput[0] = 0;
+      hw_execute_bash_command("ps -aef | grep ruby_ | grep capture", szOutput);
+      if ( NULL != strstr(szOutput, "ruby_capture") )
+         return true;
+   }
+   return false;
 }
 
 u32 video_sources_get_capture_start_time()
@@ -116,7 +155,7 @@ u32 video_sources_get_capture_start_time()
    return video_source_majestic_get_program_start_time(); 
 }
 
-void video_sources_flush_all_pending_data()
+void video_sources_flush_discard_all_pending_data()
 {
    log_line("[VideoSources] Clear video pipes...");
       
@@ -127,71 +166,225 @@ void video_sources_flush_all_pending_data()
    log_line("[VideoSources] Done clear video pipes.");
 }
 
-
-// Returns true if any video data was read and processed
-bool video_sources_read_process_stream(bool* pbEndOfFrameDetected, int iHasPendingDataPacketsToSend)
+// Returns true if any frame data has been read
+bool video_sources_try_read_camera_frame(bool* pbOutEndOfFrameDetected)
 {
-   if ( NULL != pbEndOfFrameDetected )
-      *pbEndOfFrameDetected = false;
    if ( ! g_pCurrentModel->hasCamera() )
+   {
+      if ( NULL != pbOutEndOfFrameDetected )
+         *pbOutEndOfFrameDetected = true;
       return false;
+   }
 
+   static bool s_bLastCameraReadWasEndOfFrame = false;
+   static u32  s_uTimeLastCameraReadStartOfFrame = 0;
+   static u32  s_uTimeLastCameraStartSecond = 0;
+   static int  s_iComputedFPS = 0;
+   static int  s_iCumulativeFramesCount = 0;
+   static u32  s_uCumulativeFramesTime = 0;
+
+   u32 uTimeDataAvailable = 0;
    u8* pVideoData = NULL;
    int iReadSize = 0;
- 
+   int iTotalBytes = 0;
+   u32 uNALPresenceFlags = 0;
+
+   if ( NULL != pbOutEndOfFrameDetected )
+      *pbOutEndOfFrameDetected = false;
+
    if ( g_pCurrentModel->isActiveCameraCSICompatible() || g_pCurrentModel->isActiveCameraVeye() )
    {
-      pVideoData = video_source_csi_read(&iReadSize);
-      if ( (iReadSize > 0) && (NULL != pVideoData) )
+      u32 uDBGTimeNow = get_current_timestamp_ms();
+      int iNumRetries = 20;
+      bool bEndOfFrame = false;
+      int iThresholdBytes = 100;
+      int iLastReadSize = 0;
+      if ( g_pCurrentModel->isActiveCameraVeye() )
+         iThresholdBytes = 20;
+      do
       {
-         s_uLastVideoSourcesStreamData = g_TimeNow;
-         s_uTotalVideoSourceReadBytes += iReadSize;
-         int iBuffSize = video_source_csi_get_buffer_size();
-         bool bIsEndOfFrame = (iReadSize < iBuffSize)?true:false;
-         // Concatenate SPS,PSP units to the next I/P unit
-         if ( iReadSize < 50 )
-            bIsEndOfFrame = false;
+         u32 uTimeRead = 0;
+         u32* pTimeRead = &uTimeRead;
+         if ( 0 != uTimeDataAvailable )
+            pTimeRead = NULL;
 
-         if ( NULL != g_pVideoTxBuffers )
-            g_pVideoTxBuffers->fillVideoPacketsFromCSI(pVideoData, iReadSize, bIsEndOfFrame, iHasPendingDataPacketsToSend);
-         if ( NULL != pbEndOfFrameDetected )
-            *pbEndOfFrameDetected = bIsEndOfFrame;
-         return true;
-      }
-   }
-   
-   if ( g_pCurrentModel->isActiveCameraOpenIPC() )
-   {
-      return video_source_majestic_read_process_stream(pbEndOfFrameDetected, iHasPendingDataPacketsToSend);
+         pVideoData = video_source_csi_read(&iReadSize, pTimeRead);
 
-      /*
-      bool bDidReadVideoData = false;
-      bool bIsEndOfFrame = false;
-
-      // Read mulitple times for end of frame detection and backward adjustment
-      for( int k=0; k<4; k++ )
-      {
-         pVideoData = video_source_majestic_read(&iReadSize, true);
-         if ( (iReadSize > 0) && (NULL != pVideoData) )
+         if ( (NULL == pVideoData) || (iReadSize <= 0) )
          {
-            s_uLastVideoSourcesStreamData = g_TimeNow;
-            s_uTotalVideoSourceReadBytes += iReadSize;
-            bDidReadVideoData = true;
-            bool bSingle = video_source_majestic_last_read_is_single_nal();
-            bool bEnd = video_source_majestic_last_read_is_end_nal();
-            u32 uNALType = video_source_majestic_get_last_nal_type();
-
-            bIsEndOfFrame |= g_pVideoTxBuffers->fillVideoPacketsFromRTSPPacket(pVideoData, iReadSize, bSingle, bEnd, uNALType, iHasPendingDataPacketsToSend);
+            if ( iTotalBytes == 0 )
+               break;
+            if ( (iTotalBytes < iThresholdBytes) || (iLastReadSize == video_source_csi_get_buffer_size()) )
+            {
+               iNumRetries--;
+               if ( iNumRetries > 0 )
+               {
+                  hardware_sleep_micros(400);
+                  continue;
+               }
+               else
+                  break;
+            }
          }
-         if ( (iReadSize <= 0) || bIsEndOfFrame )
+         iLastReadSize = iReadSize;
+         if ( 0 == uTimeDataAvailable )
+            uTimeDataAvailable = uTimeRead;
+
+         u8 uNALType = 0;
+         if ( iReadSize > 5 )
+         if ( (*pVideoData == 0) && (*(pVideoData+1) == 0) && (*(pVideoData+2) == 0) && (*(pVideoData+3) == 1) )
+            uNALType = (*(pVideoData+4)) & 0b11111;
+
+         // New frame is started?
+         if ( ((uNALType !=7) && (uNALType != 8) && (uNALType != 0)) || (iReadSize > iThresholdBytes) )
+         if ( s_bLastCameraReadWasEndOfFrame )
+         {
+            s_bLastCameraReadWasEndOfFrame = false;
+            u32 uDeltaTime = g_TimeNow - s_uTimeLastCameraReadStartOfFrame;
+            s_uTimeLastCameraReadStartOfFrame = g_TimeNow;
+            g_pVideoTxBuffers->setLastFrameDistanceMs(uDeltaTime);
+
+            if ( g_TimeNow >= s_uTimeLastCameraStartSecond + 998 )
+            {
+               s_iComputedFPS = s_iCumulativeFramesCount;
+               g_pVideoTxBuffers->setCurrentRealFPS(s_iComputedFPS);
+               s_uTimeLastCameraStartSecond = g_TimeNow;
+               s_iCumulativeFramesCount = 0;
+               s_uCumulativeFramesTime = 0;
+            }
+            s_iCumulativeFramesCount++;
+            s_uCumulativeFramesTime += uDeltaTime;
+         }
+
+         iTotalBytes += iReadSize;
+
+         if ( uNALType == 1 )
+            uNALPresenceFlags |= VIDEO_STATUS_FLAGS2_IS_NAL_P;
+         if ( uNALType == 5 )
+            uNALPresenceFlags |= VIDEO_STATUS_FLAGS2_IS_NAL_I;
+         if ( (uNALType == 7) || (uNALType == 8) )
+         {
+            uNALPresenceFlags |= VIDEO_STATUS_FLAGS2_IS_NAL_O;
+            if ( iReadSize > 200 )
+               uNALPresenceFlags |= VIDEO_STATUS_FLAGS2_IS_NAL_I;
+         }
+
+         bEndOfFrame = false;
+         if ( (iTotalBytes > iThresholdBytes) && (iReadSize > iThresholdBytes) && (iReadSize != video_source_csi_get_buffer_size()) )
+            bEndOfFrame = true;
+         if ( NULL != g_pVideoTxBuffers )
+            g_pVideoTxBuffers->appendDataToCurrentFrame(pVideoData, iReadSize, uNALPresenceFlags, bEndOfFrame, uTimeDataAvailable);
+
+         if ( bEndOfFrame )
             break;
-      }
-      if ( NULL != pbEndOfFrameDetected )
-         *pbEndOfFrameDetected = bIsEndOfFrame;
-      return bDidReadVideoData;
-      */
+       } while ( true );
+
+       if ( bEndOfFrame )
+       {
+         s_uLastVideoSourcesStreamDataAvailable = g_TimeNow;
+         s_uTotalVideoSourceReadBytes += (u32)iTotalBytes;
+         s_bLastCameraReadWasEndOfFrame = true;
+         if ( NULL != pbOutEndOfFrameDetected )
+            *pbOutEndOfFrameDetected = true;
+       }
    }
-   return false;
+   else if ( g_pCurrentModel->isActiveCameraOpenIPC() )
+   {
+      u32 uTmp = get_current_timestamp_ms();
+      int iNumUDPPackets = 0;
+      int iNumRetries = 100;
+      bool bEndOfFrame = false;
+      do
+      {
+         u32 uTimeRead = 0;
+         u32* pTimeRead = &uTimeRead;
+         if ( 0 != uTimeDataAvailable )
+            pTimeRead = NULL;
+         u8* pVideoData = video_source_majestic_read(&iReadSize, true, pTimeRead);
+
+         if ( (NULL == pVideoData) || (iReadSize <= 0) )
+         {
+            if ( 0 == iTotalBytes )
+               break;
+            iNumRetries--;
+            if ( (iNumRetries < 0) || (iTotalBytes == 0) )
+               break;
+            continue;
+         }
+         if ( 0 == uTimeDataAvailable )
+            uTimeDataAvailable = uTimeRead;
+
+         bool bEnd = video_source_majestic_last_read_is_end_nal();
+         u32 uNALType = video_source_majestic_get_last_nal_type();
+
+         if ( (uNALType !=7) && (uNALType != 8) && video_source_majestic_last_read_is_start_nal() )
+         if ( s_bLastCameraReadWasEndOfFrame )
+         {
+            u32 uDeltaTime = g_TimeNow - s_uTimeLastCameraReadStartOfFrame;
+            s_uTimeLastCameraReadStartOfFrame = g_TimeNow;
+            s_bLastCameraReadWasEndOfFrame = false;
+            g_pVideoTxBuffers->setLastFrameDistanceMs(uDeltaTime);
+            if ( g_TimeNow >= s_uTimeLastCameraStartSecond + 998 )
+            {
+               s_iComputedFPS = s_iCumulativeFramesCount;
+               g_pVideoTxBuffers->setCurrentRealFPS(s_iComputedFPS);
+               s_uTimeLastCameraStartSecond = g_TimeNow;
+               s_iCumulativeFramesCount = 0;
+               s_uCumulativeFramesTime = 0;
+            }
+            s_iCumulativeFramesCount++;
+            s_uCumulativeFramesTime += uDeltaTime;
+         }
+
+         iTotalBytes += iReadSize;
+         iNumUDPPackets++;
+
+         if ( uNALType == 1 )
+            uNALPresenceFlags |= VIDEO_STATUS_FLAGS2_IS_NAL_P;
+         if ( uNALType == 5 )
+            uNALPresenceFlags |= VIDEO_STATUS_FLAGS2_IS_NAL_I;
+         if ( (uNALType == 7) || (uNALType == 8) )
+            uNALPresenceFlags |= VIDEO_STATUS_FLAGS2_IS_NAL_O;
+
+         bEndOfFrame = false;
+         if ( bEnd && (iTotalBytes > 0) )
+         if ( (uNALType != 7) && (uNALType != 8) )
+            bEndOfFrame = true;
+         if ( NULL != g_pVideoTxBuffers )
+            g_pVideoTxBuffers->appendDataToCurrentFrame(pVideoData, iReadSize, uNALPresenceFlags, bEndOfFrame, uTimeDataAvailable);
+
+         if ( bEndOfFrame )
+         {
+            s_bLastCameraReadWasEndOfFrame = true;
+            break;
+         }
+      } while ( ! bEndOfFrame );
+
+      if ( iTotalBytes > 100 )
+      {
+         s_uLastVideoSourcesStreamDataAvailable = g_TimeNow;
+         s_uTotalVideoSourceReadBytes += (u32)iTotalBytes;
+         if ( NULL != pbOutEndOfFrameDetected )
+            *pbOutEndOfFrameDetected = bEndOfFrame;
+      }
+   }
+
+   if ( iTotalBytes == 0 )
+      return false;
+  
+   static u32 s_uLastTimeCheckVideoThroughput = 0;
+   static u32 s_uVideoThroughputVideoBytes = 0;
+   s_uVideoThroughputVideoBytes += (u32)iTotalBytes;
+   if ( g_TimeNow >= s_uLastTimeCheckVideoThroughput + 100 )
+   {
+      s_uVideoThroughputVideoBytes = ((s_uVideoThroughputVideoBytes * 8) / (g_TimeNow - s_uLastTimeCheckVideoThroughput)) * 1000;
+      if ( NULL != g_pVideoTxBuffers )
+         g_pVideoTxBuffers->setTelemetryInfoVideoThroughput(s_uVideoThroughputVideoBytes);
+      s_uLastTimeCheckVideoThroughput = g_TimeNow;
+      s_uVideoThroughputVideoBytes = 0;
+   }
+
+   return true;
 }
 
 bool video_sources_has_stream_data()
@@ -201,7 +394,7 @@ bool video_sources_has_stream_data()
 
 u32 video_sources_last_stream_data()
 {
-   return s_uLastVideoSourcesStreamData;
+   return s_uLastVideoSourcesStreamDataAvailable;
 }
 
 void video_sources_apply_all_parameters()
@@ -212,7 +405,7 @@ void video_sources_apply_all_parameters()
       (float)s_uLastSetVideoBitrateBPS/1000.0/1000.0,
       s_iLastSetIPQDelta);
    log_line("[VideoSources] Current video profile keyframe ms: %d, current set keyframe ms: %d",
-      g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].keyframe_ms,
+      g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iKeyframeMS,
       s_iLastSetVideoKeyframeMs);
 
    if ( NULL != g_pVideoTxBuffers )
@@ -314,6 +507,9 @@ void video_sources_on_changed_video_params(camera_profile_parameters_t* pOldCame
    strcpy(szProfileNew, str_get_video_profile_name(pNewVideoParams->iCurrentVideoProfile));
    log_line("[VideoSources] Changed video params. Old video profile: %s, new video profile: %s", szProfileOld, szProfileNew);
    g_pCurrentModel->logVideoSettingsDifferences(pOldVideoParams, pOldVideoProfile, true);
+   if ( pCurrentCameraProfileParams->iShutterSpeed != pOldCameraProfileParams->iShutterSpeed )
+      log_line("Diff Camera: shutter speed %d -> %d ms", pOldCameraProfileParams->iShutterSpeed, pCurrentCameraProfileParams->iShutterSpeed);
+
    log_line("[VideoSources] Processing differences...");
    int iCountChanges = 0;
    int iCountChangesApplied = 0;
@@ -330,18 +526,21 @@ void video_sources_on_changed_video_params(camera_profile_parameters_t* pOldCame
       return;
    }
 
-   if ( pCurrentCameraProfileParams->shutterspeed != pOldCameraProfileParams->shutterspeed )
+   if ( pCurrentCameraProfileParams->iShutterSpeed != pOldCameraProfileParams->iShutterSpeed )
    {
-      iCountChanges++;
-      iCountChangesApplied++;
-      // To fix may2025: set exposure for majestic
+      if ( hardware_board_is_sigmastar(g_pCurrentModel->hwCapabilities.uBoardType) )
+      {
+         hardware_camera_maj_set_exposure(pCurrentCameraProfileParams->iShutterSpeed);
+         iCountChanges++;
+         iCountChangesApplied++;
+      }
+      // else: Will do it by a full restart
    }
 
    if ( (pOldVideoParams->iVideoWidth != pNewVideoParams->iVideoWidth) ||
         (pOldVideoParams->iVideoHeight != pNewVideoParams->iVideoHeight) ||
         (pOldVideoParams->iVideoFPS != pNewVideoParams->iVideoFPS) ||
         (pOldVideoParams->iH264Slices != pNewVideoParams->iH264Slices) ||
-        ((pOldVideoParams->uVideoExtraFlags & (~VIDEO_FLAG_RETRANSMISSIONS_FAST)) != (pNewVideoParams->uVideoExtraFlags & (~VIDEO_FLAG_RETRANSMISSIONS_FAST))) ||
         ((pOldVideoParams->uVideoExtraFlags & VIDEO_FLAG_GENERATE_H265) != (pNewVideoParams->uVideoExtraFlags & VIDEO_FLAG_GENERATE_H265)) ||
  
         (pOldVideoProfile->h264profile != pNewVideoProfile->h264profile) ||
@@ -351,9 +550,13 @@ void video_sources_on_changed_video_params(camera_profile_parameters_t* pOldCame
       bDoFullRestart = true;
    
    if ( hardware_is_running_on_openipc() )
-   if ( pOldVideoProfile->video_data_length != pNewVideoProfile->video_data_length )
-      bDoFullRestart = true;
-
+   {
+      if ( pCurrentCameraProfileParams->iShutterSpeed != pOldCameraProfileParams->iShutterSpeed )
+      if ( ! hardware_board_is_sigmastar(g_pCurrentModel->hwCapabilities.uBoardType) )
+         bDoFullRestart = true;
+      if ( pOldVideoProfile->video_data_length != pNewVideoProfile->video_data_length )
+         bDoFullRestart = true;
+   }
    if ( g_pCurrentModel->isActiveCameraOpenIPC() )
    if ( hardware_board_is_goke(g_pCurrentModel->hwCapabilities.uBoardType) )
    if ( pOldVideoProfile->bitrate_fixed_bps != pNewVideoProfile->bitrate_fixed_bps )
@@ -368,9 +571,6 @@ void video_sources_on_changed_video_params(camera_profile_parameters_t* pOldCame
    if ( bDoFullRestart )
    {
       log_line("[VideoSources] Do a full apply/restart of video capture settings and program.");
-
-      // To fix may 2025
-      //adaptive_video_init();
 
       video_sources_apply_all_parameters();
       log_line("[VideoSources] Finished processing video settings changes.");
@@ -403,7 +603,7 @@ void video_sources_on_changed_video_params(camera_profile_parameters_t* pOldCame
       log_line("[VideoSources] OnChangedVideoParams: Handled selected video profile change.");
    }
 
-   if ( (pOldVideoProfile->keyframe_ms != pNewVideoProfile->keyframe_ms) ||
+   if ( (pOldVideoProfile->iKeyframeMS != pNewVideoProfile->iKeyframeMS) ||
         (pOldVideoProfile->uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME) !=  (pNewVideoProfile->uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME) )
    {
       log_line("[VideoSources] OnChangedVideoParams: Handle keyframe change...");
@@ -413,13 +613,13 @@ void video_sources_on_changed_video_params(camera_profile_parameters_t* pOldCame
          (pOldVideoProfile->uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME)?"yes":"no",
          (pNewVideoProfile->uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME)?"yes":"no");
       log_line("[VideoSources] Old/New value for user selected video profile keyframe: %d / %d ms",
-         pOldVideoProfile->keyframe_ms, pNewVideoProfile->keyframe_ms);
+         pOldVideoProfile->iKeyframeMS, pNewVideoProfile->iKeyframeMS);
 
       if ( ! (pNewVideoProfile->uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME) )
-      if ( pNewVideoProfile->keyframe_ms > 0 )
+      if ( pNewVideoProfile->iKeyframeMS > 0 )
       {
          adaptive_video_reset_requested_keyframe();
-         video_sources_set_keyframe(pNewVideoProfile->keyframe_ms);
+         video_sources_set_keyframe(pNewVideoProfile->iKeyframeMS);
       }
       log_line("[VideoSources] OnChangedVideoParams: Handled keyframe change.");
    }
@@ -435,8 +635,10 @@ void video_sources_on_changed_video_params(camera_profile_parameters_t* pOldCame
          adaptive_video_reset_to_defaults();
          if ( NULL != g_pVideoTxBuffers )
             g_pVideoTxBuffers->setCustomECScheme(0);
-         video_sources_set_video_bitrate(g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps, g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iIPQuantizationDelta, "AdaptiveVideo turned off");
-         packet_utils_set_adaptive_video_bitrate(0);
+         int iIPQDelta = s_iLastSetIPQDelta;
+         if ( iIPQDelta < -100 )
+            iIPQDelta = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iIPQuantizationDelta;
+         video_sources_set_video_bitrate(g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps, iIPQDelta, "AdaptiveVideo turned off");
       }
       iCountChanges++;
       iCountChangesApplied++;
@@ -454,7 +656,6 @@ void video_sources_on_changed_video_params(camera_profile_parameters_t* pOldCame
          if ( NULL != g_pVideoTxBuffers )
             g_pVideoTxBuffers->setCustomECScheme(0);
          video_sources_set_video_bitrate(g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps, g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iIPQuantizationDelta, "AdaptiveVideo turned off");
-         packet_utils_set_adaptive_video_bitrate(0);
       }
       iCountChanges++;
       iCountChangesApplied++;
@@ -499,9 +700,12 @@ void video_sources_on_changed_video_params(camera_profile_parameters_t* pOldCame
 
       if ( g_pCurrentModel->isAllVideoLinksFixedRate() )
          bApplyNow = true;
+      int iIPQDelta = s_iLastSetIPQDelta;
+      if ( iIPQDelta < -100 )
+         iIPQDelta = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iIPQuantizationDelta;
 
       if ( bApplyNow )
-        video_sources_set_video_bitrate(pNewVideoProfile->bitrate_fixed_bps, pNewVideoProfile->iIPQuantizationDelta, "Updated video profile video bitrate");
+        video_sources_set_video_bitrate(pNewVideoProfile->bitrate_fixed_bps, iIPQDelta, "Updated video profile video bitrate");
       else
          log_line("[VideoSources] Do not update video bitrate as it will be updated by adaptive video.");
       log_line("[VideoSources] OnChangedVideoParams: Handled video bitrate change.");
@@ -514,6 +718,7 @@ void video_sources_on_changed_video_params(camera_profile_parameters_t* pOldCame
       if ( g_pCurrentModel->isActiveCameraOpenIPC() && hardware_board_is_sigmastar(g_pCurrentModel->hwCapabilities.uBoardType) )
       {
          hardware_camera_maj_set_qpdelta(pNewVideoProfile->iIPQuantizationDelta);
+         s_iLastSetIPQDelta = pNewVideoProfile->iIPQuantizationDelta;
          iCountChangesApplied++;
       }
       else
@@ -564,12 +769,20 @@ u32 video_sources_get_last_set_video_bitrate()
    return s_uLastSetVideoBitrateBPS;
 }
 
+int video_source_get_last_set_ipqdelta()
+{
+   return s_iLastSetIPQDelta;
+}
+
+
 void video_sources_set_keyframe(int iKeyframeMs)
 {
    if ( (NULL == g_pCurrentModel) || (iKeyframeMs == s_iLastSetVideoKeyframeMs) )
       return;
 
    s_iLastSetVideoKeyframeMs = iKeyframeMs;
+   if ( s_iLastSetVideoKeyframeMs < 0 )
+      s_iLastSetVideoKeyframeMs = -s_iLastSetVideoKeyframeMs;
 
    log_line("[VideoSources] Set KF to: %d ms", s_iLastSetVideoKeyframeMs);
 
@@ -592,9 +805,9 @@ int video_sources_get_last_set_keyframe()
 
 void video_sources_set_temporary_image_saturation_off(bool bTurnOff)
 {
-   if ( !(g_pCurrentModel->video_params.uVideoExtraFlags & VIDEO_FLAG_ENABLE_FOCUS_MODE_BW) )
-      return;
-   if ( bTurnOff )
+   //if ( !(g_pCurrentModel->video_params.uVideoExtraFlags & VIDEO_FLAG_ENABLE_FOCUS_MODE_BW) )
+   //   return;
+   if ( bTurnOff && (g_pCurrentModel->video_params.uVideoExtraFlags & VIDEO_FLAG_ENABLE_FOCUS_MODE_BW) )
       log_line("[VideoSources] Set temporary image saturation to off");
    else
       log_line("[VideoSources] Removed temporary image saturation off");
@@ -603,7 +816,7 @@ void video_sources_set_temporary_image_saturation_off(bool bTurnOff)
    int iCurrentCamProfile = g_pCurrentModel->camera_params[iCurrentCamera].iCurrentProfile;
 
    int iSaturation = g_pCurrentModel->camera_params[iCurrentCamera].profiles[iCurrentCamProfile].saturation;
-   if ( bTurnOff )
+   if ( bTurnOff && (g_pCurrentModel->video_params.uVideoExtraFlags & VIDEO_FLAG_ENABLE_FOCUS_MODE_BW) )
       iSaturation = 0;
    log_line("[VideoSources] Set temporary image saturation to %d", iSaturation);
    if ( g_pCurrentModel->isRunningOnOpenIPCHardware() && (! hardware_board_is_goke(g_pCurrentModel->hwCapabilities.uBoardType)) )

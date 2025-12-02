@@ -1,0 +1,5 @@
+radxa:
+
+sudo apt -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false -o "Acquire::https::Verify-Peer=false" --fix-missing install libsdl2-dev libsdl1.2-dev libconfig++-dev
+
+sudo apt -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false -o "Acquire::https::Verify-Peer=false" install libgpiod-dev

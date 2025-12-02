@@ -193,6 +193,7 @@ char s_szAudioFilePlayAsync[MAX_FILE_PATH_SIZE];
 void* _thread_audio_play_async(void *argument)
 {
    log_line("[HardwareAudio] Started thread to play file async.");
+   hw_log_current_thread_attributes("play audio async");
    log_line("[HardwareAudio] Playing file: %s", s_szAudioFilePlayAsync);
    char szComm[256];
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "aplay -q %s 2>/dev/null 1>/dev/null &", s_szAudioFilePlayAsync);
@@ -223,7 +224,7 @@ int hardware_audio_play_file_async(const char* szFile)
    strcpy(s_szAudioFilePlayAsync, szFile);
 
    pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "Play audio file async");
+   hw_init_worker_thread_attrs(&attr, CORE_AFFINITY_OTHERS, 64000, SCHED_OTHER, 0, "Play audio file async");
    if ( 0 != pthread_create(&s_pThreadAudioPlayAsync, &attr, &_thread_audio_play_async, NULL) )
    {
       pthread_attr_destroy(&attr);

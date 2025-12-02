@@ -84,7 +84,7 @@ MenuSystem::MenuSystem(void)
    m_IndexReset = addMenuItem(new MenuItem(L("Factory Reset"), L("Resets all the settings an files on the controller, as they where when the image was flashed.")));
    m_IndexAbout = addMenuItem(new MenuItem("About", "Get info about Ruby system."));
 
-   m_pItemsSelect[0] = new MenuItemSelect(L("Enable Developer Mode"), L("Used to debug issues and test experimental features. Disables fail safe checks, parameters consistency checks and other options. It's recommended to leave this [Off] as it will degrade your system performance."));
+   m_pItemsSelect[0] = new MenuItemSelect(L("Enable Developer Mode"), L("Used to enable expert settings and tweaks, to debug issues and test experimental features. Also, it disables some failsafe checks, parameters consistency checks and other options. It's recommended to leave this [Off] as it will degrade your system performance."));
    m_pItemsSelect[0]->addSelection(L("Off"));
    m_pItemsSelect[0]->addSelection(L("On"));
    m_pItemsSelect[0]->setUseMultiViewLayout();
@@ -336,13 +336,6 @@ void MenuSystem::onSelectItem()
       pCS->iDeveloperMode = val;
       save_ControllerSettings();
       
-      if ( pCS->iDeveloperMode )
-      {
-         MenuConfirmation* pMC = new MenuConfirmation(L("Developer Mode"),L("Enabling developer mode will have an impact on performance. It is recomended you turn Developer Mode Off after you do the changes you want to do."), 5, true);
-         pMC->m_yPos = 0.3;
-         add_menu_to_stack(pMC);
-         return;
-      }
       send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);      
       valuesToUI();
 
@@ -356,6 +349,12 @@ void MenuSystem::onSelectItem()
             if ( pCS->iDeveloperMode != ((g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE)?1:0) )
                addMessage("You need to restart your vehicle for the changes to take effect.");
          }
+      }
+      if ( pCS->iDeveloperMode )
+      {
+         MenuConfirmation* pMC = new MenuConfirmation(L("Developer Mode"),L("Enabling developer mode will have an impact on performance. It is recomended you turn Developer Mode Off after you do the changes you want to do."), 5, true);
+         pMC->m_yPos = 0.3;
+         add_menu_to_stack(pMC);
       }
       return;
    }

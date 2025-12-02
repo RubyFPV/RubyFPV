@@ -190,7 +190,10 @@ void osd_render_stats_video_bitrate_history(float xPos, float yPos)
    for( int i=0; i<(int)g_SM_DevVideoBitrateHistory.uTotalDataPoints; i++ )
    {
       float hDatarate = g_SM_DevVideoBitrateHistory.history[i].uMinVideoDataRateMbps*hGraph/uMaxGraphValue;
-      float hDatarateLow = hDatarate*pActiveModel->radioLinksParams.uMaxLinkLoadPercent[0]/100.0;
+      float hDatarateLow = hDatarate * pActiveModel->radioLinksParams.uMaxLinkLoadPercent[0]/100.0;
+      if ( (pActiveModel->video_link_profiles[pActiveModel->video_params.iCurrentVideoProfile].iDefaultLinkLoad > 0) && (pActiveModel->video_link_profiles[pActiveModel->video_params.iCurrentVideoProfile].iDefaultLinkLoad <= 90) )
+         hDatarateLow = hDatarate * pActiveModel->video_link_profiles[pActiveModel->video_params.iCurrentVideoProfile].iDefaultLinkLoad / 100.0;
+
       float hVideoBitrate = g_SM_DevVideoBitrateHistory.history[i].uVideoBitrateKb*hGraph/uMaxGraphValue/1000.0;
       float hVideoBitrateAvg = g_SM_DevVideoBitrateHistory.history[i].uVideoBitrateAvgKb*hGraph/uMaxGraphValue/1000.0;
       float hTotalBitrateAvg = g_SM_DevVideoBitrateHistory.history[i].uTotalVideoBitrateAvgKb*hGraph/uMaxGraphValue/1000.0;
@@ -222,10 +225,7 @@ void osd_render_stats_video_bitrate_history(float xPos, float yPos)
          if ( g_SM_DevVideoBitrateHistory.history[i-1].uVideoProfileSwitches != g_SM_DevVideoBitrateHistory.history[i].uVideoProfileSwitches )
          if ( (g_SM_DevVideoBitrateHistory.history[i-1].uVideoProfileSwitches>>4) != (g_SM_DevVideoBitrateHistory.history[i].uVideoProfileSwitches>>4) )
          {
-            int iVideoProfile = (g_SM_DevVideoBitrateHistory.history[i-1].uVideoProfileSwitches)>>4;
-
             g_pRenderEngine->setStroke(50,250,50, s_fOSDStatsGraphLinesAlpha);
-
             g_pRenderEngine->drawLine(xBarMiddle - widthBar*0.5, y, xBarMiddle - widthBar*0.5, y + hGraph);
          }
 

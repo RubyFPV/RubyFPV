@@ -52,18 +52,14 @@ int s_iCurrentTelemetrySerialPortSpeed = DEFAULT_FC_TELEMETRY_SERIAL_SPEED;
 int s_iTelemetrySerialPortFile = -1;
 u32 s_uTimeSerialPortOpened = 0;
 
-u8 s_uTelemetrySerialInBuffer[1024];
-u32 s_uRawTelemetryDownloadTotalReadFromSerial = 0;
+u32 s_uRawTelemetryTotalReadFromFCSerial = 0;
 int s_iFCSerialTelemetryReadBytesTempLastSecond = 0;
 int s_iFCSerialTelemetryReadBytesPerSecond = 0;
       
-u8  telemetryBufferFromFC[RAW_TELEMETRY_MAX_BUFFER];
-int telemetryBufferFromFCMaxSize = RAW_TELEMETRY_MIN_SEND_LENGTH;
-int telemetryBufferFromFCFilledBytes = 0;
-u32 telemetryBufferFromFCLastSendTime = 0;
-
-u32 s_uRawTelemetryDownloadTotalSend = 0;
-u32 s_uRawTelemetryDownloadSegmentIndex = 0;
+u8  uTelemetryBufferFromFC_Serial[RAW_TELEMETRY_MAX_BUFFER];
+int iTelemetryBufferFromFC_MaxSize = RAW_TELEMETRY_MIN_SEND_LENGTH;
+int iTelemetryBufferFromFC_FilledBytes = 0;
+u32 uTelemetryBufferFromFC_LastSendTime = 0;
 
 u32 s_CountMessagesFromFCPerSecond = 0;
 u32 s_CountMessagesFromFCPerSecondTemp = 0;
@@ -100,12 +96,12 @@ void telemetry_init()
    sPHFCE.chunk_index = 0;
    sPHFCE.text[0] = 0;
 
-   telemetryBufferFromFCMaxSize = 300;
-   if ( telemetryBufferFromFCMaxSize > RAW_TELEMETRY_MAX_BUFFER )
-      telemetryBufferFromFCMaxSize = RAW_TELEMETRY_MAX_BUFFER;
-   telemetryBufferFromFCFilledBytes = 0;
-   telemetryBufferFromFCLastSendTime = g_TimeNow;
-   log_line("[Telem] Telemetry from FC chunk size: %d", telemetryBufferFromFCMaxSize);
+   iTelemetryBufferFromFC_MaxSize = 300;
+   if ( iTelemetryBufferFromFC_MaxSize > RAW_TELEMETRY_MAX_BUFFER )
+      iTelemetryBufferFromFC_MaxSize = RAW_TELEMETRY_MAX_BUFFER;
+   iTelemetryBufferFromFC_FilledBytes = 0;
+   uTelemetryBufferFromFC_LastSendTime = g_TimeNow;
+   log_line("[Telem] Telemetry from FC chunk size: %d", iTelemetryBufferFromFC_MaxSize);
 }
 
 t_packet_header_fc_telemetry* telemetry_get_fc_telemetry_header()
@@ -136,7 +132,7 @@ bool telemetry_detect_serial_port_to_use()
       return false;
    }
 
-   for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+   for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
        hw_serial_port_info_t* pPortInfo = hardware_get_serial_port_info(i);
        if ( NULL == pPortInfo )
@@ -153,28 +149,33 @@ bool telemetry_detect_serial_port_to_use()
        }
    }
 
-   log_line("[Telem] No serial ports found (of %d) configured for telemetry.", hardware_get_serial_ports_count() );
+   log_line("[Telem] No serial ports found (of %d) configured for telemetry.", hardware_serial_get_ports_count() );
    return false;
 }
 
 void _send_raw_telemetry_packet_to_controller()
 {
-   if ( ! g_bRouterReady )
-      return;
-
-   if ( (NULL == g_pCurrentModel) || (g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_NONE) )
-      return;
-
-   if ( telemetryBufferFromFCFilledBytes <= 0 )
-      return;
-
-   if ( telemetryBufferFromFCFilledBytes > RAW_TELEMETRY_MAX_BUFFER )
+   if ( (! g_bRouterReady) || (iTelemetryBufferFromFC_FilledBytes <= 0) )
    {
-      log_softerror_and_alarm("[Telem] Trying to send more raw telemetry data than expected to downlink: %d bytes, max expected: %d bytes. Sending only max allowed.", telemetryBufferFromFCFilledBytes, RAW_TELEMETRY_MAX_BUFFER);
-      telemetryBufferFromFCFilledBytes = RAW_TELEMETRY_MAX_BUFFER;
+      iTelemetryBufferFromFC_FilledBytes = 0;
+      return;
+   }
+   if ( (NULL == g_pCurrentModel) || (g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_NONE) )
+   {
+      iTelemetryBufferFromFC_FilledBytes = 0;
+      return;
    }
 
-   s_uRawTelemetryDownloadTotalSend += telemetryBufferFromFCFilledBytes;
+   if ( iTelemetryBufferFromFC_FilledBytes > RAW_TELEMETRY_MAX_BUFFER )
+   {
+      log_softerror_and_alarm("[Telem] Trying to send more raw telemetry data than expected to downlink: %d bytes, max expected: %d bytes. Sending only max allowed.", iTelemetryBufferFromFC_FilledBytes, RAW_TELEMETRY_MAX_BUFFER);
+      iTelemetryBufferFromFC_FilledBytes = RAW_TELEMETRY_MAX_BUFFER;
+   }
+
+   static u32 s_uRawTelemetryTotalBytesSentToController = 0;
+   static u32 s_uRawTelemetrySegmentIndex = 0;
+
+   s_uRawTelemetryTotalBytesSentToController += iTelemetryBufferFromFC_FilledBytes;
 
    t_packet_header PH;
    t_packet_header_telemetry_raw PHTR;
@@ -182,30 +183,30 @@ void _send_raw_telemetry_packet_to_controller()
    radio_packet_init(&PH, PACKET_COMPONENT_TELEMETRY, PACKET_TYPE_TELEMETRY_RAW_DOWNLOAD, STREAM_ID_TELEMETRY);
    PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
    PH.vehicle_id_dest = 0;
-   PH.total_length = sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_raw) + telemetryBufferFromFCFilledBytes;
+   PH.total_length = sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_raw) + iTelemetryBufferFromFC_FilledBytes;
       
-   PHTR.telem_segment_index = s_uRawTelemetryDownloadSegmentIndex;
-   PHTR.telem_total_data = s_uRawTelemetryDownloadTotalSend;
-   PHTR.telem_total_serial = s_uRawTelemetryDownloadTotalReadFromSerial;
+   PHTR.telem_segment_index = s_uRawTelemetrySegmentIndex;
+   PHTR.telem_total_data = s_uRawTelemetryTotalBytesSentToController;
+   PHTR.telem_total_serial = s_uRawTelemetryTotalReadFromFCSerial;
 
    u8 buffer[MAX_PACKET_TOTAL_SIZE];
    memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
    memcpy(buffer+sizeof(t_packet_header), (u8*)&PHTR, sizeof(t_packet_header_telemetry_raw));
-   memcpy(buffer+sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_raw), telemetryBufferFromFC, telemetryBufferFromFCFilledBytes);
+   memcpy(buffer+sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_raw), uTelemetryBufferFromFC_Serial, iTelemetryBufferFromFC_FilledBytes);
    
-   if ( g_bRouterReady && (! isRadioLinksInitInProgress()) )
+   if ( g_bRouterReady && (!g_bLongTaskStarted) && (! isRadioLinksInitInProgress()) )
    {
       int result = ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, PH.total_length);
       if ( result != PH.total_length )
          log_softerror_and_alarm("[Telem] Failed to send data to router. Sent result: %d", result );
       #ifdef LOG_RAW_TELEMETRY
-      log_line("[Raw_Telem] Sent raw telemetry packet to router, index %u, %d / %d bytes", PHTR.telem_segment_index, telemetryBufferFromFCFilledBytes, PH.total_length);
+      log_line("[Raw_Telem] Sent raw telemetry packet to router, index %u, %d / %d bytes", PHTR.telem_segment_index, iTelemetryBufferFromFC_FilledBytes, PH.total_length);
       #endif
    }
 
-   telemetryBufferFromFCLastSendTime = g_TimeNow;
-   telemetryBufferFromFCFilledBytes = 0;
-   s_uRawTelemetryDownloadSegmentIndex++;
+   uTelemetryBufferFromFC_LastSendTime = g_TimeNow;
+   iTelemetryBufferFromFC_FilledBytes = 0;
+   s_uRawTelemetrySegmentIndex++;
 
    if ( NULL != g_pProcessStats )
       g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
@@ -257,8 +258,9 @@ int telemetry_open_serial_port()
    if ( -1 == s_iTelemetrySerialPortFile )
       log_softerror_and_alarm("Failed to open serial port %s (%s) to flight controller.", pPortInfo->szName, pPortInfo->szPortDeviceName);
    else
-      log_line("Opened serial port %s (%s) to flight controller successfully at baudrate: %d.", pPortInfo->szName, pPortInfo->szPortDeviceName, s_iCurrentTelemetrySerialPortSpeed);
+      log_line("Opened serial port %s (%s) to flight controller successfully at baudrate: %d", pPortInfo->szName, pPortInfo->szPortDeviceName, s_iCurrentTelemetrySerialPortSpeed);
 
+   log_line("Current telemetry type: %d", g_pCurrentModel->telemetry_params.fc_telemetry_type);
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MAVLINK )
       telemetry_mavlink_on_open_port(s_iTelemetrySerialPortFile);
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_LTM )
@@ -266,6 +268,7 @@ int telemetry_open_serial_port()
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MSP )
       telemetry_msp_on_open_port(s_iTelemetrySerialPortFile);
      
+   log_line("Opened telemetry protocol.");
    return s_iTelemetrySerialPortFile;
 }
 
@@ -345,28 +348,36 @@ bool _telemetry_must_send_raw_telemetry_to_controller()
    return bMustSendFullTelemetryPackets;
 }
 
-void _telemetry_addSerialDataToFCTelemetryBuffer(u8* pData, int dataLength)
+void _telemetry_addSerialDataFromFCToTelemetryBuffer(u8* pData, int iDataLength)
 {
-   if ( NULL == g_pCurrentModel )
+   if ( (NULL == g_pCurrentModel) || (iDataLength <= 0) || (NULL == pData) )
       return;
 
    if ( ! _telemetry_must_send_raw_telemetry_to_controller() )
       return;
 
-   while ( dataLength > 0 )
+   while ( iDataLength > 0 )
    {
-      if ( telemetryBufferFromFCFilledBytes + dataLength < telemetryBufferFromFCMaxSize )
+      if ( iTelemetryBufferFromFC_FilledBytes + iDataLength < iTelemetryBufferFromFC_MaxSize )
       {
-         memcpy(&(telemetryBufferFromFC[telemetryBufferFromFCFilledBytes]), pData, dataLength);
-         telemetryBufferFromFCFilledBytes += dataLength;
-         return;
+         memcpy(&(uTelemetryBufferFromFC_Serial[iTelemetryBufferFromFC_FilledBytes]), pData, iDataLength);
+         iTelemetryBufferFromFC_FilledBytes += iDataLength;
+         iDataLength = 0;
       }
-      int chunkSize = telemetryBufferFromFCMaxSize-telemetryBufferFromFCFilledBytes;
-      memcpy(&(telemetryBufferFromFC[telemetryBufferFromFCFilledBytes]), pData, chunkSize);
-      telemetryBufferFromFCFilledBytes += chunkSize;
-      pData += chunkSize;
-      dataLength -= chunkSize;
-      _send_raw_telemetry_packet_to_controller();
+      else
+      {
+         int chunkSize = iTelemetryBufferFromFC_MaxSize - iTelemetryBufferFromFC_FilledBytes;
+         if ( chunkSize > 0 )
+         {
+            memcpy(&(uTelemetryBufferFromFC_Serial[iTelemetryBufferFromFC_FilledBytes]), pData, chunkSize);
+            iTelemetryBufferFromFC_FilledBytes += chunkSize;
+            pData += chunkSize;
+            iDataLength -= chunkSize;
+         }
+      }
+      if ( (iTelemetryBufferFromFC_FilledBytes >= RAW_TELEMETRY_MIN_SEND_LENGTH) || 
+          ( (iTelemetryBufferFromFC_FilledBytes > 0) && (g_TimeNow >= uTelemetryBufferFromFC_LastSendTime + RAW_TELEMETRY_SEND_TIMEOUT) ) )
+         _send_raw_telemetry_packet_to_controller();
    }
 }
 
@@ -377,7 +388,7 @@ int telemetry_try_read_serial_port()
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_NONE )
       return -1;
 
-   if ( s_iTelemetrySerialPortFile < 0 )
+   if ( s_iTelemetrySerialPortFile <= 0 )
       return -1;
 
    struct timeval to;
@@ -394,27 +405,28 @@ int telemetry_try_read_serial_port()
    if ( ! FD_ISSET(s_iTelemetrySerialPortFile, &readset) )
       return 0;
 
-   int length = read(s_iTelemetrySerialPortFile, s_uTelemetrySerialInBuffer, 1023);
-   if ( length <= 0 )
+   u8 uReadBuffer[1024];
+   int iReadLength = read(s_iTelemetrySerialPortFile, uReadBuffer, sizeof(uReadBuffer)/sizeof(uReadBuffer[0]));
+   if ( iReadLength <= 0 )
       return 0;
 
-   s_uRawTelemetryDownloadTotalReadFromSerial += length;
-   s_iFCSerialTelemetryReadBytesTempLastSecond += length;
+   s_uRawTelemetryTotalReadFromFCSerial += iReadLength;
+   s_iFCSerialTelemetryReadBytesTempLastSecond += iReadLength;
 
    if ( _telemetry_must_send_raw_telemetry_to_controller() )
-      _telemetry_addSerialDataToFCTelemetryBuffer(s_uTelemetrySerialInBuffer, length);
+      _telemetry_addSerialDataFromFCToTelemetryBuffer(uReadBuffer, iReadLength);
 
    bool bNewFCMessage = false;
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MAVLINK )
-      bNewFCMessage = telemetry_mavlink_on_new_serial_data(s_uTelemetrySerialInBuffer, length);
+      bNewFCMessage = telemetry_mavlink_on_new_serial_data(uReadBuffer, iReadLength);
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_LTM )
-      bNewFCMessage = telemetry_mavlink_on_new_serial_data(s_uTelemetrySerialInBuffer, length);
+      bNewFCMessage = telemetry_mavlink_on_new_serial_data(uReadBuffer, iReadLength);
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MSP )
-      bNewFCMessage = telemetry_msp_on_new_serial_data(s_uTelemetrySerialInBuffer, length);
+      bNewFCMessage = telemetry_msp_on_new_serial_data(uReadBuffer, iReadLength);
 
    if ( bNewFCMessage )
       s_CountMessagesFromFCPerSecondTemp++;
-   return length;
+   return iReadLength;
 }
 
 void telemetry_periodic_loop()
@@ -451,6 +463,9 @@ void telemetry_periodic_loop()
       if ( (s_iFCSerialTelemetryReadBytesPerSecond > 0 ) && (sPHFCT.fc_kbps == 0) )
          sPHFCT.fc_kbps = 1;
 
+      if ( s_iTelemetrySerialPortFile > 0 )
+         log_line("Last sec telem from FC: %d bytes/sec", s_iFCSerialTelemetryReadBytesPerSecond);
+
       if ( (g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MAVLINK) ||
            (g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_LTM) )
          telemetry_mavlink_on_second_lapse();
@@ -460,8 +475,8 @@ void telemetry_periodic_loop()
    }
 
    if ( _telemetry_must_send_raw_telemetry_to_controller() )
-   if ( (telemetryBufferFromFCFilledBytes >= RAW_TELEMETRY_MIN_SEND_LENGTH) || 
-       ( (telemetryBufferFromFCFilledBytes > 0) && (g_TimeNow >= telemetryBufferFromFCLastSendTime + RAW_TELEMETRY_SEND_TIMEOUT) ) )
+   if ( (iTelemetryBufferFromFC_FilledBytes >= RAW_TELEMETRY_MIN_SEND_LENGTH) || 
+       ( (iTelemetryBufferFromFC_FilledBytes > 0) && (g_TimeNow >= uTelemetryBufferFromFC_LastSendTime + RAW_TELEMETRY_SEND_TIMEOUT) ) )
       _send_raw_telemetry_packet_to_controller();
 }
 

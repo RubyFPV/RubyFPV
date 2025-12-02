@@ -47,12 +47,14 @@
 #include "timers.h"
 #include "packets_utils.h"
 #include "processor_tx_video.h"
+#include "processor_relay.h"
 #include "events.h"
 #include "test_link_params.h"
 #include "video_sources.h"
 #include "adaptive_video.h"
 #include "ruby_rt_vehicle.h"
 #include "negociate_radio.h"
+#include "radio_links.h"
 
 u32 s_uResendPairingConfirmationCounter = 0;
 
@@ -67,25 +69,25 @@ int _process_received_ping_messages(int iInterfaceIndex, u8* pPacketBuffer)
       
       u8 uPingId = 0;
       u8 uSenderLocalRadioLinkId = 0;
-      u8 uTargetRelayCapabilitiesFlags = 0;
-      u8 uTargetRelayMode = 0;
-      u32 timeNow = get_current_timestamp_ms();
+      u8 uDummy1 = 0;
+      u8 uDummy2 = 0;
+      g_TimeNow = get_current_timestamp_ms();
       memcpy( &uPingId, pPacketBuffer + sizeof(t_packet_header), sizeof(u8));
       memcpy( &uSenderLocalRadioLinkId, pPacketBuffer + sizeof(t_packet_header)+sizeof(u8), sizeof(u8));
-      memcpy( &uTargetRelayCapabilitiesFlags, pPacketBuffer + sizeof(t_packet_header)+2*sizeof(u8), sizeof(u8));
-      memcpy( &uTargetRelayMode, pPacketBuffer + sizeof(t_packet_header)+3*sizeof(u8), sizeof(u8));
+      memcpy( &uDummy1, pPacketBuffer + sizeof(t_packet_header)+2*sizeof(u8), sizeof(u8));
+      memcpy( &uDummy2, pPacketBuffer + sizeof(t_packet_header)+3*sizeof(u8), sizeof(u8));
 
-      log_line("Recv Ping id %d for vehiclke link %d", uPingId, uLocalRadioLinkId+1);
+      log_line("Recv Ping id %d for vehiclke link %d, for VID %u (this is VID %u)", uPingId, uLocalRadioLinkId+1, pPH->vehicle_id_dest, g_pCurrentModel->uVehicleId);
       t_packet_header PH;
       radio_packet_init(&PH, PACKET_COMPONENT_RUBY, PACKET_TYPE_RUBY_PING_CLOCK_REPLY, STREAM_ID_DATA);
       PH.packet_flags |= PACKET_FLAGS_BIT_HIGH_PRIORITY;
       PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
-      PH.vehicle_id_dest = pPH->vehicle_id_src;
+      PH.vehicle_id_dest = g_uControllerId;
       PH.total_length = sizeof(t_packet_header) + 3*sizeof(u8) + sizeof(u32);
       u8 packet[MAX_PACKET_TOTAL_SIZE];
       memcpy(packet, (u8*)&PH, sizeof(t_packet_header));
       memcpy(packet+sizeof(t_packet_header), &uPingId, sizeof(u8));
-      memcpy(packet+sizeof(t_packet_header)+sizeof(u8), &timeNow, sizeof(u32));
+      memcpy(packet+sizeof(t_packet_header)+sizeof(u8), &g_TimeNow, sizeof(u32));
       memcpy(packet+sizeof(t_packet_header)+sizeof(u8)+sizeof(u32), &uSenderLocalRadioLinkId, sizeof(u8));
       memcpy(packet+sizeof(t_packet_header)+2*sizeof(u8)+sizeof(u32), &uLocalRadioLinkId, sizeof(u8));
 
@@ -93,15 +95,20 @@ int _process_received_ping_messages(int iInterfaceIndex, u8* pPacketBuffer)
          send_packet_to_radio_interfaces(packet, PH.total_length, -1);
       else
          packets_queue_inject_packet_first(&g_QueueRadioPacketsOut, packet);
-
-      if ( g_pCurrentModel->relay_params.uCurrentRelayMode != uTargetRelayMode )
+      
+      if ( g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId >= 0 )
+      if ( (g_pCurrentModel->relay_params.uRelayedVehicleId != 0) && (g_pCurrentModel->relay_params.uRelayedVehicleId != g_pCurrentModel->uVehicleId) )
       {
-         u32 uOldRelayMode = g_pCurrentModel->relay_params.uCurrentRelayMode;
-         g_pCurrentModel->relay_params.uCurrentRelayMode = uTargetRelayMode;
-         saveCurrentModel();
-         onEventRelayModeChanged(uOldRelayMode, uTargetRelayMode, "ping");
+         memcpy(packet, pPacketBuffer, pPH->total_length);
+         t_packet_header* pPHForward = (t_packet_header*)&packet[0];
+         pPHForward->vehicle_id_dest = g_pCurrentModel->relay_params.uRelayedVehicleId;
+         relay_send_single_packet_to_relayed_vehicle(packet, pPHForward->total_length);
+         //if ( pPHForward->packet_flags & PACKET_FLAGS_BIT_HIGH_PRIORITY )
+         //   send_packet_to_radio_interfaces(packet, pPHForward->total_length, -1);
+         //else
+         //   packets_queue_inject_packet_first(&g_QueueRadioPacketsOut, packet);
       }
-
+   
       u8 uPingFlags = pPacketBuffer[sizeof(t_packet_header) + 4 * sizeof(u8)];
       bool bOSDTelem = false;
       if ( uPingFlags & 0x01 )
@@ -172,9 +179,9 @@ int process_received_ruby_message_from_controller(int iInterfaceIndex, u8* pPack
          }
       }
 
-      log_line("Pairing request: Current controller ID: %u", g_uControllerId);
-      log_line("Pairing request: Received pairing request from controller (received resend count: %u). CID: %u, VID: %u. Developer mode before: %s",
-         uResendCount, pPH->vehicle_id_src, pPH->vehicle_id_dest, (g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE)?"on":"off");
+      log_line("Pairing request: Currently stored controller ID: %u / %u", g_uControllerId, g_pCurrentModel->uControllerId);
+      log_line("Pairing request: Received pairing request from controller (received resend count: %u). From CID %u to VID %u (%s). Developer mode before: %s",
+         uResendCount, pPH->vehicle_id_src, pPH->vehicle_id_dest, (pPH->vehicle_id_dest == g_pCurrentModel->uVehicleId)?"self":"not self", (g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE)?"on":"off");
       if ( (NULL != g_pCurrentModel) && (g_uControllerId != pPH->vehicle_id_src) )
       {
          log_line("Update controller ID to this one: %u", pPH->vehicle_id_src);
@@ -212,13 +219,16 @@ int process_received_ruby_message_from_controller(int iInterfaceIndex, u8* pPack
          bUpdated = true;
       }
 
+      if ( (uDeveloperFlags & DEVELOPER_FLAGS_USE_PCAP_RADIO_TX ) != (uOldDeveloperFlags & DEVELOPER_FLAGS_USE_PCAP_RADIO_TX) )
+         bUpdated = true;
+
       if ( bUpdated )
          saveCurrentModel();
 
       t_packet_header PH;
       radio_packet_init(&PH, PACKET_COMPONENT_RUBY, PACKET_TYPE_RUBY_PAIRING_CONFIRMATION, STREAM_ID_DATA);
       PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
-      PH.vehicle_id_dest = pPH->vehicle_id_src;
+      PH.vehicle_id_dest = g_uControllerId;
       PH.total_length = sizeof(t_packet_header) + sizeof(u32);
 
       s_uResendPairingConfirmationCounter++;
@@ -277,7 +287,7 @@ int process_received_ruby_message_from_controller(int iInterfaceIndex, u8* pPack
          t_packet_header PH;
          radio_packet_init(&PH, PACKET_COMPONENT_RUBY, PACKET_TYPE_SIK_CONFIG, STREAM_ID_DATA);
          PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
-         PH.vehicle_id_dest = pPH->vehicle_id_src;
+         PH.vehicle_id_dest = g_uControllerId;
          PH.total_length = sizeof(t_packet_header) + strlen(szBuff)+3*sizeof(u8);
 
          u8 packet[MAX_PACKET_TOTAL_SIZE];
@@ -316,7 +326,7 @@ int process_received_ruby_message_from_controller(int iInterfaceIndex, u8* pPack
       t_packet_header PH;
       radio_packet_init(&PH, PACKET_COMPONENT_RUBY, PACKET_TYPE_SIK_CONFIG, STREAM_ID_DATA);
       PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
-      PH.vehicle_id_dest = pPH->vehicle_id_src;
+      PH.vehicle_id_dest = g_uControllerId;
       PH.total_length = sizeof(t_packet_header) + strlen(szBuff)+3*sizeof(u8);
 
       u8 packet[MAX_PACKET_TOTAL_SIZE];

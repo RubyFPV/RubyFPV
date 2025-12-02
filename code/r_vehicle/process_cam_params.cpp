@@ -193,7 +193,7 @@ void process_camera_periodic_loop()
       if ( g_pCurrentModel->isActiveCameraVeye() )
       {
          log_line("Saving Veye camera parameters to flash memory.");
-         int nBus = hardware_get_i2c_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
+         int nBus = hardware_i2c_get_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
          char szComm[256];
          if ( g_pCurrentModel->isActiveCameraVeye307() )
             sprintf(szComm, "current_dir=$PWD; cd %s/; ./cs_mipi_i2c.sh -w -f paramsave -b %d; cd $current_dir", VEYE_COMMANDS_FOLDER307, nBus);

@@ -85,6 +85,7 @@ MenuSystemDevLogs::MenuSystemDevLogs(void)
    m_pItemsSelect[2] = new MenuItemSelect(L("Enable Vehicle Live Log"), L("Gets a stream of the live log for the current vehicle."));
    m_pItemsSelect[2]->addSelection(L("Disabled"));
    m_pItemsSelect[2]->addSelection(L("Enabled"));
+   m_pItemsSelect[2]->setIsEditable();
    m_IndexEnableLiveLog = addMenuItem(m_pItemsSelect[2]);
 
    m_IndexGetVehicleLogs = addMenuItem( new MenuItem(L("Get Vehicle Logs")) );

@@ -55,6 +55,7 @@
 #include "timers.h"
 #include "shared_vars.h"
 #include "adaptive_video.h"
+#include "ruby_rt_vehicle.h"
 
 #ifdef HW_PLATFORM_RASPBERRY
 
@@ -69,7 +70,7 @@ static video_parameters_t s_LastAppliedVeyeVideoParams;
 int s_fInputVideoStreamCSIPipe = -1;
 char s_szInputVideoStreamCSIPipeName[128];
 bool s_bInputVideoStreamCSIPipeOpenFailed = false;
-u8 s_uInputVideoCSIPipeBuffer[128000];
+u8 s_uInputVideoCSIPipeBuffer[65536];
 
 bool s_bRequestedVideoCSICaptureRestart = false;
 bool s_bVideoCSICaptureProgramStarted = false;
@@ -87,13 +88,9 @@ u32 s_uDebugCSIInputReads = 0;
 u32 s_uDebugCSIVideoBitrate = 0;
 
 
-bool _vehicle_launch_video_capture_csi(Model* pModel, u32 uOverwriteInitialBitrate, int iOverwriteInitialKFMs)
+void _vehicle_launch_video_capture_csi_init_params()
 {
-   if ( NULL == pModel )
-   {
-      log_error_and_alarm("[VideoSourceCSI] Tried to launch the video program without a model definition.");
-      return false;
-   }
+   s_ParserH264CSICamera.init();
 
    if ( s_bIsFirstCameraParamsUpdate )
    {
@@ -101,16 +98,12 @@ bool _vehicle_launch_video_capture_csi(Model* pModel, u32 uOverwriteInitialBitra
       memset((u8*)&s_LastAppliedVeyeVideoParams, 0, sizeof(video_parameters_t));
    }
 
-   s_ParserH264CSICamera.init();
-
-   bool bResult = true;
-
-   if ( pModel->isActiveCameraVeye() )
+   if ( g_pCurrentModel->isActiveCameraVeye() )
    {
       char szComm[1024];
       char szOutput[1024];
  
-      int nBus = hardware_get_i2c_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
+      int nBus = hardware_i2c_get_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
       log_line("[VideoSourceCSI] Applying VeYe camera commands to I2C bus number %d, dev address: 0x%02X", nBus, I2C_DEVICE_ADDRESS_CAMERA_VEYE);
 
       sprintf(szComm, "current_dir=$PWD; cd %s/; ./veye_mipi_i2c.sh -r -f devid -b %d; cd $current_dir", VEYE_COMMANDS_FOLDER, nBus);
@@ -121,12 +114,24 @@ bool _vehicle_launch_video_capture_csi(Model* pModel, u32 uOverwriteInitialBitra
       hw_execute_bash_command_raw(szComm, szOutput);
       log_line("[VideoSourceCSI] VEYE Camera HW Ver output: %s", szOutput);
 
-      video_source_csi_update_camera_params(pModel, pModel->iCurrentCamera);
+      video_source_csi_update_camera_params(g_pCurrentModel, g_pCurrentModel->iCurrentCamera);
       hardware_sleep_ms(200);
    }
 
-   if ( pModel->isActiveCameraHDMI() )
+   if ( g_pCurrentModel->isActiveCameraHDMI() )
       hardware_sleep_ms(200);
+}
+
+// Returns set video bitrate
+u32 _vehicle_launch_video_capture_csi(Model* pModel, u32 uOverwriteInitialBitrate, int iOverwriteInitialKFMs)
+{
+   if ( NULL == pModel )
+   {
+      log_error_and_alarm("[VideoSourceCSI] Tried to launch the video program without a model definition.");
+      return 0;
+   }
+
+   _vehicle_launch_video_capture_csi_init_params();
 
    log_line("[VideoSourceCSI] Computing video capture parameters for active camera, camera type: %s...", str_get_hardware_camera_type_string(pModel->getActiveCameraType()));
    log_line("[VideoSourceCSI] Last dynamic set video bitrate: %.2f Mbps", (float)video_sources_get_last_set_video_bitrate()/1000.0/1000.0);
@@ -134,53 +139,70 @@ bool _vehicle_launch_video_capture_csi(Model* pModel, u32 uOverwriteInitialBitra
    log_line("[VideoSourceCSI] Overwrite initial video bitrate: %.2f Mbps", (float)uOverwriteInitialBitrate/1000.0/1000.0);
    log_line("[VideoSourceCSI] Overwrite initial keyframe: %d ms", iOverwriteInitialKFMs);
 
-   char szFile[128];
-   char szBuff[1024];
+   char szFile[MAX_FILE_PATH_SIZE];
+   char szBuff[256];
    char szCameraFlags[256];
    char szVideoFlags[256];
-   char szPriority[64];
+   char szPrefixPriority[64];
+
    szCameraFlags[0] = 0;
    szVideoFlags[0] = 0;
-   szPriority[0] = 0;
+   szPrefixPriority[0] = 0;
    pModel->getCameraFlags(szCameraFlags);
-   pModel->getVideoFlags(szVideoFlags, pModel->video_params.iCurrentVideoProfile, uOverwriteInitialBitrate, iOverwriteInitialKFMs);
-   
+   u32 uSetVideoBitrate = pModel->getVideoFlags(szVideoFlags, pModel->video_params.iCurrentVideoProfile, uOverwriteInitialBitrate, iOverwriteInitialKFMs);
+
+   char szProcessParams[32];
+   szProcessParams[0] = 0;
+
+   if ( pModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS )
+   if ( (pModel->processesPriorities.iThreadPriorityVideoCapture > 1) && (pModel->processesPriorities.iThreadPriorityVideoCapture < 100) )
+      sprintf(szProcessParams, " -rawp %d", pModel->processesPriorities.iThreadPriorityVideoCapture);
+
+   if ( pModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_AFFINITY_CORES_VIDEO_CAPTURE )
+   {
+      char szTmp[32];
+      sprintf(szTmp, " -aff %d", (0x01 << g_pCurrentModel->processesPriorities.iCoreVideoCapture));
+      strcat(szProcessParams, szTmp);
+   }
+
+   if ( pModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS )
+   if ( pModel->processesPriorities.iThreadPriorityVideoCapture > 100)
+      sprintf(szPrefixPriority, "nice -n %d", pModel->processesPriorities.iThreadPriorityVideoCapture - 120);
+
    #ifdef HW_CAPABILITY_IONICE
+   if ( pModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS )
    if ( pModel->processesPriorities.ioNiceVideo > 0 )
    {
-      if ( pModel->processesPriorities.iNiceVideo != 0 )
-         sprintf(szPriority, "ionice -c 1 -n %d nice -n %d", pModel->processesPriorities.ioNiceVideo, pModel->processesPriorities.iNiceVideo );
-      else
-         sprintf(szPriority, "ionice -c 1 -n %d", pModel->processesPriorities.ioNiceVideo);
+      sprintf(szPrefixPriority, "ionice -c 1 -n %d", pModel->processesPriorities.ioNiceVideo);
+      if ( pModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS )
+      if ( pModel->processesPriorities.iThreadPriorityVideoCapture > 100)
+         snprintf(szPrefixPriority, sizeof(szPrefixPriority)/sizeof(szPrefixPriority[0]), "ionice -c 1 -n %d nice -n %d", pModel->processesPriorities.ioNiceVideo, pModel->processesPriorities.iThreadPriorityVideoCapture - 120);
    }
-   else
    #endif
-   if ( pModel->processesPriorities.iNiceVideo != 0 )
-      sprintf(szPriority, "nice -n %d", pModel->processesPriorities.iNiceVideo );
 
    if ( pModel->isActiveCameraVeye() )
    {
       if ( pModel->camera_params[pModel->iCurrentCamera].iCameraType == CAMERA_TYPE_VEYE307 )
       {
          if ( g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE )
-            sprintf(szBuff, "%s %s -dbg %s -t 0 -o - &", szPriority, VIDEO_RECORDER_COMMAND_VEYE307, szVideoFlags );
+            snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%s %s -dbg %s -t 0 -o - &", szPrefixPriority, VIDEO_RECORDER_COMMAND_VEYE307, szVideoFlags );
          else
-            sprintf(szBuff, "%s %s %s -t 0 -o - &", szPriority, VIDEO_RECORDER_COMMAND_VEYE307, szVideoFlags );
+            snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%s %s %s -t 0 -o - &", szPrefixPriority, VIDEO_RECORDER_COMMAND_VEYE307, szVideoFlags );
       }
       else
       {
          if ( g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE )
-            sprintf(szBuff, "%s %s -dbg %s -t 0 -o - &", szPriority, VIDEO_RECORDER_COMMAND_VEYE, szVideoFlags );
+            snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%s %s -dbg %s -t 0 -o - &", szPrefixPriority, VIDEO_RECORDER_COMMAND_VEYE, szVideoFlags );
          else
-            sprintf(szBuff, "%s %s %s -t 0 -o - &", szPriority, VIDEO_RECORDER_COMMAND_VEYE, szVideoFlags );
+            snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%s %s %s -t 0 -o - &", szPrefixPriority, VIDEO_RECORDER_COMMAND_VEYE, szVideoFlags );
       }
    }
    else
    {
       if ( g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE )
-         sprintf(szBuff, "%s ./%s -dbg %s %s -log -t 0 -o - &", szPriority, VIDEO_RECORDER_COMMAND, szVideoFlags, szCameraFlags );
+         snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%s ./%s -dbg %s %s%s -log -t 0 -o - &", szPrefixPriority, VIDEO_RECORDER_COMMAND, szVideoFlags, szCameraFlags, szProcessParams );
       else
-         sprintf(szBuff, "%s ./%s %s %s -t 0 -o - &", szPriority, VIDEO_RECORDER_COMMAND, szVideoFlags, szCameraFlags );
+         snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%s ./%s %s %s%s -t 0 -o - &", szPrefixPriority, VIDEO_RECORDER_COMMAND, szVideoFlags, szCameraFlags, szProcessParams );
    }
 
    strcpy(szFile, FOLDER_RUBY_TEMP);
@@ -193,26 +215,12 @@ bool _vehicle_launch_video_capture_csi(Model* pModel, u32 uOverwriteInitialBitra
    {
       fprintf(fd, "Video Flags: %s  # ", szVideoFlags);
       fprintf(fd, "Camera Profile: %s; Camera Flags: %s", model_getCameraProfileName(pModel->camera_params[pModel->iCurrentCamera].iCurrentProfile), szCameraFlags);
+      fprintf(fd, "# Process params: [%s]", szProcessParams);
       fclose(fd);
    }
 
-   //log_line("Executing video pipeline: [%s]", szBuff);
-   bResult = (1 == hw_execute_bash_command_nonblock(szBuff, NULL));
-
-   if ( pModel->isActiveCameraVeye() )
-   {
-      if ( pModel->isActiveCameraVeye307() )
-         hw_set_proc_priority(VIDEO_RECORDER_COMMAND_VEYE307, pModel->processesPriorities.iNiceVideo, pModel->processesPriorities.ioNiceVideo, 1 );
-      else
-         hw_set_proc_priority(VIDEO_RECORDER_COMMAND_VEYE, pModel->processesPriorities.iNiceVideo, pModel->processesPriorities.ioNiceVideo, 1 );
-      hw_set_proc_priority(VIDEO_RECORDER_COMMAND_VEYE_SHORT_NAME, pModel->processesPriorities.iNiceVideo, pModel->processesPriorities.ioNiceVideo, 1 );
-   }
-   else
-   {
-      hw_set_proc_priority(VIDEO_RECORDER_COMMAND, pModel->processesPriorities.iNiceVideo, pModel->processesPriorities.ioNiceVideo, 1 );
-   }
-   
-   return bResult;
+   hw_execute_bash_command_nonblock(szBuff, NULL);
+   return uSetVideoBitrate;
 }
 
 void _vehicle_stop_video_capture_csi(Model* pModel)
@@ -235,6 +243,7 @@ void _vehicle_stop_video_capture_csi(Model* pModel)
 
 static void * _thread_watchdog_video_capture(void *ignored_argument)
 {
+   hw_log_current_thread_attributes("csi watchdog");
    int iCount = 0;
    while ( ! g_bQuit )
    {
@@ -395,7 +404,7 @@ void video_source_csi_flush_discard()
    for( int i=0; i<200; i++ )
    {
       int iReadSize = 0;
-      u8* pData = video_source_csi_read(&iReadSize);
+      u8* pData = video_source_csi_read(&iReadSize, NULL);
       if ( NULL == pData )
          break;
       iCount++;
@@ -410,7 +419,7 @@ int video_source_csi_get_buffer_size()
 }
 
 // Returns the buffer and number of bytes read
-u8* video_source_csi_read(int* piReadSize)
+u8* video_source_csi_read(int* piReadSize, u32* puOutTimeDataAvailable)
 {
    if ( (NULL == piReadSize) )
       return NULL;
@@ -463,9 +472,9 @@ u8* video_source_csi_read(int* piReadSize)
    timePipeInput.tv_sec = 0;
 
    if ( s_iLastCameraReadTimedOutCount )
-      timePipeInput.tv_usec = 300; // 0.3 miliseconds timeout
+      timePipeInput.tv_usec = 200; // 0.2 miliseconds timeout
    else
-      timePipeInput.tv_usec = 500; // 0.5 miliseconds timeout
+      timePipeInput.tv_usec = 300; // 0.3 miliseconds timeout
 
    s_iLastCameraReadTimedOutCount++;
 
@@ -476,9 +485,15 @@ u8* video_source_csi_read(int* piReadSize)
    if( 0 == FD_ISSET(s_fInputVideoStreamCSIPipe, &readset) )
       return s_uInputVideoCSIPipeBuffer;
 
+   if ( NULL != puOutTimeDataAvailable )
+   {
+      g_TimeNow = get_current_timestamp_ms();
+      *puOutTimeDataAvailable = g_TimeNow;
+   }
+
    s_iLastCameraReadTimedOutCount = 0;
 
-   int iRead = read(s_fInputVideoStreamCSIPipe, s_uInputVideoCSIPipeBuffer, sizeof(s_uInputVideoCSIPipeBuffer)/sizeof(s_uInputVideoCSIPipeBuffer[0]));
+   int iRead = read(s_fInputVideoStreamCSIPipe, s_uInputVideoCSIPipeBuffer, video_source_csi_get_buffer_size());
    if ( iRead < 0 )
    {
       log_error_and_alarm("[VideoSourceCSI] Failed to read from video input pipe, returned code: %d, error: %s. Closing pipe.", iRead, strerror(errno));
@@ -533,8 +548,7 @@ u32 video_source_csi_start_program(u32 uOverwriteInitialBitrate, int iOverwriteI
 
    s_bVideoCSICaptureProgramStarted = true;
    s_uLastSetCSIVideoBitrateBPS = 0;
-   _vehicle_launch_video_capture_csi(g_pCurrentModel, uOverwriteInitialBitrate, iOverwriteInitialKFMs);
-   vehicle_check_update_processes_affinities(true, g_pCurrentModel->isActiveCameraVeye());
+   u32 uSetVideoBitrate = _vehicle_launch_video_capture_csi(g_pCurrentModel, uOverwriteInitialBitrate, iOverwriteInitialKFMs);
 
    if ( NULL != pInitialKFSet )
    {
@@ -548,8 +562,20 @@ u32 video_source_csi_start_program(u32 uOverwriteInitialBitrate, int iOverwriteI
    s_bHasThreadWatchDogVideoCapture = false;
 
    pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "video capture csi watchdog");
-   
+
+   int iCoreAffinity = -1;
+   if ( g_pCurrentModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_AFFINITY_CORES )
+      iCoreAffinity = g_pCurrentModel->processesPriorities.iCoreOthers;
+
+   int iPrio = g_pCurrentModel->processesPriorities.iThreadPriorityOthers;
+   if ( ! (g_pCurrentModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS) )
+      iPrio = -1;
+
+   if ( (iPrio > 1) && (iPrio < 100) )
+      hw_init_worker_thread_attrs(&attr, iCoreAffinity, -1, SCHED_FIFO, iPrio, "csi watchdog");
+   else
+      hw_init_worker_thread_attrs(&attr, iCoreAffinity, -1, SCHED_OTHER, 0, "csi watchdog");
+
    if ( 0 != pthread_create(&s_pThreadWatchDogVideoCapture, &attr, &_thread_watchdog_video_capture, NULL) )
       log_softerror_and_alarm("[VideoSourceCSI] Failed to create thread for watchdog.");
    else
@@ -560,11 +586,12 @@ u32 video_source_csi_start_program(u32 uOverwriteInitialBitrate, int iOverwriteI
    pthread_attr_destroy(&attr);
    s_uRaspiVidStartTimeMs = g_TimeNow;
 
-   s_uLastSetCSIVideoBitrateBPS = DEFAULT_VIDEO_BITRATE;
-   if ( 0 != video_sources_get_last_set_video_bitrate() )
-      s_uLastSetCSIVideoBitrateBPS = video_sources_get_last_set_video_bitrate();
-   else if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps > 0 )
-      s_uLastSetCSIVideoBitrateBPS = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps;
+   //s_uLastSetCSIVideoBitrateBPS = DEFAULT_VIDEO_BITRATE;
+   //if ( 0 != video_sources_get_last_set_video_bitrate() )
+   //   s_uLastSetCSIVideoBitrateBPS = video_sources_get_last_set_video_bitrate();
+   //else if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps > 0 )
+   //   s_uLastSetCSIVideoBitrateBPS = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps;
+   s_uLastSetCSIVideoBitrateBPS = uSetVideoBitrate;
 
    u32 uDeltaMs = 500;
    s_uTimeMustSendRaspividBitrateRefreshAt = g_TimeNow + uDeltaMs;
@@ -652,13 +679,13 @@ void video_source_csi_send_control_message(u8 parameter, u16 value1, u16 value2)
 {
    if ( s_bRequestedVideoCSICaptureRestart )
    {
-      log_softerror_and_alarm("[VideoSourceCSI] Video capture is flagged for restarting, do not send command (%d) to video capture program.", parameter);
+      log_line("[VideoSourceCSI] Video capture is flagged for restarting, do not send command (%d) to video capture program.", parameter);
       return;
    }
 
    if ( ! s_bVideoCSICaptureProgramStarted )
    {
-      log_softerror_and_alarm("[VideoSourceCSI] Video capture is not started, do not send command (%d) to video capture program.", parameter);
+      log_line("[VideoSourceCSI] Video capture is not started, do not send command (%d) to video capture program.", parameter);
       return;
    }
 
@@ -767,8 +794,11 @@ bool video_source_csi_periodic_health_checks()
       log_line("[VideoSourceCSI] Request to restart capture flag is set. Check and restart capture.");
       if ( s_bVideoCSICaptureProgramStarted )
       if ( 0 != s_uRaspiVidStartTimeMs )
+      {
+         signal_start_long_op();
          video_source_csi_stop_program();
-
+         signal_end_long_op();
+      }
       g_TimeNow = get_current_timestamp_ms();
       s_uTimeToRestartVideoCapture = g_TimeNow + 50;
       if ( g_pCurrentModel->isActiveCameraHDMI() )
@@ -830,7 +860,7 @@ void video_source_csi_update_camera_params(Model* pModel, int iCameraIndex)
 
       if ( pModel->isActiveCameraVeye327290() )
       {
-         int nBus = hardware_get_i2c_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
+         int nBus = hardware_i2c_get_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
          sprintf(szComm, "current_dir=$PWD; cd %s/; ./veye_mipi_i2c.sh -w -f  videofmt -p1 NTSC -b %d; cd $current_dir", VEYE_COMMANDS_FOLDER, nBus);
          hw_execute_bash_command(szComm, NULL);
       }
@@ -839,7 +869,7 @@ void video_source_csi_update_camera_params(Model* pModel, int iCameraIndex)
 
    if ( pModel->isActiveCameraVeye307() )
    {
-      int nBus = hardware_get_i2c_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
+      int nBus = hardware_i2c_get_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
       
       if ( (s_LastAppliedVeyeVideoParams.iVideoWidth != pModel->video_params.iVideoWidth) ||
            (s_LastAppliedVeyeVideoParams.iVideoHeight != pModel->video_params.iVideoHeight) ||
@@ -887,9 +917,9 @@ void video_source_csi_update_camera_params(Model* pModel, int iCameraIndex)
          }
       }
 
-      if ( bApplyAll || s_LastAppliedVeyeCameraParams.profiles[s_LastAppliedVeyeCameraParams.iCurrentProfile].shutterspeed != pModel->camera_params[iCameraIndex].profiles[iProfile].shutterspeed )
+      if ( bApplyAll || s_LastAppliedVeyeCameraParams.profiles[s_LastAppliedVeyeCameraParams.iCurrentProfile].iShutterSpeed != pModel->camera_params[iCameraIndex].profiles[iProfile].iShutterSpeed )
       {
-         if ( pModel->camera_params[iCameraIndex].profiles[iProfile].shutterspeed == 0 )
+         if ( pModel->camera_params[iCameraIndex].profiles[iProfile].iShutterSpeed <= 0 )
             sprintf(szComm, "current_dir=$PWD; cd %s/; ./cs_mipi_i2c.sh -w -f expmode -p1 0 -b %d; cd $current_dir", VEYE_COMMANDS_FOLDER307, nBus);
          else
          {
@@ -897,7 +927,9 @@ void video_source_csi_update_camera_params(Model* pModel, int iCameraIndex)
             hw_execute_bash_command(szComm, NULL);
 
             char szShutter[24];
-            sprintf(szShutter, "%d", (int)(1000000l/(long)pModel->camera_params[iCameraIndex].profiles[iProfile].shutterspeed));
+            szShutter[0] = 0;
+            if ( pModel->camera_params[iCameraIndex].profiles[iProfile].iShutterSpeed >= 30 )
+               sprintf(szShutter, "%d", (int)(1000000l/(long)pModel->camera_params[iCameraIndex].profiles[iProfile].iShutterSpeed));
             sprintf(szComm, "current_dir=$PWD; cd %s/; ./cs_mipi_i2c.sh -w -f metime -p1 %s -b %d; cd $current_dir", VEYE_COMMANDS_FOLDER307, szShutter, nBus);
          }
          hw_execute_bash_command(szComm, NULL);
@@ -922,7 +954,7 @@ void video_source_csi_update_camera_params(Model* pModel, int iCameraIndex)
    }
    else // IMX 327 camera
    {
-      int nBus = hardware_get_i2c_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
+      int nBus = hardware_i2c_get_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
       log_line("[VideoSourceCSI] Applying VeYe camera commands to I2C bus number %d, dev address: 0x%02X", nBus, I2C_DEVICE_ADDRESS_CAMERA_VEYE);
       if ( bApplyAll )
       {
@@ -969,36 +1001,37 @@ void video_source_csi_update_camera_params(Model* pModel, int iCameraIndex)
          hw_execute_bash_command(szComm, NULL);
       }
 
-      if ( bApplyAll || s_LastAppliedVeyeCameraParams.profiles[s_LastAppliedVeyeCameraParams.iCurrentProfile].shutterspeed != pModel->camera_params[iCameraIndex].profiles[iProfile].shutterspeed )
+      if ( bApplyAll || s_LastAppliedVeyeCameraParams.profiles[s_LastAppliedVeyeCameraParams.iCurrentProfile].iShutterSpeed != pModel->camera_params[iCameraIndex].profiles[iProfile].iShutterSpeed )
       {
-         if ( pModel->camera_params[iCameraIndex].profiles[iProfile].shutterspeed == 0 )
+         if ( pModel->camera_params[iCameraIndex].profiles[iProfile].iShutterSpeed <= 0 )
             sprintf(szComm, "current_dir=$PWD; cd %s/; ./veye_mipi_i2c.sh -w -f mshutter -p1 0x40 -b %d; cd $current_dir", VEYE_COMMANDS_FOLDER, nBus);
          else
          {
-         char szShutter[24];
-         strcpy(szShutter, "0x40");
-         if ( pModel->camera_params[iCameraIndex].profiles[iProfile].shutterspeed < 50 )
-            strcpy(szShutter, "0x41"); // 1/30
-         else if ( pModel->camera_params[iCameraIndex].profiles[iProfile].shutterspeed < 100 )
-            strcpy(szShutter, "0x42"); // 1/60
-         else if ( pModel->camera_params[iCameraIndex].profiles[iProfile].shutterspeed < 200 )
-            strcpy(szShutter, "0x43"); // 1/120
-         else if ( pModel->camera_params[iCameraIndex].profiles[iProfile].shutterspeed < 400 )
-            strcpy(szShutter, "0x44"); // 1/240
-         else if ( pModel->camera_params[iCameraIndex].profiles[iProfile].shutterspeed < 700 )
-            strcpy(szShutter, "0x45"); // 1/480
-         else if ( pModel->camera_params[iCameraIndex].profiles[iProfile].shutterspeed < 1600 )
-            strcpy(szShutter, "0x46"); // 1/1000
-         else if ( pModel->camera_params[iCameraIndex].profiles[iProfile].shutterspeed < 3500 )
-            strcpy(szShutter, "0x47"); // 1/2000
-         else if ( pModel->camera_params[iCameraIndex].profiles[iProfile].shutterspeed < 7000 )
-            strcpy(szShutter, "0x48"); // 1/5000
-         else if ( pModel->camera_params[iCameraIndex].profiles[iProfile].shutterspeed < 20000 )
-            strcpy(szShutter, "0x49"); // 1/10000
-         else
-            strcpy(szShutter, "0x4A"); // 1/50000
+            int iShutterSpeed = pModel->camera_params[iCameraIndex].profiles[iProfile].iShutterSpeed;
+            char szShutter[24];
+            strcpy(szShutter, "0x40");
+            if ( iShutterSpeed < 50 )
+               strcpy(szShutter, "0x41"); // 1/30
+            else if ( iShutterSpeed < 100 )
+               strcpy(szShutter, "0x42"); // 1/60
+            else if ( iShutterSpeed < 200 )
+               strcpy(szShutter, "0x43"); // 1/120
+            else if ( iShutterSpeed < 400 )
+               strcpy(szShutter, "0x44"); // 1/240
+            else if ( iShutterSpeed < 700 )
+               strcpy(szShutter, "0x45"); // 1/480
+            else if ( iShutterSpeed < 1600 )
+               strcpy(szShutter, "0x46"); // 1/1000
+            else if ( iShutterSpeed < 3500 )
+               strcpy(szShutter, "0x47"); // 1/2000
+            else if ( iShutterSpeed < 7000 )
+               strcpy(szShutter, "0x48"); // 1/5000
+            else if ( iShutterSpeed < 20000 )
+               strcpy(szShutter, "0x49"); // 1/10000
+            else
+               strcpy(szShutter, "0x4A"); // 1/50000
 
-         sprintf(szComm, "current_dir=$PWD; cd %s/; ./veye_mipi_i2c.sh -w -f mshutter -p1 %s -b %d; cd $current_dir", VEYE_COMMANDS_FOLDER, szShutter, nBus);
+            sprintf(szComm, "current_dir=$PWD; cd %s/; ./veye_mipi_i2c.sh -w -f mshutter -p1 %s -b %d; cd $current_dir", VEYE_COMMANDS_FOLDER, szShutter, nBus);
          }
          hw_execute_bash_command(szComm, NULL);
       }
@@ -1053,7 +1086,7 @@ void video_source_csi_log_input_data() {}
 u32 video_source_csi_get_debug_videobitrate() {return 0;}
 void video_source_csi_flush_discard() {}
 int video_source_csi_get_buffer_size() {return 0;}
-u8* video_source_csi_read(int* piReadSize)
+u8* video_source_csi_read(int* piReadSize, u32* puOutTimeDataAvailable)
 {
    if ( NULL != piReadSize )
       *piReadSize = 0;

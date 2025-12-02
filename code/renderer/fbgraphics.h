@@ -195,7 +195,7 @@ extern "C" {
         int16_t fps;
 #endif
 
-        int s_iEnableRectBlending;
+        int s_iEnableAlpha;
         int disableFontOutline;
         //! Current FPS as a string
         char fps_char[10];
@@ -376,7 +376,7 @@ extern "C" {
     */
     extern void fbg_fadeUp(struct _fbg *fbg, unsigned char rgb_fade_amount);
 
-    extern void fbg_enable_rect_blending(struct _fbg *fbg, int iEnable);
+    extern void fbg_enable_alpha(struct _fbg *fbg, int iEnable);
 
     //! fast grayscale background clearing
     /*!
@@ -697,6 +697,7 @@ extern "C" {
     */
     extern void fbg_imageDraw(struct _fbg *fbg, struct _fbg_img *img, int x, int y, int w, int h, int cx, int cy, int cw, int ch);
     extern void fbg_imageDrawAlpha(struct _fbg *fbg, struct _fbg_img *img, int x, int y, int w, int h, int cx, int cy, int cw, int ch);
+    extern void fbg_imageDrawAlphaMask(struct _fbg *fbg, struct _fbg_img *img, int x, int y, int w, int h, int cx, int cy, int cw, int ch);
 
     //! free the memory associated with an image
     /*!

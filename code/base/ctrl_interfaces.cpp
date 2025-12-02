@@ -1172,6 +1172,7 @@ int controllerComputeRXTXCards(Model* pModel, int iSearchFreq, int* pFrequencies
 
 void controllerInterfacesEnumJoysticks()
 {
+   log_line("ControllerInterfacesSettings: Enumerating joysticks interfaces...");
    bool bNewInterfacesDetected = false;
 
    hardware_enum_joystick_interfaces();
@@ -1192,10 +1193,18 @@ void controllerInterfacesEnumJoysticks()
             continue;
          if ( pJoystick->countButtons != s_CIS.inputInterfaces[j].countButtons )
             continue;
-         bFound = true;
          s_CIS.inputInterfaces[j].currentHardwareIndex = i;
+         #if defined (HW_PLATFORM_RADXA)
+         for( int k=0; k<MAX_JOYSTICK_AXES; k++ )
+         {
+            s_CIS.inputInterfaces[j].axesMinValue[k] = -32780;
+            s_CIS.inputInterfaces[j].axesMaxValue[k] = 32780;
+         }
+         #endif
+         bFound = true;
+         break;
       }
-      if ( ! bFound && s_CIS.inputInterfacesCount < CONTROLLER_MAX_INPUT_INTERFACES-1 )
+      if ( (! bFound) && (s_CIS.inputInterfacesCount < CONTROLLER_MAX_INPUT_INTERFACES-1) )
       {
          bNewInterfacesDetected = true;
          strcpy(s_CIS.inputInterfaces[s_CIS.inputInterfacesCount].szInterfaceName, pJoystick->szName);
@@ -1210,6 +1219,10 @@ void controllerInterfacesEnumJoysticks()
             s_CIS.inputInterfaces[s_CIS.inputInterfacesCount].axesCenterValue[k] = 0;
             s_CIS.inputInterfaces[s_CIS.inputInterfacesCount].axesMinValue[k] = -99;
             s_CIS.inputInterfaces[s_CIS.inputInterfacesCount].axesMaxValue[k] = 99;
+            #if defined (HW_PLATFORM_RADXA)
+            s_CIS.inputInterfaces[s_CIS.inputInterfacesCount].axesMinValue[k] = -32780;
+            s_CIS.inputInterfaces[s_CIS.inputInterfacesCount].axesMaxValue[k] = 32780;
+            #endif
          }
          for( int k=0; k<MAX_JOYSTICK_BUTTONS; k++ )
          {
@@ -1221,13 +1234,15 @@ void controllerInterfacesEnumJoysticks()
       }
    }
 
+   log_line("ControllerInterfacesSettings: Finished enumerating joysticks interfaces. New found? %s", bNewInterfacesDetected?"yes":"no");
+
    if ( bNewInterfacesDetected )
       save_ControllerInterfacesSettings();
 }
 
 t_ControllerInputInterface* controllerInterfacesGetAt(int index)
 {
-   if ( index < 0 || index >= hardware_get_joystick_interfaces_count() )
+   if ( (index < 0) || (index >= hardware_get_joystick_interfaces_count()) )
       return NULL;
    
    hw_joystick_info_t* pJoystick = hardware_get_joystick_info(index);

@@ -60,6 +60,7 @@ bool s_bStopAudioTest = false;
 void* _thread_audio_test_async(void *argument)
 {
    log_line("[BGThreadAudio] Started audio thread test.");
+   hw_log_current_thread_attributes("audio test");
    srand(get_current_timestamp_ms());
 
    if ( pairing_isStarted() )
@@ -95,8 +96,9 @@ void* _thread_audio_test_async(void *argument)
 MenuControllerVideo::MenuControllerVideo(void)
 :Menu(MENU_ID_CONTROLLER_VIDEO, L("Audio & Video Output Settings"), NULL)
 {
-   m_Width = 0.32;
+   m_Width = 0.36;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.25;
+   float fSliderWidth = 0.12 * m_sfScaleFactor;
    
    char szBuff[64];
 
@@ -149,6 +151,40 @@ MenuControllerVideo::MenuControllerVideo(void)
 
    m_IndexCalibrateHDMI = addMenuItem(new MenuItem(L("Calibrate HDMI output"), L("Calibrate the colors, brightness and contrast on the controller display.")));
    m_pMenuItems[m_IndexCalibrateHDMI]->showArrow();
+
+   m_IndexStreamerMode = -1;
+   m_IndexMPPBuffers = -1;
+   m_IndexWaitFullFrame = -1;
+
+   if ( g_pControllerSettings->iDeveloperMode )
+   {
+      addMenuItem(new MenuItemSection(L("Local Output Dev Options")));
+
+      m_pItemsSelect[7] = new MenuItemSelect("Local video output mode", "Change the way data is sent to the local video streamer.");
+      m_pItemsSelect[7]->addSelection("Shared Mem");
+      m_pItemsSelect[7]->addSelection("Pipes");
+      m_pItemsSelect[7]->addSelection("UDP");
+      m_pItemsSelect[7]->setIsEditable();
+      m_pItemsSelect[7]->setSelectedIndex(g_pControllerSettings->iStreamerOutputMode);
+      m_IndexStreamerMode = addMenuItem(m_pItemsSelect[7]);
+      m_pMenuItems[m_IndexStreamerMode]->setTextColor(get_Color_Dev());
+
+      if ( hardware_board_is_radxa(hardware_getBoardType()) )
+      {
+         m_pItemsSlider[5] = new MenuItemSlider("Video Buffers Size", "Sets a relative size for the video buffers used by live video stream player.", 5,100,30, fSliderWidth);
+         m_pItemsSlider[5]->setCurrentValue(g_pControllerSettings->iVideoMPPBuffersSize);
+         m_IndexMPPBuffers = addMenuItem(m_pItemsSlider[5]);
+         m_pMenuItems[m_IndexMPPBuffers]->setTextColor(get_Color_Dev());
+      }
+
+      m_pItemsSelect[8] = new MenuItemSelect("Wait full video frames for output", "Waits to receive a full video frame before outputing it.");
+      m_pItemsSelect[8]->addSelection("No");
+      m_pItemsSelect[8]->addSelection("Yes");
+      m_pItemsSelect[8]->setIsEditable();
+      m_pItemsSelect[8]->setSelectedIndex(g_pControllerSettings->iWaitFullFrameForOutput);
+      m_IndexWaitFullFrame = addMenuItem(m_pItemsSelect[8]);
+      m_pMenuItems[m_IndexWaitFullFrame]->setTextColor(get_Color_Dev());
+   }
 
    addMenuItem(new MenuItemSection(L("Other Video Outputs")));
 
@@ -278,6 +314,18 @@ void MenuControllerVideo::valuesToUI()
 
    if ( -1 != m_IndexAudioVolume )
       m_pItemsSlider[1]->setCurrentValue(pCS->iAudioOutputVolume);
+
+   if ( g_pControllerSettings->iDeveloperMode )
+   {
+      if ( -1 != m_IndexStreamerMode )
+         m_pItemsSelect[7]->setSelectedIndex(g_pControllerSettings->iStreamerOutputMode);
+   
+      if ( -1 != m_IndexMPPBuffers )
+         m_pItemsSlider[5]->setCurrentValue(g_pControllerSettings->iVideoMPPBuffersSize);
+
+      if ( -1 != m_IndexWaitFullFrame )
+         m_pItemsSelect[8]->setSelectedIndex(g_pControllerSettings->iWaitFullFrameForOutput);
+   }
 }
 
 void MenuControllerVideo::Render()
@@ -498,7 +546,7 @@ void MenuControllerVideo::onSelectItem()
       send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_PAUSE_RESUME_AUDIO, 1);
       s_bStopAudioTest = false;
       pthread_attr_t attr;
-      hw_init_worker_thread_attrs(&attr, "test audio async from central");
+      hw_init_worker_thread_attrs(&attr, CORE_AFFINITY_OTHERS, -1, SCHED_OTHER, 0, "test audio async from central");
       if ( 0 != pthread_create(&s_pThreadAudioTest, &attr, &_thread_audio_test_async, NULL) )
       {
          pthread_attr_destroy(&attr);
@@ -514,5 +562,39 @@ void MenuControllerVideo::onSelectItem()
       add_menu_to_stack(pMC);
       //send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_PAUSE_RESUME_AUDIO, 0);
       return;
+   }
+
+   if ( (-1 != m_IndexMPPBuffers) && (m_IndexMPPBuffers == m_SelectedIndex) )
+   {
+      g_pControllerSettings->iVideoMPPBuffersSize = m_pItemsSlider[5]->getCurrentValue();
+      save_ControllerSettings();
+
+      // Force a restart of video streamer
+
+      if ( pairing_isStarted() )
+      if ( (NULL != g_pCurrentModel) && (g_pCurrentModel->hasCamera()) )
+         send_model_changed_message_to_router(MODEL_CHANGED_VIDEO_CODEC, 0);
+      return;
+   }
+
+   if ( m_IndexStreamerMode == m_SelectedIndex )
+   {
+      g_pControllerSettings->iStreamerOutputMode = m_pItemsSelect[7]->getSelectedIndex();
+      log_line("Streamer output mode was changed to: %d", g_pControllerSettings->iStreamerOutputMode);
+      save_ControllerSettings();
+      pairing_stop();
+      ruby_signal_alive();
+      pairing_start_normal();
+      return;
+   }
+  
+   if ( m_IndexWaitFullFrame == m_SelectedIndex )
+   {
+      g_pControllerSettings->iWaitFullFrameForOutput = m_pItemsSelect[8]->getSelectedIndex();
+            save_ControllerSettings();
+      save_Preferences();
+      valuesToUI();
+      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
+
    }
 }

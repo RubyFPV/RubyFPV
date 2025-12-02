@@ -162,13 +162,15 @@ void adaptive_video_reset_time_for_vehicle(u32 uVehicleId)
       if ( (0 != uVehicleId) && (uVehicleId == g_State.vehiclesRuntimeInfo[i].uVehicleId) )
       {
          g_State.vehiclesRuntimeInfo[i].uLastTimeSentAdaptiveVideoRequest = g_TimeNow;
-         log_line("[AdaptiveVideo] Reset time for VID %u", uVehicleId);
+         g_State.vehiclesRuntimeInfo[i].uTimeStartCountingMetricAreOkToSwithHigher = 0;
+         log_line("[AdaptiveVideo] Did reset time for VID %u", uVehicleId);
          return;
       }
       if ( (0 == uVehicleId) && (0 != g_State.vehiclesRuntimeInfo[i].uVehicleId) )
       {
          g_State.vehiclesRuntimeInfo[i].uLastTimeSentAdaptiveVideoRequest = g_TimeNow;
-         log_line("[AdaptiveVideo] Reset time for VID %u", g_State.vehiclesRuntimeInfo[i].uVehicleId);
+         g_State.vehiclesRuntimeInfo[i].uTimeStartCountingMetricAreOkToSwithHigher = 0;
+         log_line("[AdaptiveVideo] Did reset time for VID %u", g_State.vehiclesRuntimeInfo[i].uVehicleId);
       }
    }
 }
@@ -200,63 +202,103 @@ void _adaptive_video_reset_kf_state(Model* pModel, type_global_state_vehicle_run
 
 void adaptive_video_reset_state(u32 uVehicleId)
 {
-   log_line("[AdaptiveVideo] Reset state for VID: %u", uVehicleId);
+   log_line("[AdaptiveVideo] Reseting state for VID: %u", uVehicleId);
 
+   int iRuntimeIndex = -1;
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
    {
       if ( uVehicleId == g_State.vehiclesRuntimeInfo[i].uVehicleId )
       {
-         shared_mem_video_stream_stats* pSMVideoStreamInfo = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, uVehicleId);
-         if ( NULL != pSMVideoStreamInfo )
-            pSMVideoStreamInfo->iAdaptiveVideoLevelNow = 0;
-
-         g_State.vehiclesRuntimeInfo[i].bDidFirstTimeAdaptiveHandshake = false;
-         g_State.vehiclesRuntimeInfo[i].uAdaptiveVideoActivationTime = g_TimeNow;
-         g_State.vehiclesRuntimeInfo[i].uAdaptiveVideoRequestId = 0;
-         g_State.vehiclesRuntimeInfo[i].uAdaptiveVideoAckId = 0;
-         g_State.vehiclesRuntimeInfo[i].uLastTimeSentAdaptiveVideoRequest = 0;
-         g_State.vehiclesRuntimeInfo[i].uLastTimeRecvAdaptiveVideoAck = 0;
-
-         g_State.vehiclesRuntimeInfo[i].uCurrentAdaptiveVideoTargetVideoBitrateBPS = 0;
-         g_State.vehiclesRuntimeInfo[i].uCurrentAdaptiveVideoECScheme = 0xFFFF;
-         g_State.vehiclesRuntimeInfo[i].uCurrentDRBoost = 0xFF;
-         Model* pModel = findModelWithId(g_State.vehiclesRuntimeInfo[i].uVehicleId, 47);
-         if ( NULL != pModel )
-         {
-            g_State.vehiclesRuntimeInfo[i].uCurrentAdaptiveVideoTargetVideoBitrateBPS = pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps;
-
-            for( int k=0; k<MAX_RADIO_INTERFACES; k++ )
-            {
-               g_State.vehiclesRuntimeInfo[i].iCurrentDataratesForLinks[k] = 0;
-               if ( k < pModel->radioLinksParams.links_count )
-               {
-                  g_State.vehiclesRuntimeInfo[i].iCurrentDataratesForLinks[k] = pModel->getRadioDataRateForVideoBitrate(g_State.vehiclesRuntimeInfo[i].uCurrentAdaptiveVideoTargetVideoBitrateBPS, k);
-               }
-            }
-            if ( pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].uProfileFlags & VIDEO_PROFILE_FLAG_USE_HIGHER_DATARATE )
-               g_State.vehiclesRuntimeInfo[i].uCurrentDRBoost = (pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].uProfileFlags & VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK) >> VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK_SHIFT;
-
-            _adaptive_video_reset_kf_state(pModel, &(g_State.vehiclesRuntimeInfo[i]));
-         }
-
-         g_State.vehiclesRuntimeInfo[i].uPendingVideoBitrateToSet = g_State.vehiclesRuntimeInfo[i].uCurrentAdaptiveVideoTargetVideoBitrateBPS;
-         g_State.vehiclesRuntimeInfo[i].uPendingECSchemeToSet = g_State.vehiclesRuntimeInfo[i].uCurrentAdaptiveVideoECScheme;
-         g_State.vehiclesRuntimeInfo[i].uPendingDRBoostToSet = g_State.vehiclesRuntimeInfo[i].uCurrentDRBoost;
-         g_State.vehiclesRuntimeInfo[i].iPendingKeyFrameMsToSet = g_State.vehiclesRuntimeInfo[i].iCurrentAdaptiveVideoKeyFrameMsTarget;
-         g_State.vehiclesRuntimeInfo[i].iAdaptiveLevelNow = 0;
-         char szDR[128];
-         _adaptive_video_log_DRlinks(pModel, &(g_State.vehiclesRuntimeInfo[i]), szDR);
-         log_line("[AdaptiveVideo] Default reseted state for VID %u: video bitrate: %.2f Mbps, EC scheme: %d/%d, Current DR for links: %s, DR boost: %d, pending KF: %d ms",
-            uVehicleId, (float)g_State.vehiclesRuntimeInfo[i].uCurrentAdaptiveVideoTargetVideoBitrateBPS/1000.0/1000.0,
-            (g_State.vehiclesRuntimeInfo[i].uCurrentAdaptiveVideoECScheme >> 8) & 0xFF,
-            g_State.vehiclesRuntimeInfo[i].uCurrentAdaptiveVideoECScheme & 0xFF,
-            szDR, g_State.vehiclesRuntimeInfo[i].uCurrentDRBoost,
-            g_State.vehiclesRuntimeInfo[i].iPendingKeyFrameMsToSet);
-         log_line("[AdaptiveVideo] Did reset state for VID: %u, currently adaptive is active for it? %s, last adaptive request sent to vehicle: %u ms ago", uVehicleId, g_State.vehiclesRuntimeInfo[i].bIsAdaptiveVideoActive?"yes":"no", g_TimeNow - g_State.vehiclesRuntimeInfo[i].uLastTimeSentAdaptiveVideoRequest);
-         return;
+         iRuntimeIndex = i;
+         break;
       }
    }
-   log_softerror_and_alarm("[AdaptiveVideo] Reset state for VID %u: vehicle not found!", uVehicleId);
+   if ( iRuntimeIndex == -1 )
+   {
+      log_softerror_and_alarm("[AdaptiveVideo] Tried to reset state for VID %u which is not present in runtime info list.", uVehicleId);
+      return;
+   }
+
+   shared_mem_video_stream_stats* pSMVideoStreamInfo = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, uVehicleId);
+   if ( NULL != pSMVideoStreamInfo )
+      pSMVideoStreamInfo->iAdaptiveVideoLevelNow = 0;
+
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].bDidFirstTimeAdaptiveHandshake = false;
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].uAdaptiveVideoActivationTime = g_TimeNow;
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].uAdaptiveVideoRequestId = 0;
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].uAdaptiveVideoAckId = 0;
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].uLastTimeSentAdaptiveVideoRequest = 0;
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].uTimeStartCountingMetricAreOkToSwithHigher = 0;
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].uLastTimeRecvAdaptiveVideoAck = 0;
+
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentAdaptiveVideoTargetVideoBitrateBPS = 0;
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentAdaptiveVideoECScheme = 0xFFFF;
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentDRBoost = 0xFF;
+   Model* pModel = findModelWithId(g_State.vehiclesRuntimeInfo[iRuntimeIndex].uVehicleId, 47);
+   if ( NULL != pModel )
+   {
+      g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentAdaptiveVideoTargetVideoBitrateBPS = pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps;
+
+      for( int k=0; k<MAX_RADIO_INTERFACES; k++ )
+      {
+         g_State.vehiclesRuntimeInfo[iRuntimeIndex].iCurrentDataratesForLinks[k] = 0;
+         if ( k < pModel->radioLinksParams.links_count )
+         {
+            g_State.vehiclesRuntimeInfo[iRuntimeIndex].iCurrentDataratesForLinks[k] = pModel->getRadioDataRateForVideoBitrate(g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentAdaptiveVideoTargetVideoBitrateBPS, k);
+         }
+      }
+      if ( pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].uProfileFlags & VIDEO_PROFILE_FLAG_USE_HIGHER_DATARATE )
+         g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentDRBoost = (pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].uProfileFlags & VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK) >> VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK_SHIFT;
+
+      _adaptive_video_reset_kf_state(pModel, &(g_State.vehiclesRuntimeInfo[iRuntimeIndex]));
+      shared_mem_video_stream_stats* pSMVideoStreamInfo = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, pModel->uVehicleId);
+      if ( NULL != pSMVideoStreamInfo )
+         pSMVideoStreamInfo->bIsOnLowestAdaptiveLevel = false;
+   }
+
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].uPendingVideoBitrateToSet = g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentAdaptiveVideoTargetVideoBitrateBPS;
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].uPendingECSchemeToSet = g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentAdaptiveVideoECScheme;
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].uPendingDRBoostToSet = g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentDRBoost;
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].iPendingKeyFrameMsToSet = g_State.vehiclesRuntimeInfo[iRuntimeIndex].iCurrentAdaptiveVideoKeyFrameMsTarget;
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].iAdaptiveLevelNow = 0;
+   g_State.vehiclesRuntimeInfo[iRuntimeIndex].bIsOnLowestAdaptiveLevel = false;
+
+   char szDR[128];
+   _adaptive_video_log_DRlinks(pModel, &(g_State.vehiclesRuntimeInfo[iRuntimeIndex]), szDR);
+   log_line("[AdaptiveVideo] Default reseted state for VID %u: video bitrate: %.2f Mbps, EC scheme: %d/%d, Current DR for links: %s, DR boost: %d, pending KF: %d ms",
+      uVehicleId, (float)g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentAdaptiveVideoTargetVideoBitrateBPS/1000.0/1000.0,
+      (g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentAdaptiveVideoECScheme >> 8) & 0xFF,
+      g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentAdaptiveVideoECScheme & 0xFF,
+      szDR, g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentDRBoost,
+      g_State.vehiclesRuntimeInfo[iRuntimeIndex].iPendingKeyFrameMsToSet);
+   log_line("[AdaptiveVideo] Did reset state for VID: %u, currently adaptive is active for it? %s, last adaptive request sent to vehicle: %u ms ago", uVehicleId, g_State.vehiclesRuntimeInfo[iRuntimeIndex].bIsAdaptiveVideoActive?"yes":"no", g_TimeNow - g_State.vehiclesRuntimeInfo[iRuntimeIndex].uLastTimeSentAdaptiveVideoRequest);
+
+   if ( NULL == pModel )
+   {
+      log_softerror_and_alarm("[AdaptiveVideo] Did reset adaptive state for VID %u, but there is no matching model for it on the controller.", uVehicleId);
+      return;
+   }
+
+   int iAdaptiveStrength = pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].iAdaptiveAdjustmentStrength;
+   u32 uAdaptiveWeights = pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].uAdaptiveWeights;
+   compute_adaptive_metrics(&s_AdaptiveMetrics, iAdaptiveStrength, uAdaptiveWeights);
+   log_adaptive_metrics(pModel, &s_AdaptiveMetrics, iAdaptiveStrength, uAdaptiveWeights);
+
+   bool bOnlyMediumAdaptive = false;
+   if ( (pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags) & VIDEO_PROFILE_ENCODING_FLAG_USE_MEDIUM_ADAPTIVE_VIDEO )
+      bOnlyMediumAdaptive = true;
+
+   if ( bOnlyMediumAdaptive )
+      log_line("[AdaptiveVideo] VID %u is using only medium adaptive video, adaptive strength: %d", uVehicleId, iAdaptiveStrength);
+   else
+      log_line("[AdaptiveVideo] VID %u is using full adaptive video, adaptive strength: %d", uVehicleId, iAdaptiveStrength);
+
+
+   for( int i=0; i<MAX_MCS_INDEX; i++)
+   {
+      u32 uMaxVideoBitrateForLink = pModel->getMaxVideoBitrateForRadioDatarate(-1-i, 0);
+      log_line("[AdaptiveVideo] Max video bitrate for this vehicle for MCS-%d is: %.1f", i, (float)uMaxVideoBitrateForLink/1000.0/1000.0);
+   }
 }
 
 void adaptive_video_on_new_vehicle(int iRuntimeIndex)
@@ -326,13 +368,18 @@ void adaptive_video_on_vehicle_video_params_changed(u32 uVehicleId, video_parame
       return;
    }
 
+   int iAdaptiveStrength = pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].iAdaptiveAdjustmentStrength;
+   u32 uAdaptiveWeights = pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].uAdaptiveWeights;
+   compute_adaptive_metrics(&s_AdaptiveMetrics, iAdaptiveStrength, uAdaptiveWeights);
+   log_adaptive_metrics(pModel, &s_AdaptiveMetrics, iAdaptiveStrength, uAdaptiveWeights);
+
    ProcessorRxVideo* pProcessorRxVideo = ProcessorRxVideo::getVideoProcessorForVehicleId(uVehicleId, 0);
    if ( NULL != pProcessorRxVideo )
       pProcessorRxVideo->setMustParseStream(true);
 
    if ( (NULL != pOldVideoParams) && (NULL != pOldVideoProfiles) )
    {
-      if ( (pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].keyframe_ms != pOldVideoProfiles[pOldVideoParams->iCurrentVideoProfile].keyframe_ms) ||
+      if ( (pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].iKeyframeMS != pOldVideoProfiles[pOldVideoParams->iCurrentVideoProfile].iKeyframeMS) ||
            ((pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME) != (pOldVideoProfiles[pOldVideoParams->iCurrentVideoProfile].uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME)) )
       {
          _adaptive_video_reset_kf_state(pModel, pRuntimeInfo);
@@ -444,7 +491,7 @@ void _adaptive_video_send_adaptive_message_to_vehicle(u32 uVehicleId)
    memcpy(pData, (u8*)&uDRBoost, sizeof(u8));
    pData += sizeof(u8);
    
-   packets_queue_inject_packet_first(&s_QueueRadioPacketsHighPrio, packet);
+   packets_queue_inject_packet_first_mark_time(&s_QueueRadioPacketsHighPrio, packet);
 
    char szDR[128];
    _adaptive_video_log_DRlinks(pModel, pRuntimeInfo, szDR);
@@ -503,7 +550,7 @@ void adaptive_video_received_vehicle_msg_ack(u32 uRequestId, u32 uVehicleId, int
       pRuntimeInfo->uPendingDRBoostToSet = 0xFF;
       pRuntimeInfo->iPendingKeyFrameMsToSet = 0;
       u32 uDeltaTime = pRuntimeInfo->uLastTimeRecvAdaptiveVideoAck - pRuntimeInfo->uLastTimeSentAdaptiveVideoRequest;
-      controller_rt_info_update_ack_rt_time(&g_SMControllerRTInfo, uVehicleId, g_SM_RadioStats.radio_interfaces[iInterfaceIndex].assignedLocalRadioLinkId, uDeltaTime);
+      controller_rt_info_update_ack_rt_time(&g_SMControllerRTInfo, uVehicleId, g_SM_RadioStats.radio_interfaces[iInterfaceIndex].assignedLocalRadioLinkId, uDeltaTime, 0x02);
    }
 }
 
@@ -679,8 +726,10 @@ void _adaptive_video_compute_metrics(Model* pModel, type_global_state_vehicle_ru
       s_iAdaptiveMetric_PercentageIntervalsWithBadPackets = (s_iAdaptiveMetric_IntervalsWithBadPackets * 100) / s_iAdaptiveMetric_IntervalsWithAnyRadioData;
 }
 
+static bool bLastAdaptiveCheckWasAllAbove = false;
+
 // Returns true if metrics are below a minimum cutoff for given strength
-bool _adaptive_video_is_metrics_below_above_strength(int iStrength, Model* pModel, type_global_state_vehicle_runtime_info* pRuntimeInfo, bool bBelow)
+bool _adaptive_video_is_metrics_below_or_above_strength(int iStrength, Model* pModel, type_global_state_vehicle_runtime_info* pRuntimeInfo, bool bBelow)
 {
    // Adaptive adjustment strength is
    // 1: lowest (slower) adjustment strength;
@@ -716,13 +765,16 @@ bool _adaptive_video_is_metrics_below_above_strength(int iStrength, Model* pMode
       shared_mem_video_stream_stats* pSMVideoStreamInfo = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, pModel->uVehicleId);
       if ( NULL != pSMVideoStreamInfo )
           pSMVideoStreamInfo->adaptiveHitsLow.iCountHitVideoLost++;
-
+      bLastAdaptiveCheckWasAllAbove = false;
       log_line("[AdaptiveVideo] Hit on (strength %d, %u ms, %d intvls, %d video blcks) total bad video %d is greater than %d", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_TotalBadVideoBlocksIntervals, iMaxBadVideoBlocks);
       return true;
    }
 
    if ( (!bBelow) && (s_iAdaptiveMetric_TotalBadVideoBlocksIntervals > iMaxBadVideoBlocks) )
+   {
+      bLastAdaptiveCheckWasAllAbove = false;
       return false;
+   }
 
    // Retransmissions
 
@@ -733,6 +785,7 @@ bool _adaptive_video_is_metrics_below_above_strength(int iStrength, Model* pMode
       shared_mem_video_stream_stats* pSMVideoStreamInfo = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, pModel->uVehicleId);
       if ( NULL != pSMVideoStreamInfo )
           pSMVideoStreamInfo->adaptiveHitsLow.iCountHitRetr++;
+      bLastAdaptiveCheckWasAllAbove = false;
       log_line("[AdaptiveVideo] Hit on (strength %d, %u ms, %d intvls, %d video blcks) total retr %d in %u ms is greater than %d", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_TotalRequestedRetr, s_AdaptiveMetrics.uTimeToLookBackForRetr, s_AdaptiveMetrics.iMaxRetr);
       return true;
    }
@@ -740,8 +793,10 @@ bool _adaptive_video_is_metrics_below_above_strength(int iStrength, Model* pMode
    if ( MAX_U32 != s_AdaptiveMetrics.uTimeToLookBackForRetr )
    if ( s_uAdaptiveMetric_TimeToLookBackMs >= s_AdaptiveMetrics.uTimeToLookBackForRetr )
    if ( (!bBelow) && (s_iAdaptiveMetric_TotalRequestedRetr >= s_AdaptiveMetrics.iMaxRetr) )
+   {
+      bLastAdaptiveCheckWasAllAbove = false;
       return false;
-
+   }
 
    // Rx lost packets
 
@@ -752,6 +807,7 @@ bool _adaptive_video_is_metrics_below_above_strength(int iStrength, Model* pMode
       shared_mem_video_stream_stats* pSMVideoStreamInfo = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, pModel->uVehicleId);
       if ( NULL != pSMVideoStreamInfo )
           pSMVideoStreamInfo->adaptiveHitsLow.iCountHitRxLost++;
+      bLastAdaptiveCheckWasAllAbove = false;
       log_line("[AdaptiveVideo] Hit on (strength %d, %u ms, %d intvls %d video blocks) bad packets intervals %d%% in %u ms is greater than %d%%", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_PercentageIntervalsWithBadPackets, s_AdaptiveMetrics.uTimeToLookBackForRxLost, s_AdaptiveMetrics.iMaxRxLostPercent);
       return true;
    }
@@ -759,8 +815,10 @@ bool _adaptive_video_is_metrics_below_above_strength(int iStrength, Model* pMode
    if ( MAX_U32 != s_AdaptiveMetrics.uTimeToLookBackForRxLost )
    if ( s_uAdaptiveMetric_TimeToLookBackMs >= s_AdaptiveMetrics.uTimeToLookBackForRxLost )
    if ( (!bBelow) && (s_iAdaptiveMetric_PercentageIntervalsWithBadPackets > s_AdaptiveMetrics.iMaxRxLostPercent) )
+   {
+      bLastAdaptiveCheckWasAllAbove = false;
       return false;
-
+   }
    // EC
 
    if ( MAX_U32 != s_AdaptiveMetrics.uTimeToLookBackForECUsed )
@@ -770,6 +828,7 @@ bool _adaptive_video_is_metrics_below_above_strength(int iStrength, Model* pMode
       shared_mem_video_stream_stats* pSMVideoStreamInfo = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, pModel->uVehicleId);
       if ( NULL != pSMVideoStreamInfo )
           pSMVideoStreamInfo->adaptiveHitsLow.iCountHitECUsed++;
+      bLastAdaptiveCheckWasAllAbove = false;
       log_line("[AdaptiveVideo] Hit on (strength %d, %u ms, %d intvls, %d video blcks) blocks with EC hits in last %u ms: %d%%, is greater than %d%%", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_AdaptiveMetrics.uTimeToLookBackForECUsed, s_iAdaptiveMetric_PercentageBlocksWithECHits, s_AdaptiveMetrics.iPercentageECUsed);
       return true;
    }
@@ -777,7 +836,10 @@ bool _adaptive_video_is_metrics_below_above_strength(int iStrength, Model* pMode
    if ( MAX_U32 != s_AdaptiveMetrics.uTimeToLookBackForECUsed )
    if ( s_uAdaptiveMetric_TimeToLookBackMs >= s_AdaptiveMetrics.uTimeToLookBackForECUsed )
    if ( (!bBelow) && (s_iAdaptiveMetric_PercentageBlocksWithECHits >= s_AdaptiveMetrics.iPercentageECUsed) )
+   {
+      bLastAdaptiveCheckWasAllAbove = false;
       return false;
+   }
 
    if ( MAX_U32 != s_AdaptiveMetrics.uTimeToLookBackForECMax )
    if ( s_uAdaptiveMetric_TimeToLookBackMs >= s_AdaptiveMetrics.uTimeToLookBackForECMax )
@@ -786,6 +848,7 @@ bool _adaptive_video_is_metrics_below_above_strength(int iStrength, Model* pMode
       shared_mem_video_stream_stats* pSMVideoStreamInfo = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, pModel->uVehicleId);
       if ( NULL != pSMVideoStreamInfo )
           pSMVideoStreamInfo->adaptiveHitsLow.iCountHitECMax++;
+      bLastAdaptiveCheckWasAllAbove = false;
       log_line("[AdaptiveVideo] Hit on (strength %d, %u ms, %d intvls, %d video blcks) blocks with max EC hits in last %u ms: %d%%, is greater than %d%%", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_AdaptiveMetrics.uTimeToLookBackForECMax, s_iAdaptiveMetric_PercentageBlocksWithMaxECHits, s_AdaptiveMetrics.iPercentageECMax);
       return true;
    }
@@ -793,8 +856,10 @@ bool _adaptive_video_is_metrics_below_above_strength(int iStrength, Model* pMode
    if ( MAX_U32 != s_AdaptiveMetrics.uTimeToLookBackForECMax )
    if ( s_uAdaptiveMetric_TimeToLookBackMs >= s_AdaptiveMetrics.uTimeToLookBackForECMax )
    if ( (!bBelow) && (s_iAdaptiveMetric_PercentageBlocksWithMaxECHits >= s_AdaptiveMetrics.iPercentageECMax) )
+   {
+      bLastAdaptiveCheckWasAllAbove = false;
       return false;
-
+   }
    // RSSI
 
    if ( (s_AdaptiveMetrics.iMinimRSSIThreshold > -1000) && (s_iAdaptiveMetric_MinimRSSIThresh < 1000) )
@@ -803,14 +868,17 @@ bool _adaptive_video_is_metrics_below_above_strength(int iStrength, Model* pMode
       shared_mem_video_stream_stats* pSMVideoStreamInfo = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, pModel->uVehicleId);
       if ( NULL != pSMVideoStreamInfo )
           pSMVideoStreamInfo->adaptiveHitsLow.iCountHitRSSI++;
+      bLastAdaptiveCheckWasAllAbove = false;
       log_line("[AdaptiveVideo] Hit on (strength %d, %u ms, %d intvls, %d video blcks) RSSI margin %d is less than %d", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_MinimRSSIThresh, s_AdaptiveMetrics.iMinimRSSIThreshold);
       return true;
    }
 
    if ( (s_AdaptiveMetrics.iMinimRSSIThreshold > -1000) && (s_iAdaptiveMetric_MinimRSSIThresh < 1000) )
    if ( (!bBelow) && (s_iAdaptiveMetric_MinimRSSIThresh < s_AdaptiveMetrics.iMinimRSSIThreshold) )
+   {
+      bLastAdaptiveCheckWasAllAbove = false;
       return false;
-
+   }
    // SNR
 
    if ( (s_AdaptiveMetrics.iMinimSNRThreshold > -1000) && (s_iAdaptiveMetric_MinimSNRThresh < 1000) )
@@ -819,21 +887,25 @@ bool _adaptive_video_is_metrics_below_above_strength(int iStrength, Model* pMode
       shared_mem_video_stream_stats* pSMVideoStreamInfo = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, pModel->uVehicleId);
       if ( NULL != pSMVideoStreamInfo )
           pSMVideoStreamInfo->adaptiveHitsLow.iCountHitSNR++;
+      bLastAdaptiveCheckWasAllAbove = false;
       log_line("[AdaptiveVideo] Hit on (strength %d, %u ms, %d intvls, %d video blcks) SNR margin %d is less than %d", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_MinimSNRThresh, s_AdaptiveMetrics.iMinimSNRThreshold);
       return true;
    }
 
    if ( (s_AdaptiveMetrics.iMinimSNRThreshold > -1000) && (s_iAdaptiveMetric_MinimSNRThresh < 1000) )
    if ( (!bBelow) && (s_iAdaptiveMetric_MinimSNRThresh < s_AdaptiveMetrics.iMinimSNRThreshold) )
+   {
+      bLastAdaptiveCheckWasAllAbove = false;
       return false;
-
+   }
    if ( bBelow )
       return false;
 
    // Above all
    shared_mem_video_stream_stats* pSMVideoStreamInfo = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, pModel->uVehicleId);
-   if ( NULL != pSMVideoStreamInfo )
+   if ( (NULL != pSMVideoStreamInfo) && (!bLastAdaptiveCheckWasAllAbove) )
    {
+      bLastAdaptiveCheckWasAllAbove = true;
       pSMVideoStreamInfo->adaptiveHitsHigh.iCountHitVideoLost++;
       pSMVideoStreamInfo->adaptiveHitsHigh.iCountHitRetr++;
       pSMVideoStreamInfo->adaptiveHitsHigh.iCountHitRxLost++;
@@ -841,25 +913,31 @@ bool _adaptive_video_is_metrics_below_above_strength(int iStrength, Model* pMode
       pSMVideoStreamInfo->adaptiveHitsHigh.iCountHitECMax++;
       pSMVideoStreamInfo->adaptiveHitsHigh.iCountHitRSSI++;
       pSMVideoStreamInfo->adaptiveHitsHigh.iCountHitSNR++;
+
+      static u32 s_uLastAdaptiveLogRelax = 0;
+      if ( g_TimeNow >= s_uLastAdaptiveLogRelax + 100 )
+      {
+         s_uLastAdaptiveLogRelax = g_TimeNow;
+         log_line("[AdaptiveVideo] Relax on (strength %d, %u ms, %d intvls, %d video blcks) total bad video %d is lower than %d", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_TotalBadVideoBlocksIntervals, iMaxBadVideoBlocks);
+         log_line("[AdaptiveVideo] Relax on (strength %d, %u ms, %d intvls, %d video blcks) total retr %d in %u ms is lower than %d", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_TotalRequestedRetr, s_AdaptiveMetrics.uTimeToLookBackForRetr, s_AdaptiveMetrics.iMaxRetr);
+         log_line("[AdaptiveVideo] Relax on (strength %d, %u ms, %d intvls %d video blocks) bad packets intervals %d%% in %u ms is lower than %d%%", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_PercentageIntervalsWithBadPackets, s_AdaptiveMetrics.uTimeToLookBackForRxLost, s_AdaptiveMetrics.iMaxRxLostPercent);
+         log_line("[AdaptiveVideo] Relax on (strength %d, %u ms, %d intvls, %d video blcks) blocks with EC hits in last %u ms: %d%%, is lower than %d%%", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_AdaptiveMetrics.uTimeToLookBackForECUsed, s_iAdaptiveMetric_PercentageBlocksWithECHits, s_AdaptiveMetrics.iPercentageECUsed);
+         log_line("[AdaptiveVideo] Relax on (strength %d, %u ms, %d intvls, %d video blcks) blocks with max EC hits in last %u ms: %d%%, is lower than %d%%", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_AdaptiveMetrics.uTimeToLookBackForECMax, s_iAdaptiveMetric_PercentageBlocksWithMaxECHits, s_AdaptiveMetrics.iPercentageECMax);
+         log_line("[AdaptiveVideo] Relax on (strength %d, %u ms, %d intvls, %d video blcks) RSSI margin %d is greater than %d", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_MinimRSSIThresh, s_AdaptiveMetrics.iMinimRSSIThreshold);
+         log_line("[AdaptiveVideo] Relax on (strength %d, %u ms, %d intvls, %d video blcks) SNR margin %d is greater than %d", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_MinimSNRThresh, s_AdaptiveMetrics.iMinimSNRThreshold);
+      }
    }
-   log_line("[AdaptiveVideo] Relax on (strength %d, %u ms, %d intvls, %d video blcks) total bad video %d is lower than %d", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_TotalBadVideoBlocksIntervals, iMaxBadVideoBlocks);
-   log_line("[AdaptiveVideo] Relax on (strength %d, %u ms, %d intvls, %d video blcks) total retr %d in %u ms is lower than %d", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_TotalRequestedRetr, s_AdaptiveMetrics.uTimeToLookBackForRetr, s_AdaptiveMetrics.iMaxRetr);
-   log_line("[AdaptiveVideo] Relax on (strength %d, %u ms, %d intvls %d video blocks) bad packets intervals %d%% in %u ms is lower than %d%%", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_PercentageIntervalsWithBadPackets, s_AdaptiveMetrics.uTimeToLookBackForRxLost, s_AdaptiveMetrics.iMaxRxLostPercent);
-   log_line("[AdaptiveVideo] Relax on (strength %d, %u ms, %d intvls, %d video blcks) blocks with EC hits in last %u ms: %d%%, is lower than %d%%", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_AdaptiveMetrics.uTimeToLookBackForECUsed, s_iAdaptiveMetric_PercentageBlocksWithECHits, s_AdaptiveMetrics.iPercentageECUsed);
-   log_line("[AdaptiveVideo] Relax on (strength %d, %u ms, %d intvls, %d video blcks) blocks with max EC hits in last %u ms: %d%%, is lower than %d%%", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_AdaptiveMetrics.uTimeToLookBackForECMax, s_iAdaptiveMetric_PercentageBlocksWithMaxECHits, s_AdaptiveMetrics.iPercentageECMax);
-   log_line("[AdaptiveVideo] Relax on (strength %d, %u ms, %d intvls, %d video blcks) RSSI margin %d is greater than %d", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_MinimRSSIThresh, s_AdaptiveMetrics.iMinimRSSIThreshold);
-   log_line("[AdaptiveVideo] Relax on (strength %d, %u ms, %d intvls, %d video blcks) SNR margin %d is greater than %d", iStrength, s_uAdaptiveMetric_TimeToLookBackMs, s_iAdaptiveMetric_IntervalsToLookBack, s_iAdaptiveMetric_TotalOutputVideoBlocks, s_iAdaptiveMetric_MinimSNRThresh, s_AdaptiveMetrics.iMinimSNRThreshold);
    return true;
 }
 
 bool _adaptive_video_should_switch_lower(Model* pModel, type_global_state_vehicle_runtime_info* pRuntimeInfo)
 {
-   return _adaptive_video_is_metrics_below_above_strength(pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].iAdaptiveAdjustmentStrength, pModel, pRuntimeInfo, true);
+   return _adaptive_video_is_metrics_below_or_above_strength(pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].iAdaptiveAdjustmentStrength, pModel, pRuntimeInfo, true);
 }
 
 bool _adaptive_video_should_switch_higher(Model* pModel, type_global_state_vehicle_runtime_info* pRuntimeInfo)
 {
-   return _adaptive_video_is_metrics_below_above_strength(pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].iAdaptiveAdjustmentStrength + 1, pModel, pRuntimeInfo, false);
+   return _adaptive_video_is_metrics_below_or_above_strength(pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].iAdaptiveAdjustmentStrength + 1, pModel, pRuntimeInfo, false);
 }
 
 // Returns true if it switched
@@ -967,6 +1045,7 @@ bool _adaptive_video_switch_lower(Model* pModel, type_global_state_vehicle_runti
    if ( (pRuntimeInfo->uCurrentAdaptiveVideoECScheme != 0) && (pRuntimeInfo->uCurrentAdaptiveVideoECScheme != 0xFFFF) )
    {
       log_line("[AdaptiveVideo] Switch lower: Can't switch lower. Already at bottom.");
+      pRuntimeInfo->bIsOnLowestAdaptiveLevel = true;
       return false;
    }
 
@@ -985,6 +1064,8 @@ bool _adaptive_video_switch_lower(Model* pModel, type_global_state_vehicle_runti
    //   pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS = DEFAULT_LOWEST_ALLOWED_ADAPTIVE_VIDEO_BITRATE;
    
    pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS = DEFAULT_LOWEST_ALLOWED_ADAPTIVE_VIDEO_BITRATE;
+   if ( pModel->isActiveCameraVeye() )
+      pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS *= 2;
    if ( bOnlyMediumAdaptive )
       pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS *= 2;
 
@@ -996,6 +1077,12 @@ bool _adaptive_video_switch_lower(Model* pModel, type_global_state_vehicle_runti
    pRuntimeInfo->uPendingECSchemeToSet = pRuntimeInfo->uCurrentAdaptiveVideoECScheme;
    pRuntimeInfo->uAdaptiveVideoRequestId++;
    pRuntimeInfo->iAdaptiveLevelNow++;
+   pRuntimeInfo->bIsOnLowestAdaptiveLevel = true;
+
+   shared_mem_video_stream_stats* pSMVideoStreamInfo = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, pModel->uVehicleId);
+   if ( NULL != pSMVideoStreamInfo )
+      pSMVideoStreamInfo->bIsOnLowestAdaptiveLevel = true;
+
    _adaptive_video_log_state(pModel, pRuntimeInfo, "After switch lower");
    return true;
 }
@@ -1012,9 +1099,9 @@ bool _adaptive_video_switch_higher(Model* pModel, type_global_state_vehicle_runt
    //-----------------------------------------------------------------------
    // First, revert EC scheme and increase the bitrate if on lowest datarate already
 
-   if ( (pRuntimeInfo->uCurrentAdaptiveVideoECScheme != 0) && (pRuntimeInfo->uCurrentAdaptiveVideoECScheme != 0xFFFF) )
+   if ( (pRuntimeInfo->uCurrentAdaptiveVideoECScheme != 0) && (pRuntimeInfo->uCurrentAdaptiveVideoECScheme != 0xFFFF) && pRuntimeInfo->bIsOnLowestAdaptiveLevel )
    {
-      log_line("[AdaptiveVideo] Switch higher: Is on lower EC scheme. Switch to default EC scheme.");
+      log_line("[AdaptiveVideo] Switch higher: Is on lower EC scheme. Switch to default EC scheme. Video bitrate is now (before change): %.1f", (float)pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS/1000.0/1000.0);
       pRuntimeInfo->uCurrentAdaptiveVideoECScheme = 0;
       pRuntimeInfo->uPendingECSchemeToSet = 0xFFFF;
 
@@ -1028,20 +1115,28 @@ bool _adaptive_video_switch_higher(Model* pModel, type_global_state_vehicle_runt
 
          //int iDataRateForCurrentVideoBitrate = pModel->getRadioDataRateForVideoBitrate(pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS, iLink);
          int iDataRateForCurrentVideoBitrate = pRuntimeInfo->iCurrentDataratesForLinks[iLink];
-         u32 uVideoBitrateForLink = pModel->getMaxVideoBitrateForRadioDatarate(iDataRateForCurrentVideoBitrate, iLink);
-         uVideoBitrateForLink = uVideoBitrateForLink - uVideoBitrateForLink/20;
+         u32 uMaxVideoBitrateForLink = pModel->getMaxVideoBitrateForRadioDatarate(iDataRateForCurrentVideoBitrate, iLink);
+         log_line("[AdaptiveVideo] Switch higher to default EC scheme: current datarate for radio link %d: %d, max video bitrate for current datarate: %.1f", iLink+1, iDataRateForCurrentVideoBitrate, (float)uMaxVideoBitrateForLink/1000.0/1000.0);
+         uMaxVideoBitrateForLink = uMaxVideoBitrateForLink - uMaxVideoBitrateForLink/20;
          if ( 0 == uNewHigherVideoBitrate )
-            uNewHigherVideoBitrate = uVideoBitrateForLink;
-         else if ( uVideoBitrateForLink < uNewHigherVideoBitrate )
-            uNewHigherVideoBitrate = uVideoBitrateForLink;
+            uNewHigherVideoBitrate = uMaxVideoBitrateForLink;
+         else if ( uMaxVideoBitrateForLink < uNewHigherVideoBitrate )
+            uNewHigherVideoBitrate = uMaxVideoBitrateForLink;
       }
 
       if ( 0 == uNewHigherVideoBitrate )
          uNewHigherVideoBitrate = pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS;
+      else
+         uNewHigherVideoBitrate = (uNewHigherVideoBitrate + pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS)/2;
       pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS = uNewHigherVideoBitrate;
+      log_line("[AdaptiveVideo] New video bitrate after EC scheme revert to default will be: %.1f", (float)pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS/1000.0/1000.0);
       pRuntimeInfo->uPendingVideoBitrateToSet = pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS;
       pRuntimeInfo->uAdaptiveVideoRequestId++;
       pRuntimeInfo->iAdaptiveLevelNow--;
+      pRuntimeInfo->bIsOnLowestAdaptiveLevel = false;
+      shared_mem_video_stream_stats* pSMVideoStreamInfo = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, pModel->uVehicleId);
+      if ( NULL != pSMVideoStreamInfo )
+         pSMVideoStreamInfo->bIsOnLowestAdaptiveLevel = false;
       _adaptive_video_log_state(pModel, pRuntimeInfo, "After switch higher");
       return true;
    }
@@ -1068,9 +1163,13 @@ bool _adaptive_video_switch_higher(Model* pModel, type_global_state_vehicle_runt
          continue;
 
       u32 uMaxVideoBitrateForLinkDatarate = pModel->getMaxVideoBitrateForRadioDatarate(iCurrentDatarates[iLink], iLink);
+      u32 uMaxLinkLoadPercentage = (u32)pModel->radioLinksParams.uMaxLinkLoadPercent[iLink];
+      if ( (pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].iDefaultLinkLoad > 0) && (pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].iDefaultLinkLoad <= 90) )
+         uMaxLinkLoadPercentage = pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].iDefaultLinkLoad;
+
       log_line("[AdaptiveVideo] Switch higher: Radio link %d datarate %s, max video bitrate for it: %.2f Mbps", iLink+1, str_format_datarate_inline(iCurrentDatarates[iLink]), (float)uMaxVideoBitrateForLinkDatarate/1000.0/1000.0);
       log_line("[AdaptiveVideo] Switch higher: Radio link %d datarate %s, max data throughtput: %u bps", iLink+1, str_format_datarate_inline(iCurrentDatarates[iLink]), getRealDataRateFromRadioDataRate(iCurrentDatarates[iLink], pModel->radioLinksParams.link_radio_flags[iLink], 1));
-      log_line("[AdaptiveVideo] Switch higher: Radio link %d datarate %s, max load percent: radio: %d%%, EC: %d%%", iLink+1, str_format_datarate_inline(iCurrentDatarates[iLink]), pModel->radioLinksParams.uMaxLinkLoadPercent[iLink], pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].iECPercentage);
+      log_line("[AdaptiveVideo] Switch higher: Radio link %d datarate %s, max load percent: radio: %d%%, EC: %d%%", iLink+1, str_format_datarate_inline(iCurrentDatarates[iLink]), uMaxLinkLoadPercentage, pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].iECPercentage);
       uMaxVideoBitrateForLinkDatarate = uMaxVideoBitrateForLinkDatarate + uMaxVideoBitrateForLinkDatarate/20;
       if ( uMaxVideoBitrateForLinkDatarate > pModel->video_link_profiles[iCurrentVideoProfile].bitrate_fixed_bps )
          uMaxVideoBitrateForLinkDatarate = pModel->video_link_profiles[iCurrentVideoProfile].bitrate_fixed_bps;
@@ -1186,6 +1285,7 @@ bool _adaptive_video_check_vehicle(Model* pModel, type_global_state_vehicle_runt
    if ( (pRuntimeInfo->uCurrentAdaptiveVideoECScheme == 0xFFFF) || (pRuntimeInfo->uCurrentAdaptiveVideoECScheme == 0) )
    if ( _adaptive_video_should_switch_lower(pModel, pRuntimeInfo) )
    {
+      pRuntimeInfo->uTimeStartCountingMetricAreOkToSwithHigher = 0;
       return _adaptive_video_switch_lower(pModel, pRuntimeInfo);
    }
 
@@ -1194,14 +1294,29 @@ bool _adaptive_video_check_vehicle(Model* pModel, type_global_state_vehicle_runt
    if ( !(uProfileFlags & VIDEO_PROFILE_FLAG_USE_HIGHER_DATARATE) )
       uMaxDRBoost = 0;
 
+   ProcessorRxVideo* pProcessorRxVideo = ProcessorRxVideo::getVideoProcessorForVehicleId(pModel->uVehicleId, 0);
+   bool bChecksToSwitchHigherSucceeded = false;
+
    if ( g_TimeNow > pRuntimeInfo->uLastTimeSentAdaptiveVideoRequest + s_AdaptiveMetrics.uMinimumTimeToSwitchHigher )
    if ( 0 != pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS )
    if ( 0 != pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps )
    if ( (pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS < pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps) || ((pRuntimeInfo->uCurrentDRBoost != uMaxDRBoost) && (pRuntimeInfo->uCurrentDRBoost != 0xFF)) )
+   if ( (NULL != pProcessorRxVideo) && (pProcessorRxVideo->getLastestVideoPacketReceiveTime() > g_TimeNow - 100) )
    if ( _adaptive_video_should_switch_higher(pModel, pRuntimeInfo) )
    {
+      bChecksToSwitchHigherSucceeded = true;
+      if ( 0 == pRuntimeInfo->uTimeStartCountingMetricAreOkToSwithHigher )
+      {
+         pRuntimeInfo->uTimeStartCountingMetricAreOkToSwithHigher = g_TimeNow;
+         return false;
+      }
+      if ( g_TimeNow < pRuntimeInfo->uTimeStartCountingMetricAreOkToSwithHigher + s_AdaptiveMetrics.uMinimumGoodTimeToSwitchHigher )
+         return false;
+      pRuntimeInfo->uTimeStartCountingMetricAreOkToSwithHigher = g_TimeNow;
       return _adaptive_video_switch_higher(pModel, pRuntimeInfo);
    }
+   if ( ! bChecksToSwitchHigherSucceeded )
+      pRuntimeInfo->uTimeStartCountingMetricAreOkToSwithHigher = 0;
 
    return false;
 }
@@ -1264,23 +1379,12 @@ void _adaptive_video_periodic_loop_for_vehicle(int iRuntimeIndex, bool bForceSyn
 
    pRuntimeInfo->uAdaptiveVideoLastCheckTime = g_TimeNow;
 
-   if ( (NULL == pModel) || (! pModel->hasCamera()) || (get_sw_version_build(pModel) < 290) )
+   if ( (NULL == pModel) || (! pModel->hasCamera()) || (!is_sw_version_atleast(pModel, 11, 6)) )
    {
       if ( pRuntimeInfo->bIsAdaptiveVideoActive )
       {
          send_adaptive_video_paused_to_central(pRuntimeInfo->uVehicleId, true);
          log_line("[AdaptiveVideo] Set adaptive as inactive for VID %u (old vehicle or no camera)", pRuntimeInfo->uVehicleId);
-      }
-      pRuntimeInfo->bIsAdaptiveVideoActive = false;
-      return;
-   }
-
-   if ( ! is_sw_version_atleast(pModel, 10, 6) )
-   {
-      if ( pRuntimeInfo->bIsAdaptiveVideoActive )
-      {
-         send_adaptive_video_paused_to_central(pRuntimeInfo->uVehicleId, true);
-         log_line("[AdaptiveVideo] Set adaptive as inactive for VID %u (old vehicle)", pRuntimeInfo->uVehicleId);
       }
       pRuntimeInfo->bIsAdaptiveVideoActive = false;
       return;
@@ -1364,6 +1468,7 @@ void _adaptive_video_periodic_loop_for_vehicle(int iRuntimeIndex, bool bForceSyn
       pRuntimeInfo->bIsAdaptiveVideoActive = true;
       _adaptive_video_check_vehicle(pModel, pRuntimeInfo, pSMVideoStreamInfo);
    }
+
    // Do adaptive keyframe logic?
    if ( ((pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags) & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME) ||
          (pRuntimeInfo->iPendingKeyFrameMsToSet != 0) )
@@ -1409,6 +1514,9 @@ void adaptive_video_periodic_loop(bool bForceSyncNow)
 {
    if ( g_TimeNow < s_uTimeLastAdaptiveVideoPeriodicChecks + 5 )
       return;
+   if ( g_bSearching )
+      return;
+
    s_uTimeLastAdaptiveVideoPeriodicChecks = g_TimeNow;
 
    if ( (g_TimeNow < g_TimeStart + 3000) || isNegociatingRadioLink() || test_link_is_in_progress() || g_bUpdateInProgress )

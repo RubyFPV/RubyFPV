@@ -98,13 +98,13 @@ void process_packet_summary( int iInterfaceIndex, u8* pBuffer, int iBufferLength
    int iTotalLostBad = 0;
    int iSlices = 0;
    u32 uMs = 0;
-   int iIndex = g_SM_RadioStats.radio_interfaces[0].hist_rxPacketsCurrentIndex;
+   int iIndex = g_SM_RadioStats.radio_interfaces[iInterfaceIndex].hist_rxPacketsCurrentIndex;
    for( int k=0; k<MAX_HISTORY_RADIO_STATS_RECV_SLICES; k++ )
    {
-      iTotalRecv += g_SM_RadioStats.radio_interfaces[0].hist_rxPacketsCount[iIndex];
-      iTotalLostBad += g_SM_RadioStats.radio_interfaces[0].hist_rxPacketsLostCountVideo[iIndex];
-      iTotalLostBad += g_SM_RadioStats.radio_interfaces[0].hist_rxPacketsLostCountData[iIndex];
-      iTotalLostBad += g_SM_RadioStats.radio_interfaces[0].hist_rxPacketsBadCount[iIndex];
+      iTotalRecv += g_SM_RadioStats.radio_interfaces[iInterfaceIndex].hist_rxPacketsCount[iIndex];
+      iTotalLostBad += g_SM_RadioStats.radio_interfaces[iInterfaceIndex].hist_rxPacketsLostCountVideo[iIndex];
+      iTotalLostBad += g_SM_RadioStats.radio_interfaces[iInterfaceIndex].hist_rxPacketsLostCountData[iIndex];
+      iTotalLostBad += g_SM_RadioStats.radio_interfaces[iInterfaceIndex].hist_rxPacketsBadCount[iIndex];
       iSlices++;
       iIndex--;
       if ( iIndex < 0 )
@@ -173,7 +173,7 @@ int process_packet_errors( int iInterfaceIndex, u8* pBuffer, int iBufferLength)
 void process_packet(int iInterfaceIndex )
 {
    int nLength = 0;
-   u8* pBuffer = radio_process_wlan_data_in(iInterfaceIndex, &nLength, g_TimeNow); 
+   u8* pBuffer = radio_process_wlan_data_in(iInterfaceIndex, &nLength, NULL, g_TimeNow); 
    if ( NULL == pBuffer )
    {
       log_line("NULL receive buffer. Ignoring...");

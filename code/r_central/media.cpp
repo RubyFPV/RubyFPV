@@ -249,6 +249,7 @@ void _media_take_screenshot()
 
 static void * _thread_media_take_screenshot(void *argument)
 {
+   hw_log_current_thread_attributes("take screenshot");
    _media_take_screenshot();
    return NULL;
 }

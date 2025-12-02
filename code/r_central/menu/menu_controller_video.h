@@ -35,6 +35,10 @@ class MenuControllerVideo: public Menu
       int m_IndexVideoETHPacket;
       int m_IndexCalibrateHDMI;
 
+      int m_IndexStreamerMode;
+      int m_IndexMPPBuffers;
+      int m_IndexWaitFullFrame;
+
       int m_IndexAudioVolume;
       int m_IndexAudioTest;
       

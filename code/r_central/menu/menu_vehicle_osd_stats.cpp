@@ -60,6 +60,7 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
    m_IndexDevStatsVehicleTx = -1;
    m_IndexSnapshot = -1;
    m_IndexStatsVideoH264FramesInfo = -1;
+   m_IndexRadioRxDbgPingStats = -1;
 
    m_pItemsSelect[0] = new MenuItemSelect(L("Font Size"), L("Increase/decrease OSD font size for stats windows for current OSD screen."));  
    m_pItemsSelect[0]->addSelection(L("Smallest"));
@@ -196,6 +197,13 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
       m_pItemsSelect[20]->setUseMultiViewLayout();
       m_pItemsSelect[20]->setTextColor(get_Color_Dev());
       m_IndexDevStatsVehicleTx = addMenuItem(m_pItemsSelect[20]);
+
+      m_pItemsSelect[31] = new MenuItemSelect(L("Radio: Ping Stats"), L("Shows graphs about ping roundtrip stats."));
+      m_pItemsSelect[31]->addSelection(L("Off"));
+      m_pItemsSelect[31]->addSelection(L("On"));
+      m_pItemsSelect[31]->setUseMultiViewLayout();
+      m_pItemsSelect[31]->setTextColor(get_Color_Dev());
+      m_IndexRadioRxDbgPingStats = addMenuItem(m_pItemsSelect[31]);
    }
 
    addSeparator();
@@ -373,6 +381,9 @@ void MenuVehicleOSDStats::valuesToUI()
       m_pItemsSelect[9]->setSelection(4);
    else
       m_pItemsSelect[9]->setSelection(5);
+
+   if ( -1 != m_IndexRadioRxDbgPingStats )
+      m_pItemsSelect[31]->setSelectedIndex(pCS->iDbgPingGraphs);
 
    if ( g_pCurrentModel->osd_params.osd_flags2[iScreenIndex] & OSD_FLAG2_SHOW_STATS_RADIO_INTERFACES )
    {
@@ -732,6 +743,15 @@ void MenuVehicleOSDStats::onSelectItem()
       save_ControllerSettings();
       valuesToUI();
       return;
+   }
+
+   if ( (-1 != m_IndexRadioRxDbgPingStats) && (m_IndexRadioRxDbgPingStats == m_SelectedIndex) )
+   {
+      pCS->iDbgPingGraphs = m_pItemsSelect[31]->getSelectedIndex();
+      save_ControllerSettings();
+      valuesToUI();
+      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
+      return;      
    }
 
    if ( m_IndexVideoRefreshInterval == m_SelectedIndex )

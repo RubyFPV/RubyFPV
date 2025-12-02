@@ -49,6 +49,7 @@
 #include "../base/ruby_ipc.h"
 #include "../base/core_plugins_settings.h"
 #include "../base/vehicle_settings.h"
+#include "../base/utils.h"
 #include "../common/string_utils.h"
 #include "../common/relay_utils.h"
 
@@ -68,6 +69,7 @@
 #include <dirent.h>
 #include <string.h>
 #include <math.h>
+#include <semaphore.h>
 
 #define MAX_COMMAND_REPLY_BUFFER 4048
 
@@ -99,10 +101,6 @@ static u32 s_ZIPParams_uLastRecvCommandNumber = 0;
 static u32 s_ZIPPAarams_uLastRecvCommandTime = 0;
 static u8  s_ZIPParams_Model_Buffer[3048];
 static int s_ZIPParams_Model_BufferLength = 0;
-
-// To fix
-//static shared_mem_video_link_overwrites s_CurrentVideoLinkOverwrites;
-
 
 #define MAX_SEGMENTS_FILE_UPLOAD 10000 // About 10 Mbytes of data maximum
 
@@ -370,16 +368,14 @@ void signalReloadModel(u32 uChangeType, u8 uExtraParam)
       g_pProcessStats->lastActiveTime = get_current_timestamp_ms();
 }
 
-void signalReboot()
+void signalReboot(bool bSaveModel)
 {
    log_line("Signaled reboot");
-   char szComm[MAX_FILE_PATH_SIZE];
-   sprintf(szComm, "touch %sreboot.txt", FOLDER_RUBY_TEMP);
-   hw_execute_bash_command(szComm, NULL);
 
    t_packet_header PH;
    radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_LOCAL_CONTROL_REBOOT, STREAM_ID_DATA);
    PH.vehicle_id_src = PACKET_COMPONENT_COMMANDS;
+   PH.vehicle_id_dest = bSaveModel?1:0;
    PH.total_length = sizeof(t_packet_header);
 
    ruby_ipc_channel_send_message(s_fIPCToRouter, (u8*)&PH, PH.total_length);
@@ -836,12 +832,12 @@ bool process_command(u8* pBuffer, int length)
 
    if ( uCommandType == COMMAND_ID_FACTORY_RESET )
    {
-      for( int i=0; i<40; i++ )
+      for( int i=0; i<20; i++ )
       {
-         sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
+         sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 80);
          hardware_sleep_ms(50);
       }
-      for( int i=0; i<5; i++ )
+      for( int i=0; i<2; i++ )
          hardware_sleep_ms(400);
 
       #if defined (HW_PLATFORM_RASPBERRY) || defined (HW_PLATFORM_RADXA)
@@ -913,12 +909,14 @@ bool process_command(u8* pBuffer, int length)
          sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED, 0, 0);
          return true;
       }
+      for( int i=0; i<20; i++ )
+         sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 20);
+
       type_relay_parameters* params = (type_relay_parameters*)(pBuffer + sizeof(t_packet_header)+sizeof(t_packet_header_command));
+      log_line("Received command with relay params: VID: %u, freq: %s, on vehicle's radio link %d, relay flags: (%s)", params->uRelayedVehicleId, str_format_frequency(params->uRelayFrequencyKhz), params->isRelayEnabledOnRadioLinkId, str_format_relay_flags(params->uRelayCapabilitiesFlags));
       memcpy(&(g_pCurrentModel->relay_params), params, sizeof(type_relay_parameters));
 
       saveCurrentModel();
-      for( int i=0; i<5; i++ )
-         sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 10);
       signalReloadModel(MODEL_CHANGED_RELAY_PARAMS, 0);
       return true;
    }
@@ -998,18 +996,10 @@ bool process_command(u8* pBuffer, int length)
       g_pCurrentModel->processesPriorities.iFreqARM = params->freq_arm;
       g_pCurrentModel->processesPriorities.iFreqGPU = params->freq_gpu;
       g_pCurrentModel->processesPriorities.iOverVoltage = params->overvoltage;
-      g_pCurrentModel->processesPriorities.uProcessesFlags = params->uProcessesFlags;
       log_line("Received overclocking params: %d mhz arm freq, %d mhz gpu freq, %d overvoltage", g_pCurrentModel->processesPriorities.iFreqARM, g_pCurrentModel->processesPriorities.iFreqGPU, g_pCurrentModel->processesPriorities.iOverVoltage);
-      log_line("Received processes flags: %u", g_pCurrentModel->processesPriorities.uProcessesFlags);
       saveCurrentModel();
       save_config_file();
-      signalReloadModel(MODEL_CHANGED_GENERIC, 0);
-      #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-      // Force restart of majestic and update priorities
-      // To fix may2025
-      //sendControlMessage(PACKET_TYPE_LOCAL_CONTROL_UPDATE_VIDEO_PROGRAM, MODEL_CHANGED_VIDEO_CODEC);
-      #endif
-
+      signalReloadModel(MODEL_CHANGED_OVERCLOCKING, 0);
       return true;
    }
 
@@ -1494,6 +1484,46 @@ bool process_command(u8* pBuffer, int length)
       }
       return true;
    }
+   if ( uCommandType == COMMAND_ID_GET_CPU_PROCS_INFO )
+   {
+      static char s_szBufferDbg[4096];
+      if ( 0 == pPHC->command_param )
+      {
+         memset(s_szBufferDbg, 0, 4096);
+         #if defined (HW_PLATFORM_OPENIPC_CAMERA)
+         hw_execute_bash_command_timeout("/usr/sbin/ruby_start -dbgproc -a", s_szBufferDbg, 10000);
+         #else
+         hw_execute_bash_command_timeout("./ruby_start -dbgproc -a", s_szBufferDbg, 10000);
+         #endif
+      }
+      char szBuffer[4096];
+      memcpy(szBuffer, s_szBufferDbg, 4096);
+
+      u8* pTmp = (u8*)&(szBuffer[0]);
+      int iLen = strlen(szBuffer);
+      if ( 0 == pPHC->command_param )
+      {
+         if ( iLen > 1100 )
+         {
+            iLen = 1100;
+            szBuffer[iLen] = 0;
+         }
+      }
+      else
+      {
+         pTmp = (u8*)&(szBuffer[1100]);
+         iLen = strlen(szBuffer) - 1100;
+         if ( iLen < 0 )
+         {
+            szBuffer[1100] = 0;
+            iLen = 0;
+         }
+      }
+      log_line("Sending back CPU procs info, %d bytes for segment %d", iLen+1, pPHC->command_param);
+      setCommandReplyBuffer(pTmp, iLen+1);
+      sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, replyDelay);
+      return true;
+   }
 
    if ( uCommandType == COMMAND_ID_GET_CPU_INFO )
    {
@@ -1542,14 +1572,14 @@ bool process_command(u8* pBuffer, int length)
       if ( NULL != g_pProcessStats )
          g_pProcessStats->lastActiveTime = get_current_timestamp_ms();
 
-      hw_get_proc_priority("ruby_rt_vehicle", szOutput);
+      hw_get_process_priority("ruby_rt_vehicle", szOutput);
       strcat(szBuffer, szOutput);
       strcat(szBuffer, "+");
 
       if ( NULL != g_pProcessStats )
          g_pProcessStats->lastActiveTime = get_current_timestamp_ms();
 
-      hw_get_proc_priority("ruby_tx_telemetry", szOutput);
+      hw_get_process_priority("ruby_tx_telemetry", szOutput);
       strcat(szBuffer, szOutput);
       strcat(szBuffer, "+");
 
@@ -1558,9 +1588,9 @@ bool process_command(u8* pBuffer, int length)
 
       #if defined (HW_PLATFORM_RASPBERRY)
       if ( g_pCurrentModel->isActiveCameraVeye() )
-         hw_get_proc_priority(VIDEO_RECORDER_COMMAND_VEYE_SHORT_NAME, szOutput);
+         hw_get_process_priority(VIDEO_RECORDER_COMMAND_VEYE_SHORT_NAME, szOutput);
       else
-         hw_get_proc_priority(VIDEO_RECORDER_COMMAND, szOutput);
+         hw_get_process_priority(VIDEO_RECORDER_COMMAND, szOutput);
       strcat(szBuffer, szOutput);
       strcat(szBuffer, "+");
 
@@ -1569,7 +1599,7 @@ bool process_command(u8* pBuffer, int length)
       #endif
         
       #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-      hw_get_proc_priority(VIDEO_RECORDER_COMMAND, szOutput);
+      hw_get_process_priority(VIDEO_RECORDER_COMMAND, szOutput);
       strcat(szBuffer, szOutput);
       strcat(szBuffer, "+");
 
@@ -2229,13 +2259,11 @@ bool process_command(u8* pBuffer, int length)
 
    if ( uCommandType == COMMAND_ID_RESET_ALL_TO_DEFAULTS )
    {
-      for( int i=0; i<40; i++ )
-         sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 50+i);
-      for( int i=0; i<5; i++ )
-         hardware_sleep_ms(400);
-
+      for( int i=0; i<20; i++ )
+         sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 50);
+      hardware_sleep_ms(200);
+      /*
       char szComm[256];
-
       #if defined (HW_PLATFORM_RASPBERRY) || defined (HW_PLATFORM_RADXA)
       if ( 0 < strlen(FOLDER_CONFIG) )
       {
@@ -2262,8 +2290,22 @@ bool process_command(u8* pBuffer, int length)
          snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s*", FOLDER_CONFIG);
          hw_execute_bash_command(szComm, NULL);
       }
+      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "touch %s%s", FOLDER_CONFIG, LOG_USE_PROCESS);
+      hw_execute_bash_command(szComm, NULL);
       #endif
-     
+      */
+
+      type_adaptive_metrics metrics;
+      compute_adaptive_metrics(&metrics, g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iAdaptiveAdjustmentStrength, g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uAdaptiveWeights);
+      log_adaptive_metrics(g_pCurrentModel, &metrics, g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iAdaptiveAdjustmentStrength, g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uAdaptiveWeights);
+
+      g_pCurrentModel->resetAllSettingsKeepPairing(false);
+      saveCurrentModel();
+
+      compute_adaptive_metrics(&metrics, g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iAdaptiveAdjustmentStrength, g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uAdaptiveWeights);
+      log_adaptive_metrics(g_pCurrentModel, &metrics, g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iAdaptiveAdjustmentStrength, g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uAdaptiveWeights);
+
+      /*
       char szFileName[MAX_FILE_PATH_SIZE];
       strcpy(szFileName, FOLDER_CONFIG);
       strcat(szFileName, "reset_info.txt");
@@ -2287,13 +2329,9 @@ bool process_command(u8* pBuffer, int length)
            szName);
          fclose(fd);
       }
-      
-      if ( 0 < strlen(FOLDER_LOGS) )
-      {
-         snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s*", FOLDER_LOGS);
-         hw_execute_bash_command(szComm, NULL);
-      }
-      hardware_reboot();
+      */
+
+      signalReboot(false);
       return true;
    }
 
@@ -2340,9 +2378,9 @@ bool process_command(u8* pBuffer, int length)
 
       camera_profile_parameters_t* pCameraParams = &g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].iCurrentProfile];
       if ( g_pCurrentModel->isRunningOnOpenIPCHardware() &&
-           g_pCurrentModel->validate_fps_and_exposure_settings(pCameraParams))
+           g_pCurrentModel->validate_fps_and_exposure_settings(pCameraParams, true))
       {
-         log_line("Camera exposure (%d ms) was updated to accomodate the new video FPS value.", pCameraParams->shutterspeed);
+         log_line("Camera exposure (%d ms) was updated to accomodate the new video FPS value.", pCameraParams->iShutterSpeed);
       }
 
       saveCurrentModel();
@@ -2429,9 +2467,9 @@ bool process_command(u8* pBuffer, int length)
       }
 
       int iCount = g_pCurrentModel->hardwareInterfacesInfo.serial_port_count;
-      log_line("Received %d serial ports. Hardware has %d serial ports.", iCount, hardware_get_serial_ports_count());
-      if ( iCount > hardware_get_serial_ports_count() )
-         iCount = hardware_get_serial_ports_count();
+      log_line("Received %d serial ports. Hardware has %d serial ports.", iCount, hardware_serial_get_ports_count());
+      if ( iCount > hardware_serial_get_ports_count() )
+         iCount = hardware_serial_get_ports_count();
 
       int iSiKPortToUpdate = -1;
       int iSikPortSpeedToUse = -1;   
@@ -2598,8 +2636,8 @@ bool process_command(u8* pBuffer, int length)
          sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
          hardware_sleep_ms(10);
       }
-      hardware_sleep_ms(400);
-      signalReboot();
+      hardware_sleep_ms(300);
+      signalReboot(true);
       return true;
    }
 
@@ -2680,7 +2718,6 @@ bool process_command(u8* pBuffer, int length)
       sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
 
       // To fix
-      //video_overwrites_init( &s_CurrentVideoLinkOverwrites, g_pCurrentModel );
 
       vehicle_stop_tx_router();
       vehicle_stop_audio_capture(g_pCurrentModel);
@@ -2891,58 +2928,29 @@ bool process_command(u8* pBuffer, int length)
       return true;
    }
 
-
-   if ( uCommandType == COMMAND_ID_SET_NICE_VALUE_TELEMETRY )
-   {
-      sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
-      g_pCurrentModel->processesPriorities.iNiceTelemetry = ((int)((pPHC->command_param) % 256))-20;
-      if ( g_pCurrentModel->processesPriorities.iNiceTelemetry < -16 )
-         g_pCurrentModel->processesPriorities.iNiceTelemetry = DEFAULT_PRIORITY_PROCESS_TELEMETRY;
-      if ( g_pCurrentModel->processesPriorities.iNiceTelemetry > 0 )
-         g_pCurrentModel->processesPriorities.iNiceTelemetry = DEFAULT_PRIORITY_PROCESS_TELEMETRY;
-      log_line("Received nice value for telemetry: %d", g_pCurrentModel->processesPriorities.iNiceTelemetry);
-      saveCurrentModel();
-      signalReloadModel(MODEL_CHANGED_THREADS_PRIORITIES, 0);
-      return true;
-   }
-
-   if ( uCommandType == COMMAND_ID_SET_NICE_VALUES )
-   {
-      sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
-      g_pCurrentModel->processesPriorities.iNiceVideo = ((int)((pPHC->command_param) % 256))-20;
-      g_pCurrentModel->processesPriorities.iNiceOthers = ((int)(((pPHC->command_param)>>8) % 256))-20;
-      g_pCurrentModel->processesPriorities.iNiceRouter = ((int)(((pPHC->command_param)>>16) % 256))-20;
-      g_pCurrentModel->processesPriorities.iNiceRC = ((int)(((pPHC->command_param)>>24) % 256))-20;
-      if ( g_pCurrentModel->processesPriorities.iNiceRouter < -18 )
-         g_pCurrentModel->processesPriorities.iNiceRouter = -18;
-      if ( g_pCurrentModel->processesPriorities.iNiceRC < -18 )
-         g_pCurrentModel->processesPriorities.iNiceRC = -18;
-      log_line("Received nice values: video: %d, router: %d, rc: %d, others: %d", g_pCurrentModel->processesPriorities.iNiceVideo, g_pCurrentModel->processesPriorities.iNiceRouter, g_pCurrentModel->processesPriorities.iNiceRC, g_pCurrentModel->processesPriorities.iNiceOthers);
-      saveCurrentModel();
-      signalReloadModel(MODEL_CHANGED_THREADS_PRIORITIES, 0);
-      return true;
-   }
-
-   if ( uCommandType == COMMAND_ID_SET_IONICE_VALUES )
-   {
-      sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
-      g_pCurrentModel->processesPriorities.ioNiceVideo = ((int)((pPHC->command_param)%256))-20;
-      g_pCurrentModel->processesPriorities.ioNiceRouter = ((int)(((pPHC->command_param)>>8)%256))-20;
-      log_line("Received io nice values: video: %d, router: %d", g_pCurrentModel->processesPriorities.ioNiceVideo, g_pCurrentModel->processesPriorities.ioNiceRouter);
-      saveCurrentModel();
-      signalReloadModel(MODEL_CHANGED_THREADS_PRIORITIES, 0);
-      return true;
-   }
-
    if ( uCommandType == COMMAND_ID_SET_THREADS_PRIORITIES )
    {
+      if ( iParamsLength != sizeof(type_processes_priorities) )
+      {
+         sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED, 0, 0);
+         return true;
+      }
       sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
-      g_pCurrentModel->processesPriorities.iThreadPriorityRouter = (int)((pPHC->command_param) & 0xFF);
-      g_pCurrentModel->processesPriorities.iThreadPriorityRadioRx = (int)((pPHC->command_param >> 8) & 0xFF);
-      g_pCurrentModel->processesPriorities.iThreadPriorityRadioTx = (int)((pPHC->command_param >> 16) & 0xFF);
-      log_line("Received new threads priorities: router: %d, radio rx: %d, radio tx: %d", g_pCurrentModel->processesPriorities.iThreadPriorityRouter, g_pCurrentModel->processesPriorities.iThreadPriorityRadioRx, g_pCurrentModel->processesPriorities.iThreadPriorityRadioTx);
+      if (  pPHC->command_param )
+      {
+         for( int i=0; i<10; i++ )
+            sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 50);
+      }
+      u8* pData = pBuffer + sizeof(t_packet_header)+sizeof(t_packet_header_command);
+      type_processes_priorities* pNewPrio = (type_processes_priorities*)pData;
+      log_line("Received new threads priorities. Different? %s", (0 == memcmp(pData, (u8*)&(g_pCurrentModel->processesPriorities), sizeof(type_processes_priorities)))?"no":"yes");
+      memcpy((u8*)&(g_pCurrentModel->processesPriorities), pData, sizeof(type_processes_priorities));
+      log_line("Restart processes now? %s", pPHC->command_param?"yes":"no");
+      log_line("New router raw priority: %d and radio rx/tx threads raw priorities: %d/%d (adjustments enabled: %d)",
+         pNewPrio->iThreadPriorityRouter, pNewPrio->iThreadPriorityRadioRx, pNewPrio->iThreadPriorityRadioTx,
+         (pNewPrio->uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS)?1:0);
       saveCurrentModel();
-      signalReloadModel(MODEL_CHANGED_THREADS_PRIORITIES, 0);
+      signalReloadModel(MODEL_CHANGED_THREADS_PRIORITIES, pPHC->command_param?1:0);
       return true;
    }
 
@@ -3004,6 +3012,9 @@ bool process_command(u8* pBuffer, int length)
       g_pCurrentModel->video_link_profiles[VIDEO_PROFILE_USER].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_RETRANSMISSIONS_DUPLICATION_PERCENT_AUTO;
       g_pCurrentModel->video_link_profiles[VIDEO_PROFILE_USER].uProfileEncodingFlags &= (~VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
       g_pCurrentModel->video_link_profiles[VIDEO_PROFILE_USER].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
+      g_pCurrentModel->video_link_profiles[VIDEO_PROFILE_CUST].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_RETRANSMISSIONS_DUPLICATION_PERCENT_AUTO;
+      g_pCurrentModel->video_link_profiles[VIDEO_PROFILE_CUST].uProfileEncodingFlags &= (~VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
+      g_pCurrentModel->video_link_profiles[VIDEO_PROFILE_CUST].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
 
       saveCurrentModel();
       //hardware_sleep_ms(400);
@@ -3079,6 +3090,9 @@ void on_received_command(u8* pBuffer, int length)
 
 void _periodic_loop()
 {
+   if ( process_sw_upload_is_rebooting() )
+      return;
+
    if ( (g_TimeLastSetRadioLinkFlagsStartOperation != 0) && s_bWaitForRadioFlagsChangeConfirmation && (s_iRadioLinkIdChangeConfirmation != -1) )
    {
       if ( g_TimeNow >= g_TimeLastSetRadioLinkFlagsStartOperation + TIMEOUT_RADIO_FRAMES_FLAGS_CHANGE_CONFIRMATION )
@@ -3107,7 +3121,7 @@ void _periodic_loop()
       process_sw_upload_check_timeout(g_TimeNow);
 }
 
-void handle_sigint_rc(int sig) 
+void handle_sigint_rcom(int sig) 
 { 
    log_line("--------------------------");
    log_line("Caught signal to stop: %d", sig);
@@ -3117,19 +3131,21 @@ void handle_sigint_rc(int sig)
 
 int r_start_commands_rx(int argc, char* argv[])
 {
-   signal(SIGINT, handle_sigint_rc);
-   signal(SIGTERM, handle_sigint_rc);
-   signal(SIGQUIT, handle_sigint_rc);
-
+   signal(SIGINT, handle_sigint_rcom);
+   signal(SIGTERM, handle_sigint_rcom);
+   signal(SIGQUIT, handle_sigint_rcom);
 
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
-      printf("%d.%d (b%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER);
+      printf("%d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       return 0;
    }
 
    log_init("RX_Commands");
    log_arguments(argc, argv);
+
+   //utils_log_radio_packets_sizes();
+   //radio_packets_log_sizes();
 
    s_fIPCFromRouter = ruby_open_ipc_channel_read_endpoint(IPC_CHANNEL_TYPE_ROUTER_TO_COMMANDS);
    if ( s_fIPCFromRouter < 0 )
@@ -3140,10 +3156,13 @@ int r_start_commands_rx(int argc, char* argv[])
       return -1;
  
    hardware_detectBoardAndSystemType();
+   // Need to have i2c enumarated already so command reset/factory reset does not take a lot of time
+   hardware_i2c_enumerate_busses();
+   hardware_i2c_load_device_settings();
 
    g_uControllerId = vehicle_utils_getControllerId();
    load_VehicleSettings();
-   hardware_reload_serial_ports_settings();
+   hardware_serial_reload_ports_settings();
    hardware_enumerate_radio_interfaces();
 
    loadAllModels();
@@ -3158,16 +3177,16 @@ int r_start_commands_rx(int argc, char* argv[])
       log_disable();
    }
 
-   hw_set_priority_current_proc(g_pCurrentModel->processesPriorities.iNiceOthers);
+   if ( g_pCurrentModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS )
+      hw_set_priority_current_proc(g_pCurrentModel->processesPriorities.iThreadPriorityOthers);
+   if ( g_pCurrentModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_AFFINITY_CORES )
+      hw_set_current_thread_affinity("rx_commands", g_pCurrentModel->processesPriorities.iCoreCommands, g_pCurrentModel->processesPriorities.iCoreCommands);
 
    g_pProcessStats = shared_mem_process_stats_open_write(SHARED_MEM_WATCHDOG_COMMANDS_RX);
    if ( NULL == g_pProcessStats )
       log_softerror_and_alarm("Failed to open shared mem for commands Rx process watchdog for writing: %s", SHARED_MEM_WATCHDOG_COMMANDS_RX);
    else
       log_line("Opened shared mem for commands Rx process watchdog for writing.");
-
-   // To fix
-   //video_overwrites_init( &s_CurrentVideoLinkOverwrites, g_pCurrentModel );
 
    process_sw_upload_init();
    process_calibration_files_init();
@@ -3178,9 +3197,12 @@ int r_start_commands_rx(int argc, char* argv[])
    s_InfoLastFileUploaded.uTotalSegments = 0;
    s_InfoLastFileUploaded.uLastCommandIdForThisFile = 0;
 
-   char szFileStop[MAX_FILE_PATH_SIZE];
-   strcpy(szFileStop, FOLDER_RUBY_TEMP);
-   strcat(szFileStop, FILE_TEMP_STOP);
+   sem_t* pSemaphoreStop = sem_open(SEMAPHORE_STOP_VEHICLE_COMMANDS, O_CREAT, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL == pSemaphoreStop) || (SEM_FAILED == pSemaphoreStop) )
+   {
+      log_error_and_alarm("Failed to open semaphore: %s", SEMAPHORE_STOP_VEHICLE_COMMANDS);
+      pSemaphoreStop = NULL;
+   } 
 
    g_TimeNow = get_current_timestamp_ms();
    g_TimeStart = get_current_timestamp_ms();
@@ -3200,7 +3222,7 @@ int r_start_commands_rx(int argc, char* argv[])
   
    g_TimeLastPeriodicCheck = get_current_timestamp_ms();
  
-   int iSleepIntervalMS = 50;
+   int iSleepIntervalMS = 2;
 
    while (!g_bQuit) 
    {
@@ -3220,24 +3242,23 @@ int r_start_commands_rx(int argc, char* argv[])
          g_TimeLastPeriodicCheck = g_TimeNow;
          _periodic_loop();
 
-         if ( access(szFileStop, R_OK) != -1 )
+         if ( is_semaphore_signaled_clear(pSemaphoreStop, SEMAPHORE_STOP_VEHICLE_COMMANDS) )
          {
-            log_line("File to stop is present. Stopping...");
-            char szComm[256];
-            snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s", szFileStop);
-            hw_execute_bash_command(szComm, NULL);
+            log_line("Semaphore to stop is signaled. Stopping...");
             g_bQuit = true;
             break;
          }
       }
 
-      if ( iSleepIntervalMS < 50 )
-         iSleepIntervalMS += 10;
+      if ( iSleepIntervalMS < 20 )
+         iSleepIntervalMS += 2;
 
-      int maxMsgToRead = 5 + DEFAULT_UPLOAD_PACKET_CONFIRMATION_FREQUENCY;
+      int maxMsgToRead = 10 + DEFAULT_UPLOAD_PACKET_CONFIRMATION_FREQUENCY;
       while ( (maxMsgToRead > 0) && (NULL != ruby_ipc_try_read_message(s_fIPCFromRouter, s_PipeTmpBufferCommands, &s_PipeTmpBufferCommandsPos, s_BufferCommands)) )
       {
-         iSleepIntervalMS = 2;
+         if ( process_sw_upload_is_rebooting() )
+            continue;
+         iSleepIntervalMS = 1;
          maxMsgToRead--;
          if ( NULL != g_pProcessStats )
             g_pProcessStats->lastIPCIncomingTime = g_TimeNow;
@@ -3254,8 +3275,10 @@ int r_start_commands_rx(int argc, char* argv[])
             if ( pPH->total_length >= sizeof(t_packet_header) + 3*sizeof(u32) )
                memcpy(&g_pCurrentModel->uControllerBoardType, &(s_BufferCommands[sizeof(t_packet_header) + 2*sizeof(u32)]), sizeof(u32));
 
-            log_line("Received pairing request from router (received retry counter: %u). CID: %u, VID: %u. Developer mode: %s. Updating local model.",
-                uResendCount, pPH->vehicle_id_src, pPH->vehicle_id_dest, (g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE)?"on":"off");
+            log_line("Pairing request: Currently stored controller ID: %u / %u", g_uControllerId, g_pCurrentModel->uControllerId);
+            log_line("Received pairing request from router (received resend count: %u). From CID %u to VID %u (%s). Developer mode: %s. Updating local model.",
+               uResendCount, pPH->vehicle_id_src, pPH->vehicle_id_dest, (pPH->vehicle_id_dest == g_pCurrentModel->uVehicleId)?"self":"not self", (g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE)?"on":"off");
+
             if ( NULL != g_pCurrentModel )
             {
                if ( (0 != g_uControllerId) && (g_uControllerId != pPH->vehicle_id_src) )
@@ -3265,9 +3288,6 @@ int r_start_commands_rx(int argc, char* argv[])
                }
                g_uControllerId = pPH->vehicle_id_src;
                g_pCurrentModel->uControllerId = pPH->vehicle_id_src;
-               if ( g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId >= 0 )
-               if ( g_pCurrentModel->relay_params.uRelayedVehicleId != 0 )
-                  g_pCurrentModel->relay_params.uCurrentRelayMode = RELAY_MODE_MAIN | RELAY_MODE_IS_RELAY_NODE;
             }
             s_InfoLastFileUploaded.uLastCommandIdForThisFile = 0;
          }
@@ -3327,12 +3347,6 @@ int r_start_commands_rx(int argc, char* argv[])
                else
                   log_softerror_and_alarm("Invalid parameters for changing radio link frequency. radio link: %u of %d", uLinkId+1, g_pCurrentModel->radioLinksParams.links_count);
             }
-            
-            if ( pPH->packet_type == PACKET_TYPE_LOCAL_CONTROL_UPDATED_VIDEO_LINK_OVERWRITES )
-            {
-               // To fix
-               //memcpy(&s_CurrentVideoLinkOverwrites, (&s_BufferCommands[0]) + sizeof(t_packet_header), sizeof(shared_mem_video_link_overwrites));
-            }
             continue;
          }
 
@@ -3356,7 +3370,11 @@ int r_start_commands_rx(int argc, char* argv[])
    }
 
    log_line("Stopping...");
-   
+
+   if ( NULL != pSemaphoreStop )
+       sem_close(pSemaphoreStop);
+   sem_unlink(SEMAPHORE_STOP_VEHICLE_COMMANDS);
+
    ruby_close_ipc_channel(s_fIPCFromRouter);
    ruby_close_ipc_channel(s_fIPCToRouter);
    s_fIPCFromRouter = -1;

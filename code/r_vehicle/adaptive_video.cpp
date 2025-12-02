@@ -102,7 +102,7 @@ void _adaptive_video_turn_focusmode_bw_on()
 
 void _adaptive_video_turn_focusmode_bw_off_after(u32 uTimeout)
 {
-   if ( s_bAdaptiveVideoIsFocusModeBWActive )
+   if ( s_bAdaptiveVideoIsFocusModeBWActive && (0 == s_uAdaptiveVideoTimeTurnFocusModeBWOff) )
       s_uAdaptiveVideoTimeTurnFocusModeBWOff = g_TimeNow + uTimeout;
 }
 
@@ -260,7 +260,18 @@ void adaptive_video_on_message_from_controller(u32 uRequestId, u8 uFlags, u32 uV
    if ( uFlags & FLAG_ADAPTIVE_VIDEO_BITRATE )
    {
       s_uAdaptiveVideoLastSetVideoBitrateBPS = uVideoBitrate;
-      packet_utils_set_adaptive_video_bitrate(s_uAdaptiveVideoLastSetVideoBitrateBPS);
+
+      int iCurrentVideoProfile = g_pCurrentModel->video_params.iCurrentVideoProfile;
+      int iDataRateForCurrentVideoBitrate = g_pCurrentModel->getRadioDataRateForVideoBitrate(s_uAdaptiveVideoLastSetVideoBitrateBPS, 0);
+      bool bOnlyMediumAdaptive = false;
+      if ( (g_pCurrentModel->video_link_profiles[iCurrentVideoProfile].uProfileEncodingFlags) & VIDEO_PROFILE_ENCODING_FLAG_USE_MEDIUM_ADAPTIVE_VIDEO )
+         bOnlyMediumAdaptive = true;
+      bool bIsOnLowestDataRate = false;
+      if ( (-1 == iDataRateForCurrentVideoBitrate) || (getDataRatesBPS()[0] == iDataRateForCurrentVideoBitrate) )
+         bIsOnLowestDataRate = true;
+      else if ( bOnlyMediumAdaptive && ((-2 == iDataRateForCurrentVideoBitrate) || (getDataRatesBPS()[1] == iDataRateForCurrentVideoBitrate)) )
+         bIsOnLowestDataRate = true;
+
       if ( negociate_radio_link_is_in_progress() )
       {
          log_line("[AdaptiveVideo] Negociate radio flow is in progress. Do not change video bitrate now.");
@@ -271,10 +282,21 @@ void adaptive_video_on_message_from_controller(u32 uRequestId, u8 uFlags, u32 uV
       }
       else
       {
+         int iIPQDelta = video_source_get_last_set_ipqdelta();
+         //if ( iIPQDelta < -100 )
+            iIPQDelta = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iIPQuantizationDelta;
+         if ( bIsOnLowestDataRate )
+         if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileFlags & VIDEO_PROFILE_FLAG_LOWER_QP_DELTA_ON_LOW_LINK )
+         {
+            iIPQDelta = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iIPQuantizationDelta - 1;
+            if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileFlags & VIDEO_PROFILE_FLAG_LOWER_QP_DELTA_ON_LOW_LINK_HIGH )
+               iIPQDelta = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iIPQuantizationDelta - 2;
+         }
+
          if ( 0 == s_uAdaptiveVideoLastSetVideoBitrateBPS )
-            video_sources_set_video_bitrate(g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps, g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iIPQuantizationDelta, "AdaptiveVideo");
+            video_sources_set_video_bitrate(g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps, iIPQDelta, "AdaptiveVideo");
          else
-            video_sources_set_video_bitrate(s_uAdaptiveVideoLastSetVideoBitrateBPS, g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].iIPQuantizationDelta, "AdaptiveVideo");
+            video_sources_set_video_bitrate(s_uAdaptiveVideoLastSetVideoBitrateBPS, iIPQDelta, "AdaptiveVideo");
          log_line("[AdaptiveVideo] Did set new video bitrate of %.2f Mbps; datarate for new video bitrate: %s",
             (float)video_sources_get_last_set_video_bitrate()/1000.0/1000.0,
             str_format_datarate_inline(g_pCurrentModel->getRadioDataRateForVideoBitrate(video_sources_get_last_set_video_bitrate(), 0)));
@@ -282,18 +304,10 @@ void adaptive_video_on_message_from_controller(u32 uRequestId, u8 uFlags, u32 uV
 
       if ( g_pCurrentModel->video_params.uVideoExtraFlags & VIDEO_FLAG_ENABLE_FOCUS_MODE_BW )
       {
-         int iCurrentVideoProfile = g_pCurrentModel->video_params.iCurrentVideoProfile;
-         bool bOnlyMediumAdaptive = false;
-         if ( (g_pCurrentModel->video_link_profiles[iCurrentVideoProfile].uProfileEncodingFlags) & VIDEO_PROFILE_ENCODING_FLAG_USE_MEDIUM_ADAPTIVE_VIDEO )
-            bOnlyMediumAdaptive = true;
-
-         int iDataRateForCurrentVideoBitrate = g_pCurrentModel->getRadioDataRateForVideoBitrate(s_uAdaptiveVideoLastSetVideoBitrateBPS, 0);
-         if ( (-1 == iDataRateForCurrentVideoBitrate) || (getDataRatesBPS()[0] == iDataRateForCurrentVideoBitrate) )
-            _adaptive_video_turn_focusmode_bw_on();
-         else if ( bOnlyMediumAdaptive && ((-2 == iDataRateForCurrentVideoBitrate) || (getDataRatesBPS()[1] == iDataRateForCurrentVideoBitrate)) )
+         if ( bIsOnLowestDataRate )
             _adaptive_video_turn_focusmode_bw_on();
          else
-            _adaptive_video_turn_focusmode_bw_off_after(1000);
+            _adaptive_video_turn_focusmode_bw_off_after(2000);
       }
    }
 

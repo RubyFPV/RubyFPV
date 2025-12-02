@@ -38,6 +38,7 @@
 #include "../radio/radioflags.h"
 #include "../radio/radiopackets2.h"
 #include <ctype.h>
+#include <sched.h>
 #include "string_utils.h"
 #include "strings_loc.h"
 
@@ -221,6 +222,23 @@ char* str_format_binary_number(u32 uNumber)
    return s_szFormatBinaryNumber;
 }
 
+char* str_format_schedule_policy(int iSchedulePolicy)
+{
+   static char s_szSchedulePolicyName[64];
+   switch(iSchedulePolicy)
+   {
+      //case SCHED_DEADLINE: strcpy(s_szSchedulePolicyName,"SCHED_DEADLINE"); break;
+      case SCHED_RR: strcpy(s_szSchedulePolicyName,"SCHED_RR"); break;
+      case SCHED_FIFO: strcpy(s_szSchedulePolicyName,"SCHED_FIFO"); break;
+      //case SCHED_NORMAL: strcpy(s_szSchedulePolicyName,"SCHED_NORMAL"); break;
+      case SCHED_OTHER: strcpy(s_szSchedulePolicyName,"SCHED_OTHER"); break;
+      //case SCHED_IDLE: strcpy(s_szSchedulePolicyName,"SCHED_IDLE"); break;
+      default: strcpy(s_szSchedulePolicyName, "N/A"); break;
+   }
+   return s_szSchedulePolicyName;
+}
+
+
 char* str_get_pipe_flags(int iFlags)
 {
    static char s_szBufferPipeFlags[256];
@@ -275,6 +293,22 @@ char* str_get_pipe_flags(int iFlags)
 
    strcat(s_szBufferPipeFlags, " ]");
    return s_szBufferPipeFlags;
+}
+
+char* str_format_processes_flags(u32 uProcessesFlags)
+{
+   static char s_szProcessesFlags[128];
+   s_szProcessesFlags[0] = 0;
+
+   if ( uProcessesFlags & PROCESSES_FLAGS_BALANCE_INTERRUPTS_CORES )
+      strcat(s_szProcessesFlags, "BALANCE_INTERRUPTS ");
+   if ( uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS )
+      strcat(s_szProcessesFlags, "ENABLE_PRIORITY_ADJUSTMENT ");
+   if ( uProcessesFlags & PROCESSES_FLAGS_ENABLE_AFFINITY_CORES )
+      strcat(s_szProcessesFlags, "ENABLE_CORE_AFFINITY ");
+   if ( uProcessesFlags & PROCESSES_FLAGS_ENABLE_AFFINITY_CORES_VIDEO_CAPTURE )
+      strcat(s_szProcessesFlags, "ENABLE_CORE_AFFINITY_VIDEOCAP ");
+   return s_szProcessesFlags;
 }
 
 char* str_get_packet_type(int iPacketType)
@@ -343,7 +377,6 @@ char* str_get_packet_type(int iPacketType)
       case PACKET_TYPE_LOCAL_CONTROL_UPDATE_STARTED:        strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_UPDATE_STARTED"); break;
       case PACKET_TYPE_LOCAL_CONTROL_UPDATE_STOPED:         strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_UPDATE_STOPED"); break;
       case PACKET_TYPE_LOCAL_CONTROL_UPDATE_FINISHED:       strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_UPDATE_FINISHED"); break;
-      case PACKET_TYPE_LOCAL_CONTROL_UPDATED_VIDEO_LINK_OVERWRITES:  strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_UPDATED_VIDEO_LINK_OVERWRITES"); break;
       case PACKET_TYPE_LOCAL_CONTROL_RELAY_MODE_SWITCHED:            strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_RELAY_MODE_SWITCHED"); break;
       case PACKET_TYPE_LOCAL_CONTROL_BROADCAST_RADIO_REINITIALIZED:  strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_BROADCAST_RADIO_REINITIALIZED"); break;
       case PACKET_TYPE_LOCAL_CONTROL_RECEIVED_MODEL_SETTING:         strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_RECEIVED_MODEL_SETTING"); break;
@@ -360,13 +393,13 @@ char* str_get_packet_type(int iPacketType)
       case PACKET_TYPE_LOCAL_CONTROL_BROADCAST_VEHICLE_STATS: strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_BROADCAST_VEHICLE_STATS"); break;
       case PACKET_TYPE_LOCAL_CONTROLLER_SEARCH_FREQ_CHANGED:  strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROLLER_SEARCH_FREQ_CHANGED"); break;
       case PACKET_TYPE_LOCAL_CONTROL_LINK_FREQUENCY_CHANGED:          strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_LINK_FREQUENCY_CHANGED"); break;
-      case PACKET_TYPE_LOCAL_CONTROL_VEHICLE_VIDEO_PROFILE_SWITCHED:   strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_VEHICLE_VIDEO_PROFILE_SWITCHED"); break;
       case PACKET_TYPE_LOCAL_CONTROL_VEHICLE_ROUTER_READY:             strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_VEHICLE_ROUTER_READY"); break;
       case PACKET_TYPE_LOCAL_CONTROL_VEHICLE_SET_SIK_RADIO_SERIAL_SPEED:  strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_VEHICLE_SET_SIK_RADIO_SERIAL_SPEED"); break;
       case PACKET_TYPE_LOCAL_CONTROL_VEHICLE_SEND_MODEL_SETTINGS:      strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_VEHICLE_SEND_MODEL_SETTINGS"); break;
       case PACEKT_TYPE_LOCAL_CONTROLLER_ADAPTIVE_VIDEO_PAUSE: strcpy(s_szPacketType, "PACEKT_TYPE_LOCAL_CONTROLLER_ADAPTIVE_VIDEO_PAUSE"); break;
       case PACKET_TYPE_LOCAL_CONTROL_VEHICLE_APPLY_ALL_VIDEO_SETTINGS: strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_VEHICLE_APPLY_ALL_VIDEO_SETTINGS"); break;
       case PACKET_TYPE_LOCAL_CONTROL_OSD_PLUGINS_NEED_TELEMETRY: strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_OSD_PLUGINS_NEED_TELEMETRY"); break;
+      case PACKET_TYPE_LOCAL_CONTROL_LONG_TASK: strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_LONG_TASK"); break;
 
       case PACKET_TYPE_DEBUG_VEHICLE_RT_INFO:      strcpy(s_szPacketType, "PACKET_TYPE_DEBUG_VEHICLE_RT_INFO"); break;
       case PACKET_TYPE_OTA_UPDATE_STATUS:          strcpy(s_szPacketType, "PACKET_TYPE_OTA_UPDATE_STATUS"); break;
@@ -1306,6 +1339,11 @@ char* str_format_video_profile_flags(u32 uVideoProfileFlags)
       sprintf(szTmp, "-%d", iRate);
       strcat(s_szVideoProfileFlagsString, szTmp);
    }
+
+   if ( uVideoProfileFlags & VIDEO_PROFILE_FLAG_USE_LOWER_DR_FOR_EC_PACKETS )
+      strcat(s_szVideoProfileFlagsString, " USE_LOWER_DR_FOR_EC");
+   if ( uVideoProfileFlags & VIDEO_PROFILE_FLAG_USE_LOWER_DR_FOR_RETR_PACKETS )
+      strcat(s_szVideoProfileFlagsString, " USE_LOWER_DR_FOR_RETR");
    return s_szVideoProfileFlagsString;
 }
 
@@ -1361,23 +1399,25 @@ char* str_format_video_encoding_flags(u32 uVideoProfileEncodingFlags)
 
 char* str_get_video_profile_name(u32 videoProfileId)
 {
-   static char s_szOSDSchema[32];
+   static char s_szProfileName[32];
 
-   strcpy(s_szOSDSchema, "NA");
+   strcpy(s_szProfileName, "NA");
    if ( videoProfileId == VIDEO_PROFILE_HIGH_PERF )
-      strcpy(s_szOSDSchema,"HP");
+      strcpy(s_szProfileName,"HP");
    else if ( videoProfileId == VIDEO_PROFILE_HIGH_QUALITY )
-      strcpy(s_szOSDSchema,"HQ");
+      strcpy(s_szProfileName,"HQ");
    else if ( videoProfileId == VIDEO_PROFILE_LONG_RANGE )
-      strcpy(s_szOSDSchema,"LR");
+      strcpy(s_szProfileName,"LR");
    else if ( videoProfileId == VIDEO_PROFILE_USER )
-      strcpy(s_szOSDSchema,"USR");
+      strcpy(s_szProfileName,"USR");
+   else if ( videoProfileId == VIDEO_PROFILE_CUST )
+      strcpy(s_szProfileName,"CUST");
    else if ( videoProfileId == VIDEO_PROFILE_PIP )
-      strcpy(s_szOSDSchema,"PIP");
+      strcpy(s_szProfileName,"PIP");
    else
-      strcpy(s_szOSDSchema,"N/A");
+      strcpy(s_szProfileName,"N/A");
 
-   return s_szOSDSchema;
+   return s_szProfileName;
 }
 
 char* str_get_decode_h264_profile_name(u8 uH264Profile, u8 uH264ProfileConstrains, u8 uH264Level)
@@ -1633,6 +1673,8 @@ char* str_get_model_change_type(int iModelChangeType)
       strcpy(s_szModelChangeTypeString, "MODEL_CHANGED_STATS");
    else if ( iModelChangeType == MODEL_CHANGED_THREADS_PRIORITIES )
       strcpy(s_szModelChangeTypeString, "MODEL_CHANGED_THREADS_PRIORITIES");
+   else if ( iModelChangeType == MODEL_CHANGED_OVERCLOCKING )
+      strcpy(s_szModelChangeTypeString, "MODEL_CHANGED_OVERCLOCKING");
 
    else if ( iModelChangeType == MODEL_CHANGED_SWAPED_RADIO_INTERFACES )
       strcpy(s_szModelChangeTypeString, "MODEL_CHANGED_SWAPED_RADIO_INTERFACES");
@@ -1682,6 +1724,10 @@ char* str_format_relay_mode(u32 uRelayMode)
 {
    static char s_szRelayModeDescription[128];
    s_szRelayModeDescription[0] = 0;
+
+   if ( uRelayMode & RELAY_MODE_PERMANENT_REMOTE )
+      strcat(s_szRelayModeDescription, " Permanent-Remote");
+
    if ( uRelayMode & RELAY_MODE_MAIN )
       strcat(s_szRelayModeDescription, " Main");
    if ( uRelayMode & RELAY_MODE_REMOTE )

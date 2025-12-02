@@ -129,6 +129,7 @@ void radio_links_flag_reinit_sik_interface(int iInterfaceIndex)
 static void * _reinit_sik_thread_func(void *ignored_argument)
 {
    log_line("[Router-SiKThread] Reinitializing SiK radio interfaces...");
+   hw_log_current_thread_attributes("sik reinit");
 
    // radio serial ports are already closed at this point
 

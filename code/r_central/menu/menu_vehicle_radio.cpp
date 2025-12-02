@@ -57,7 +57,7 @@ int s_iTempGenNewFrequencyLink = 0;
 MenuVehicleRadioConfig::MenuVehicleRadioConfig(void)
 :Menu(MENU_ID_VEHICLE_RADIO_CONFIG, L("Vehicle Radio Configuration"), NULL)
 {
-   m_Width = 0.35;
+   m_Width = 0.39;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.21;
    m_bControllerHasKey = false;
    for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
@@ -68,10 +68,20 @@ MenuVehicleRadioConfig::MenuVehicleRadioConfig(void)
    }
    m_IndexDevRuntimeInfo = -1;
    m_IndexShowTxPower = -1;
+   m_pPopupRadioInterface = NULL;
+   m_iLastLinkAddedPopupFor = -1;
+   m_bDisablePopupCreation = false;
 }
 
 MenuVehicleRadioConfig::~MenuVehicleRadioConfig()
 {
+   if ( NULL != m_pPopupRadioInterface )
+   {
+      popups_remove(m_pPopupRadioInterface);
+      m_pPopupRadioInterface = NULL;
+      log_line("MenuVehicleRadio: Removed popup for tx power");
+   }
+   m_iLastLinkAddedPopupFor = -1;
 }
 
 void MenuVehicleRadioConfig::onAddToStack()
@@ -440,6 +450,10 @@ void MenuVehicleRadioConfig::populateTxPowers()
 
 void MenuVehicleRadioConfig::onShow()
 {
+   log_line("MenuVehicleRadio: onShow");
+
+   PopupRadioInterface* pTmpPopup = m_pPopupRadioInterface;
+   m_bDisablePopupCreation = true;
    int iTmp = getSelectedMenuItemIndex();
 
    valuesToUI();
@@ -451,6 +465,9 @@ void MenuVehicleRadioConfig::onShow()
       m_SelectedIndex = 0;
    if ( m_SelectedIndex >= m_ItemsCount )
       m_SelectedIndex = m_ItemsCount-1;
+
+   m_pPopupRadioInterface = pTmpPopup;
+   m_bDisablePopupCreation = false;
 }
 
 
@@ -472,9 +489,54 @@ void MenuVehicleRadioConfig::Render()
    RenderEnd(yTop);
 }
 
+void MenuVehicleRadioConfig::onFocusedItemChanged()
+{
+   Menu::onFocusedItemChanged();
+   log_line("MenuVehicleRadio: onFocusedItemChanged");
+   if ( m_bDisablePopupCreation )
+      return;
+   bool bAnyRadioLinkFocused = false;
+   for( int iLink=0; iLink<g_pCurrentModel->radioLinksParams.links_count; iLink++ )
+   {
+      if ( (m_IndexTxPowers[iLink] != -1) && (m_IndexTxPowers[iLink] == m_SelectedIndex) )
+      {
+         bAnyRadioLinkFocused = true;
+         if ( m_iLastLinkAddedPopupFor != iLink )
+         {
+            if ( NULL != m_pPopupRadioInterface )
+            {
+               popups_remove(m_pPopupRadioInterface);
+               log_line("MenuVehicleRadio: Removed popup for tx power");
+            }
+            log_line("MenuVehicleRadio: Added popup for tx power for radio link %d", iLink+1);
+            m_iLastLinkAddedPopupFor = iLink;
+            m_pPopupRadioInterface = new PopupRadioInterface(iLink);
+            popups_add_bottom(m_pPopupRadioInterface);
+         }
+         break;
+      }
+   }
+   if ( ! bAnyRadioLinkFocused )
+   {
+      if ( NULL != m_pPopupRadioInterface )
+      {
+         popups_remove(m_pPopupRadioInterface);
+         log_line("MenuVehicleRadio: Removed popup for tx power");
+      }
+      m_pPopupRadioInterface = NULL;
+      m_iLastLinkAddedPopupFor = -1;
+   }
+}
 
 int MenuVehicleRadioConfig::onBack()
 {
+   if ( NULL != m_pPopupRadioInterface )
+   {
+      popups_remove(m_pPopupRadioInterface);
+      m_pPopupRadioInterface = NULL;
+      log_line("MenuVehicleRadio: Removed popup for tx power");
+   }
+
    return Menu::onBack();
 }
 
@@ -756,24 +818,11 @@ void MenuVehicleRadioConfig::onSelectItem()
             add_menu_to_stack(new MenuConfirmation("Confirmation",szBuff, 0, true));
          }
 
-      if ( (get_sw_version_major(g_pCurrentModel) < 9) ||
-           ((get_sw_version_major(g_pCurrentModel) == 9) && (get_sw_version_minor(g_pCurrentModel) <= 20)) )
-      {
-         addMessageWithTitle(0, L("Can't update radio links"), L("You need to update your vehicle to version 9.2 or newer"));
-         return;
-      }
-
       sendNewRadioLinkFrequency(n, freq);
    }
 
    if ( m_IndexRadioConfig == m_SelectedIndex )
    {
-      if ( get_sw_version_build(g_pCurrentModel) < 288 )
-      {
-         addMessage(L("Radio functionality has changed. You need to update your vehicle sowftware."));
-         return;
-      }
-
       MenuRadioConfig* pM = new MenuRadioConfig();
       pM->m_bGoToFirstRadioLinkOnShow = true;
       add_menu_to_stack(pM);
@@ -782,11 +831,6 @@ void MenuVehicleRadioConfig::onSelectItem()
 
    if ( m_IndexOptimizeLinks == m_SelectedIndex )
    {
-      if ( (NULL != g_pCurrentModel) && ((g_pCurrentModel->sw_version >> 16) < 288) )
-      {
-         addMessage(0, L("You must update your vehicle first."));
-         return;
-      }
       add_menu_to_stack(new MenuNegociateRadio());
       return;
    }

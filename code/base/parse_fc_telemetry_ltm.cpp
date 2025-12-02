@@ -102,7 +102,7 @@ u32 parse_ltm_read_u32()
    return t;
 }
 
-bool _parse_ltm_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_ruby_telemetry_extended_v5* pPHRTE, u8 vehicleType)
+bool _parse_ltm_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_ruby_telemetry_extended_v6* pPHRTE, u8 vehicleType)
 {
    s_LTMPayloadReadIndex = 0;
    u8 tmp8;
@@ -279,7 +279,7 @@ bool _parse_ltm_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_ru
 
 
 
-bool parse_telemetry_from_fc_ltm( u8* buffer, int length, t_packet_header_fc_telemetry* pphfct, t_packet_header_ruby_telemetry_extended_v5* pPHRTE, u8 vehicleType)
+bool parse_telemetry_from_fc_ltm( u8* buffer, int length, t_packet_header_fc_telemetry* pphfct, t_packet_header_ruby_telemetry_extended_v6* pPHRTE, u8 vehicleType)
 {
    bool ret = false;
    u8 c;

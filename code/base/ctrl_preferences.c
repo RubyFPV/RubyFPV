@@ -407,6 +407,8 @@ int load_Preferences()
       s_Preferences.iLanguage = 1;
       bOk = 0;
    }
+   if (! bOk )
+      s_Preferences.iLanguage = 1;
 
    if ( bOk )
    {

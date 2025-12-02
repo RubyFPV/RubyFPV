@@ -53,7 +53,7 @@ MenuControllerTelemetry::MenuControllerTelemetry(void)
    m_pItemsSelect[1] = new MenuItemSelect(L("Telemetry Local Serial Port"), "Sets the serial port to use for telemetry input/output to other devices.");
 
    m_pItemsSelect[1]->addSelection(L("None"));
-   for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+   for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
       hw_serial_port_info_t* pInfo = hardware_get_serial_port_info(i);
       if ( NULL == pInfo )
@@ -65,10 +65,10 @@ MenuControllerTelemetry::MenuControllerTelemetry(void)
 
    m_pItemsSelect[2] = new MenuItemSelect(L("Telemetry Local Port Baudrate"), L("Sets the baud rate of the serial port used for telemetry."));
 
-   for( int n=0; n<hardware_get_serial_baud_rates_count(); n++ )
+   for( int n=0; n<hardware_serial_get_baud_rates_count(); n++ )
    {
       char szBuff[32];
-      sprintf(szBuff, "%d bps", hardware_get_serial_baud_rates()[n]);
+      sprintf(szBuff, "%d bps", hardware_serial_get_baud_rates()[n]);
       m_pItemsSelect[2]->addSelection(szBuff);
    }
    m_pItemsSelect[2]->setIsEditable();
@@ -112,7 +112,7 @@ void MenuControllerTelemetry::valuesToUI()
    }
 
    int iTelemetrySerialPortIndex = -1;
-   for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+   for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
       hw_serial_port_info_t* pPortInfo = hardware_get_serial_port_info(i);
       if ( NULL == pPortInfo )
@@ -145,7 +145,7 @@ void MenuControllerTelemetry::valuesToUI()
       hw_serial_port_info_t* pPortInfo = hardware_get_serial_port_info(iTelemetrySerialPortIndex);
       for(int n=0; n<m_pItemsSelect[2]->getSelectionsCount(); n++ )
       {
-         if ( (NULL != pPortInfo) && (hardware_get_serial_baud_rates()[n] == pPortInfo->lPortSpeed) )
+         if ( (NULL != pPortInfo) && (hardware_serial_get_baud_rates()[n] == pPortInfo->lPortSpeed) )
          {
             m_pItemsSelect[2]->setSelection(n);
             break;
@@ -201,7 +201,7 @@ void MenuControllerTelemetry::onSelectItem()
 
 
    int iCurrentTelemetrySerialPortIndex = -1;
-   for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+   for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
       hw_serial_port_info_t* pPortInfo = hardware_get_serial_port_info(i);
       if ( NULL == pPortInfo )
@@ -223,7 +223,7 @@ void MenuControllerTelemetry::onSelectItem()
       if ( 0 == idx )
       {
          log_line("MenuControllerTelemetry: Removed telemetry serial port.");
-         for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+         for( int i=0; i<hardware_serial_get_ports_count(); i++ )
          {
             hw_serial_port_info_t* pPortInfo = hardware_get_serial_port_info(i);
             if ( NULL == pPortInfo )
@@ -241,9 +241,9 @@ void MenuControllerTelemetry::onSelectItem()
       else
       {
          int portIndex = idx-1;
-         log_line("MenuControllerTelemetry: Set telemetry serial port index to %d (out of %d serial ports)", portIndex, hardware_get_serial_ports_count());
+         log_line("MenuControllerTelemetry: Set telemetry serial port index to %d (out of %d serial ports)", portIndex, hardware_serial_get_ports_count());
 
-         for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+         for( int i=0; i<hardware_serial_get_ports_count(); i++ )
          {
             hw_serial_port_info_t* pPortInfo = hardware_get_serial_port_info(i);
             if ( NULL == pPortInfo )
@@ -271,7 +271,7 @@ void MenuControllerTelemetry::onSelectItem()
    if ( m_IndexSerialSpeed == m_SelectedIndex )
    if ( -1 != iCurrentTelemetrySerialPortIndex )
    {
-      long val = hardware_get_serial_baud_rates()[m_pItemsSelect[2]->getSelectedIndex()];
+      long val = hardware_serial_get_baud_rates()[m_pItemsSelect[2]->getSelectedIndex()];
       hw_serial_port_info_t* pPortInfo = hardware_get_serial_port_info(iCurrentTelemetrySerialPortIndex);
          
       if ( (NULL != pPortInfo) && (val != pPortInfo->lPortSpeed) )

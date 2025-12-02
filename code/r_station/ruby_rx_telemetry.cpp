@@ -39,11 +39,13 @@
 #include "../base/config.h"
 #include "../base/models.h"
 #include "../base/models_list.h"
+#include "../base/utils.h"
 #include "../base/ctrl_settings.h"
 #include "../base/ctrl_interfaces.h"
 #include "../utils/utils_controller.h"
 #include "../base/ruby_ipc.h"
 #include "../common/string_utils.h"
+#include "../radio/radiopackets2.h"
 
 #include "timers.h"
 #include "shared_vars.h"
@@ -515,15 +517,13 @@ void try_read_messages_from_router()
 
 void init_serial_ports()
 {
-   ControllerSettings* pCS = get_ControllerSettings();
-
    g_iSerialPortIndexDataLink = -1;
    g_iSerialPortDataLinkSpeed = -1;
    g_iSerialPortIndexTelemetry = -1;
    g_iSerialPortTelemetrySpeed = -1;
    hw_serial_port_info_t* pPortInfo = NULL;
 
-   for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+   for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
       pPortInfo = hardware_get_serial_port_info(i);
       if ( (NULL != pPortInfo) && (pPortInfo->iPortUsage == SERIAL_PORT_USAGE_DATA_LINK) )
@@ -590,9 +590,8 @@ void init_serial_ports()
 
 void checkTelemetrySettingsOnControllerChanged()
 {
-   hardware_reload_serial_ports_settings();
+   hardware_serial_reload_ports_settings();
    load_ControllerSettings();
-   ControllerSettings* pCS = get_ControllerSettings();
 
    bool bParamsChanged = false;
 
@@ -611,7 +610,7 @@ void checkTelemetrySettingsOnControllerChanged()
    int dataLinkSpeed = -1;
    int telemetryLinkPort = -1;
    int telemetryLinkSpeed = -1;
-   for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+   for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
       hw_serial_port_info_t* pPortInfo = hardware_get_serial_port_info(i);
       if ( (NULL != pPortInfo) && (pPortInfo->iPortUsage == SERIAL_PORT_USAGE_DATA_LINK) )
@@ -762,7 +761,7 @@ int main(int argc, char *argv[])
    
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
-      printf("%d.%d (b%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER);
+      printf("%d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       return 0;
    }
    
@@ -777,18 +776,26 @@ int main(int argc, char *argv[])
   
    g_uControllerId = controller_utils_getControllerId();
    log_line("Controller UID: %u", g_uControllerId);
- 
+
+   utils_log_radio_packets_sizes();
+   radio_packets_log_sizes();
+
    loadAllModels();
    g_pCurrentModel = getCurrentModel();
-
-   if ( NULL != g_pCurrentModel )
-      hw_set_priority_current_proc(g_pCurrentModel->processesPriorities.iNiceTelemetry); 
 
    if ( -1 == open_pipes() )
       return -1;
 
    load_ControllerInterfacesSettings();
    load_ControllerSettings();
+   ControllerSettings* pCS = get_ControllerSettings();
+
+   if ( pCS->iCoresAdjustment )
+      hw_set_current_thread_affinity("rx_telemetry", CORE_AFFINITY_TELEMETRY_RX, CORE_AFFINITY_TELEMETRY_RX);
+ 
+   if ( pCS->iPrioritiesAdjustment )
+      hw_set_priority_current_proc(pCS->iThreadPriorityOthers); 
+
    init_serial_ports();
 
    Preferences* p = get_Preferences();   

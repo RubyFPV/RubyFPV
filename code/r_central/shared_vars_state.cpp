@@ -126,15 +126,16 @@ void reset_vehicle_runtime_info(t_structure_vehicle_info* pInfo)
    pInfo->uTimeLastRecvVehicleRxStats = 0;
 
    reset_counters(&(pInfo->vehicleDebugRouterCounters));
-   reset_radio_tx_timers(&(pInfo->vehicleDebugRadioTxTimers));
 
-   memset( &(pInfo->headerRubyTelemetryExtended), 0, sizeof(t_packet_header_ruby_telemetry_extended_v5));
+   memset( &(pInfo->headerRubyTelemetryExtended), 0, sizeof(t_packet_header_ruby_telemetry_extended_v6));
    memset( &(pInfo->headerRubyTelemetryExtraInfo), 0, sizeof(t_packet_header_ruby_telemetry_extended_extra_info));
    memset( &(pInfo->headerRubyTelemetryExtraInfoRetransmissions), 0, sizeof(t_packet_header_ruby_telemetry_extended_extra_info_retransmissions));
    memset( &(pInfo->headerRubyTelemetryShort), 0, sizeof(t_packet_header_ruby_telemetry_short));
    for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
       memset( &(pInfo->SMVehicleRxStats[i]), 0, sizeof(shared_mem_radio_stats_radio_interface));
    
+   memset( &(pInfo->headerRelayRadioLinksInfo), 0, sizeof(t_packet_header_relay_radio_info));
+
    // Reset FC telemetry info
    reset_vehicle_telemetry_runtime_info(pInfo);
    
@@ -261,7 +262,7 @@ t_structure_vehicle_info* get_vehicle_runtime_info_for_vehicle_id(u32 uVehicleId
    return NULL;
 }
 
-t_packet_header_ruby_telemetry_extended_v5* get_received_relayed_vehicle_telemetry_info()
+t_packet_header_ruby_telemetry_extended_v6* get_received_relayed_vehicle_telemetry_info()
 {
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
    {
@@ -275,40 +276,80 @@ t_packet_header_ruby_telemetry_extended_v5* get_received_relayed_vehicle_telemet
 
 void log_current_runtime_vehicles_info()
 {
+   char szTmp[128];
    int iCount = 0;
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
    {
       if ( (g_VehiclesRuntimeInfo[i].uVehicleId != 0) && (g_VehiclesRuntimeInfo[i].uVehicleId != MAX_U32) )
          iCount++;
    }
-   log_line("Current vehicles runtime info : count vehicles found in list: %d", iCount);
+   log_line("* Current vehicles runtime info : count vehicles found in list: %d", iCount);
 
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
    {
       if ( (g_VehiclesRuntimeInfo[i].uVehicleId == 0) || (g_VehiclesRuntimeInfo[i].uVehicleId == MAX_U32) )
          continue;
 
-      char szTmp[128];
       strcpy(szTmp, "NULL model");
+      int swversion = 0;
       if ( NULL != g_VehiclesRuntimeInfo[i].pModel )
+      {
          strcpy(szTmp, g_VehiclesRuntimeInfo[i].pModel->is_spectator?"spectator mode":"control mode");
-
-      log_line("Current vehicles runtime info: vehicle[%d]: %u %s, %s, Model: %p, model VID: %u, %s",
+         swversion = get_sw_version_build(g_VehiclesRuntimeInfo[i].pModel);
+      }
+      log_line("* Current vehicles runtime info: vehicle[%d]: VID: %u %s, %s, Model: %p, model stored VID: %u, sw version: b-%d, %s",
          i, g_VehiclesRuntimeInfo[i].uVehicleId, 
-         (g_VehiclesRuntimeInfo[i].bGotRubyTelemetryInfo)?"RT":"no RT",
-         (g_VehiclesRuntimeInfo[i].bGotFCTelemetry)?"FCT":"no FCT",
+         (g_VehiclesRuntimeInfo[i].bGotRubyTelemetryInfo)?"has Ruby-Tel":"no Ruby-Tel",
+         (g_VehiclesRuntimeInfo[i].bGotFCTelemetry)?"has FC-Tel":"no FC-Tel",
          g_VehiclesRuntimeInfo[i].pModel,
          (g_VehiclesRuntimeInfo[i].pModel != NULL)?(g_VehiclesRuntimeInfo[i].pModel->uVehicleId):0,
-         szTmp);
+         swversion, szTmp);
 
       if ( NULL == g_VehiclesRuntimeInfo[i].pModel )
-         log_softerror_and_alarm("Current vehicles runtime info: runtime info index %d has a valid VID: %d and a NULL model", i, g_VehiclesRuntimeInfo[i].uVehicleId);
+         log_softerror_and_alarm("* Current vehicles runtime info: runtime info index %d has a valid VID: %d and a NULL model", i, g_VehiclesRuntimeInfo[i].uVehicleId);
    }
-   log_line("Current vehicles runtime info: active vehicle runtime index: %d", g_iCurrentActiveVehicleRuntimeInfoIndex);
+
+   if ( (0 != g_SearchVehicleRuntimeInfo.uVehicleId) && (MAX_U32 != g_SearchVehicleRuntimeInfo.uVehicleId) )
+   {
+      strcpy(szTmp, "NULL model");
+      if ( NULL != g_SearchVehicleRuntimeInfo.pModel )
+         strcpy(szTmp, g_SearchVehicleRuntimeInfo.pModel->is_spectator?"spectator mode":"control mode");
+
+      log_line("* Current search vehicle runtime info: VID: %u %s, %s, Model: %p, model stored VID: %u, %s",
+         g_SearchVehicleRuntimeInfo.uVehicleId, 
+         (g_SearchVehicleRuntimeInfo.bGotRubyTelemetryInfo)?"RT":"no RT",
+         (g_SearchVehicleRuntimeInfo.bGotFCTelemetry)?"FCT":"no FCT",
+         g_SearchVehicleRuntimeInfo.pModel,
+         (g_SearchVehicleRuntimeInfo.pModel != NULL)?(g_SearchVehicleRuntimeInfo.pModel->uVehicleId):0,
+         szTmp);
+
+      if ( NULL == g_SearchVehicleRuntimeInfo.pModel )
+         log_softerror_and_alarm("* Current search vehicle runtime info: has a valid VID: %d and a NULL model", g_SearchVehicleRuntimeInfo.uVehicleId);
+   }
+
+   if ( (0 != g_UnexpectedVehicleRuntimeInfo.uVehicleId) && (MAX_U32 != g_UnexpectedVehicleRuntimeInfo.uVehicleId) )
+   {
+      strcpy(szTmp, "NULL model");
+      if ( NULL != g_UnexpectedVehicleRuntimeInfo.pModel )
+         strcpy(szTmp, g_UnexpectedVehicleRuntimeInfo.pModel->is_spectator?"spectator mode":"control mode");
+
+      log_line("* Current unexpected vehicle runtime info: VID: %u %s, %s, Model: %p, model stored VID: %u, %s",
+         g_UnexpectedVehicleRuntimeInfo.uVehicleId, 
+         (g_UnexpectedVehicleRuntimeInfo.bGotRubyTelemetryInfo)?"RT":"no RT",
+         (g_UnexpectedVehicleRuntimeInfo.bGotFCTelemetry)?"FCT":"no FCT",
+         g_UnexpectedVehicleRuntimeInfo.pModel,
+         (g_UnexpectedVehicleRuntimeInfo.pModel != NULL)?(g_UnexpectedVehicleRuntimeInfo.pModel->uVehicleId):0,
+         szTmp);
+
+      if ( NULL == g_UnexpectedVehicleRuntimeInfo.pModel )
+         log_softerror_and_alarm("* Current search vehicle runtime info: has a valid VID: %d and a NULL model", g_SearchVehicleRuntimeInfo.uVehicleId);
+   }
+
+   log_line("* Current vehicles runtime info: Active vehicle runtime index: %d", g_iCurrentActiveVehicleRuntimeInfoIndex);
    if ( NULL != g_pCurrentModel )
-      log_line("Current model (g_pCurrentModel) VID: %u, mode: %s", g_pCurrentModel->uVehicleId, g_pCurrentModel->is_spectator?"spectator mode":"control mode");
+      log_line("* Current model (g_pCurrentModel) VID: %u, sw version: b-%d, mode: %s, Model: %p", g_pCurrentModel->uVehicleId, get_sw_version_build(g_pCurrentModel), g_pCurrentModel->is_spectator?"spectator mode":"control mode", g_pCurrentModel);
    else
-      log_line("Current model (g_pCurrentModel): NULL");
+      log_line("* Current model (g_pCurrentModel): NULL");
 }
 
 bool vehicle_runtime_has_received_fc_telemetry(u32 uVehicleId)

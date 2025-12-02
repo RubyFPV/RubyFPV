@@ -68,60 +68,7 @@
 #include "events.h"
 #include "adaptive_video.h"
 #include "video_sources.h"
-// To fix may 2025 to remove the two includes
-#include "video_source_csi.h"
-#include "video_source_majestic.h"
-
-
-void update_priorities(type_processes_priorities* pOldPriorities, type_processes_priorities* pNewPriorities)
-{
-   if ( (NULL == pOldPriorities) || (NULL == pNewPriorities) )
-      return;
-
-   #ifdef HW_PLATFORM_RASPBERRY
-
-   if ( g_pCurrentModel->isActiveCameraVeye() )
-   {
-      hw_set_proc_priority(VIDEO_RECORDER_COMMAND_VEYE, g_pCurrentModel->processesPriorities.iNiceVideo, g_pCurrentModel->processesPriorities.ioNiceVideo, 1 );
-      hw_set_proc_priority(VIDEO_RECORDER_COMMAND_VEYE_SHORT_NAME, g_pCurrentModel->processesPriorities.iNiceVideo, g_pCurrentModel->processesPriorities.ioNiceVideo, 1 );
-   }
-   else
-      hw_set_proc_priority(VIDEO_RECORDER_COMMAND, g_pCurrentModel->processesPriorities.iNiceVideo, g_pCurrentModel->processesPriorities.ioNiceVideo, 1 );
-
-   hw_set_proc_priority("ruby_rt_vehicle", g_pCurrentModel->processesPriorities.iNiceRouter, g_pCurrentModel->processesPriorities.ioNiceRouter, 1);
-   hw_set_proc_priority("ruby_tx_telemetry", g_pCurrentModel->processesPriorities.iNiceTelemetry, 0, 1 );
-
-   // To fix, now rc and commands are part of ruby_start process
-   //hw_set_proc_priority("ruby_rx_rc", g_pCurrentModel->processesPriorities.iNiceRC, DEFAULT_IO_PRIORITY_RC, 1 );
-   //hw_set_proc_priority("ruby_rx_commands", g_pCurrentModel->processesPriorities.iNiceOthers, 0, 1 );
-
-   #endif
-
-   #ifdef HW_PLATFORM_OPENIPC_CAMERA
-   if ( pOldPriorities->iNiceVideo != pNewPriorities->iNiceVideo )
-   {
-      int iPID = hw_process_exists("majestic");
-      if ( iPID > 1 )
-      {
-         log_line("Adjust majestic nice priority to %d", pNewPriorities->iNiceVideo);
-         char szComm[256];
-         sprintf(szComm,"renice -n %d -p %d", pNewPriorities->iNiceVideo, iPID);
-         hw_execute_bash_command(szComm, NULL);
-      }
-      else
-         log_softerror_and_alarm("Can't find the PID of majestic");
-   }
-   #endif
-
-   if ( g_pCurrentModel->processesPriorities.iThreadPriorityRouter > 0 )
-      hw_increase_current_thread_priority(NULL, g_pCurrentModel->processesPriorities.iThreadPriorityRouter);
-   else if ( g_iDefaultRouterThreadPriority != -1 )
-      hw_increase_current_thread_priority(NULL, g_iDefaultRouterThreadPriority);
-     
-   radio_rx_set_custom_thread_priority(g_pCurrentModel->processesPriorities.iThreadPriorityRadioRx);
-   radio_tx_set_custom_thread_priority(g_pCurrentModel->processesPriorities.iThreadPriorityRadioTx);
-
-}
+#include "radio_links.h"
 
 u32 _get_previous_frequency_switch(int nLink)
 {
@@ -333,7 +280,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
       strcat(szFile, FILE_CONFIG_CURRENT_VEHICLE_MODEL);
       if ( ! g_pCurrentModel->loadFromFile(szFile, false) )
          log_error_and_alarm("Can't load current model vehicle.");
-      hardware_reload_serial_ports_settings();
+      hardware_serial_reload_ports_settings();
       ruby_ipc_channel_send_message(s_fIPCRouterToTelemetry, (u8*)pPH, pPH->total_length);
       if ( NULL != g_pProcessStats )
          g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
@@ -405,23 +352,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
    if ( (g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_BYPASS_SOCKETS_BUFFERS) != (oldRadioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_BYPASS_SOCKETS_BUFFERS) )
    {
       log_line("Radio bypass socket buffers changed. Reinit radio interfaces...");
-      radio_links_close_rxtx_radio_interfaces();
-      if ( NULL != g_pProcessStats )
-      {
-         g_TimeNow = get_current_timestamp_ms();
-         g_pProcessStats->lastActiveTime = g_TimeNow;
-         g_pProcessStats->lastIPCIncomingTime = g_TimeNow;
-      }
-      if ( g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_USE_PCAP_RADIO_TX )
-         radio_set_use_pcap_for_tx(1);
-      else
-         radio_set_use_pcap_for_tx(0);
-      
-      if ( g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_BYPASS_SOCKETS_BUFFERS )
-         radio_set_bypass_socket_buffers(1);
-      else
-         radio_set_bypass_socket_buffers(0);
-      radio_links_open_rxtx_radio_interfaces();
+      radio_links_restart(true);
    }
 
    if ( iPreviousRadioGraphsRefreshIntervalMs != g_pCurrentModel->osd_params.iRadioInterfacesGraphRefreshIntervalMs )
@@ -435,13 +366,59 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
 
    if ( changeType == MODEL_CHANGED_THREADS_PRIORITIES )
    {
-      log_line("Received notification to adjust threads priorities.");
+      log_line("Received notification to adjust threads priorities. Restart now? %s", iExtraParam?"yes":"no");
+      log_line("Different settings? %s", (0 == memcmp((u8*)&oldProcesses, (u8*)&(g_pCurrentModel->processesPriorities), sizeof(type_processes_priorities)))?"no":"yes");
       log_line("Old thread priorities: router %d, radio rx: %d, radio tx: %d",
          oldProcesses.iThreadPriorityRouter, oldProcesses.iThreadPriorityRadioRx, oldProcesses.iThreadPriorityRadioTx);
       log_line("New thread priorities: router %d, radio rx: %d, radio tx: %d",
          g_pCurrentModel->processesPriorities.iThreadPriorityRouter, g_pCurrentModel->processesPriorities.iThreadPriorityRadioRx, g_pCurrentModel->processesPriorities.iThreadPriorityRadioTx);
-      log_line("Current router/video nice values: %d/%d", g_pCurrentModel->processesPriorities.iNiceRouter, g_pCurrentModel->processesPriorities.iNiceVideo);
-      update_priorities(&oldProcesses, &g_pCurrentModel->processesPriorities);
+      
+      if ( iExtraParam )
+      {
+        log_line("Router and processes are marked for restart. Signal restart all procs and quit it.");
+
+        if ( packets_queue_has_packets(&g_QueueRadioPacketsOut) )
+           process_and_send_packets(false);
+      
+        sem_t* pSem = sem_open(SEMAPHORE_RESTART_VEHICLE_PROCS, O_CREAT, S_IWUSR | S_IRUSR, 0);
+        if ( (NULL == pSem) || (SEM_FAILED == pSem) )
+           log_softerror_and_alarm("Failed to open semaphore to signal restart: %s", SEMAPHORE_RESTART_VEHICLE_PROCS);
+        else
+        {
+           sem_post(pSem);
+           sem_close(pSem);
+           log_line("Signaled semaphore to restart all procs.");
+        }
+      }
+      else
+      {
+         log_line("Set new router raw priority: %d and radio rx/tx threads raw priorities: %d/%d (adjustments enabled: %d)",
+            g_pCurrentModel->processesPriorities.iThreadPriorityRouter, g_pCurrentModel->processesPriorities.iThreadPriorityRadioRx, g_pCurrentModel->processesPriorities.iThreadPriorityRadioTx,
+            (g_pCurrentModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS)?1:0);
+         if ( g_pCurrentModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS )
+         {
+           radio_rx_set_custom_thread_raw_priority(g_pCurrentModel->processesPriorities.iThreadPriorityRadioRx);
+           radio_tx_set_custom_thread_raw_priority(g_pCurrentModel->processesPriorities.iThreadPriorityRadioTx);
+           if ( oldProcesses.iThreadPriorityRouter != g_pCurrentModel->processesPriorities.iThreadPriorityRouter )
+              hw_set_current_thread_raw_priority("[router]", g_pCurrentModel->processesPriorities.iThreadPriorityRouter);
+         }
+      }
+      return;
+   }
+
+   if ( changeType == MODEL_CHANGED_OVERCLOCKING )
+   {
+      log_line("Received local notification that overclocking was updated: new ARM freq: %d, new GPU freq: %d, new overvoltage: %d",
+         g_pCurrentModel->processesPriorities.iFreqARM,
+         g_pCurrentModel->processesPriorities.iFreqGPU,
+         g_pCurrentModel->processesPriorities.iOverVoltage);
+
+      video_sources_stop_capture();
+      #if defined(HW_PLATFORM_OPENIPC_CAMERA)
+      log_line("Setting CPU speed for OpenIPC hardware to %d Mhz...", g_pCurrentModel->processesPriorities.iFreqARM);
+      hardware_set_oipc_cpu_freq(g_pCurrentModel->processesPriorities.iFreqARM);
+      #endif
+      video_sources_start_capture();
       return;
    }
 
@@ -648,6 +625,8 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
    if ( changeType == MODEL_CHANGED_RELAY_PARAMS )
    {
       log_line("Received notification from commands that relay params or mode changed.");
+      log_line("Old relay params: VID: %u, freq: %s, on vehicle's radio link %d, relay flags: (%s)", oldRelayParams.uRelayedVehicleId, str_format_frequency(oldRelayParams.uRelayFrequencyKhz), oldRelayParams.isRelayEnabledOnRadioLinkId, str_format_relay_flags(oldRelayParams.uRelayCapabilitiesFlags));
+      log_line("New relay params: VID: %u, freq: %s, on vehicle's radio link %d, relay flags: (%s)", g_pCurrentModel->relay_params.uRelayedVehicleId, str_format_frequency(g_pCurrentModel->relay_params.uRelayFrequencyKhz), g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId, str_format_relay_flags(g_pCurrentModel->relay_params.uRelayCapabilitiesFlags));
       u8 uOldRelayMode = oldRelayParams.uCurrentRelayMode;
       oldRelayParams.uCurrentRelayMode = g_pCurrentModel->relay_params.uCurrentRelayMode;
       
@@ -686,17 +665,17 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
       // Relay link changed?
       if ( oldRelayParams.isRelayEnabledOnRadioLinkId != g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId )
       {
-         // Notify main router and let the main router decide when to update the relay configuration. 
-         g_TimeLastNotificationRelayParamsChanged = g_TimeNow;
-      
+         log_line("Relay radio link has changed. Update relay params and state and signal router to update relay state.");
+         relay_on_relay_params_changed();
+         radio_links_restart(true);
       }
 
       // Relayed vehicle ID changed?
       if ( oldRelayParams.uRelayedVehicleId != g_pCurrentModel->relay_params.uRelayedVehicleId )
       {
-         log_line("Changed relayed vehicle id, from %u to %u.", oldRelayParams.uRelayedVehicleId, g_pCurrentModel->relay_params.uRelayedVehicleId);
-         radio_duplicate_detection_remove_data_for_all_except(g_uControllerId);
-         relay_on_relayed_vehicle_id_changed(g_pCurrentModel->relay_params.uRelayedVehicleId);
+         log_line("Changed relayed vehicle id, from %u to %u. Update relay params and state and signal router to update relay state.", oldRelayParams.uRelayedVehicleId, g_pCurrentModel->relay_params.uRelayedVehicleId);
+         relay_on_relay_params_changed();
+         radio_links_restart(true);
       }
       return;
    }
@@ -861,6 +840,17 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
 
    if ( changeType == MODEL_CHANGED_RC_PARAMS )
    {
+      if ( oldRCParams.rc_enabled != g_pCurrentModel->rc_params.rc_enabled )
+      {
+         if ( g_pCurrentModel->rc_params.rc_enabled )
+         {
+            log_line("RC link is enabled. Slow down telemetry packets frequency on slow links.");
+            radio_reset_packets_default_frequencies(1);
+         }
+         else
+            radio_reset_packets_default_frequencies(0);
+      }
+
       // If RC was disabled, stop Rx Rc process
       if ( oldRCParams.rc_enabled && (! g_pCurrentModel->rc_params.rc_enabled) )
       {
@@ -957,6 +947,12 @@ void process_local_control_packet(t_packet_header* pPH)
       log_line("Received controll message: Video is paused.");
       g_bVideoPaused = true;
    }
+   if ( pPH->packet_type == PACKET_TYPE_LOCAL_CONTROL_RESUME_VIDEO )
+   {
+      log_line("Received controll message: Video is resumed.");
+      g_bVideoPaused = false;
+   }
+
 
    if ( pPH->packet_type == PACKET_TYPE_LOCAL_CONTROL_VEHICLE_CALIBRATION_FILE )
    {
@@ -1000,6 +996,7 @@ void process_local_control_packet(t_packet_header* pPH)
          g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].szCameraBinProfileName[0] = 0;
          saveCurrentModel();
 
+         log_line("Notify other processes to reload model (reset calibration file)");
          t_packet_header PH;
          radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_LOCAL_CONTROL_MODEL_CHANGED, STREAM_ID_DATA);
          PH.vehicle_id_src = PACKET_COMPONENT_COMMANDS | (MODEL_CHANGED_CAMERA_CALIBRATION_FILE<<8);
@@ -1029,6 +1026,7 @@ void process_local_control_packet(t_packet_header* pPH)
          g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].szCameraBinProfileName[MAX_CAMERA_BIN_PROFILE_NAME-1] = 0;
          saveCurrentModel();
 
+         log_line("Notify other processes to reload model (calibration file uploaded)");
          t_packet_header PH;
          radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_LOCAL_CONTROL_MODEL_CHANGED, STREAM_ID_DATA);
          PH.vehicle_id_src = PACKET_COMPONENT_COMMANDS | (MODEL_CHANGED_CAMERA_CALIBRATION_FILE<<8);
@@ -1102,12 +1100,6 @@ void process_local_control_packet(t_packet_header* pPH)
       return;
    }
 
-   if ( pPH->packet_type == PACKET_TYPE_LOCAL_CONTROL_RESUME_VIDEO )
-   {
-      log_line("Received controll message: Video is resumed.");
-      g_bVideoPaused = false;
-   }
-
    if ( pPH->packet_type == PACKET_TYPE_LOCAL_CONTROL_VEHICLE_APPLY_ALL_VIDEO_SETTINGS )
    {
       log_line("Received controll message to apply all video settings.");
@@ -1172,30 +1164,14 @@ void process_local_control_packet(t_packet_header* pPH)
          g_pProcessStats->lastIPCIncomingTime = g_TimeNow;
       }
 
-      radio_links_close_rxtx_radio_interfaces();
-
-      if ( NULL != g_pProcessStats )
-      {
-         g_TimeNow = get_current_timestamp_ms();
-         g_pProcessStats->lastActiveTime = g_TimeNow;
-         g_pProcessStats->lastIPCIncomingTime = g_TimeNow;
-      }
-
-      radio_links_open_rxtx_radio_interfaces();
-
-      if ( NULL != g_pProcessStats )
-      {
-         g_TimeNow = get_current_timestamp_ms();
-         g_pProcessStats->lastActiveTime = g_TimeNow;
-         g_pProcessStats->lastIPCIncomingTime = g_TimeNow;
-      }
-
-      log_line("Completed reinitializing radio interfaces due to local request from a controller command.");
+      radio_links_restart(true);
+      log_line("Completed signaling async reinitialization of radio interfaces due to local request from a controller command.");
       return;
    }
 
    if ( pPH->packet_type == PACKET_TYPE_LOCAL_CONTROL_REBOOT )
    {
+      log_line("Received reboot request command. Save model too? %s", (pPH->vehicle_id_dest != 0)?"yes":"no");
       // Signal other components about the reboot request
       if ( pPH->vehicle_id_src == PACKET_COMPONENT_COMMANDS )
       {

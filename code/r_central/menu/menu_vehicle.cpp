@@ -270,7 +270,7 @@ void MenuVehicle::Render()
    {
       sprintf(szLine1, L("Connected to:"));
       sprintf(szLine2, "%s", g_pCurrentModel->getLongName() );
-      sprintf(szLine3, "Running ver %d.%d", ((g_pCurrentModel->sw_version>>8) & 0xFF), (g_pCurrentModel->sw_version & 0xFF)/10);
+      sprintf(szLine3, "Running ver %d.%d", get_sw_version_major(g_pCurrentModel), get_sw_version_minor(g_pCurrentModel));
    }
    else
    {
@@ -343,11 +343,6 @@ void MenuVehicle::onSelectItem()
          add_menu_to_stack(new MenuVehicleGeneral());
       if ( m_IndexOSD == m_SelectedIndex )
       {
-         if ( get_sw_version_build(g_pCurrentModel) < 278 )
-         {
-            addMessage(L("OSD functionality has changed. You need to update your vehicle sowftware."));
-            return;
-         }
          add_menu_to_stack(new MenuVehicleOSD());
       }
       return;
@@ -364,11 +359,6 @@ void MenuVehicle::onSelectItem()
       if ( handle_commands_has_received_vehicle_core_plugins_info() )
       {
          add_menu_to_stack(new MenuVehiclePeripherals());
-         return;
-      }
-      if ( ((g_pCurrentModel->sw_version >>8) & 0xFF) < 7 )
-      {
-         addMessage(L("You need to update your vehicle sowftware to be able to use this menu."));
          return;
       }
       handle_commands_reset_has_received_vehicle_core_plugins_info();
@@ -422,12 +412,6 @@ void MenuVehicle::onSelectItem()
    }
    if ( m_IndexVideo == m_SelectedIndex )
    {
-      if ( get_sw_version_build(g_pCurrentModel) < 289 )
-      {
-         addMessage(L("Video Settings have changed. You need to update your vehicle first."));
-         return;
-      }
-
       if ( (NULL == g_pCurrentModel) || (g_pCurrentModel->iCameraCount <=0) )
          addMessage(L("This vehicle has no cameras or video streams."));
       else if ( (NULL != g_pCurrentModel) && g_pCurrentModel->is_spectator )
@@ -454,11 +438,6 @@ void MenuVehicle::onSelectItem()
          add_menu_to_stack(new MenuVehicleTelemetry());
          return;
       }
-      if ( ((g_pCurrentModel->sw_version >>8) & 0xFF) < 7 )
-      {
-         addMessage(L("You need to update your vehicle sowftware to be able to use this menu."));
-         return;
-      }
       handle_commands_reset_has_received_vehicle_core_plugins_info();
       m_bWaitingForVehicleInfo = false;
 
@@ -475,11 +454,6 @@ void MenuVehicle::onSelectItem()
          add_menu_to_stack(new MenuVehicleDataLink());
          return;
       }
-      if ( ((g_pCurrentModel->sw_version >>8) & 0xFF) < 7 )
-      {
-         addMessage(L("You need to update your vehicle sowftware to be able to use this menu."));
-         return;
-      }
       handle_commands_reset_has_received_vehicle_core_plugins_info();
       m_bWaitingForVehicleInfo = false;
 
@@ -491,11 +465,6 @@ void MenuVehicle::onSelectItem()
    }
    if ( m_IndexOSD == m_SelectedIndex )
    {
-      if ( get_sw_version_build(g_pCurrentModel) < 278 )
-      {
-         addMessage(L("OSD functionality has changed. You need to update your vehicle sowftware."));
-         return;
-      }
       add_menu_to_stack(new MenuVehicleOSD());
       return;
    }

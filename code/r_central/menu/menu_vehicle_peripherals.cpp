@@ -109,9 +109,9 @@ MenuVehiclePeripherals::MenuVehiclePeripherals(void)
 
       sprintf( szBuff, "%s Baudrate", g_pCurrentModel->hardwareInterfacesInfo.serial_port_names[i] );
       m_pItemsSelect[i*2+1] = new MenuItemSelect(szBuff, "Sets the baud rate of this serial port.");
-      for( int n=0; n<hardware_get_serial_baud_rates_count(); n++ )
+      for( int n=0; n<hardware_serial_get_baud_rates_count(); n++ )
       {
-         snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%d bps", hardware_get_serial_baud_rates()[n]);
+         snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%d bps", hardware_serial_get_baud_rates()[n]);
          m_pItemsSelect[i*2+1]->addSelection(szBuff);
       }
       m_pItemsSelect[i*2+1]->setIsEditable();
@@ -194,12 +194,12 @@ void MenuVehiclePeripherals::valuesToUI()
       bool bFoundSpeed = false;
       for(int n=0; n<m_pItemsSelect[i*2+1]->getSelectionsCount(); n++ )
       {
-         if ( (uUsage == SERIAL_PORT_USAGE_SIK_RADIO) && (hardware_get_serial_baud_rates()[n] < 57000) )
+         if ( (uUsage == SERIAL_PORT_USAGE_SIK_RADIO) && (hardware_serial_get_baud_rates()[n] < 57000) )
             m_pItemsSelect[i*2+1]->setSelectionIndexDisabled(n);
          else
             m_pItemsSelect[i*2+1]->setSelectionIndexEnabled(n);
 
-         if ( hardware_get_serial_baud_rates()[n] == g_pCurrentModel->hardwareInterfacesInfo.serial_port_speed[i] )
+         if ( hardware_serial_get_baud_rates()[n] == g_pCurrentModel->hardwareInterfacesInfo.serial_port_speed[i] )
          {
             m_pItemsSelect[i*2+1]->setSelection(n);
             bFoundSpeed = true;
@@ -294,7 +294,7 @@ void MenuVehiclePeripherals::onSelectItem()
 
       if ( m_IndexSerialPortsBaudRate[i] == m_SelectedIndex )
       {
-         long val = hardware_get_serial_baud_rates()[m_pItemsSelect[i*2+1]->getSelectedIndex()];
+         long val = hardware_serial_get_baud_rates()[m_pItemsSelect[i*2+1]->getSelectedIndex()];
          if ( val == g_pCurrentModel->hardwareInterfacesInfo.serial_port_speed[i] )
             return;
 

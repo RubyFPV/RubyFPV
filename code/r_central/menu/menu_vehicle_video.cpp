@@ -38,6 +38,7 @@
 #include "menu_vehicle_video_bidir.h"
 #include "menu_vehicle_video_profile.h"
 #include "menu_vehicle_video_encodings.h"
+#include "menu_vehicle_video_compare.h"
 #include "menu_item_select.h"
 #include "menu_item_slider.h"
 #include "menu_item_section.h"
@@ -53,6 +54,7 @@ MenuVehicleVideo::MenuVehicleVideo(void)
    m_pItemsSelect[0] = NULL;
    m_bShowCompact = false;
    m_bShowCustomFPS = false;
+   m_bShowProfileSelectorInline = false;
    m_IndexShowFull = -1;
 }
 
@@ -169,37 +171,52 @@ void MenuVehicleVideo::addItems()
    m_pItemsSelect[10]->setIsEditable();
    m_IndexVideoCodec = addMenuItem(m_pItemsSelect[10]);
 
-   addSeparator();
+   if ( m_bShowProfileSelectorInline )
+   {
+      addSeparator();
+      int iIndex = addMenuItem(new MenuItemText(L("Video Profile")));
+      m_pMenuItems[iIndex]->setExtraHeight(getMenuFontHeight()*0.5);
+   }
 
-   int iIndex = addMenuItem(new MenuItemText("Video Profile"));
-   m_pMenuItems[iIndex]->setExtraHeight(getMenuFontHeight()*0.5);
    m_IndexVideoProfile = -1;
    //if ( ! m_bShowCompact )
    {
-      /*
-      m_pItemsSelect[2] = new MenuItemSelect(L("Video Profile"), L("Change all video params to get a particular desired video quality."));  
-      m_pItemsSelect[2]->addSelection(L("High Performance"));
-      m_pItemsSelect[2]->addSelection(L("High Quality"));
-      m_pItemsSelect[2]->addSelection(L("Long Range"));
-      m_pItemsSelect[2]->addSelection(L("User"));
-      m_pItemsSelect[2]->disableClick();
-      m_IndexVideoProfile = addMenuItem(m_pItemsSelect[2]);
-      */
-      char szLegend[256];
-      m_pItemsRadio[0] = new MenuItemRadio("", "");
-      strcpy(szLegend, "Use this option to automatically adjust video parameters for better video quality;");
-      m_pItemsRadio[0]->addSelection(L("High Quality"), szLegend);
-      strcpy(szLegend, "Use this option to automatically adjust video parameters for video low latency;");
-      m_pItemsRadio[0]->addSelection(L("High Performance"), szLegend);
-      strcpy(szLegend, "Use this option to automatically adjust video parameters for better range in detriment of video quality and latency;");
-      m_pItemsRadio[0]->addSelection(L("Long Range"), szLegend);
-      strcpy(szLegend, "Use this option if you wish to manually modify the advanced video parameters;");
-      m_pItemsRadio[0]->addSelection(L("User Defined"), szLegend);
-      m_pItemsRadio[0]->setEnabled(true);
-      m_pItemsRadio[0]->useSmallLegend(true);
-      //m_pItemsRadio[0]->setExtraHeight(getMenuFontHeight()*0.5);
-      m_IndexVideoProfile = addMenuItem(m_pItemsRadio[0]);
+      if ( m_bShowProfileSelectorInline )
+      {
+         char szLegend[256];
+         m_pItemsRadio[0] = new MenuItemRadio("", "");
+         strcpy(szLegend, "Use this option to automatically adjust video parameters for better video quality;");
+         m_pItemsRadio[0]->addSelection(L("High Quality"), szLegend);
+         strcpy(szLegend, "Use this option to automatically adjust video parameters for video low latency;");
+         m_pItemsRadio[0]->addSelection(L("High Performance"), szLegend);
+         strcpy(szLegend, "Use this option to automatically adjust video parameters for better range in detriment of video quality and latency;");
+         m_pItemsRadio[0]->addSelection(L("Long Range"), szLegend);
+         strcpy(szLegend, "Use this option if you wish to manually modify the advanced video parameters;");
+         m_pItemsRadio[0]->addSelection(L("User Defined"), szLegend);
+         strcpy(szLegend, "This option is automatically selected if you change video settings to custom ones;");
+         m_pItemsRadio[0]->addSelection(L("Custom"), szLegend);
+         m_pItemsRadio[0]->setEnabled(true);
+         m_pItemsRadio[0]->useSmallLegend(true);
+         //m_pItemsRadio[0]->setExtraHeight(getMenuFontHeight()*0.5);
+         m_IndexVideoProfile = addMenuItem(m_pItemsRadio[0]);
+      }
+      else
+      {
+         m_pItemsSelect[2] = new MenuItemSelect(L("Video Profile"), L("Change all video params to get a particular desired video quality."));  
+         m_pItemsSelect[2]->addSelection(L("High Quality"));
+         m_pItemsSelect[2]->addSelection(L("High Performance"));
+         m_pItemsSelect[2]->addSelection(L("Long Range"));
+         m_pItemsSelect[2]->addSelection(L("User Defined"));
+         m_pItemsSelect[2]->addSelection(L("Custom"));
+         m_pItemsSelect[2]->disableClick();
+         m_IndexVideoProfile = addMenuItem(m_pItemsSelect[2]);
+      }
    }
+
+   m_IndexSaveVideoProfile = addMenuItem(new MenuItem(L("Save Current Settings As User Profile"), L("Saves current video settings as the User profile.")));
+   //m_IndexCompareProfiles = addMenuItem(new MenuItem(L("Compare Video Profiles"), L("See the difference in settings between all video profiles.")));
+   //m_pMenuItems[m_IndexCompareProfiles]->showArrow();
+   m_IndexCompareProfiles = -1;
 
    addSeparator();
 
@@ -294,10 +311,18 @@ void MenuVehicleVideo::valuesToUI()
 
    if ( -1 != m_IndexVideoProfile )
    {
-      //   m_pItemsSelect[2]->setSelectedIndex(g_pCurrentModel->video_params.iCurrentVideoProfile);
-      m_pItemsRadio[0]->setSelectedIndex(g_pCurrentModel->video_params.iCurrentVideoProfile);
-      m_pItemsRadio[0]->setFocusedIndex(g_pCurrentModel->video_params.iCurrentVideoProfile);
+      if ( m_bShowProfileSelectorInline )
+      {
+         m_pItemsRadio[0]->setSelectedIndex(g_pCurrentModel->video_params.iCurrentVideoProfile);
+         m_pItemsRadio[0]->setFocusedIndex(g_pCurrentModel->video_params.iCurrentVideoProfile);
+      }
+      else
+         m_pItemsSelect[2]->setSelectedIndex(g_pCurrentModel->video_params.iCurrentVideoProfile);
    }
+   if ( g_pCurrentModel->video_params.iCurrentVideoProfile == VIDEO_PROFILE_CUST )
+      m_pMenuItems[m_IndexSaveVideoProfile]->setEnabled(true);
+   else
+      m_pMenuItems[m_IndexSaveVideoProfile]->setEnabled(false);
    if ( g_pCurrentModel->isVideoLinkFixedOneWay() )
       m_pItemsSelect[5]->setSelectedIndex(0);
    else
@@ -373,15 +398,17 @@ void MenuVehicleVideo::showFPSWarning(int w, int h, int fps)
    char szBuff[128];
    sprintf(szBuff, L("Max FPS for this video mode (%d x %d) for this camera is %d FPS"), w,h,fps);
    Popup* p = new Popup(true, szBuff, 5 );
+   sprintf(szBuff, L("FPS was adjusted to %d FPS to match current video resolution."), fps);
+   p->addLine(szBuff);
    p->setIconId(g_idIconWarning, get_Color_IconWarning());
    popups_add_topmost(p);
 }
 
 void MenuVehicleVideo::sendVideoSettings()
 {
-   if ( get_sw_version_build(g_pCurrentModel) < 289 )
+   if ( ! is_sw_version_atleast(g_pCurrentModel, 11, 6) )
    {
-      addMessage(L("Video functionality has changed. You need to update your vehicle sowftware."));
+      addMessage(L("Video functionality has changed. You need to update your vehicle software."));
       return;
    }
    video_parameters_t paramsNew;
@@ -389,7 +416,10 @@ void MenuVehicleVideo::sendVideoSettings()
    memcpy(&paramsNew, &g_pCurrentModel->video_params, sizeof(video_parameters_t));
    memcpy(&profileNew, &(g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile]), sizeof(type_video_link_profile));
 
-   int videoResolutionIndex = m_pItemsSelect[0]->getSelectedIndex();   
+   if ( m_bShowProfileSelectorInline )
+      paramsNew.iCurrentVideoProfile = m_pItemsRadio[0]->getSelectedIndex();
+
+   int videoResolutionIndex = m_pItemsSelect[0]->getSelectedIndex();
  
    paramsNew.iVideoWidth = m_pVideoResolutions[videoResolutionIndex].iWidth;
    paramsNew.iVideoHeight = m_pVideoResolutions[videoResolutionIndex].iHeight;
@@ -422,10 +452,27 @@ void MenuVehicleVideo::sendVideoSettings()
    if ( (-1 != m_IndexFPS) && bHasCustomFPVSelection )
       paramsNew.iVideoFPS = m_pItemsSlider[0]->getCurrentValue();
 
+   if ( paramsNew.iCurrentVideoProfile != g_pCurrentModel->video_params.iCurrentVideoProfile )
+   if ( g_pCurrentModel->video_link_profiles[paramsNew.iCurrentVideoProfile].iDefaultFPS > 0 )
+      paramsNew.iVideoFPS = g_pCurrentModel->video_link_profiles[paramsNew.iCurrentVideoProfile].iDefaultFPS;
+
    if ( paramsNew.iVideoFPS > m_pVideoResolutions[videoResolutionIndex].iMaxFPS )
    {
       paramsNew.iVideoFPS = m_pVideoResolutions[videoResolutionIndex].iMaxFPS;
       showFPSWarning(paramsNew.iVideoWidth, paramsNew.iVideoHeight, paramsNew.iVideoFPS);
+
+      if ( paramsNew.iVideoFPS < 30 )
+         paramsNew.iVideoFPS = 24;
+      else if ( paramsNew.iVideoFPS < 59 )
+         paramsNew.iVideoFPS = 30;
+      else if ( paramsNew.iVideoFPS < 60 )
+         paramsNew.iVideoFPS = 59;
+      else if ( paramsNew.iVideoFPS < 90 )
+         paramsNew.iVideoFPS = 60;
+      else if ( paramsNew.iVideoFPS < 120 )
+         paramsNew.iVideoFPS = 90;
+      else
+         paramsNew.iVideoFPS = 120;
    }
 
    if ( (paramsNew.iVideoWidth != g_pCurrentModel->video_params.iVideoWidth) ||
@@ -451,6 +498,33 @@ void MenuVehicleVideo::sendVideoSettings()
    }
    #endif
 
+   if ( 0 == m_pItemsSelect[10]->getSelectedIndex() )
+      paramsNew.uVideoExtraFlags &= ~VIDEO_FLAG_GENERATE_H265;
+   else
+   {
+      #if defined (HW_PLATFORM_RASPBERRY)
+      addMessage(L("Your controller Raspberry Pi hardware supports only H264 video decoder. Can't use H265 codec."));
+      valuesToUI();
+      return;
+      #endif
+      if ( ! g_pCurrentModel->isRunningOnOpenIPCHardware() )
+      {
+         char szTextW[256];
+         sprintf(szTextW, "Your %s's Raspberry Pi hardware supports only H264 video encoder/decoder.", g_pCurrentModel->getVehicleTypeString());
+         addMessage(szTextW);
+         valuesToUI();
+         return;
+      }         
+      paramsNew.uVideoExtraFlags |= VIDEO_FLAG_GENERATE_H265;
+   }
+
+   if ( (paramsNew.uVideoExtraFlags & VIDEO_FLAG_GENERATE_H265) != (g_pCurrentModel->video_params.uVideoExtraFlags & VIDEO_FLAG_GENERATE_H265) )
+      log_line("MenuVehicleVideo:: Changed video codec type from %s to %s",
+         (g_pCurrentModel->video_params.uVideoExtraFlags & VIDEO_FLAG_GENERATE_H265)?"H265":"H264",
+         (paramsNew.uVideoExtraFlags & VIDEO_FLAG_GENERATE_H265)?"H265":"H264");
+   else
+      log_line("MenuVehicleVideo: Video codes is unchanged");
+
    //profileNew.bitrate_fixed_bps = m_pItemsSlider[2]->getCurrentValue()*1000*1000/4;
 
    type_video_link_profile profiles[MAX_VIDEO_LINK_PROFILES];
@@ -458,19 +532,26 @@ void MenuVehicleVideo::sendVideoSettings()
    char szCurrentProfile[64];
    strcpy(szCurrentProfile, str_get_video_profile_name(g_pCurrentModel->video_params.iCurrentVideoProfile));
 
-   int iMatchProfile = g_pCurrentModel->isVideoSettingsMatchingBuiltinVideoProfile(&paramsNew, &profileNew);
-   if ( (iMatchProfile >= 0) && (iMatchProfile < MAX_VIDEO_LINK_PROFILES) )
+   if ( paramsNew.iCurrentVideoProfile != g_pCurrentModel->video_params.iCurrentVideoProfile )
    {
-      log_line("MenuVehicleVideo: Will switch to matched to video profile %s, current video profile was: %s", str_get_video_profile_name(iMatchProfile), szCurrentProfile);
-      paramsNew.iCurrentVideoProfile = iMatchProfile;
+      log_line("MenuVehicleVideo: Changed only selected video profile. Do not update video profile settings.");
    }
    else
    {
-      log_line("MenuVehicleVideo: Will switch to user profile, current video profile was: %s", szCurrentProfile);
-      paramsNew.iCurrentVideoProfile = VIDEO_PROFILE_USER;
+      int iMatchProfile = g_pCurrentModel->isVideoSettingsMatchingBuiltinVideoProfile(&paramsNew, &profileNew);
+      if ( (iMatchProfile >= 0) && (iMatchProfile < MAX_VIDEO_LINK_PROFILES) )
+      {
+         log_line("MenuVehicleVideo: Will switch to matched to video profile %s, current video profile was: %s", str_get_video_profile_name(iMatchProfile), szCurrentProfile);
+         paramsNew.iCurrentVideoProfile = iMatchProfile;
+      }
+      else
+      {
+         log_line("MenuVehicleVideo: Will switch to custom profile, current video profile was: %s", szCurrentProfile);
+         paramsNew.iCurrentVideoProfile = VIDEO_PROFILE_CUST;
+      }
+      memcpy((u8*)&profiles[paramsNew.iCurrentVideoProfile], &profileNew, sizeof(type_video_link_profile));
+      g_pCurrentModel->logVideoSettingsDifferences(&paramsNew, &profileNew);
    }
-   memcpy((u8*)&profiles[paramsNew.iCurrentVideoProfile], &profileNew, sizeof(type_video_link_profile));
-   g_pCurrentModel->logVideoSettingsDifferences(&paramsNew, &profileNew);
 
    if ( 0 == memcmp(&paramsNew, &g_pCurrentModel->video_params, sizeof(video_parameters_t)) )
    if ( 0 == memcmp(profiles, g_pCurrentModel->video_link_profiles, MAX_VIDEO_LINK_PROFILES*sizeof(type_video_link_profile)) )
@@ -497,7 +578,7 @@ void MenuVehicleVideo::onReturnFromChild(int iChildMenuId, int returnValue)
 {
    Menu::onReturnFromChild(iChildMenuId, returnValue);
 
-   if ( 10 == iChildMenuId/1000 )
+   if ( (10 == iChildMenuId/1000) || (MENU_ID_VEHICLE_VIDEO_PROFILE == iChildMenuId))
    {
       valuesToUI();
       return;
@@ -515,6 +596,13 @@ void MenuVehicleVideo::onSelectItem()
       handle_commands_show_popup_progress();
       return;
    }
+
+   if ( ! is_sw_version_atleast(g_pCurrentModel, 11, 6) )
+   {
+      addMessage(L("Video functionality has changed. You need to update your vehicle software."));
+      return;
+   }
+
 
    g_TimeLastVideoCameraChangeCommand = g_TimeNow;
 
@@ -534,6 +622,29 @@ void MenuVehicleVideo::onSelectItem()
       m_SelectedIndex = 0;
       onFocusedItemChanged();
       addItems();
+      return;
+   }
+
+   if ( (-1 != m_IndexCompareProfiles) && (m_IndexCompareProfiles == m_SelectedIndex) )
+   {
+      add_menu_to_stack(new MenuVehicleVideoCompare());
+      return;
+   }
+
+   if ( m_IndexSaveVideoProfile == m_SelectedIndex )
+   {
+      video_parameters_t paramsNew;
+      type_video_link_profile profiles[MAX_VIDEO_LINK_PROFILES];
+      memcpy((u8*)&profiles[0], (u8*)&g_pCurrentModel->video_link_profiles[0], MAX_VIDEO_LINK_PROFILES*sizeof(type_video_link_profile));
+      memcpy(&paramsNew, &g_pCurrentModel->video_params, sizeof(video_parameters_t));
+      
+      memcpy((u8*)&profiles[VIDEO_PROFILE_USER], (u8*)&profiles[paramsNew.iCurrentVideoProfile], sizeof(type_video_link_profile));
+      paramsNew.iCurrentVideoProfile = VIDEO_PROFILE_USER;
+
+      send_pause_adaptive_to_router(4000);
+      send_reset_adaptive_state_to_router(g_pCurrentModel->uVehicleId);
+      if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_VIDEO_PARAMETERS, 0, (u8*)&paramsNew, sizeof(video_parameters_t), (u8*)&(g_pCurrentModel->video_link_profiles[0]), MAX_VIDEO_LINK_PROFILES * sizeof(type_video_link_profile)) )
+         valuesToUI();
       return;
    }
 
@@ -559,27 +670,14 @@ void MenuVehicleVideo::onSelectItem()
 
    if ( (-1 != m_IndexVideoProfile) && (m_IndexVideoProfile == m_SelectedIndex) )
    {
-      if ( get_sw_version_build(g_pCurrentModel) < 289 )
+      if ( m_bShowProfileSelectorInline )
       {
-         addMessage(L("Video functionality has changed. You need to update your vehicle sowftware."));
-         return;
+         if ( m_pItemsRadio[0]->getSelectedIndex() == g_pCurrentModel->video_params.iCurrentVideoProfile )
+            return;
+         sendVideoSettings();
       }
-      //add_menu_to_stack(new MenuVehicleVideoProfileSelector());
-      int index = m_pItemsRadio[0]->getSelectedIndex();
-
-      video_parameters_t paramsNew;
-      memcpy(&paramsNew, &g_pCurrentModel->video_params, sizeof(video_parameters_t));
-      paramsNew.iCurrentVideoProfile = index;
-
-      if ( paramsNew.iCurrentVideoProfile == g_pCurrentModel->video_params.iCurrentVideoProfile )
-         return;
-
-      log_line("Sending to vehicle new user selected video link profile: %s", str_get_video_profile_name(paramsNew.iCurrentVideoProfile));
-      
-      send_pause_adaptive_to_router(4000);
-      send_reset_adaptive_state_to_router(g_pCurrentModel->uVehicleId);
-      if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_VIDEO_PARAMETERS, 0, (u8*)&paramsNew, sizeof(video_parameters_t), (u8*)&(g_pCurrentModel->video_link_profiles[0]), MAX_VIDEO_LINK_PROFILES * sizeof(type_video_link_profile)) )
-         valuesToUI();
+      else
+         add_menu_to_stack(new MenuVehicleVideoProfileSelector());
       return;
    }
 
@@ -605,8 +703,8 @@ void MenuVehicleVideo::onSelectItem()
       }
       else
       {
-         log_line("MenuVideo: Switched to user profile");
-         paramsNew.iCurrentVideoProfile = VIDEO_PROFILE_USER;
+         log_line("MenuVideo: Switched to custom profile");
+         paramsNew.iCurrentVideoProfile = VIDEO_PROFILE_CUST;
       }
       memcpy((u8*)&profiles[paramsNew.iCurrentVideoProfile ], &profileNew, sizeof(type_video_link_profile));
       g_pCurrentModel->logVideoSettingsDifferences(&paramsNew, &profileNew);
@@ -635,50 +733,18 @@ void MenuVehicleVideo::onSelectItem()
 
 
    if ( (-1 != m_IndexExpert) && (m_IndexExpert == m_SelectedIndex) )
-      add_menu_to_stack(new MenuVehicleVideoEncodings());
+   {
+      MenuVehicleVideoEncodings* pMenuEnc = new MenuVehicleVideoEncodings();
+      pMenuEnc->m_bShowVideo = true;
+      pMenuEnc->m_bShowRetransmissions = true;
+      pMenuEnc->m_bShowEC = true;
+      pMenuEnc->m_bShowH264 = true;
+      add_menu_to_stack(pMenuEnc);
+   }
 
    if ( m_IndexVideoCodec == m_SelectedIndex )
    {
-    // To fix may2025 move it to sendVideoParams
-     if ( get_sw_version_build(g_pCurrentModel) < 283 )
-     {
-        addMessage(L("Video functionality has changed. You need to update your vehicle sowftware."));
-        return;
-     }
-
-      video_parameters_t paramsNew;
-      memcpy(&paramsNew, &g_pCurrentModel->video_params, sizeof(video_parameters_t));
-
-      if ( 0 == m_pItemsSelect[10]->getSelectedIndex() )
-         paramsNew.uVideoExtraFlags &= ~VIDEO_FLAG_GENERATE_H265;
-      else
-      {
-         #if defined (HW_PLATFORM_RASPBERRY)
-         addMessage(L("Your controller Raspberry Pi hardware supports only H264 video decoder. Can't use H265 codec."));
-         valuesToUI();
-         return;
-         #endif
-         if ( ! g_pCurrentModel->isRunningOnOpenIPCHardware() )
-         {
-            char szTextW[256];
-            sprintf(szTextW, "Your %s's Raspberry Pi hardware supports only H264 video encoder/decoder.", g_pCurrentModel->getVehicleTypeString());
-            addMessage(szTextW);
-            valuesToUI();
-            return;
-         }         
-         paramsNew.uVideoExtraFlags |= VIDEO_FLAG_GENERATE_H265;
-      }
-
-      log_line("Changed video codec type from %s to %s",
-         (g_pCurrentModel->video_params.uVideoExtraFlags & VIDEO_FLAG_GENERATE_H265)?"H265":"H264",
-         (paramsNew.uVideoExtraFlags & VIDEO_FLAG_GENERATE_H265)?"H265":"H264");
-
-      if ( g_pCurrentModel->video_params.uVideoExtraFlags != paramsNew.uVideoExtraFlags )
-      {
-         if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_VIDEO_PARAMETERS, 0, (u8*)&paramsNew, sizeof(video_parameters_t), (u8*)&(g_pCurrentModel->video_link_profiles[0]), MAX_VIDEO_LINK_PROFILES * sizeof(type_video_link_profile)) )
-            valuesToUI();
-         else
-            send_pause_adaptive_to_router(10000);
-      }
+      sendVideoSettings();
+      return;
    }
 }

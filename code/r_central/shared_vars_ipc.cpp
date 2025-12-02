@@ -45,9 +45,13 @@ shared_mem_process_stats* g_pProcessStatsRC = NULL;
 shared_mem_process_stats g_ProcessStatsRouter;
 shared_mem_process_stats g_ProcessStatsTelemetry;
 shared_mem_process_stats g_ProcessStatsRC;
+shared_mem_ctrl_ping_stats* g_pSMDbgPingStats = NULL;
+shared_mem_ctrl_ping_stats g_SMDbgPingStats;
 
 controller_runtime_info g_SMControllerRTInfo;
 controller_runtime_info* g_pSMControllerRTInfo = NULL;
+controller_debug_runtime_info g_SMControllerDebugRTInfo;
+controller_debug_runtime_info* g_pSMControllerDebugRTInfo = NULL;
 vehicle_runtime_info g_SMVehicleRTInfo;
 vehicle_runtime_info* g_pSMVehicleRTInfo = NULL;
 

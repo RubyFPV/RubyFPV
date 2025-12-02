@@ -85,9 +85,6 @@ const char* commands_get_description(u8 command_type)
       case COMMAND_ID_SET_VEHICLE_NAME: strcpy(szCommandDesc, "Set_VehicleName"); break;
       case COMMAND_ID_REBOOT: strcpy(szCommandDesc, "Reboot"); break;
       case COMMAND_ID_FACTORY_RESET: strcpy(szCommandDesc, "Factory Reset"); break;
-      case COMMAND_ID_SET_NICE_VALUE_TELEMETRY: strcpy(szCommandDesc, "Set_NiceValueTelemetry"); break;
-      case COMMAND_ID_SET_NICE_VALUES: strcpy(szCommandDesc, "Set_NiceValues"); break;
-      case COMMAND_ID_SET_IONICE_VALUES: strcpy(szCommandDesc, "Set_IONiceValues"); break;
       case COMMAND_ID_SET_ENABLE_DHCP: strcpy(szCommandDesc, "Set_Enable_DHCP"); break;
       case COMMAND_ID_SET_ALL_PARAMS: strcpy(szCommandDesc, "Set_All_Params"); break;
       case COMMAND_ID_GET_ALL_PARAMS_ZIP: strcpy(szCommandDesc, "Get_All_Params_Zip"); break;
@@ -112,7 +109,7 @@ const char* commands_get_description(u8 command_type)
       case COMMAND_ID_CLEAR_LOGS: strcpy(szCommandDesc, "Clear_Logs"); break;
       case COMMAND_ID_SET_VEHICLE_BOARD_TYPE: strcpy(szCommandDesc, "Set_Vehicle_Board_Type"); break;
       case COMMAND_ID_SET_TELEMETRY_TYPE_AND_PORT: strcpy(szCommandDesc, "Set_TelemetryTypeAndPort"); break;
-
+      case COMMAND_ID_GET_CPU_PROCS_INFO: strcpy(szCommandDesc, "Get_CPU_Procs_Info"); break;
       default:
          sprintf(szCommandDesc, "%d", command_type);
          break;

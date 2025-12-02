@@ -40,7 +40,6 @@ shared_mem_radio_stats_rx_hist* g_pSM_HistoryRxStats = NULL;
 shared_mem_radio_stats_rx_hist g_SM_HistoryRxStats;
 vehicle_runtime_info g_VehicleRuntimeInfo;
 type_uplink_rx_info_stats g_UplinkInfoRxStats[MAX_RADIO_INTERFACES];
-int g_iDefaultRouterThreadPriority = -1;
 
 bool g_bVehicleArmed = false;
 int g_iVehicleSOCTemperatureC = 0;
@@ -71,3 +70,5 @@ int g_iDebugShowKeyFramesAfterRelaySwitch = 0;
 int g_iGetSiKConfigAsyncResult = 0;
 int g_iGetSiKConfigAsyncRadioInterfaceIndex = -1;
 u8 g_uGetSiKConfigAsyncVehicleLinkIndex = 0;
+
+bool g_bLongTaskStarted = false;

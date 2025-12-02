@@ -60,10 +60,10 @@ class RenderEngine
 
      float setGlobalAlfa(float alfa);
      float getGlobalAlfa();
-     bool isRectBlendingEnabled();
-     void setRectBlendingEnabled(bool bEnable);
-     void enableRectBlending();
-     void disableRectBlending();
+     bool isAlphaEnabled();
+     void setAlphaEnabled(bool bEnable);
+     void enableAlpha();
+     void disableAlpha();
      void setClearBufferByte(u8 uClearByte);
 
      virtual void highlightFirstWordOfLine(bool bHighlight);
@@ -164,7 +164,7 @@ class RenderEngine
 
       u8 m_uClearBufferByte;
       float m_fGlobalAlfa;
-      bool m_bEnableRectBlending;
+      bool m_bEnableAlpha;
       bool m_bEnableFontScaling;
       bool m_bHighlightFirstWord;
       bool m_bDrawBackgroundBoundingBoxes;

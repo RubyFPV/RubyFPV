@@ -3,6 +3,7 @@
 #include "../base/models.h"
 
 void packet_utils_init();
+void packet_utils_uninit();
 
 int compute_packet_uplink_datarate(int iVehicleRadioLink, int iRadioInterface, type_radio_links_parameters* pRadioLinksParams, u8* pPacketData);
 

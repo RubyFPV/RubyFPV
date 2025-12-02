@@ -28,6 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Video deocode demo using OpenMAX IL though the ilcient helper library
 // Build: /opt/vc/src/hello_pi/hello_video
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,6 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <semaphore.h>
+#include <sched.h>
 
 #include "bcm_host.h"
 #include "ilclient.h"
@@ -58,6 +63,8 @@ int g_iClockSync = 0;
 int g_fdSMem = -1;
 unsigned char* g_pSMem = NULL;
 uint32_t g_uSharedMemReadPos = 0;
+uint32_t g_uCPUAffinity = 0;
+int g_iRawPriority = -1;
 
 void _onVSync(DISPMANX_UPDATE_HANDLE_T u, void* arg)
 {
@@ -120,6 +127,86 @@ void _close_sm()
    }
 }
 
+u32 _try_read_sm_data(u8* pOutputData, u32 uMaxLen)
+{
+   u32* pTmp1 = (u32*)g_pSMem;
+   u32* pTmp2 = (u32*)(&(g_pSMem[sizeof(u32)]));
+   u32 uWritePos1 = 0;
+   u32 uWritePos2 = 0;
+   u32 uBytesToRead = 0;
+
+   g_pSMProcessStats->uInBlockingOperation = 1;
+   
+   while ( (uBytesToRead == 0) && (!g_bQuit) )
+   {
+      g_pSMProcessStats->lastActiveTime = get_current_timestamp_ms();
+      
+      uWritePos1 = *pTmp1;
+      uWritePos2 = *pTmp2;
+      if ( uWritePos1 != uWritePos2 )
+         continue;
+      if ( g_uSharedMemReadPos == uWritePos1 )
+      {
+         struct timespec ts;
+         clock_gettime(CLOCK_REALTIME, &ts);
+         ts.tv_nsec += 1000LL*(long long)20000; // 20 milisec
+         if ( ts.tv_nsec > 999999999 )
+         {
+            ts.tv_nsec -= 999999999;
+            ts.tv_sec++;
+         }
+         int iResSem = sem_timedwait(s_pSemaphoreSMData, &ts);
+         if ( 0 != iResSem )
+         {
+            if ( errno != ETIMEDOUT )
+               log_softerror_and_alarm("Failed to timewait on semaphore. Error: %d, %s", errno, strerror(errno));
+            continue;
+         }
+         is_semaphore_signaled_clear(s_pSemaphoreSMData, SEMAPHORE_SM_VIDEO_DATA_AVAILABLE);
+
+         uWritePos1 = *pTmp1;
+         uWritePos2 = *pTmp2;
+         if ( (g_uSharedMemReadPos == uWritePos1) || (uWritePos1 != uWritePos2) )
+            continue;
+      }
+
+      if ( uWritePos1 >= g_uSharedMemReadPos )
+      {
+         uBytesToRead = uWritePos1 - g_uSharedMemReadPos;
+         if ( uBytesToRead > uMaxLen )
+            uBytesToRead = uMaxLen;
+         memcpy(pOutputData, &g_pSMem[g_uSharedMemReadPos], uBytesToRead);
+         g_uSharedMemReadPos += uBytesToRead;
+         if ( g_uSharedMemReadPos >= SM_STREAMER_SIZE )
+            g_uSharedMemReadPos = 2*sizeof(u32);
+      }
+      else
+      {
+         uBytesToRead = (SM_STREAMER_SIZE - g_uSharedMemReadPos);
+         if ( uBytesToRead > uMaxLen )
+            uBytesToRead = uMaxLen;
+         memcpy(pOutputData, &g_pSMem[g_uSharedMemReadPos], uBytesToRead);
+         g_uSharedMemReadPos += uBytesToRead;
+         if ( g_uSharedMemReadPos >= SM_STREAMER_SIZE )
+            g_uSharedMemReadPos = 2*sizeof(u32);
+         if ( (uMaxLen > uBytesToRead) && (uWritePos1 > 2*sizeof(u32)) )
+         {
+            unsigned char* pTmpB = pOutputData + uBytesToRead;
+
+            u32 uBytesToRead2 = uWritePos1 - 2*sizeof(u32);
+            if ( uBytesToRead2 + uBytesToRead > uMaxLen )
+               uBytesToRead2 = uMaxLen - uBytesToRead;
+            memcpy(pTmpB, &g_pSMem[g_uSharedMemReadPos], uBytesToRead2);
+            g_uSharedMemReadPos += uBytesToRead2;
+            uBytesToRead += uBytesToRead2;
+         }
+      }
+      break;
+   } 
+   g_pSMProcessStats->uInBlockingOperation = 0;
+   return uBytesToRead;
+}
+
 static int video_decode()
 {
    OMX_VIDEO_PARAM_PORTFORMATTYPE format;
@@ -132,11 +219,8 @@ static int video_decode()
    memset(list, 0, sizeof(list));
    memset(tunnel, 0, sizeof(tunnel));
 
-
    if((client = ilclient_init()) == NULL)
-   {
       return -3;
-   }
 
    if(OMX_Init() != OMX_ErrorNone)
    {
@@ -151,7 +235,6 @@ static int video_decode()
       log_softerror_and_alarm("Failed to create video decoder component.");
    }
    list[0] = video_decode;
-
 
    // create video_render
    if(status == 0 && ilclient_create_component(client, &video_render, "video_render", ILCLIENT_DISABLE_ALL_PORTS) != 0)
@@ -212,11 +295,20 @@ static int video_decode()
    format.nPortIndex = 130;
    format.eCompressionFormat = OMX_VIDEO_CodingAVC;
 
-   log_line("Initialized components.");
+   if ( OMX_SetParameter(ILC_GET_HANDLE(video_decode), OMX_IndexParamVideoPortFormat, &format) != OMX_ErrorNone )
+   {
+      log_softerror_and_alarm("Failed to initialize compontens format. Aborting.");
+      goto exit;
+   }
 
-   OMX_BUFFERHEADERTYPE *pOMXBuffer = NULL;
-   int port_settings_changed = 0;
-   int first_packet = 1;
+   status = ilclient_enable_port_buffers(video_decode, 130, NULL, NULL, NULL);
+   if ( status != 0 )
+   {
+      log_softerror_and_alarm("Failed to enable port buffers. Aborting.");
+      goto exit;
+   }
+
+   log_line("Initialized components.");
 
    while ( (g_pSMem == NULL) && (!g_bQuit) )
    {
@@ -247,162 +339,89 @@ static int video_decode()
    }
 
    log_line("Entering main loop...");
-   if ( ! g_bQuit )
-   if(status == 0 &&
-      OMX_SetParameter(ILC_GET_HANDLE(video_decode), OMX_IndexParamVideoPortFormat, &format) == OMX_ErrorNone &&
-      ilclient_enable_port_buffers(video_decode, 130, NULL, NULL, NULL) == 0)
+
+   OMX_BUFFERHEADERTYPE *pOMXBuffer = NULL;
+   int port_settings_changed = 0;
+   int first_packet = 1;
+
+   ilclient_change_component_state(video_decode, OMX_StateExecuting);
+
+   while( (!g_bQuit) && ((pOMXBuffer = ilclient_get_input_buffer(video_decode, 130, 1)) != NULL) )
    {
+      u32 uRead = _try_read_sm_data(pOMXBuffer->pBuffer, (u32)pOMXBuffer->nAllocLen);
 
-      ilclient_change_component_state(video_decode, OMX_StateExecuting);
+      if ( g_bQuit )
+         break;
 
-      while( (!g_bQuit) && ((pOMXBuffer = ilclient_get_input_buffer(video_decode, 130, 1)) != NULL) )
+      // To remove
+      //_parse_stream(pOMXBuffer->pBuffer, uBytesToRead);
+
+      if ( (port_settings_changed == 0) &&
+         (((uRead > 0) && (ilclient_remove_event(video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1) == 0)) ||
+          ((uRead == 0) && (ilclient_wait_for_event(video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1,
+                                                    ILCLIENT_EVENT_ERROR | ILCLIENT_PARAMETER_CHANGED, 10000) == 0))))
       {
-         u32* pTmp1 = (u32*)g_pSMem;
-         u32* pTmp2 = (u32*)(&(g_pSMem[sizeof(u32)]));
-         u32 uWritePos1 = 0;
-         u32 uWritePos2 = 0;
-         u32 uBytesToRead = 0;
-
-         g_pSMProcessStats->uInBlockingOperation = 1;
-         
-         while ((uBytesToRead == 0) && (!g_bQuit))
+         port_settings_changed = 1;
+         if ( ilclient_setup_tunnel(tunnel, 0, 0) != 0)
          {
-            g_pSMProcessStats->lastActiveTime = get_current_timestamp_ms();
-            
-            uWritePos1 = *pTmp1;
-            uWritePos2 = *pTmp2;
-            if ( (g_uSharedMemReadPos == uWritePos1) || (uWritePos1 != uWritePos2) )
-            {
-               struct timespec ts;
-               clock_gettime(CLOCK_REALTIME, &ts);
-               ts.tv_nsec += 1000LL*(long long)10000; // 10 milisec
-               int iResSem = sem_timedwait(s_pSemaphoreSMData, &ts);
-               if ( 0 != iResSem )
-                  continue;
-               int iSemVal = 0;
-               if ( 0 == sem_getvalue(s_pSemaphoreSMData, &iSemVal) )
-               {
-                  //log_line("DBG value: %d", iSemVal);
-                  if ( iSemVal > 0 )
-                  {
-                     for( int i=0; i<iSemVal; i++ )
-                        sem_trywait(s_pSemaphoreSMData);
-                  }
-               }
-               else
-                  log_softerror_and_alarm("DBG Failed to get SM data sem value.");
-
-               uWritePos1 = *pTmp1;
-               uWritePos2 = *pTmp2;
-               if ( (g_uSharedMemReadPos == uWritePos1) || (uWritePos1 != uWritePos2) )
-                  continue;
-            }
-            if ( uWritePos1 > g_uSharedMemReadPos )
-            {
-               uBytesToRead = uWritePos1 - g_uSharedMemReadPos;
-               if ( uBytesToRead > pOMXBuffer->nAllocLen )
-                  uBytesToRead = pOMXBuffer->nAllocLen;
-               memcpy(pOMXBuffer->pBuffer, &g_pSMem[g_uSharedMemReadPos], uBytesToRead);
-               g_uSharedMemReadPos += uBytesToRead;
-               if ( g_uSharedMemReadPos >= SM_STREAMER_SIZE )
-                  g_uSharedMemReadPos = 2*sizeof(u32);
-            }
-            else
-            {
-               uBytesToRead = (SM_STREAMER_SIZE - g_uSharedMemReadPos);
-               if ( uBytesToRead > pOMXBuffer->nAllocLen )
-                  uBytesToRead = pOMXBuffer->nAllocLen;
-               memcpy(pOMXBuffer->pBuffer, &g_pSMem[g_uSharedMemReadPos], uBytesToRead);
-               g_uSharedMemReadPos += uBytesToRead;
-               if ( g_uSharedMemReadPos >= SM_STREAMER_SIZE )
-                  g_uSharedMemReadPos = 2*sizeof(u32);
-               if ( (pOMXBuffer->nAllocLen - uBytesToRead > 0) && (uWritePos1 > 0) )
-               {
-                  unsigned char* pTmpB = pOMXBuffer->pBuffer + uBytesToRead;
-
-                  u32 uBytesToRead2 = uWritePos1 - 2*sizeof(u32);
-                  if ( uBytesToRead2 + uBytesToRead > pOMXBuffer->nAllocLen )
-                     uBytesToRead2 = pOMXBuffer->nAllocLen - uBytesToRead;
-                  memcpy(pTmpB, &g_pSMem[g_uSharedMemReadPos], uBytesToRead2);
-                  g_uSharedMemReadPos += uBytesToRead2;
-                  uBytesToRead += uBytesToRead2;
-               }
-            }
-         } 
-         g_pSMProcessStats->uInBlockingOperation = 0;
-
-         if ( g_bQuit )
+            status = -7;
+            log_error_and_alarm("Failed to setup tunnel at start streaming.");
             break;
+         }
 
-         // To remove
-         //_parse_stream(pOMXBuffer->pBuffer, uBytesToRead);
-
-         if(port_settings_changed == 0 &&
-            ((uBytesToRead > 0 && ilclient_remove_event(video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1) == 0) ||
-             (uBytesToRead == 0 && ilclient_wait_for_event(video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1,
-                                                       ILCLIENT_EVENT_ERROR | ILCLIENT_PARAMETER_CHANGED, 10000) == 0)))
+         if ( g_iClockSync )
          {
-            port_settings_changed = 1;
-            if(ilclient_setup_tunnel(tunnel, 0, 0) != 0)
+            ilclient_change_component_state(video_scheduler, OMX_StateExecuting);
+            if ( ilclient_setup_tunnel(tunnel+1, 0, 1000) != 0)
             {
-               status = -7;
+               status = -12;
+               log_error_and_alarm("Failed to setup tunnel for clock at start streaming.");
                break;
             }
-
-            if ( g_iClockSync )
-            {
-               ilclient_change_component_state(video_scheduler, OMX_StateExecuting);
-               if ( ilclient_setup_tunnel(tunnel+1, 0, 1000) != 0)
-               {
-                  status = -12;
-                  break;
-               }
-            }
-
-            ilclient_change_component_state(video_render, OMX_StateExecuting);
          }
-         
-         pOMXBuffer->nFilledLen = uBytesToRead;
-         uBytesToRead = 0;
 
-         pOMXBuffer->nOffset = 0;
-         if(first_packet)
-         {
-            pOMXBuffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
-            first_packet = 0;
-         }
-         else
-            pOMXBuffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
-
-         if(OMX_EmptyThisBuffer(ILC_GET_HANDLE(video_decode), pOMXBuffer) != OMX_ErrorNone)
-         {
-            status = -6;
-            break;
-         }
+         ilclient_change_component_state(video_render, OMX_StateExecuting);
       }
-
-      log_line("Quiting (port changed: %d, first packet: %d)...", port_settings_changed, first_packet);
-      if ( (NULL != pOMXBuffer) && port_settings_changed && (!first_packet) )
+      
+      pOMXBuffer->nFilledLen = uRead;
+      pOMXBuffer->nOffset = 0;
+      if ( first_packet )
       {
-         pOMXBuffer->nFilledLen = 0;
-         pOMXBuffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN | OMX_BUFFERFLAG_EOS;
-
-         if(OMX_EmptyThisBuffer(ILC_GET_HANDLE(video_decode), pOMXBuffer) != OMX_ErrorNone)
-            status = -20;
+         pOMXBuffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
+         first_packet = 0;
       }
+      else
+         pOMXBuffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
 
-      // wait for EOS from render
-      if ( port_settings_changed && (!first_packet) )
+      if ( OMX_EmptyThisBuffer(ILC_GET_HANDLE(video_decode), pOMXBuffer) != OMX_ErrorNone )
       {
-         ilclient_wait_for_event(video_render, OMX_EventBufferFlag, 90, 0, OMX_BUFFERFLAG_EOS, 0,
-                              ILCLIENT_BUFFER_FLAG_EOS, -1);
-
-         // need to flush the renderer to allow video_decode to disable its input port
-         ilclient_flush_tunnels(tunnel, 0);
+         status = -6;
+         log_error_and_alarm("Failed to to feed buffer to decoder");
+         break;
       }
-
-      log_line("Done rendering cleanup step 1/3...");
    }
+
+   log_line("Quiting (quit: %d, port changed: %d, first packet: %d)...", g_bQuit, port_settings_changed, first_packet);
+   if ( (NULL != pOMXBuffer) && port_settings_changed && (!first_packet) )
+   {
+      pOMXBuffer->nFilledLen = 0;
+      pOMXBuffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN | OMX_BUFFERFLAG_EOS;
+
+      if(OMX_EmptyThisBuffer(ILC_GET_HANDLE(video_decode), pOMXBuffer) != OMX_ErrorNone)
+         status = -20;
+   }
+
+   // wait for EOS from render
+   if ( port_settings_changed && (!first_packet) )
+   {
+      ilclient_wait_for_event(video_render, OMX_EventBufferFlag, 90, 0, OMX_BUFFERFLAG_EOS, 0,
+                           ILCLIENT_BUFFER_FLAG_EOS, -1);
+
+      // need to flush the renderer to allow video_decode to disable its input port
+      ilclient_flush_tunnels(tunnel, 0);
+   }
+
+   log_line("Done rendering cleanup step 1/3...");
  
    if ( port_settings_changed && (!first_packet) )
    {
@@ -443,17 +462,22 @@ int main(int argc, char **argv)
 {
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
-      printf("%d.%d (b%d)", 10,5,270);
+      printf("%d.%d (b%d)", 11,5,11504);
       return 0;
    }
 
-   log_init("RubyVideoStreamer");
+   for( int i=1; i<argc-1; i++ )
+   {
+      if ( 0 == strcmp(argv[i], "-rawp") )
+         g_iRawPriority = atoi(argv[i+1]);
 
-   signal(SIGINT, handle_sigint);
-   signal(SIGTERM, handle_sigint);
-   signal(SIGQUIT, handle_sigint);
+      if ( 0 == strcmp(argv[i], "-af") )
+         g_uCPUAffinity = (uint32_t) atoi(argv[i+1]);
+   }
 
-   bcm_host_init();
+   log_init("RubyVideoStreamerSM");
+
+   log_line("Raw priority param: %d, CPU affinity mask param: %d", g_iRawPriority, g_uCPUAffinity);
 
    pthread_t this_thread = pthread_self();
    struct sched_param params;
@@ -461,22 +485,57 @@ int main(int argc, char **argv)
    int ret = 0;
    ret = pthread_getschedparam(this_thread, &policy, &params);
    if ( ret != 0 )
-      log_softerror_and_alarm("Failed to get schedule param");
+      log_softerror_and_alarm("Failed to get initial schedule param");
    else
-      log_line("Current thread policy/priority: %d/%d", policy, params.sched_priority);
+      log_line("Initial thread policy/priority: %d/%d", policy, params.sched_priority);
 
-   /*
-   params.sched_priority = 50;
-   ret = pthread_setschedparam(this_thread, SCHED_FIFO, &params);
-   if ( ret != 0 )
-      log_softerror_and_alarm("Failed to set thread schedule class, error: %d, %s", errno, strerror(errno));
+
+   if ( (g_iRawPriority > 1) && (g_iRawPriority < 100) )
+   {
+      params.sched_priority = 100 - g_iRawPriority;
+      ret = pthread_setschedparam(this_thread, SCHED_FIFO, &params);
+      if ( ret != 0 )
+         log_softerror_and_alarm("Failed to set thread schedule class, error: %d, %s", errno, strerror(errno));
+      else
+         log_line("Did set new thread priority.");
+   }
+
+   if ( g_uCPUAffinity > 0 )
+   {
+      cpu_set_t cpuSet;
+      CPU_ZERO(&cpuSet);
+      int iCore = -1;
+      for( int i=0; i<8; i++ )
+      {
+         if ( g_uCPUAffinity & (0x01<<i) )
+         {
+            CPU_SET(i, &cpuSet);
+            iCore = i;
+         }
+      }
+      pid_t pid = getpid();
+      if ( 0 != sched_setaffinity(pid, sizeof(cpuSet), &cpuSet) )
+         log_line("Failed to set affinities for the entire process, error: %d (%s)", errno, strerror(errno)); 
+      else
+         log_line("Did set affinities for the entire process, to %d", g_uCPUAffinity);
+
+      if ( 0 != pthread_setaffinity_np(this_thread, sizeof(cpuSet), &cpuSet) )
+         log_line("Failed to set cpu affinity for main thread, error: %d, (%s)", errno, strerror(errno));
+      else
+         log_line("Did set cpu affinity for main thread to mask: %u, core: %d", g_uCPUAffinity, iCore);
+   }
+
+   signal(SIGINT, handle_sigint);
+   signal(SIGTERM, handle_sigint);
+   signal(SIGQUIT, handle_sigint);
+
+   bcm_host_init();
 
    ret = pthread_getschedparam(this_thread, &policy, &params);
    if ( ret != 0 )
-     log_softerror_and_alarm("Failed to get schedule param");
+      log_softerror_and_alarm("Failed to get new schedule param");
    else
-     log_line("Current new thread policy/priority: %d/%d", policy, params.sched_priority);
-   */
+      log_line("New thread policy/priority: %d/%d", policy, params.sched_priority);
 
    //DISPMANX_DISPLAY_HANDLE_T display = vc_dispmanx_display_open(0);
    //vc_dispmanx_vsync_callback(display, _onVSync, NULL); 

@@ -6,10 +6,10 @@
 #include "../base/parser_h264.h"
 #include "../radio/radiopackets2.h"
 
-//  [packet header][video segment header][video seg header important][video data][000]
-//  | pPH          | pPHVS               | pPHVSImp                  |pActualVideoData
-//  | pRawData ptr                       | pVideoData ptr (all this is part of EC)
-//                                       [  <- video block packet size ->            ]
+//  [packet header][video segment header][video seg header important][video data][0000  ][dbg]
+//  | pPH          | pPHVS               | pPHVSImp                  |pActualVideoData  |
+//                                       [     <- error corrected data ->               ]
+//                                       [     <- video block packet size   ->          ]
 //                                                                   [-vid size-]
 
 typedef struct
@@ -33,19 +33,24 @@ class VideoTxPacketsBuffer
       bool init(Model* pModel);
       bool uninit();
       void discardBuffer();
+      void setLastFrameTimers(u32 uTimeReadCamera, u32 uTimeSendVideo, u32 uTimeSendOthers, u32 uTotalProcessingTime);
+      void setLastFrameDistanceMs(u32 uDistanceMs);
+      void setCurrentRealFPS(int iFPS);
       void setCustomECScheme(u16 uECScheme);
       int  getCurrentTotalBlockPackets();
       void updateVideoHeader(Model* pModel);
-      void fillVideoPacketsFromCSI(u8* pVideoData, int iDataSize, bool bEndOfFrame, int iHasPendingDataPacketsToSend);
-      bool fillVideoPacketsFromRTSPPacket(u8* pVideoRawData, int iRawDataSize, bool bSingle, bool bEnd, u32 uNALType, int iHasPendingDataPacketsToSend);
-      void fillVideoPacketsFromNALFrames(u8* pVideoData, int iDataSize, u32 uNALPresenceFlags, int iHasPendingDataPacketsToSend);
-      int hasPendingPacketsToSend();
-      u32 getFirstPacketToSendVideoBlockIndex();
-      int sendAvailablePackets(int iMaxCountToSend);
+      void appendDataToCurrentFrame(u8* pVideoData, int iDataSize, u32 uNALPresenceFlags, bool bIsEndOfFrame, u32 uTimeDataAvailable);
+      bool hasPendingPacketsToSend();
+      int sendAvailablePackets(int iCountPacketsAferVideo);
       void resendVideoPacket(u32 uRetransmissionId, u32 uVideoBlockIndex, u32 uVideoBlockPacketIndex);
+      void resendVideoPacketsFromFrameEnd(u32 uRetransmissionId, u16 uH264FrameIndex, u8 uPacketsToEOF);
 
+      void setTelemetryInfoVideoThroughput(u32 uVideoBitsPerSec);
+
+      u32 getLastFrameExpectedTxTimeMicros();
+      u32 getLastFrameSentDRMin_BPS();
+      u32 getLastFrameSentDRMax_BPS();
       u32 getCurrentOutputFrameIndex();
-      u32 getCurrentOutputNALIndex();
       int getCurrentUsableRawVideoDataSize();
       bool getResetOverflowFlag();
       int getCurrentMaxUsableRawVideoDataSize();
@@ -53,9 +58,9 @@ class VideoTxPacketsBuffer
    protected:
 
       void _checkAllocatePacket(int iBufferIndex, int iPacketIndex);
-      void _fillVideoPacketHeaders(int iBufferIndex, int iPacketIndex, bool bIsECPacket, int iRawVideoDataSize, u32 uNALPresenceFlags, bool bEndOfTransmissionFrame, int iCountPacketsToEOF, int iCountDataPacketsAfter);
-      void _addNewVideoPacket(u8* pRawVideoData, int iRawVideoDataSize, u32 uNALPresenceFlags, bool bEndOfTransmissionFrame, int iCountPacketsToEOF, int iCountDataPacketsAfter);
-      bool _sendPacket(int iBufferIndex, int iPacketIndex, u32 uRetransmissionId);
+      void _fillVideoPacketHeaders(int iBufferIndex, int iPacketIndex, bool bIsECPacket, int iRawVideoDataSize, bool bIsLastPacket);
+      int _addNewVideoPacket(u8* pRawVideoData, int iRawVideoDataSize, bool bIsLastPacket);
+      void _sendPacket(int iBufferIndex, int iPacketIndex, u32 uRetransmissionId, int iCountPacketsAferVideo);
       static int m_siVideoBuffersInstancesCount;
       bool m_bInitialized;
       bool m_bOverflowFlag;
@@ -66,9 +71,9 @@ class VideoTxPacketsBuffer
       ParserH264 m_ParserInputH264;
 
       u16 m_uCurrentH264FrameIndex;
-      u16 m_uCurrentH264NALIndex;
-      u32 m_uPreviousParsedNAL;
-      u32 m_uCurrenltyParsedNAL;
+      u32 m_uLastFrameTimers;
+      u32 m_uLastFrameDistanceMs;
+      int m_iCurrentRealFPS;
       u32 m_uNextVideoBlockIndexToGenerate;
       u32 m_uNextVideoBlockPacketIndexToGenerate;
       u32 m_uNextBlockPacketSize;
@@ -88,12 +93,24 @@ class VideoTxPacketsBuffer
       int m_iNextBufferPacketIndexToFill;
       int m_iCurrentBufferIndexToSend;
       int m_iCurrentBufferPacketIndexToSend;
-      u8 m_TempVideoBuffer[MAX_PACKET_TOTAL_SIZE];
+      u32 m_uTimeDataAvailable;
+      u8* m_pTempVideoFrameBuffer;
+      int m_iTempVideoFrameBufferSize;
       int m_iTempVideoBufferFilledBytes;
       u32 m_uTempNALPresenceFlags;
       type_tx_video_packet_info m_VideoPackets[MAX_RXTX_BLOCKS_BUFFER][MAX_TOTAL_PACKETS_IN_BLOCK];
-      int m_iCountReadyToSend;
 
       u32 m_uRadioStreamPacketIndex;
+      u32 m_uExpectedFrameTransmissionTimeMicros;
+
+      u32 m_uLastTimeSentVideoPacketMicros;
+      u32 m_uLastSentVideoPacketDurationMicros;
+      u32 m_uLastSentVideoPacketDatarateBPS;
+      u32 m_uLastSentVideoPacketDatarateMinBPS;
+      u32 m_uLastSentVideoPacketDatarateMaxBPS;
+
+      u32 m_uTelemetryVideoBitsPerSec;
+      u32 m_uTelemetryTotalVideoBitsPerSec;
+      u32 m_uTelemetryVideoTxTimeMsPerSec;
 };
 

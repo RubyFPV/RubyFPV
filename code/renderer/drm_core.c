@@ -11,9 +11,9 @@
         * Redistributions in binary form (partially or complete) must reproduce
         the above copyright notice, this list of conditions and the following disclaimer
         in the documentation and/or other materials provided with the distribution.
-         * Copyright info and developer info must be preserved as is in the user
+        * Copyright info and developer info must be preserved as is in the user
         interface, additions could be made to that info.
-       * Neither the name of the organization nor the
+        * Neither the name of the organization nor the
         names of its contributors may be used to endorse or promote products
         derived from this software without specific prior written permission.
         * Military use is not per
@@ -113,7 +113,7 @@ int _ruby_drm_get_object_properties(type_drm_object_info* pObject)
    }
 
    pObject->ppPropertiesInfo = calloc( pObject->pProperties->count_props, sizeof(drmModePropertyRes*));
-   log_line("[DRMCore] Object %s, id: %u has %d properties:", szType, pObject->uObjId, pObject->pProperties->count_props);
+   log_line("[DRMCore] Object %s, id: %u has %d properties", szType, pObject->uObjId, pObject->pProperties->count_props);
    for (int i = 0; i < pObject->pProperties->count_props; i++)
    {
        pObject->ppPropertiesInfo[i] = drmModeGetProperty(s_fdDRM, pObject->pProperties->props[i]);
@@ -226,7 +226,7 @@ int _ruby_drm_core_enumerate_find_resources()
       return -1;
    }
  
-   log_line("[DRMCore] Finding resources (%d connectors, %d crtcs)...",
+   log_line("[DRMCore] (Enumerate find resources) Finding resources (%d connectors, %d crtcs)...",
       s_DRMRuntimeState.pAllDRMResources->count_connectors, s_DRMRuntimeState.pAllDRMResources->count_crtcs);
 
    // Find connectors (displays, aka video hardware connectors (HDMI,DVI...))
@@ -315,7 +315,7 @@ int _ruby_drm_core_enumerate_find_resources()
 
    // Find the actual display/CRTc for this connector (connector->encoder->crt/display)
 
-   log_line("[DRMCore] Finding display...");
+   log_line("[DRMCore] (Enumerate find resources) Finding display...");
 
    s_DRMRuntimeState.pEncoder = NULL;
    s_DRMRuntimeState.pCRTc = NULL;
@@ -385,15 +385,15 @@ int _ruby_drm_core_enumerate_find_resources()
 
    if ( NULL == s_DRMRuntimeState.pEncoder )
    {
-      log_softerror_and_alarm("[DRMCore] Could not find an encoder.");
+      log_softerror_and_alarm("[DRMCore] (Enumerate find resources) Could not find an encoder.");
       return -1;
    }
    if ( NULL == s_DRMRuntimeState.pCRTc )
    {
-      log_softerror_and_alarm("[DRMCore] Could not find a display.");
+      log_softerror_and_alarm("[DRMCore] (Enumerate find resources) Could not find a display.");
       return -1;
    }
-
+   log_line("[DRMCore] (Enumerate find resources) Completed.");
    return 0;
 }
 
@@ -619,7 +619,7 @@ int ruby_drm_core_is_display_connected()
    {
       iMustCloseDevice = 1;
       if ( _ruby_drm_open_device() < 0 )
-         return 01;
+         return -1;
    }
 
    drmModeRes* pAllDRMResources = drmModeGetResources(s_fdDRM);
@@ -635,7 +635,7 @@ int ruby_drm_core_is_display_connected()
       return -1;
    }
  
-   log_line("[DRMCore] Finding resources (%d connectors, %d crtcs)...",
+   log_line("[DRMCore] (Check display connected) Finding resources (%d connectors, %d crtcs)...",
       pAllDRMResources->count_connectors, pAllDRMResources->count_crtcs);
 
    // Find connectors (displays, aka video hardware connectors (HDMI,DVI...))
@@ -733,6 +733,8 @@ int ruby_drm_core_init(int iPlaneIndex, uint32_t uFormat, int iWidth, int iHeigh
    _ruby_drm_core_enumerate_find_resources();
    _ruby_drm_find_target_plane();
 
+   log_line("[DRMCore] Init: finding object properties for target plane %d", iPlaneIndex);
+
    _ruby_drm_get_object_properties(&s_DRMRuntimeState.objInfoConnector);
    _ruby_drm_get_object_properties(&s_DRMRuntimeState.objInfoCRTc);
    _ruby_drm_get_object_properties(&s_DRMRuntimeState.objInfoPlane);
@@ -743,9 +745,14 @@ int ruby_drm_core_init(int iPlaneIndex, uint32_t uFormat, int iWidth, int iHeigh
 
    _ruby_drm_create_drm_surface_buffer(&s_DRMRuntimeState.drawBuffers[0]);
    _ruby_drm_create_drm_surface_buffer(&s_DRMRuntimeState.drawBuffers[1]);
-   s_DRMRuntimeState.iActiveOnScreenDrawBuffer = 0;
 
+   log_line("[DRMCore] Init: created drm surfaces target plane %d", iPlaneIndex);
+
+   s_DRMRuntimeState.iActiveOnScreenDrawBuffer = 0;
    s_iDRMCoreInitialized = 1;
+
+   log_line("[DRMCore] Init complete (on plane index %d, format %s, w/h/r: %dx%d@%d)",
+      iPlaneIndex, _ruby_drm_fourcc_to_string(uFormat), iWidth, iHeight, iRefreshRate);
    return 0;
 }
 

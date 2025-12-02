@@ -1,12 +1,20 @@
 date -s "20250303 09:45"
 sudo apt update
-sudo apt-get install -y libdrm-dev libcairo-dev
+sudo apt -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false -o "Acquire::https::Verify-Peer=false" update
+
+sudo apt-get -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false -o "Acquire::https::Verify-Peer=false" install -y libdrm-dev libcairo-dev
 
 sudo apt install cmake
 
 sudo apt-get -o "Acquire::https::Verify-Peer=false" install -y libgpiod-dev
 sudo apt -o "Acquire::https::Verify-Peer=false" install -y i2c-tools libi2c-dev linux-libc-dev 
 
+sudo apt -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false -o "Acquire::https::Verify-Peer=false" install --fix-missing libsdl2-dev libsdl1.2-dev libconfig++-dev
+
+sudo apt -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false -o "Acquire::https::Verify-Peer=false" install libgpiod-dev
+
+export GIT_SSL_NO_VERIFY=1
+git config --global http.sslverify false
 git clone https://github.com/rockchip-linux/mpp.git
 cd mpp
 cmake -B build

@@ -52,6 +52,8 @@ ProcessorRxVideo* g_pVideoProcessorRxList[MAX_VIDEO_PROCESSORS];
 
 controller_runtime_info g_SMControllerRTInfo;
 controller_runtime_info* g_pSMControllerRTInfo = NULL;
+controller_debug_runtime_info g_SMControllerDebugRTInfo;
+controller_debug_runtime_info* g_pSMControllerDebugRTInfo = NULL;
 vehicle_runtime_info g_SMVehicleRTInfo;
 vehicle_runtime_info* g_pSMVehicleRTInfo = NULL;
 
@@ -77,6 +79,9 @@ shared_mem_radio_stats* g_pSM_RadioStats = NULL;
 
 shared_mem_process_stats* g_pProcessStats = NULL;
 shared_mem_process_stats* g_pProcessStatsCentral = NULL;
+
+shared_mem_ctrl_ping_stats* g_pSMDbgPingStats = NULL;
+shared_mem_ctrl_ping_stats g_SMDbgPingStats;
 
 int g_fIPCFromCentral = -1;
 int g_fIPCToCentral = -1;

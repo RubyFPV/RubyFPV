@@ -352,3 +352,33 @@ int tx_power_compute_uplink_power_for_model_link(Model* pModel, int iVehicleRadi
       iTxPowerMw = iCardMaxPowerMw;
    return iTxPowerMw;
 }
+
+
+int get_vehicle_radio_link_current_tx_power_mw(Model* pModel, int iRadioLinkIndex)
+{
+   if ( (NULL == pModel) || (iRadioLinkIndex < 0) || (iRadioLinkIndex >= pModel->radioLinksParams.links_count) )
+      return 1;
+
+   int iMaxCardPowerMw = 1;
+   for( int i=0; i<pModel->radioInterfacesParams.interfaces_count; i++ )
+   {
+      if ( ! hardware_radio_type_is_ieee(pModel->radioInterfacesParams.interface_radiotype_and_driver[i] & 0xFF) )
+      if ( pModel->radioInterfacesParams.interface_link_id[i] != iRadioLinkIndex )
+         continue;
+
+      int iCardModel = pModel->radioInterfacesParams.interface_card_model[i];
+      if ( iCardModel < 0 )
+         iCardModel = -iCardModel;
+      int iCardRawPower = pModel->radioInterfacesParams.interface_raw_power[i];
+      int iCardPowerMw = tx_powers_convert_raw_to_mw(pModel->hwCapabilities.uBoardType, iCardModel, iCardRawPower);
+      if ( pModel->radioInterfacesParams.interface_capabilities_flags[i] & RADIO_HW_CAPABILITY_FLAG_HAS_BOOSTER_2W )
+         iCardPowerMw = tx_powers_get_mw_boosted_value_from_mw(iCardPowerMw, true, false);
+      if ( pModel->radioInterfacesParams.interface_capabilities_flags[i] & RADIO_HW_CAPABILITY_FLAG_HAS_BOOSTER_4W )
+         iCardPowerMw = tx_powers_get_mw_boosted_value_from_mw(iCardPowerMw, false, true);
+      if ( iCardPowerMw > iMaxCardPowerMw )
+         iMaxCardPowerMw = iCardPowerMw;
+   }
+
+   return iMaxCardPowerMw;
+}
+

@@ -183,35 +183,35 @@ static void * _thread_speed(void *argument)
 
 static void * _thread_speed10(void *argument)
 {
-   hw_increase_current_thread_priority((char*)argument, 10);
+   hw_set_current_thread_rt_priority((char*)argument, 10);
    _test_speed((char*)argument);
    return NULL;
 }
 
 static void * _thread_speed20(void *argument)
 {
-   hw_increase_current_thread_priority((char*)argument, 20);
+   hw_set_current_thread_rt_priority((char*)argument, 20);
    _test_speed((char*)argument);
    return NULL;
 }
 
 static void * _thread_speed30(void *argument)
 {
-   hw_increase_current_thread_priority((char*)argument, 30);
+   hw_set_current_thread_rt_priority((char*)argument, 30);
    _test_speed((char*)argument);
    return NULL;
 }
 
 static void * _thread_speed50(void *argument)
 {
-   hw_increase_current_thread_priority((char*)argument, 50);
+   hw_set_current_thread_rt_priority((char*)argument, 50);
    _test_speed((char*)argument);
    return NULL;
 }
 
 static void * _thread_speed70(void *argument)
 {
-   hw_increase_current_thread_priority((char*)argument, 70);
+   hw_set_current_thread_rt_priority((char*)argument, 70);
    _test_speed((char*)argument);
    return NULL;
 }
@@ -233,13 +233,13 @@ void start_test()
 
    for( int i=0; i<2; i++ )
    {
-      hw_increase_current_thread_priority("main", 10);
+      hw_set_current_thread_rt_priority("main", 10);
       _test_speed("SingleThreadPri10");
-      hw_increase_current_thread_priority("main", 30);
+      hw_set_current_thread_rt_priority("main", 30);
       _test_speed("SingleThreadPri30");
-      hw_increase_current_thread_priority("main", 50);
+      hw_set_current_thread_rt_priority("main", 50);
       _test_speed("SingleThreadPri50");
-      hw_increase_current_thread_priority("main", 70);
+      hw_set_current_thread_rt_priority("main", 70);
       _test_speed("SingleThreadPri70");
    }
 

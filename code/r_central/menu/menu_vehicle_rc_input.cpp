@@ -58,9 +58,9 @@ MenuVehicleRCInput::MenuVehicleRCInput(void)
 
    bool bHasRCIn = true;
    int i2cAddress = hardware_i2c_has_external_extenders_rcin();
-   if ( (! hardware_has_i2c_device_id(I2C_DEVICE_ADDRESS_PICO_RC_IN)) &&
-        (! hardware_has_i2c_device_id(I2C_DEVICE_ADDRESS_PICO_EXTENDER)) &&
-        (! hardware_has_i2c_device_id(i2cAddress)) )
+   if ( (! hardware_i2c_has_device_id(I2C_DEVICE_ADDRESS_PICO_RC_IN)) &&
+        (! hardware_i2c_has_device_id(I2C_DEVICE_ADDRESS_PICO_EXTENDER)) &&
+        (! hardware_i2c_has_device_id(i2cAddress)) )
       bHasRCIn = false;
    if ( 0 == i2cAddress )
       bHasRCIn = false;
@@ -100,9 +100,9 @@ void MenuVehicleRCInput::valuesToUI()
 
    bool bHasRCIn = true;
    int i2cAddress = hardware_i2c_has_external_extenders_rcin();
-   if ( (! hardware_has_i2c_device_id(I2C_DEVICE_ADDRESS_PICO_RC_IN)) &&
-        (! hardware_has_i2c_device_id(I2C_DEVICE_ADDRESS_PICO_EXTENDER)) &&
-        (! hardware_has_i2c_device_id(i2cAddress)) )
+   if ( (! hardware_i2c_has_device_id(I2C_DEVICE_ADDRESS_PICO_RC_IN)) &&
+        (! hardware_i2c_has_device_id(I2C_DEVICE_ADDRESS_PICO_EXTENDER)) &&
+        (! hardware_i2c_has_device_id(i2cAddress)) )
       bHasRCIn = false;
    if ( 0 == i2cAddress )
       bHasRCIn = false;

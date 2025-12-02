@@ -202,15 +202,21 @@ void _init_timestamp_for_process()
    if ( NULL != fd )
    {
       if ( 1 != fscanf(fd, "%d", &s_bootCount) )
+      {
          s_bootCount = 0;
+         log_line_forced_to_file("Failed to read boot count from file [%s] for PID %d", szFile, getpid());
+      }
       fclose(fd);
    }
+   else
+      log_line_forced_to_file("Failed to access boot count file [%s] for PID %d", szFile, getpid());
 
    strcpy(szFile, FOLDER_CONFIG);
    strcat(szFile, FILE_CONFIG_BOOT_TIMESTAMP);
    fd = fopen(szFile, "r");
    if ( NULL == fd )
    {
+      log_line_forced_to_file("Failed to access boot timestamp file [%s] for PID %d", szFile, getpid());
       struct timespec t;
       clock_gettime(RUBY_HW_CLOCK_ID, &t);
       sStartTimeStamp_micros = t.tv_sec*1000LL*1000LL + t.tv_nsec/1000LL;
@@ -229,6 +235,8 @@ void _init_timestamp_for_process()
             fclose(fd);
             return;
          }
+         else
+            log_line_forced_to_file("Failed to write boot timestamp to file [%s] for PID %d", szFile, getpid());
          #ifdef HW_PLATFORM_RASPBERRY
          system("sudo mount -o remount,rw /");
          struct timespec to_sleep = { 0, (long int)(50*1000*1000) };
@@ -238,9 +246,13 @@ void _init_timestamp_for_process()
       }
       return;
    }
-   fscanf(fd, "%lld\n", &sStartTimeStamp_ms);
-   fclose(fd);
-   sStartTimeStamp_micros = sStartTimeStamp_ms * 1000;
+   else
+   {
+      if ( 1 != fscanf(fd, "%lld\n", &sStartTimeStamp_ms) )
+         log_line_forced_to_file("Failed to read boot timestamp from file [%s] for PID %d", szFile, getpid());
+      fclose(fd);
+      sStartTimeStamp_micros = sStartTimeStamp_ms * 1000;
+   }
 }
 
 void hardware_sleep_sec(u32 uSeconds)
@@ -405,7 +417,7 @@ int _log_check_for_service_log_access()
    {
       pid_t pid = getpid();
       pid_t ppid = getppid();
-      log_line_forced_to_file("Generate a new key for accessing logger message queue, for PID: %d, parent PID: %d...", (int)pid, (int)ppid);
+      log_line_forced_to_file("Generate a new key for accessing logger message queue, from PID: %d, parent PID: %d...", (int)pid, (int)ppid);
       s_logServiceKey = generate_msgqueue_key(LOGGER_MESSAGE_QUEUE_ID);
    }
    if ( 0 == s_logServiceKey )
@@ -425,7 +437,7 @@ int _log_check_for_service_log_access()
          pid_t ppid = getppid();
          s_logServiceAccessErrorCount++;
          if ( s_logServiceAccessErrorCount < 10 )
-            log_softerror_and_alarm("Failed to access the logger service message queue (PID: %d, parent PID: %d)", (int)pid, (int)ppid);
+            log_softerror_and_alarm("Failed to access the logger service message queue (from PID: %d, parent PID: %d)", (int)pid, (int)ppid);
          else if ( s_logServiceAccessErrorCount == 10 )
          {
             log_softerror_and_alarm("Failed to access the logger service message queue. Using regular log instead.");
@@ -571,7 +583,7 @@ void log_arguments(int argc, char *argv[])
    #elif defined(HW_PLATFORM_RADXA)
    strcpy(szHWPlatform, "RadxaZero3");
    #endif
-   log_line_forced_to_file("Process version: %d.%d (b%d) HW: %s", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER, szHWPlatform);
+   log_line_forced_to_file("Process version: %d.%d (b-%d) HW: %s", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER, szHWPlatform);
    log_line_forced_to_file("Using logger service: %s", (s_logUseService!=0)?"yes":"no");
    if ( argc <= 0 )
    {
@@ -647,13 +659,20 @@ void log_regular_mode()
    s_iLogForceFullMode = 0;
 }
 
+int log_is_errors_only()
+{
+   return s_logOnlyErrors;
+}
 
 void _log_format_time_mstens(char* szOutTime)
 {
    //u32 uMilisTens = get_current_timestamp_ms_tens();
    //sprintf(szOutTime, "%d-%d:%02d:%02d.%03d", s_bootCount, (int)(uMilisTens/1000/60/60/10), (int)(uMilisTens/1000/60/10)%60, (int)((uMilisTens/1000/10)%60), (int)((uMilisTens/10)%1000));
 
-   g_TimeNow = get_current_timestamp_ms();
+   u32 uTime = get_current_timestamp_ms();
+   if ( uTime < g_TimeNow )
+      uTime = get_current_timestamp_ms();
+   g_TimeNow = uTime;
    //sprintf(szOutTime, "%d-%d:%02d:%02d.%03d", s_bootCount, (int)(g_TimeNow/1000/60/60), (int)(g_TimeNow/1000/60)%60, (int)((g_TimeNow/1000)%60), (int)(g_TimeNow%1000));
    log_format_time(g_TimeNow, szOutTime);
 }
@@ -1128,9 +1147,9 @@ void log_dword(const char* szText, u32 value)
  
    if ( _log_check_for_service_log_access() )
    {
-      char szBuff[1200];
-      snprintf(szBuff, 1199, "%s %u", szText, value);
-      szBuff[1199] = 0;
+      char szBuff[MAX_SERVICE_LOG_ENTRY_LENGTH];
+      snprintf(szBuff, MAX_SERVICE_LOG_ENTRY_LENGTH-1, "%s %u", szText, value);
+      szBuff[MAX_SERVICE_LOG_ENTRY_LENGTH-1] = 0;
       _log_service_entry(szTime, szBuff);
       return;
    }
@@ -1187,9 +1206,9 @@ void log_dword_bits(const char* szText, u32 value)
  
    if ( _log_check_for_service_log_access() )
    {
-      char szBuff[200];
-      snprintf(szBuff, 199, "%s %u", szText, value);
-      szBuff[199] = 0;
+      char szBuff[MAX_SERVICE_LOG_ENTRY_LENGTH];
+      snprintf(szBuff, MAX_SERVICE_LOG_ENTRY_LENGTH-1, "%s %u", szText, value);
+      szBuff[MAX_SERVICE_LOG_ENTRY_LENGTH-1] = 0;
       _log_service_entry(szTime, szBuff);
       return;
    }
@@ -1206,9 +1225,15 @@ void log_dword_bits(const char* szText, u32 value)
 
    
    if ( NULL != fd )
-   {   fprintf(fd, szText); fprintf(fd, ": "); }
+   {
+       fprintf(fd, szText);
+       fprintf(fd, ": ");
+   }
    if ( ! s_logDisabledStdout )
-   {   printf(szText); printf(": "); }
+   {
+      printf(szText);
+      printf(": ");
+   }
 
    for( int i=31; i>=0; i-- )
    {
@@ -1230,6 +1255,95 @@ void log_dword_bits(const char* szText, u32 value)
    if ( NULL != fd )
      fprintf(fd, "\n");  
 
+   if ( NULL != fd )
+      fclose(fd);
+}
+
+void log_always(const char* szText)
+{
+   char szTime[64];
+   szTime[0] = 0;
+   if ( s_logAddTime )
+      _log_format_time_mstens(szTime);
+ 
+   if ( _log_check_for_service_log_access() )
+   {
+      char szBuff[MAX_SERVICE_LOG_ENTRY_LENGTH];
+      szBuff[0] = 0;
+      if ( (NULL != szText) && (0 != szText[0]) )
+         strncpy(szBuff, szText, MAX_SERVICE_LOG_ENTRY_LENGTH-1);
+      else
+         strncpy(szBuff, "NoLog", MAX_SERVICE_LOG_ENTRY_LENGTH-1);
+      szBuff[MAX_SERVICE_LOG_ENTRY_LENGTH-1] = 0;
+      _log_service_entry(szTime, szBuff);
+      return;
+   }
+
+   char szFile[MAX_FILE_PATH_SIZE];
+   strcpy(szFile, FOLDER_LOGS);
+   strcat(szFile, LOG_FILE_SYSTEM);
+   FILE* fd = fopen(szFile, "a+");
+   //int lock = flock(fileno(fd), LOCK_EX);
+
+   if ( 0 != s_szAdditionalLogFile[0] )
+   {
+      FILE* fdAux = fopen(s_szAdditionalLogFile, "a+");
+      if ( NULL != fdAux )
+      {
+         fprintf(fdAux, "%s %s: ", szTime, sszComponentName);  
+         fclose(fdAux);
+      }
+   }
+
+   if ( ! s_logDisabledStdout )
+      printf("%s %s: ", szTime, sszComponentName);
+   if ( NULL != fd )
+     fprintf(fd, "%s %s: ", szTime, sszComponentName);
+
+   if ( 0 != s_szAdditionalLogFile[0] )
+   {
+      FILE* fdAux = fopen(s_szAdditionalLogFile, "a+");
+      if ( NULL != fdAux )
+      {
+         if ( (NULL != szText) && (0 != szText[0]) )
+            fprintf(fdAux, "%s", szText);
+         else
+            fprintf(fdAux, "NoLog");
+         fclose(fdAux);
+      }
+   }
+
+   if ( NULL != fd )
+   {
+      if ( (NULL != szText) && (0 != szText[0]) )
+         fprintf(fd, "%s", szText);
+      else
+         fprintf(fd, "NoLog");
+   }
+   if ( ! s_logDisabledStdout )
+   {
+      if ( (NULL != szText) && (0 != szText[0]) )
+         printf("%s", szText);
+      else
+         printf("NoLog");
+   }
+   if ( 0 != s_szAdditionalLogFile[0] )
+   {
+      FILE* fdAux = fopen(s_szAdditionalLogFile, "a+");
+      if ( NULL != fdAux )
+      {
+         fprintf(fdAux, "\n");
+         fclose(fdAux);
+      }
+   }
+
+   if ( ! s_logDisabledStdout )
+      printf("\n");
+   if ( NULL != fd )
+     fprintf(fd, "\n");  
+
+   //if ( 0 == lock )
+   //   flock(fileno(fd), LOCK_UN);
    if ( NULL != fd )
       fclose(fd);
 }
@@ -1508,4 +1622,50 @@ key_t generate_msgqueue_key(int iMsgQueueId)
 
    log_line_forced_to_file("Generated message queue key 0x%X for msg queue id %d, from file [%s]", key, iMsgQueueId, szFile);
    return key;
+}
+
+int is_semaphore_signaled_clear(sem_t* pSemaphore, const char* szSemName)
+{
+   return is_semaphore_signaled_clear_logok(pSemaphore, szSemName, 1);
+}
+
+int is_semaphore_signaled_clear_logok(sem_t* pSemaphore, const char* szSemName, int iLogOk)
+{
+   if ( NULL == pSemaphore )
+   {
+      if ( NULL != szSemName )
+         log_softerror_and_alarm("Tried to query NULL semaphore, sem name: [%s]", szSemName);
+      else
+         log_softerror_and_alarm("Tried to query NULL semaphore, sem name: NULL");
+      return 0;
+   }
+   //int iSemValue = 0;
+   //if ( 0 == sem_getvalue(pSemaphore, &iSemValue) )
+   //if ( iSemValue > 0 )
+   if ( 0 == sem_trywait(pSemaphore) )
+   {
+      int iSemValue = 0;
+      if ( 0 != sem_getvalue(pSemaphore, &iSemValue) )
+      {
+         if ( NULL != szSemName )
+            log_softerror_and_alarm("Failed to get sem value after trywait, sem name: [%s]", szSemName);
+         else
+            log_softerror_and_alarm("Failed to get sem value after trywait, sem name: NULL");
+         iSemValue = 0;
+      }
+      int iCount = iSemValue;
+      while ( (iCount > 0) && (0 == sem_trywait(pSemaphore)) )
+      {
+         iCount--;
+      }
+      if ( iLogOk )
+      {
+         if ( NULL != szSemName )
+            log_line("Semaphore [%s] is signaled (value %d) and cleared.", szSemName, iSemValue);
+         else
+            log_line("Semaphore NULL is signaled (value %d) and cleared.", iSemValue);
+      }
+      return iSemValue+1;
+   }
+   return 0;
 }

@@ -362,14 +362,14 @@ void MenuVehicleCamera::addItems()
    {
       if ( g_pCurrentModel->isActiveCameraCSI() || g_pCurrentModel->isActiveCameraVeye() )
       {
-         m_pItemsSelect[7] = new MenuItemSelect(L("Shutter Speed"), L("Sets shutter speed to auto or manual."));
+         m_pItemsSelect[7] = new MenuItemSelect(L("Shutter Speed Mode"), L("Sets shutter speed to auto or manual."));
          m_pItemsSelect[7]->addSelection(L("Auto"));
          m_pItemsSelect[7]->addSelection(L("Manual"));
          m_pItemsSelect[7]->setIsEditable();
          m_pItemsSelect[7]->setMargin(fMargin);
          m_IndexShutterMode = addMenuItem(m_pItemsSelect[7]);
       
-         m_pItemsSlider[6] = new MenuItemSlider("", "Sets the shutter speed to 1/x of a second", 30,5000,1000, fSliderWidth);
+         m_pItemsSlider[6] = new MenuItemSlider("Shutter Speed", "Sets the shutter speed to 1/x of a second", 30,5000,1000, fSliderWidth);
          m_pItemsSlider[6]->setStep(30);
          m_pItemsSlider[6]->setMargin(fMargin);
          m_IndexShutterValue = addMenuItem(m_pItemsSlider[6]);
@@ -383,14 +383,14 @@ void MenuVehicleCamera::addItems()
          m_pItemsSelect[22]->setMargin(fMargin);
          m_IndexOpenIPC3A = addMenuItem(m_pItemsSelect[22]);
 
-         m_pItemsSelect[7] = new MenuItemSelect(L("Shutter Speed"), L("Sets the shutter speed to be auto controllerd by camera or manula set by user."));  
+         m_pItemsSelect[7] = new MenuItemSelect(L("Shutter Speed Mode"), L("Sets the shutter speed to be auto controllerd by camera or manual set by user."));  
          m_pItemsSelect[7]->addSelection(L("Auto"));
          m_pItemsSelect[7]->addSelection(L("Manual"));
          m_pItemsSelect[7]->setIsEditable();
          m_pItemsSelect[7]->setMargin(fMargin);
          m_IndexShutterMode = addMenuItem(m_pItemsSelect[7]);
 
-         m_pItemsSlider[6] = new MenuItemSlider("", "Sets the camera shutter speed, in miliseconds.", 1,100,10, fSliderWidth);
+         m_pItemsSlider[6] = new MenuItemSlider("Shutter Speed", "Sets the camera shutter speed, in miliseconds.", 1,100,10, fSliderWidth);
          m_pItemsSlider[6]->setMargin(fMargin);
          m_IndexShutterValue = addMenuItem(m_pItemsSlider[6]);
       }
@@ -668,11 +668,14 @@ void MenuVehicleCamera::updateUIValues()
       if ( hardware_board_is_sigmastar(g_pCurrentModel->hwCapabilities.uBoardType) )
       if ( -1 != m_IndexShutterMode )
       {
-         if ( 0 == g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].shutterspeed )
+         if ( g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].iShutterSpeed <= 0 )
          {
             m_pItemsSelect[7]->setSelectedIndex(0);
             if ( (-1 != m_IndexShutterValue) && (m_pItemsSlider[6] != NULL) )
+            {
                m_pItemsSlider[6]->setEnabled(false);
+               m_pItemsSlider[6]->setCurrentValue(-g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].iShutterSpeed);
+            }
          } 
          else
          {
@@ -680,7 +683,7 @@ void MenuVehicleCamera::updateUIValues()
             if ( (m_IndexShutterValue != -1) && (m_pItemsSlider[6] != NULL) )
             {
                m_pItemsSlider[6]->setEnabled(true);
-               m_pItemsSlider[6]->setCurrentValue(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].shutterspeed);
+               m_pItemsSlider[6]->setCurrentValue(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].iShutterSpeed);
             }
          }
       }
@@ -688,12 +691,15 @@ void MenuVehicleCamera::updateUIValues()
    else
    {
       if ( (-1 != m_IndexShutterMode) && (NULL != m_pItemsSelect[7]) )
-         m_pItemsSelect[7]->setSelection(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].shutterspeed != 0);
+         m_pItemsSelect[7]->setSelection((g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].iShutterSpeed > 0)?1:0);
 
       if ( (-1 != m_IndexShutterValue) && (NULL != m_pItemsSlider[6]) )
       {
-         m_pItemsSlider[6]->setCurrentValue((int)g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].shutterspeed);
-         m_pItemsSlider[6]->setEnabled(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].shutterspeed != 0);
+         if ( g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].iShutterSpeed > 0 )
+            m_pItemsSlider[6]->setCurrentValue((int)g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].iShutterSpeed);
+         else
+            m_pItemsSlider[6]->setCurrentValue(-(int)g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].iShutterSpeed);
+         m_pItemsSlider[6]->setEnabled((g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].iShutterSpeed > 0)?true:false);
       }
    }
 
@@ -930,24 +936,19 @@ void MenuVehicleCamera::sendCameraParams(int itemIndex, bool bQuick)
 
    if ( (m_IndexShutterMode != -1) && (m_IndexShutterValue != -1) )
    {
-      if ( g_pCurrentModel->isActiveCameraOpenIPC() )
+      cparams.profiles[iProfile].iShutterSpeed = 0;
+      if ( m_pItemsSlider[6] != NULL )
       {
-         cparams.profiles[iProfile].shutterspeed = 0;
          if ( 0 == m_pItemsSelect[7]->getSelectedIndex() )
-            cparams.profiles[iProfile].shutterspeed = 0;
-         else if ( m_pItemsSlider[6] != NULL )
-            cparams.profiles[iProfile].shutterspeed = m_pItemsSlider[6]->getCurrentValue();
+            cparams.profiles[iProfile].iShutterSpeed = -m_pItemsSlider[6]->getCurrentValue();
+         else
+            cparams.profiles[iProfile].iShutterSpeed = m_pItemsSlider[6]->getCurrentValue();
+      }
 
-         if ( g_pCurrentModel->isRunningOnOpenIPCHardware() )
-         if ( g_pCurrentModel->validate_fps_and_exposure_settings(&cparams.profiles[iProfile]))
-            addMessage("You camera exposure time was adjusted to accomodate the currently set video FPS.");
-      }
-      else
-      {
-         cparams.profiles[iProfile].shutterspeed = (m_pItemsSelect[7]->getSelectedIndex() == 0)?0:1000;
-         if ( m_pItemsSelect[7]->getSelectedIndex() != 0 )
-            cparams.profiles[iProfile].shutterspeed = m_pItemsSlider[6]->getCurrentValue();
-      }
+      if ( g_pCurrentModel->isActiveCameraOpenIPC() )
+      if ( g_pCurrentModel->isRunningOnOpenIPCHardware() )
+      if ( g_pCurrentModel->validate_fps_and_exposure_settings(&cparams.profiles[iProfile], false))
+         addMessage("You camera exposure time was adjusted to accomodate the currently set video FPS.");
    }
 
    if ( (m_IndexVideoStab != -1) && (m_pItemsSelect[8] != NULL) )

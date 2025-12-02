@@ -11,6 +11,7 @@ char* str_capitalize_first_letter(char* szText);
 
 char* str_format_time(u32 miliseconds);
 char* str_format_binary_number(u32 uNumber);
+char* str_format_schedule_policy(int iSchedulePolicy);
 
 void str_getDataRateDescription(int dataRateBPS, int iHT40, char* szOutput);
 void str_getDataRateDescriptionNoSufix(int dataRateBPS, char* szOutput);
@@ -30,6 +31,7 @@ char* str_get_packet_history_symbol(int iPacketType, int iRepeatCount);
 char* str_get_packet_test_link_command(int iTestCommandId);
 
 char* str_get_pipe_flags(int iFlags);
+char* str_format_processes_flags(u32 uProcessesFlags);
 
 const char* str_get_hardware_board_name(u32 board_type);
 const char* str_get_hardware_board_name_short(u32 board_type);

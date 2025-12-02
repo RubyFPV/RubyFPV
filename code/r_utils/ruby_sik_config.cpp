@@ -63,7 +63,7 @@ int _setTxPower(int iTxPower)
    
    bool bFailed = false;
 
-   for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+   for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
       hw_serial_port_info_t* pSerialPortInfo = hardware_get_serial_port_info(i);
       if ( NULL == pSerialPortInfo )
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
-      printf("%d.%d (b%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER);
+      printf("%d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       write_result(false);
       return 0;
    }
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
 
    log_init("RubySiKConfig");
 
-   hardware_reload_serial_ports_settings();
+   hardware_serial_reload_ports_settings();
    hardware_enumerate_radio_interfaces();
    hardware_radio_sik_load_configuration();
 

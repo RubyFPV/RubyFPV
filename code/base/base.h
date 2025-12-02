@@ -8,13 +8,13 @@
 #include <utime.h>
 #include <unistd.h>
 #include <getopt.h>
-#include <pcap.h>
 #include <endian.h>
 #include <fcntl.h>
 #include <time.h>
 #include <sys/mman.h>
 #include <signal.h>
 #include <sys/ipc.h>
+#include <semaphore.h>
 #include "config_hw.h"
 
 
@@ -34,8 +34,8 @@ typedef u32 __le32;
 #define SYSTEM_NAME "Ruby"
 // dword[3...0]: BB.BB.MM.mm  (BB.BB: build number (highest bytes), MM: major ver, mm: minor ver (lowest byte)) 
 #define SYSTEM_SW_VERSION_MAJOR 11
-#define SYSTEM_SW_VERSION_MINOR 40
-#define SYSTEM_SW_BUILD_NUMBER  303
+#define SYSTEM_SW_VERSION_MINOR 6
+#define SYSTEM_SW_BUILD_NUMBER  11603
 //#define SYSTEM_IS_PRERELEASE 1
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -113,6 +113,7 @@ void log_only_errors();
 void log_enable_full();
 void log_force_full_log();
 void log_regular_mode();
+int  log_is_errors_only();
 
 void log_format_time(u32 miliseconds, char* szOutTime);
 void log_line(const char* format, ...);
@@ -125,6 +126,7 @@ void log_buffer4(const u8* buffer, int size, int delim1, int delim2, int delim3,
 void log_buffer5(const u8* buffer, int size, int delim1, int delim2, int delim3, int delim4, int delim5);
 void log_dword(const char* szText, u32 value);
 void log_dword_bits(const char* szText, u32 value);
+void log_always(const char* szText);
 
 void log_softerror_and_alarm(const char* format, ...);
 void log_error_and_alarm(const char* format, ...);
@@ -136,6 +138,8 @@ int check_licences();
 long get_filesize(const char* szFileName);
 key_t generate_msgqueue_key(int iMsgQueueId);
 
+int is_semaphore_signaled_clear(sem_t* pSemaphore, const char* szSemName);
+int is_semaphore_signaled_clear_logok(sem_t* pSemaphore, const char* szSemName, int iLogOk);
 #ifdef __cplusplus
 }  
 #endif 

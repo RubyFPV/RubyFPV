@@ -224,7 +224,7 @@ void warnings_add(u32 uVehicleId, const char* szTitle, u32 iconId, const double*
       return;
    if ( pP->iPersistentMessages )
       timeout = 12;
-   if ( g_bDebugStats )
+   if ( g_pControllerSettings->iEnableDebugStats )
       timeout = 3;
 
    float dySpacing = 0.012;
@@ -360,16 +360,21 @@ void warnings_add_too_much_data(u32 uVehicleId, int current_kbps, int max_kbps)
    warnings_add(uVehicleId, szBuff, g_idIconWarning);
 }
 
-void warnings_add_vehicle_overloaded(u32 uVehicleId)
+void warnings_add_vehicle_overloaded(u32 uVehicleId, bool bEC, bool bTx, u32 uECMsPerSec, u32 uTxMsPerSec)
 {
-   if ( g_pCurrentModel != NULL && g_pCurrentModel->is_spectator )
+   if ( (g_pCurrentModel != NULL) && g_pCurrentModel->is_spectator )
       return;
 
    if ( s_TimeLastWarningVehicleOverloaded != 0 )
    if ( g_TimeNow < s_TimeLastWarningVehicleOverloaded + 10000 )
       return;
    s_TimeLastWarningVehicleOverloaded = g_TimeNow;
-   warnings_add(uVehicleId, L("Your vehicle is overloaded. Can't keep up processing data for sending (EC). Lower your video bitrate or EC."), g_idIconWarning);
+   char szBuff[256];
+   if ( bEC )
+      sprintf(szBuff, L("Your vehicle is overloaded. Can't keep up processing data for sending error correction (took %u ms / sec). Lower your video bitrate or error correction rate."), uECMsPerSec);
+   if ( bTx )
+      sprintf(szBuff, L("Your vehicle is overloaded. Can't keep up transmiting radio data (took %u ms / sec). Lower your video bitrate or error correction rate."), uTxMsPerSec);
+   warnings_add(uVehicleId, szBuff, g_idIconWarning);
 }
 
 void warnings_add_link_to_controller_lost(u32 uVehicleId)

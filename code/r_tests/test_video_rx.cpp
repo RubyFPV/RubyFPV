@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
          int totalBytes = 0;
          int bCRCOk = 0;
          int okPacket = 0;
-         pBuffer = radio_process_wlan_data_in(i, &payloadLength, g_TimeNow); 
+         pBuffer = radio_process_wlan_data_in(i, &payloadLength, NULL, g_TimeNow); 
          if ( NULL == pBuffer )
          {
             printf("NULL receive buffer. Ignoring...\n");

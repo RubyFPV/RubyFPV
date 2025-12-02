@@ -20,9 +20,13 @@ extern shared_mem_process_stats* g_pProcessStatsRC;
 extern shared_mem_process_stats g_ProcessStatsRouter;
 extern shared_mem_process_stats g_ProcessStatsTelemetry;
 extern shared_mem_process_stats g_ProcessStatsRC;
+extern shared_mem_ctrl_ping_stats* g_pSMDbgPingStats;
+extern shared_mem_ctrl_ping_stats g_SMDbgPingStats;
 
 extern controller_runtime_info g_SMControllerRTInfo;
 extern controller_runtime_info* g_pSMControllerRTInfo;
+extern controller_debug_runtime_info g_SMControllerDebugRTInfo;
+extern controller_debug_runtime_info* g_pSMControllerDebugRTInfo;
 extern vehicle_runtime_info g_SMVehicleRTInfo;
 extern vehicle_runtime_info* g_pSMVehicleRTInfo;
 

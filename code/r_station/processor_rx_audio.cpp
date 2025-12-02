@@ -89,6 +89,7 @@ void* _thread_audio_queueing_playback(void *argument)
 {
    s_bThreadAudioQueueingStarted = true;
    log_line("[AudioRx-ThdQue] Created audio playback queue thread.");
+   hw_log_current_thread_attributes("audio playback queue");
    int iCountReads = 0;
    fd_set readSet;
    fd_set exceSet;
@@ -171,6 +172,7 @@ void* _thread_audio_buffering_playback(void *argument)
 {
    s_bThreadAudioBufferingStarted = true;
    log_line("[AudioRx-ThdBuf] Created audio playback buffering thread.");
+   hw_log_current_thread_attributes("audio playback buffering");
    fd_set readSet;
    fd_set exceSet;
    struct timeval timePipeInput;
@@ -449,9 +451,9 @@ void start_audio_player_and_pipe()
    if ( (hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_RADXA_3C )
       strcpy(szDevice, "-D hw:CARD=rockchiphdmi0 ");
 
-   sprintf(szComm, "aplay -q %s-N -R 10000 -c 1 --rate 44100 --format S16_LE %s", szDevice, FIFO_RUBY_AUDIO1);
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "aplay -q %s-N -R 10000 -c 1 --rate 44100 --format S16_LE %s", szDevice, FIFO_RUBY_AUDIO1);
    if ( g_pCurrentModel->isRunningOnOpenIPCHardware() )
-      sprintf(szComm, "aplay -q %s-N -R 10000 -c 1 --rate 8000 --format S16_BE %s", szDevice, FIFO_RUBY_AUDIO1);
+      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "aplay -q %s-N -R 10000 -c 1 --rate 8000 --format S16_BE %s", szDevice, FIFO_RUBY_AUDIO1);
    #endif
    hw_execute_bash_command_nonblock(szComm, NULL);
    hardware_sleep_ms(20);
@@ -460,7 +462,7 @@ void start_audio_player_and_pipe()
    _open_audio_pipes();
 
    pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "audio queue playback");
+   hw_init_worker_thread_attrs(&attr, CORE_AFFINITY_AUDIO, -1, SCHED_FIFO, 90, "audio queue playback");
    s_bThreadAudioQueueingStarted = true;
    s_bStopThreadAudioQueueing = false;
    if ( 0 != pthread_create(&s_ThreadAudioQueueing, &attr, &_thread_audio_queueing_playback, NULL) )
@@ -470,7 +472,7 @@ void start_audio_player_and_pipe()
    }
    pthread_attr_destroy(&attr);
 
-   hw_init_worker_thread_attrs(&attr, "audio buffering playback");
+   hw_init_worker_thread_attrs(&attr, CORE_AFFINITY_AUDIO, -1, SCHED_FIFO, 90, "audio buffering playback");
    s_bThreadAudioBufferingStarted = true;
    s_bStopThreadAudioBuffering = false;
    if ( 0 != pthread_create(&s_ThreadAudioBuffering, &attr, &_thread_audio_buffering_playback, NULL) )
@@ -613,7 +615,7 @@ void init_audio_rx_state()
    {
       log_line("[AudioRx] Init Rx state: restarting buffering thread...");
       pthread_attr_t attr;
-      hw_init_worker_thread_attrs(&attr, "audio buffering playback restart");
+      hw_init_worker_thread_attrs(&attr, CORE_AFFINITY_AUDIO, -1, SCHED_FIFO, 90, "audio buffering playback restart");
       s_bThreadAudioBufferingStarted = true;
       s_bStopThreadAudioBuffering = false;
       if ( 0 != pthread_create(&s_ThreadAudioBuffering, &attr, &_thread_audio_buffering_playback, NULL) )
@@ -629,10 +631,6 @@ void init_audio_rx_state()
 
 void process_received_audio_packet(u8* pPacketBuffer)
 {
-   // 10.5 or older are incompatible
-   if ( (NULL != g_pCurrentModel) && get_sw_version_build(g_pCurrentModel) < 274 )
-      return;
-
    t_packet_header* pPH = (t_packet_header*)pPacketBuffer;
    u8* pData = pPacketBuffer + sizeof(t_packet_header);
 
@@ -652,26 +650,6 @@ void process_received_audio_packet(u8* pPacketBuffer)
       init_audio_rx_state();
       discardRetransmissionsInfoAndBuffersOnLengthyOp();
    }
-
-   /*
-   if ( s_uLastRecvAudioBlockIndex != MAX_U32 )
-   {
-      if ( uAudioBlockIndex == s_uLastRecvAudioBlockIndex)
-      {
-         if ( uAudioBlockPacketIndex != s_uLastRecvAudioBlockPacketIndex+1 )
-            log_line("DBG audio gap from [%u/%u] to [%u/%u]", s_uLastRecvAudioBlockIndex, s_uLastRecvAudioBlockPacketIndex, uAudioBlockIndex, uAudioBlockPacketIndex);
-      }
-      else if ( uAudioBlockIndex != s_uLastRecvAudioBlockIndex+1 )
-         log_line("DBG audio gap from [%u/%u] to [%u/%u]", s_uLastRecvAudioBlockIndex, s_uLastRecvAudioBlockPacketIndex, uAudioBlockIndex, uAudioBlockPacketIndex);
-      else
-      {
-         if ( s_uLastRecvAudioBlockPacketIndex != (u32)(s_iAudioDataPacketsPerBlock + s_iAudioECPacketsPerBlock - 1) )
-            log_line("DBG audio gap from [%u/%u] to [%u/%u]", s_uLastRecvAudioBlockIndex, s_uLastRecvAudioBlockPacketIndex, uAudioBlockIndex, uAudioBlockPacketIndex);
-         if ( uAudioBlockPacketIndex != 0 )
-            log_line("DBG audio gap from [%u/%u] to [%u/%u]", s_uLastRecvAudioBlockIndex, s_uLastRecvAudioBlockPacketIndex, uAudioBlockIndex, uAudioBlockPacketIndex);
-      }
-   }
-   */
 
    s_uLastRecvAudioBlockIndex = uAudioBlockIndex;
    s_uLastRecvAudioBlockPacketIndex = uAudioBlockPacketIndex;

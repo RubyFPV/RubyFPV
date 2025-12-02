@@ -151,6 +151,7 @@ void radio_init_link_structures()
 {
    log_line("[Radio] Initialize.");
 
+   radio_packets_log_sizes();
    radio_packets_short_init();
 
    for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
@@ -390,9 +391,9 @@ int radio_set_out_datarate(int rate_bps, u8 uPacketType, u32 uTimeNow)
    if ( s_iLastRadioDataRatesPerPackets[uPacketType] != rate_bps )
    {
       s_iLastRadioDataRatesPerPackets[uPacketType] = rate_bps;
-      char szBuff[64];
-      str_getDataRateDescription(rate_bps, 0, szBuff);
-      log_line("[Radio] Radio Tx DR has changed to %s for %s", szBuff, str_get_packet_type(uPacketType));
+      //char szBuff[64];
+      //str_getDataRateDescription(rate_bps, 0, szBuff);
+      //log_line("[Radio] Radio Tx DR has changed to %s for %s", szBuff, str_get_packet_type(uPacketType));
    }
 
    if ( sRadioDataRate_bps != rate_bps )
@@ -607,8 +608,9 @@ int _radio_open_interface_for_read_with_filter(int interfaceIndex, char* szFilte
    }
 
    log_line("pcap snapshot length: %d bytes", pcap_snapshot(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap));
-   //int iLen = 4096;
-   int iLen = MAX_PACKET_TOTAL_SIZE*10;
+   //int iLen = 2096;
+   int iLen = MAX_PACKET_TOTAL_SIZE*6;
+   //int iLen = MAX_PACKET_TOTAL_SIZE*30;
    if ( pcap_set_snaplen(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap, iLen) !=0 )
       log_softerror_and_alarm("Error setting [%s] snap buffer length: %s", pRadioHWInfo->szName, pcap_geterr(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap));
    else
@@ -883,14 +885,14 @@ void radio_close_interface_for_write(int interfaceIndex)
 }
 
 
-u8* radio_process_wlan_data_in(int interfaceNumber, int* outPacketLength, u32 uTimeNow)
+u8* radio_process_wlan_data_in(int interfaceNumber, int* piOutPacketLength, int* piOutRxDatarate, u32 uTimeNow)
 {
    radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(interfaceNumber);
 
    s_iRadioLastReadErrorCode = RADIO_READ_ERROR_NO_ERROR;
 
-   if ( NULL != outPacketLength )
-      *outPacketLength = 0;
+   if ( NULL != piOutPacketLength )
+      *piOutPacketLength = 0;
 
 
 #ifdef FEATURE_RADIO_SYNCHRONIZE_RXTX_THREADS
@@ -1007,7 +1009,7 @@ u8* radio_process_wlan_data_in(int interfaceNumber, int* outPacketLength, u32 uT
       switch (rti.this_arg_index)
       {
          case IEEE80211_RADIOTAP_RATE:
-	           pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nDataRateBPSMCS = getRealDataRateFromRadioDataRate((int)(*((u8*)(rti.this_arg)))/2, RADIO_FLAGS_USE_LEGACY_DATARATES, 0);
+            pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nDataRateBPSMCS = getRealDataRateFromRadioDataRate((int)(*((u8*)(rti.this_arg)))/2, RADIO_FLAGS_USE_LEGACY_DATARATES, 0);
             iAntennaRate = pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nDataRateBPSMCS;
             break;
 
@@ -1025,7 +1027,7 @@ u8* radio_process_wlan_data_in(int interfaceNumber, int* outPacketLength, u32 uT
          case IEEE80211_RADIOTAP_CHANNEL:
             //pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nChannel = le16_to_cpu(*((u16 *)rti.this_arg));
             //pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nChannelFlags = le16_to_cpu(*((u16 *)(rti.this_arg + 2)));
-            pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nFreq = le32toh(*(uint32_t*)(rti.this_arg)) & 0xffff;
+            //pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nFreq = le32toh(*(uint32_t*)(rti.this_arg)) & 0xffff;
             break;
 	
          case IEEE80211_RADIOTAP_ANTENNA:
@@ -1082,10 +1084,12 @@ u8* radio_process_wlan_data_in(int interfaceNumber, int* outPacketLength, u32 uT
    }
    #endif
 
-   if ( NULL != outPacketLength )
-      *outPacketLength = payloadLength;
+   if ( NULL != piOutPacketLength )
+      *piOutPacketLength = payloadLength;
+   if ( NULL != piOutRxDatarate )
+      *piOutRxDatarate = iAntennaRate;
 
-   if ( payloadLength >= sizeof(t_packet_header) )
+   if ( payloadLength >= (int)sizeof(t_packet_header) )
    {
       t_packet_header* pPH = (t_packet_header*)pRadioPayload;
 

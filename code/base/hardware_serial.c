@@ -55,12 +55,12 @@ hw_serial_port_info_t s_HardwareSerialPortsInfo[MAX_SERIAL_PORTS];
 int s_iCountLoadedSerialPorts = 0;
 hw_serial_port_info_t s_LoadedSerialPortsInfo[MAX_SERIAL_PORTS];
 
-int* hardware_get_serial_baud_rates()
+int* hardware_serial_get_baud_rates()
 {
    return s_OptionsSerialBaudRatesC;
 }
 
-int hardware_get_serial_baud_rates_count()
+int hardware_serial_get_baud_rates_count()
 {
    return sizeof(s_OptionsSerialBaudRatesC) / sizeof(s_OptionsSerialBaudRatesC[0]);
 }
@@ -139,18 +139,18 @@ void _hardware_enumerate_serial_ports()
    }
 }
 
-int hardware_init_serial_ports()
+int hardware_serial_init_ports()
 {
    if ( s_iHardwareSerialPortsWasInitialized )
       return s_iCountHardwareSerialPorts;
 
-   log_line("[HardwareSerial] Initializing serial ports...");
-   log_line("[HardwareSerial] Enumerating hardware serial ports...");
+   log_line("[HW-S] Initializing serial ports...");
+   log_line("[HW-S] Enumerating hardware serial ports...");
    _hardware_enumerate_serial_ports();
    s_iHardwareSerialPortsWasInitialized = 1;
-   log_line("[HardwareSerial] Enumerated hardware serial ports. %d serial ports found.", s_iCountHardwareSerialPorts);
+   log_line("[HW-S] Enumerated hardware serial ports. %d serial ports found.", s_iCountHardwareSerialPorts);
 
-   int iCountRestored = hardware_reload_serial_ports_settings();
+   int iCountRestored = hardware_serial_reload_ports_settings();
 
    if ( iCountRestored < s_iCountHardwareSerialPorts )
    {
@@ -170,15 +170,15 @@ int hardware_init_serial_ports()
 
          memcpy(&(s_LoadedSerialPortsInfo[s_iCountLoadedSerialPorts]), &(s_HardwareSerialPortsInfo[i]), sizeof(hw_serial_port_info_t));
          s_iCountLoadedSerialPorts++;
-         log_line("[HardwareSerial] Added serial port info settings for port %s", s_HardwareSerialPortsInfo[i].szPortDeviceName);
+         log_line("[HW-S] Added serial port info settings for port %s", s_HardwareSerialPortsInfo[i].szPortDeviceName);
       }
-      log_line("[HardwareSerial] Current serial ports configuration has been updated. Saving current configuration.");
+      log_line("[HW-S] Current serial ports configuration has been updated. Saving current configuration.");
       hardware_serial_save_configuration();
    }
 
-   log_line("[HardwareSerial] Initialized %d serial ports:", s_iCountHardwareSerialPorts);
+   log_line("[HW-S] Initialized %d serial ports:", s_iCountHardwareSerialPorts);
    for( int i=0; i<s_iCountHardwareSerialPorts; i++ )
-      log_line("[HardwareSerial] Serial port %d: [%s] [%s], speed: %ld bps, usage: %d (%s), supported: %d", i+1,
+      log_line("[HW-S] Serial port %d: [%s] [%s], speed: %ld bps, usage: %d (%s), supported: %d", i+1,
          s_HardwareSerialPortsInfo[i].szName,
          s_HardwareSerialPortsInfo[i].szPortDeviceName, s_HardwareSerialPortsInfo[i].lPortSpeed,
          s_HardwareSerialPortsInfo[i].iPortUsage,
@@ -190,17 +190,17 @@ int hardware_init_serial_ports()
 
 // Returns the number of hardware serial ports that had settings restored
 
-int hardware_reload_serial_ports_settings()
+int hardware_serial_reload_ports_settings()
 {
    if ( ! s_iHardwareSerialPortsWasInitialized )
    {
-      log_line("[HardwareSerial] Enumerating hardware serial ports...");
+      log_line("[HW-S] Enumerating hardware serial ports...");
       _hardware_enumerate_serial_ports();
-      log_line("[HardwareSerial] Enumerated hardware serial ports. %d serial ports found.", s_iCountHardwareSerialPorts);
+      log_line("[HW-S] Enumerated hardware serial ports. %d serial ports found.", s_iCountHardwareSerialPorts);
       s_iHardwareSerialPortsWasInitialized = 1;
    }
 
-   log_line("[HardwareSerial] Loading and validating serial ports settings...");
+   log_line("[HW-S] Loading and validating serial ports settings...");
 
    int iFailed = 1;
       
@@ -210,7 +210,7 @@ int hardware_reload_serial_ports_settings()
 
    if ( access(szFile, R_OK ) == -1 )
    {
-      log_line("[HardwareSerial] No serial ports configuration file [%s]", szFile);
+      log_line("[HW-S] No serial ports configuration file [%s]", szFile);
       iFailed = 0;
       s_iCountLoadedSerialPorts = 0;
    }
@@ -251,13 +251,13 @@ int hardware_reload_serial_ports_settings()
       }
 
       if ( iFailed )
-         log_softerror_and_alarm("[HardwareSerial] Failed to load existing serial ports configuration from file [%s]. 0 serial ports loaded.", szFile);
+         log_softerror_and_alarm("[HW-S] Failed to load existing serial ports configuration from file [%s]. 0 serial ports loaded.", szFile);
       else
       {
-         log_line("[HardwareSerial] Loaded existing serial ports configuration from file [%s]. Loaded %d serial ports: ", szFile, s_iCountLoadedSerialPorts);
+         log_line("[HW-S] Loaded existing serial ports configuration from file [%s]. Loaded %d serial ports: ", szFile, s_iCountLoadedSerialPorts);
       
          for( int i=0; i<s_iCountLoadedSerialPorts; i++ )
-            log_line("[HardwareSerial] Serial port %d: [%s] [%s], speed: %ld bps, usage: %d (%s), supported: %d", i+1,
+            log_line("[HW-S] Serial port %d: [%s] [%s], speed: %ld bps, usage: %d (%s), supported: %d", i+1,
                s_LoadedSerialPortsInfo[i].szName,
                s_LoadedSerialPortsInfo[i].szPortDeviceName, s_LoadedSerialPortsInfo[i].lPortSpeed,
                s_LoadedSerialPortsInfo[i].iPortUsage,
@@ -290,14 +290,14 @@ int hardware_reload_serial_ports_settings()
                iCountUpdated++;
 
             if ( iUpdated )
-               log_line("[HardwareSerial] Serial port %d [%s] settings have been restored and updated.", i+1, s_HardwareSerialPortsInfo[i].szName);
+               log_line("[HW-S] Serial port %d [%s] settings have been restored and updated.", i+1, s_HardwareSerialPortsInfo[i].szName);
             else
-               log_line("[HardwareSerial] Serial port %d [%s] settings have been restored.", i+1, s_HardwareSerialPortsInfo[i].szName);
+               log_line("[HW-S] Serial port %d [%s] settings have been restored.", i+1, s_HardwareSerialPortsInfo[i].szName);
             break;
          }
       }
    }
-   log_line("[HardwareSerial] Restored hw serial ports settings: %d of %d hw serial ports have been restored from stored configuration. %d where updated.", iCountMatched, s_iCountHardwareSerialPorts, iCountUpdated);
+   log_line("[HW-S] Restored hw serial ports settings: %d of %d hw serial ports have been restored from stored configuration. %d where updated.", iCountMatched, s_iCountHardwareSerialPorts, iCountUpdated);
    return iCountMatched;
 }
 
@@ -323,7 +323,7 @@ void hardware_serial_save_configuration()
    FILE* fd = fopen(szFile, "w");
    if ( NULL == fd )
    {
-      log_softerror_and_alarm("[HardwareSerial] Failed to save hardware serial ports configuration.");
+      log_softerror_and_alarm("[HW-S] Failed to save hardware serial ports configuration.");
       return;
    }
 
@@ -332,22 +332,22 @@ void hardware_serial_save_configuration()
    {
       char szBuff[MAX_SERIAL_PORT_NAME+1];
       strcpy(szBuff, s_LoadedSerialPortsInfo[i].szName);
-      for( int k=0; k<strlen(szBuff); k++ )
+      for( int k=0; k<(int)strlen(szBuff); k++ )
          if ( szBuff[k] == ' ' )
            szBuff[k] = '*';
       fprintf(fd, "%s\n", szBuff);
       
       strcpy(szBuff, s_LoadedSerialPortsInfo[i].szPortDeviceName);
-      for( int k=0; k<strlen(szBuff); k++ )
+      for( int k=0; k<(int)strlen(szBuff); k++ )
          if ( szBuff[k] == ' ' )
            szBuff[k] = '*';
       fprintf(fd, "%s\n", szBuff);
       fprintf(fd, "%d %ld %d\n", s_LoadedSerialPortsInfo[i].iSupported, s_LoadedSerialPortsInfo[i].lPortSpeed, s_LoadedSerialPortsInfo[i].iPortUsage );
    }
    fclose(fd);
-   log_line("[HardwareSerial] Saved serial ports configuration to file [%s]. %d serial ports:", szFile, s_iCountLoadedSerialPorts);
+   log_line("[HW-S] Saved serial ports configuration to file [%s]. %d serial ports:", szFile, s_iCountLoadedSerialPorts);
    for( int i=0; i<s_iCountLoadedSerialPorts; i++ )
-      log_line("[HardwareSerial] Saved Serial port %d: [%s] [%s], speed: %ld bps, usage: %d (%s), supported: %d", i+1,
+      log_line("[HW-S] Saved Serial port %d: [%s] [%s], speed: %ld bps, usage: %d (%s), supported: %d", i+1,
          s_LoadedSerialPortsInfo[i].szName,
          s_LoadedSerialPortsInfo[i].szPortDeviceName, s_LoadedSerialPortsInfo[i].lPortSpeed,
          s_LoadedSerialPortsInfo[i].iPortUsage,
@@ -355,10 +355,10 @@ void hardware_serial_save_configuration()
          s_LoadedSerialPortsInfo[i].iSupported);
 }
 
-int hardware_has_unsupported_serial_ports()
+int hardware_serial_has_unsupported_ports()
 {
    if ( ! s_iHardwareSerialPortsWasInitialized )
-      hardware_init_serial_ports();
+      hardware_serial_init_ports();
 
    for( int i=0; i<s_iCountHardwareSerialPorts; i++ )
       if ( s_HardwareSerialPortsInfo[i].iSupported == 0 )
@@ -366,17 +366,17 @@ int hardware_has_unsupported_serial_ports()
    return 0;
 }
 
-int hardware_get_serial_ports_count()
+int hardware_serial_get_ports_count()
 {
    if ( ! s_iHardwareSerialPortsWasInitialized )
-      hardware_init_serial_ports();
+      hardware_serial_init_ports();
    return s_iCountHardwareSerialPorts;
 }
 
 hw_serial_port_info_t* hardware_get_serial_port_info(int iPortIndex)
 {
    if ( ! s_iHardwareSerialPortsWasInitialized )
-      hardware_init_serial_ports();
+      hardware_serial_init_ports();
 
    if ( iPortIndex >= 0 && iPortIndex < s_iCountHardwareSerialPorts )
       return &(s_HardwareSerialPortsInfo[iPortIndex]);
@@ -388,7 +388,7 @@ hw_serial_port_info_t* hardware_get_serial_port_info_from_serial_port_name(char*
    if ( (NULL == szPortName) || (0 == szPortName[0]) )
       return NULL;
    if ( ! s_iHardwareSerialPortsWasInitialized )
-      hardware_init_serial_ports();
+      hardware_serial_init_ports();
 
    for( int i=0; i<s_iCountHardwareSerialPorts; i++ )
    {
@@ -401,7 +401,7 @@ hw_serial_port_info_t* hardware_get_serial_port_info_from_serial_port_name(char*
 int hardware_configure_serial(const char* szDevName, long baudRate)
 {
    if ( ! s_iHardwareSerialPortsWasInitialized )
-      hardware_init_serial_ports();
+      hardware_serial_init_ports();
    return 1;
 
    if ( access(szDevName, R_OK ) == -1 )
@@ -464,7 +464,7 @@ int hardware_configure_serial(const char* szDevName, long baudRate)
 int hardware_open_serial_port(const char* szDevName, long baudRate)
 {
    if ( ! s_iHardwareSerialPortsWasInitialized )
-      hardware_init_serial_ports();
+      hardware_serial_init_ports();
    if ( NULL == szDevName || 0 == szDevName[0] )
    {
       log_softerror_and_alarm("Hardware: Invalid serial port name to open.");
@@ -549,9 +549,9 @@ int hardware_open_serial_port(const char* szDevName, long baudRate)
    tcsetattr(fPort, TCSANOW, &options); //write options 
 
    if ( iUsedDefaultRate )
-      log_line("[HardwareSerial]: Opened serial port %s with default baudrate %ld bps (%ld bps was invalid). fd=%d", szDevName, 57600, baudRate, fPort);
+      log_line("[HW-S]: Opened serial port %s with default baudrate %ld bps (%ld bps was invalid). fd=%d", szDevName, 57600, baudRate, fPort);
    else
-      log_line("[HardwareSerial]: Opened serial port %s with baudrate %ld bps. fd=%d", szDevName, baudRate, fPort);
+      log_line("[HW-S]: Opened serial port %s with baudrate %ld bps. fd=%d", szDevName, baudRate, fPort);
 
    return fPort;
 }
@@ -559,7 +559,7 @@ int hardware_open_serial_port(const char* szDevName, long baudRate)
 int hardware_serial_is_sik_radio(const char* szDevName)
 {
    if ( ! s_iHardwareSerialPortsWasInitialized )
-      hardware_init_serial_ports();
+      hardware_serial_init_ports();
    if ( NULL == szDevName || 0 == szDevName[0] )
    {
       log_softerror_and_alarm("Hardware: Invalid serial port name to check.");

@@ -58,6 +58,7 @@
 #include "video_source_csi.h"
 #include "adaptive_video.h"
 #include "negociate_radio.h"
+#include "radio_links.h"
 
 extern u32 s_uTemporaryVideoBitrateBeforeNegociateRadio;
 
@@ -76,6 +77,8 @@ extern u16 s_countTXCompactedPacketsOutPerSec[2];
 static void * _reinit_sik_thread_func(void *ignored_argument)
 {
    log_line("[Router-SiKThread] Reinitializing SiK radio interfaces...");
+   hw_log_current_thread_attributes("sik reinit");
+
    // radio serial ports are already closed at this point
 
    if ( g_SiKRadiosState.iMustReconfigureSiKInterfaceIndex >= 0 )
@@ -302,7 +305,7 @@ void _trigger_alarm_free_space(int iFreeSpaceKb)
 void _check_free_storage_space()
 {
    static u32 sl_uCountFreeSpaceChecks = 0;
-   static u32 sl_uTimeLastFreeSpaceCheck = 0;
+   //static u32 sl_uTimeLastFreeSpaceCheck = 0;
    static bool s_bWaitingForFreeSpaceyAsync = false;
 
    int iMinFreeKb = 100*1000;
@@ -311,12 +314,23 @@ void _check_free_storage_space()
    #endif
 
    if ( ! s_bWaitingForFreeSpaceyAsync )
-   if ( (0 == sl_uCountFreeSpaceChecks && (g_TimeNow > g_TimeStart+7000)) || (g_TimeNow > sl_uTimeLastFreeSpaceCheck + 2*60000) )
+   //if ( ((0 == sl_uCountFreeSpaceChecks) && (g_TimeNow > g_TimeStart+7000))) || (g_TimeNow > sl_uTimeLastFreeSpaceCheck + 60000) )
+   if ( (0 == sl_uCountFreeSpaceChecks) && (g_TimeNow > g_TimeStart+9000) )
    {
       sl_uCountFreeSpaceChecks++;
-      sl_uTimeLastFreeSpaceCheck = g_TimeNow;
+      //sl_uTimeLastFreeSpaceCheck = g_TimeNow;
       s_bWaitingForFreeSpaceyAsync = true;
-      int iFreeSpaceKb = hardware_get_free_space_kb_async();
+
+      int iCoreAff = CORE_AFFINITY_OTHERS;
+      if ( NULL != g_pCurrentModel )
+      {
+         if ( g_pCurrentModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_AFFINITY_CORES )
+            iCoreAff = g_pCurrentModel->processesPriorities.iCoreOthers;
+         else
+            iCoreAff = -1;
+      }
+
+      int iFreeSpaceKb = hardware_get_free_space_kb_async(iCoreAff);
       if ( iFreeSpaceKb < 0 )
       {
          s_bWaitingForFreeSpaceyAsync = false;
@@ -406,26 +420,6 @@ void _fill_in_radio_rx_stats_compact(shared_mem_radio_stats_radio_interface_comp
 
 void _send_radio_stats_to_controller()
 {
-   // Update lastDataRate for SiK radios and MCS links
-   for( int i=0; i<g_pCurrentModel->radioInterfacesParams.interfaces_count; i++ )
-   {
-      int iLinkId = g_pCurrentModel->radioInterfacesParams.interface_link_id[i];
-      if ( (iLinkId < 0) || (iLinkId >= g_pCurrentModel->radioLinksParams.links_count) )
-         continue;
-      if ( g_pCurrentModel->radioLinkIsSiKRadio(iLinkId) )
-      {
-         g_SM_RadioStats.radio_interfaces[i].lastRecvDataRate = g_pCurrentModel->radioLinksParams.downlink_datarate_data_bps[iLinkId];
-         g_SM_RadioStats.radio_interfaces[i].lastRecvDataRateData = g_SM_RadioStats.radio_interfaces[i].lastRecvDataRateData;
-         g_SM_RadioStats.radio_interfaces[i].lastRecvDataRateVideo = 0;
-      }
-      else if ( g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[iLinkId] < 0 )
-      {
-         g_SM_RadioStats.radio_interfaces[i].lastRecvDataRate = g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[iLinkId];
-         g_SM_RadioStats.radio_interfaces[i].lastRecvDataRateData = g_SM_RadioStats.radio_interfaces[i].lastRecvDataRateData;
-         g_SM_RadioStats.radio_interfaces[i].lastRecvDataRateVideo = g_SM_RadioStats.radio_interfaces[i].lastRecvDataRateVideo;
-      }
-   }
-
    // Update time now
    for( int i=0; i<g_pCurrentModel->radioInterfacesParams.interfaces_count; i++ )
    {
@@ -539,53 +533,7 @@ void _periodic_loop_check_ping()
          }
       }
    }
-
-   // Vehicle does not need to ping the relayed vehicle. Controller will.
-   return;
-
-   /*
-   static u32 s_uTimeLastCheckSendPing = 0;
-   static u8 s_uLastPingSentId = 0;
-
-   if ( g_TimeNow < s_uTimeLastCheckSendPing+1000 )
-      return;
-
-   s_uTimeLastCheckSendPing = g_TimeNow;
-
-   bool bMustSendPing = false;
-
-   if ( g_pCurrentModel->relay_params.uCurrentRelayMode & RELAY_MODE_IS_RELAY_NODE )
-   if ( g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId >= 0 )
-   if ( g_pCurrentModel->relay_params.uRelayedVehicleId != 0 )
-      bMustSendPing = true;
-
-   if ( ! bMustSendPing )
-      return;
-
-   s_uLastPingSentId++;
-   u8 uRadioLinkId = g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId;
-   u8 uDestinationRelayFlags = g_pCurrentModel->relay_params.uRelayCapabilitiesFlags;
-   u8 uDestinationRelayMode = g_pCurrentModel->relay_params.uCurrentRelayMode;
-
-   t_packet_header PH;
-   radio_packet_init(&PH, PACKET_COMPONENT_RUBY, PACKET_TYPE_RUBY_PING_CLOCK, STREAM_ID_DATA);
-   PH.packet_flags |= PACKET_FLAGS_BIT_HIGH_PRIORITY;
-   PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
-   PH.vehicle_id_dest = g_pCurrentModel->relay_params.uRelayedVehicleId;
-   PH.total_length = sizeof(t_packet_header) + 4*sizeof(u8);
-   
-   u8 packet[MAX_PACKET_TOTAL_SIZE];
-   // u8 ping id, u8 radio link id, u8 relay flags for destination vehicle
-   memcpy(packet, (u8*)&PH, sizeof(t_packet_header));
-   memcpy(packet+sizeof(t_packet_header), &s_uLastPingSentId, sizeof(u8));
-   memcpy(packet+sizeof(t_packet_header)+sizeof(u8), &uRadioLinkId, sizeof(u8));
-   memcpy(packet+sizeof(t_packet_header)+2*sizeof(u8), &uDestinationRelayFlags, sizeof(u8));
-   memcpy(packet+sizeof(t_packet_header)+3*sizeof(u8), &uDestinationRelayMode, sizeof(u8));
-   
-   relay_send_single_packet_to_relayed_vehicle(packet, PH.total_length);
-   */
 }
-
 
 void _update_videobitrate_history_data()
 {
@@ -665,26 +613,107 @@ void _check_send_initial_vehicle_settings()
 
 void _periodic_update_radio_stats()
 {
-   if ( radio_stats_periodic_update(&g_SM_RadioStats, g_TimeNow) )
+   if ( 0 == radio_stats_periodic_update(&g_SM_RadioStats, g_TimeNow) )
+      return;
+
+   // Send them to controller if needed
+   bool bSendRxStats = false;
+   if ( NULL != g_pCurrentModel )
+   if ( g_pCurrentModel->osd_params.osd_flags2[g_pCurrentModel->osd_params.iCurrentOSDScreen] & OSD_FLAG2_SHOW_VEHICLE_RADIO_INTERFACES_STATS )
+       bSendRxStats = true;
+   u32 uSendInterval = g_SM_RadioStats.refreshIntervalMs;
+   if ( g_SM_RadioStats.graphRefreshIntervalMs < (int)uSendInterval )
+      uSendInterval = g_SM_RadioStats.graphRefreshIntervalMs;
+
+   if ( uSendInterval < 150 )
+      uSendInterval = 150;
+
+   static u32 sl_uLastTimeSentRadioInterfacesStats = 0;
+   if ( g_TimeNow >= sl_uLastTimeSentRadioInterfacesStats + uSendInterval )
+   if ( bSendRxStats )
    {
-      // Send them to controller if needed
-      bool bSend = false;
-      if ( NULL != g_pCurrentModel )
-      if ( g_pCurrentModel->osd_params.osd_flags2[g_pCurrentModel->osd_params.iCurrentOSDScreen] & OSD_FLAG2_SHOW_VEHICLE_RADIO_INTERFACES_STATS )
-          bSend = true;
-      u32 uSendInterval = g_SM_RadioStats.refreshIntervalMs;
-      if ( g_SM_RadioStats.graphRefreshIntervalMs < (int)uSendInterval )
-         uSendInterval = g_SM_RadioStats.graphRefreshIntervalMs;
+      _send_radio_stats_to_controller();
+      sl_uLastTimeSentRadioInterfacesStats = g_TimeNow;
+   }
 
-      if ( uSendInterval < 100 )
-         uSendInterval = 100;
+   // Send relay radio rx stats, if any
+   if ( g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId >= 0 )
+   if ( g_pCurrentModel->relay_params.uRelayedVehicleId != 0 )
+   {
+      static u32 s_uLastTimeSentRelayRadioRxStats = 0;
 
-      static u32 sl_uLastTimeSentRadioInterfacesStats = 0;
-      if ( g_TimeNow >= sl_uLastTimeSentRadioInterfacesStats + uSendInterval )
-      if ( bSend )
+      uSendInterval = 250;
+      if ( 0 != g_pCurrentModel->telemetry_params.iUpdateRateHz )
+         uSendInterval = 1000/g_pCurrentModel->telemetry_params.iUpdateRateHz;
+
+      if ( g_TimeNow >= s_uLastTimeSentRelayRadioRxStats )
       {
-         _send_radio_stats_to_controller();
-         sl_uLastTimeSentRadioInterfacesStats = uSendInterval;
+         s_uLastTimeSentRelayRadioRxStats = g_TimeNow;
+
+         t_packet_header PH;
+         t_packet_header_relay_radio_info PHRelayInfo;
+         radio_packet_init(&PH, PACKET_COMPONENT_RUBY, PACKET_TYPE_RUBY_RELAY_RADIO_INFO, STREAM_ID_TELEMETRY);
+         PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
+         PH.vehicle_id_dest = g_uControllerId;
+         PH.packet_flags_extended |= PACKET_FLAGS_EXTENDED_BIT_SEND_ON_HIGH_CAPACITY_LINK_ONLY;
+         PH.packet_flags_extended &= (~PACKET_FLAGS_EXTENDED_BIT_SEND_ON_LOW_CAPACITY_LINK_ONLY);
+         PH.total_length = sizeof(t_packet_header) + sizeof(t_packet_header_relay_radio_info);
+
+         memset((u8*)&PHRelayInfo, 0, sizeof(t_packet_header_relay_radio_info));
+
+         for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
+         {
+            int iLink = g_pCurrentModel->radioInterfacesParams.interface_link_id[i];
+            if ( iLink != g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId )
+               continue;
+            // positive: regular datarates, negative: mcs rates;
+            PHRelayInfo.last_rx_datarates_bps[i][0] = get_last_tx_used_datarate_bps_video(i);
+            PHRelayInfo.last_rx_datarates_bps[i][1] = get_last_tx_used_datarate_bps_data(i);
+
+            PHRelayInfo.last_rx_datarates_bps[i][0] = g_UplinkInfoRxStats[i].lastReceivedDataRate;
+
+            if ( g_UplinkInfoRxStats[i].lastReceivedDBM < 500 )
+            if ( g_UplinkInfoRxStats[i].lastReceivedDBM > -200 )
+               PHRelayInfo.rssi_dbm[i] = g_UplinkInfoRxStats[i].lastReceivedDBM + 200;
+
+            if ( g_UplinkInfoRxStats[i].lastReceivedSNR < 500 )
+            {
+               PHRelayInfo.rssi_snr[i] = 0;
+               if ( g_UplinkInfoRxStats[i].lastReceivedSNR >= 0 )
+                  PHRelayInfo.rssi_snr[i] = g_UplinkInfoRxStats[i].lastReceivedSNR;
+            }
+            else
+               PHRelayInfo.rssi_snr[i] = 0xFF;
+
+            PHRelayInfo.link_quality[i] = g_SM_RadioStats.radio_interfaces[i].rxQuality;
+            
+            if ( hardware_radio_index_is_wifi_radio(i))
+            {
+               if ( g_TimeLastReceivedFastRadioPacketFromController < g_TimeNow-TIMEOUT_LINK_TO_CONTROLLER_LOST )
+                  PHRelayInfo.link_quality[i] = 0;
+               else if ( (TIMEOUT_LINK_TO_CONTROLLER_LOST >= 2000) && (g_TimeLastReceivedFastRadioPacketFromController < g_TimeNow-(TIMEOUT_LINK_TO_CONTROLLER_LOST-1000)) && (PHRelayInfo.link_quality[i] > 20) )
+                  PHRelayInfo.link_quality[i] = 20;
+            }
+            else
+            {
+               if ( g_TimeLastReceivedSlowRadioPacketFromController < g_TimeNow-TIMEOUT_LINK_TO_CONTROLLER_LOST )
+                  PHRelayInfo.link_quality[i] = 0;
+               else if ( (TIMEOUT_LINK_TO_CONTROLLER_LOST >= 2000) && (g_TimeLastReceivedSlowRadioPacketFromController < g_TimeNow-(TIMEOUT_LINK_TO_CONTROLLER_LOST-1000)) && (PHRelayInfo.link_quality[i] > 20) )
+                  PHRelayInfo.link_quality[i] = 20;
+            }
+
+            if ( hardware_radio_index_is_wifi_radio(i) )
+            if ( ! g_bHasFastUplinkFromController )
+               PHRelayInfo.link_quality[i] = 0;
+
+            if ( ! hardware_radio_index_is_wifi_radio(i) )
+            if ( ! g_bHasSlowUplinkFromController )
+               PHRelayInfo.link_quality[i] = 0;
+         }
+         u8 uPacket[MAX_PACKET_TOTAL_SIZE];         
+         memcpy(uPacket, (u8*)&PH, sizeof(t_packet_header));
+         memcpy(uPacket + sizeof(t_packet_header), (u8*)&PHRelayInfo, sizeof(t_packet_header_relay_radio_info));
+         packets_queue_add_packet(&g_QueueRadioPacketsOut, uPacket);
       }
    }
 }
@@ -930,18 +959,9 @@ int periodicLoop()
    _update_developer_log_data();
    _update_videobitrate_history_data();
 
-   // If relay params have changed and we have not processed the notification, do it after one second after the change
-   if ( g_TimeLastNotificationRelayParamsChanged != 0 )
-   if ( g_TimeNow >= g_TimeLastNotificationRelayParamsChanged+1000 )
-   {
-      relay_on_relay_params_changed();
-      g_TimeLastNotificationRelayParamsChanged = 0;
-   }
-
-
    // Watchdog: do reboot here if tx-telemetry does not do it
    if ( 0 != g_uTimeRequestedReboot )
-   if ( g_TimeNow > g_uTimeRequestedReboot + 10000 )
+   if ( g_TimeNow > g_uTimeRequestedReboot + 7000 )
    {
       log_line("Reboot watchdog triggered. Do reboot here as tx-telemetry did not.");
 
@@ -954,12 +974,16 @@ int periodicLoop()
       hardware_reboot();
    }
 
-
    static u32 s_uTimeLastRadioTxStats = 0;
    if ( g_TimeNow > s_uTimeLastRadioTxStats + 5000 )
    {
       s_uTimeLastRadioTxStats = g_TimeNow;
-      radio_stats_log_tx_info(&g_SM_RadioStats, g_TimeNow);
+      radio_stats_log_tx_info(&g_SM_RadioStats, g_pCurrentModel->uVehicleId, g_pCurrentModel->uControllerId, g_TimeNow);
    }
+
+
+   if ( radio_links_are_marked_for_restart() )
+      radio_links_restart(false);
+
    return 0;
 }

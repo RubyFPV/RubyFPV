@@ -48,11 +48,11 @@ MenuUpdateVehiclePopup::MenuUpdateVehiclePopup(int vehicleIndex)
    char szBuff3[32];
    getSystemVersionString(szBuff2, g_pCurrentModel->sw_version);
    getSystemVersionString(szBuff3, (SYSTEM_SW_VERSION_MAJOR<<8) | SYSTEM_SW_VERSION_MINOR);
-   sprintf(szBuff, "Your %s has Ruby version %s (b.%d) and your controller has Ruby version %s (b.%d). You should update your %s.", g_pCurrentModel->getLongName(), szBuff2, g_pCurrentModel->sw_version >> 16, szBuff3, SYSTEM_SW_BUILD_NUMBER, g_pCurrentModel->getVehicleTypeString());
+   sprintf(szBuff, "Your %s has Ruby version %s (b-%d) and your controller has Ruby version %s (b-%d). You should update your %s.", g_pCurrentModel->getLongName(), szBuff2, get_sw_version_build(g_pCurrentModel), szBuff3, SYSTEM_SW_BUILD_NUMBER, g_pCurrentModel->getVehicleTypeString());
 
    addTopLine(szBuff);
 
-   if ( get_sw_version_build(g_pCurrentModel) < 262 )
+   if ( !is_sw_version_atleast(g_pCurrentModel, 11, 6) )
       addTopLine("Video protocols have changed from the version running on vehicle. You must update the vehicle otherways you will not get a video feed.");
    sprintf(szBuff, "Do you want to update now?");
    addTopLine(szBuff);

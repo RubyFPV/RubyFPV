@@ -97,8 +97,6 @@ u8 s_uLastFrameIndexRCIn = 0;
 u32 s_uTimeLastRCFrameSent = 0;
 u32 s_uTimeBetweenRCFramesOutput = 100000;
 
-void init_controller_settings();
-
 void populate_rc_data( t_packet_header_rc_full_frame_upstream* pPHRCF )
 {
    pPHRCF->rc_frame_index++;
@@ -209,7 +207,8 @@ void try_read_pipes()
             if ( pPH->packet_type == PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED )
             if ( pPH->vehicle_id_src != PACKET_COMPONENT_RC )
             {
-               init_controller_settings();
+               load_ControllerInterfacesSettings();
+               load_ControllerSettings();
             }
       }
 
@@ -223,13 +222,6 @@ void try_read_pipes()
          g_bUpdateInProgress = false;
 
    }
-}
-
-void init_controller_settings()
-{
-   load_ControllerInterfacesSettings();
-   load_ControllerSettings();
-   //populate_ControllerSerialPorts();
 }
 
 void _update_loop_info(u32 tTime0)
@@ -261,7 +253,7 @@ int main (int argc, char *argv[])
  
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
-      printf("%d.%d (b%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER);
+      printf("%d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       return 0;
    }
    
@@ -278,12 +270,19 @@ int main (int argc, char *argv[])
    loadAllModels();
    g_pCurrentModel = getCurrentModel();
 
-   if ( NULL != g_pCurrentModel )
-      hw_set_priority_current_proc(g_pCurrentModel->processesPriorities.iNiceRC); 
-
    Preferences* p = get_Preferences();   
    if ( p->nLogLevel != 0 )
       log_only_errors();
+
+   load_ControllerInterfacesSettings();
+   load_ControllerSettings();
+   ControllerSettings* pCS = get_ControllerSettings();
+
+   if ( pCS->iCoresAdjustment )
+      hw_set_current_thread_affinity("rc_tx", CORE_AFFINITY_RC_TX, CORE_AFFINITY_RC_TX);
+
+   if ( pCS->iPrioritiesAdjustment )
+      hw_set_priority_current_proc(pCS->iThreadPriorityRC); 
 
    s_pPHRCFUpstream = shared_mem_rc_upstream_frame_open_write();
 
@@ -310,9 +309,6 @@ int main (int argc, char *argv[])
    }
    else
       log_line("No model. RC is inactive.");
-
-   init_controller_settings();
-   load_ControllerInterfacesSettings();
 
    if ( ! g_bSearching )
       controllerInterfacesEnumJoysticks();

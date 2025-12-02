@@ -54,6 +54,11 @@ void do_first_boot_pre_initialization(bool bIgnoreDrivers)
    log_line("---------------------------------------");
    log_line("Do first time boot preinitialization...");
 
+   char szOutput[9096];
+   hw_execute_bash_command("lsmod", szOutput);
+   log_line("Output of lsmod: [%s]", szOutput);
+   log_line("------------------------------");
+
    #if defined (HW_PLATFORM_RASPBERRY)
    printf("\nRuby: Doing first time ever initialization on Raspberry. Please wait...\n");
    fflush(stdout);
@@ -188,6 +193,18 @@ void do_first_boot_initialization(bool bIsVehicle, u32 uBoardType)
    log_line("-------------------------------------------------------");
    log_line("First Boot detected. Doing first boot initialization..." );
 
+   char szComm[256];
+
+   #if defined (HW_PLATFORM_RADXA) || defined (HW_PLATFORM_RASPBERRY)
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "mkdir -p %sbin_org", FOLDER_BINARIES);
+   hw_execute_bash_command(szComm, NULL);
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %sruby_* %sbin_org/", FOLDER_BINARIES, FOLDER_BINARIES);
+   hw_execute_bash_command(szComm, NULL);
+   #endif
+
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s*", FOLDER_CONFIG);
+   hw_execute_bash_command(szComm, NULL);
+
    #ifdef HW_PLATFORM_RASPBERRY
    do_first_boot_initialization_raspberry(bIsVehicle, uBoardType);
    #endif
@@ -199,7 +216,6 @@ void do_first_boot_initialization(bool bIsVehicle, u32 uBoardType)
    #endif
 
    char szBuff[256];
-   char szComm[256];
    char szFile[MAX_FILE_PATH_SIZE];
    strcpy(szFile, FOLDER_CONFIG);
    strcat(szFile, LOG_USE_PROCESS);
@@ -212,8 +228,7 @@ void do_first_boot_initialization(bool bIsVehicle, u32 uBoardType)
    {
       #ifdef HW_PLATFORM_OPENIPC_CAMERA
       hardware_camera_maj_apply_all_settings(&s_ModelFirstBoot, &(s_ModelFirstBoot.camera_params[s_ModelFirstBoot.iCurrentCamera].profiles[s_ModelFirstBoot.camera_params[s_ModelFirstBoot.iCurrentCamera].iCurrentProfile]),
-          s_ModelFirstBoot.video_params.iCurrentVideoProfile,
-          &(s_ModelFirstBoot.video_params), false);
+          s_ModelFirstBoot.video_params.iCurrentVideoProfile, &(s_ModelFirstBoot.video_params));
       #endif
    }
    else
@@ -278,6 +293,9 @@ void do_first_boot_initialization(bool bIsVehicle, u32 uBoardType)
       if ( hardware_radio_driver_is_atheros_card(pRadioHWInfo->iRadioDriver) )
          hardware_radio_set_txpower_raw_atheros(i, 10);
    }
+
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s*", FOLDER_CONFIG);
+   hw_execute_bash_command(szComm, NULL);
    log_line("First boot initialization completed.");
    log_line("---------------------------------------------------------");
 }
@@ -348,14 +366,11 @@ Model* first_boot_create_default_model(bool bIsVehicle, u32 uBoardType)
             s_ModelFirstBoot.radioLinksParams.downlink_datarate_video_bps[i] = DEFAULT_RADIO_DATARATE_VIDEO_ATHEROS;
             s_ModelFirstBoot.radioLinksParams.downlink_datarate_data_bps[i] = DEFAULT_RADIO_DATARATE_VIDEO_ATHEROS;
          }
-         for( int i=0; i<s_ModelFirstBoot.radioInterfacesParams.interfaces_count; i++ )
-         {
-            s_ModelFirstBoot.radioInterfacesParams.interface_dummy2[i] = 0;
-         }
          s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_HIGH_PERF].bitrate_fixed_bps = 5000000;
          s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].bitrate_fixed_bps = 5000000;
          s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_LONG_RANGE].bitrate_fixed_bps = 5000000;
          s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_USER].bitrate_fixed_bps = 5000000;
+         s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_CUST].bitrate_fixed_bps = 5000000;
          s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_PIP].bitrate_fixed_bps = 5000000;
       }
 

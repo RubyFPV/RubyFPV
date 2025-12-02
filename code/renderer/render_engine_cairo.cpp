@@ -964,6 +964,10 @@ void RenderEngineCairo::drawLine(float x1, float y1, float x2, float y2)
       cairo_stroke(m_pCairoCtx);
 */
 
+   if ( (x1 < 0.0) || (x1 > 1.0) || (x2 < 0.0) || (x2 > 1.0) )
+      return;
+   if ( (y1 < 0.0) || (y1 > 1.0) || (y2 < 0.0) || (y2 > 1.0) )
+      return;
    //cairo_set_source_rgba(m_pCairoCtx, m_ColorStroke[0]/255.0, m_ColorStroke[1]/255.0, m_ColorStroke[2]/255.0, m_ColorStroke[3]/255.0);
    cairo_set_source_rgba(m_pCairoCtx,1,1,1,1);
    cairo_move_to (m_pCairoCtx, x1 * m_iRenderWidth, y1 * m_iRenderHeight); 
@@ -1003,7 +1007,7 @@ void RenderEngineCairo::drawRect(float xPos, float yPos, float fWidth, float fHe
       return;
 
    /*
-   if ( m_bEnableRectBlending )
+   if ( m_bEnableAlpha )
    {
       if ( m_fColorFill[3] > 0.001 )
       {
@@ -1691,9 +1695,14 @@ void RenderEngineCairo::_drawSimpleTextScaled(RenderEngineRawFont* pFont, const 
       log_error_and_alarm("[RenderEngineCairo] Tried to draw using a NULL font object.");
       return;
    }
-   if ( (NULL == szText) || (0 == szText[0]) )
+   if ( NULL == szText )
    {
-      log_softerror_and_alarm("[RenderEngineCairo] Tried to draw NULL or empty string.");
+      log_softerror_and_alarm("[RenderEngineCairo] Tried to draw NULL string.");
+      return;
+   }
+   if ( 0 == szText[0] )
+   {
+      log_softerror_and_alarm("[RenderEngineCairo] Tried to draw empty string.");
       return;
    }
    if ( ! m_bStartedFrame )

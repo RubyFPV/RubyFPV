@@ -15,3 +15,4 @@ void video_processors_cleanup();
 
 void log_ipc_send_central_error(u8* pPacket, int iLength);
 u32  router_get_last_time_checked_for_video_packets();
+bool router_is_eof();

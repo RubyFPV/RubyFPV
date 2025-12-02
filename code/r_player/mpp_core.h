@@ -16,7 +16,7 @@
 
 extern shared_mem_process_stats* g_pSMProcessStats;
 
-int mpp_init(bool bUseH265Decoder, int iMPPBuffersSize);
+int mpp_init(bool bUseH265Decoder, int iMPPBuffersSize, u32 uCPUAffinityMask, int iRawPriority);
 int mpp_uninit();
 void mpp_enable_vsync(bool bEnableVSync);
 

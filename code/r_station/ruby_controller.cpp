@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
    
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
-      printf("%d.%d (b%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER);
+      printf("%d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       return 0;
    }   
 
@@ -95,34 +95,68 @@ int main(int argc, char *argv[])
 
    hardware_detectBoardAndSystemType();
 
-   hw_execute_ruby_process(NULL, "ruby_central", NULL, NULL);
+   load_ControllerSettings();
+   ControllerSettings* pCS = get_ControllerSettings();
+
+   if ( pCS->iCoresAdjustment )
+      hw_set_current_thread_affinity("ruby_controller", CORE_AFFINITY_OTHERS, CORE_AFFINITY_OTHERS);
+
+   char szPrefix[256];
+   szPrefix[0] = 0;
+
+   if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityCentral > 100) )
+      sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityCentral - 120);    
+
+   hw_execute_ruby_process(szPrefix, "ruby_central", NULL, NULL);
    
    log_line("Executed central process.");
    
    for( int i=0; i<5; i++ )
       hardware_sleep_ms(800);
    
-   int sleepIntervalMs = 200;
+   char szComm[MAX_FILE_PATH_SIZE];
+   u32 uSleepIntervalMs = 500;
    u32 maxTimeForProcess = 9000;
    int counter = 0;
 
    log_line("Enter watchdog state");
    log_line_watchdog("Watchdog state started.");
- 
-   char szFilePause[128];
-   strcpy(szFilePause, FOLDER_RUBY_TEMP);
-   strcat(szFilePause, FILE_TEMP_CONTROLLER_PAUSE_WATCHDOG);
+
+   sem_t* pSemaphoreRestart = sem_open(SEMAPHORE_WATCHDOG_CONTROLLER_RESTART, O_CREAT, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL == pSemaphoreRestart) || (SEM_FAILED == pSemaphoreRestart) )
+      log_softerror_and_alarm("Failed to open semaphore for signaling restart: %s; error: %d (%s)", SEMAPHORE_WATCHDOG_CONTROLLER_RESTART, errno, strerror(errno));
+   else
+      log_line("Opened semaphore for signaling restart.");
+
+
+   sem_t* pSemaphorePause = sem_open(SEMAPHORE_WATCHDOG_CONTROLLER_PAUSE, O_CREAT, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL == pSemaphorePause) || (SEM_FAILED == pSemaphorePause) )
+      log_softerror_and_alarm("Failed to open semaphore for signaling pause: %s; error: %d (%s)", SEMAPHORE_WATCHDOG_CONTROLLER_PAUSE, errno, strerror(errno));
+   else
+      log_line("Opened semaphore for signaling pause.");
+
+   sem_t* pSemaphoreResume = sem_open(SEMAPHORE_WATCHDOG_CONTROLLER_RESUME, O_CREAT, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL == pSemaphoreResume) || (SEM_FAILED == pSemaphoreResume) )
+      log_softerror_and_alarm("Failed to open semaphore for signaling resume: %s; error: %d (%s)", SEMAPHORE_WATCHDOG_CONTROLLER_RESUME, errno, strerror(errno));
+   else
+      log_line("Opened semaphore for signaling resume.");
+
+   bool bWatchdogPaused = false;
+   int iCountPauses = 0;
+   g_TimeNow = get_current_timestamp_ms();
+   u32 uTimeLastPaused = g_TimeNow;
 
    while ( ! g_bQuit )
    {
       u32 uTimeStart = get_current_timestamp_ms();
 
-      hardware_sleep_ms(sleepIntervalMs);
+      hardware_sleep_ms(uSleepIntervalMs);
+
       counter++;
-      if ( counter % 10 )
+      if ( (counter % 4) != 0 )
       {
          u32 dTime = get_current_timestamp_ms() - uTimeStart;
-         if ( dTime > 250 )
+         if ( dTime > (u32)uSleepIntervalMs + 20 )
             log_softerror_and_alarm("Main processing loop took too long (%u ms).", dTime);
          continue;
       }
@@ -130,22 +164,67 @@ int main(int argc, char *argv[])
       // Executes once every 2 seconds
 
       g_TimeNow = get_current_timestamp_ms();
+
+      if ( g_TimeNow < uTimeLastPaused + 5000 )
+         continue;
+
+      if ( is_semaphore_signaled_clear(pSemaphoreRestart, SEMAPHORE_WATCHDOG_CONTROLLER_RESTART) )
+      {
+         log_line("Signaled to restart processes.");
+
+         load_ControllerSettings();
+         pCS = get_ControllerSettings();
+         if ( pCS->iCoresAdjustment )
+            hw_set_current_thread_affinity("ruby_controller", CORE_AFFINITY_OTHERS, CORE_AFFINITY_OTHERS);
+         else
+            hw_set_current_thread_affinity("ruby_controller", 0, hw_procs_get_cpu_count()-1);
+
+         shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_CENTRAL, s_pProcessStatsCentral);   
+         s_pProcessStatsCentral = NULL;
+
+         char szPrefix[256];
+         szPrefix[0] = 0;
+
+         if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityCentral > 100) )
+            sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityCentral - 120);    
+         hw_execute_ruby_process(szPrefix, "ruby_central", "-nointro", NULL);
+         log_line_watchdog("Restarting ruby_central process done.");
+         uTimeLastPaused = g_TimeNow;
+         continue;
+      }
+
       if ( NULL == s_pProcessStatsCentral )
          try_open_process_stats();
 
       static u32 s_uTimeLastClearScreen = 0;
+      static int s_iClearScreenCounter = 0;
+      if ( s_iClearScreenCounter < 1 )
       if ( g_TimeNow > s_uTimeLastClearScreen + 20000 )
       {
+         s_iClearScreenCounter++;
          s_uTimeLastClearScreen = g_TimeNow;
          system("clear");
       }
 
-      if ( access(szFilePause, R_OK) != -1 )
+      if ( is_semaphore_signaled_clear(pSemaphorePause, SEMAPHORE_WATCHDOG_CONTROLLER_PAUSE) )
+      {
+         bWatchdogPaused = true;
+         iCountPauses++;
+         log_line("Watchdog is paused (pause counter: %d)", iCountPauses);
+      }
+      if ( is_semaphore_signaled_clear(pSemaphoreResume, SEMAPHORE_WATCHDOG_CONTROLLER_RESUME) )
+      {
+         bWatchdogPaused = false;
+         iCountPauses--;
+         log_line("Watchdog is resumed (pause counter: %d)", iCountPauses);
+      }
+      if ( bWatchdogPaused )
       {
          log_line("Watchdog is paused.");
          u32 dTime = get_current_timestamp_ms() - uTimeStart;
-         if ( dTime > 250 )
+         if ( dTime > (u32)uSleepIntervalMs + 20 )
             log_softerror_and_alarm("Main processing loop took too long (%u ms).", dTime);
+         uTimeLastPaused = g_TimeNow;
          continue;
       }
 
@@ -162,12 +241,12 @@ int main(int argc, char *argv[])
       }
 
       u32 dTime = get_current_timestamp_ms() - uTimeStart;
-      if ( dTime > 250 )
+      if ( dTime > (u32)uSleepIntervalMs + 20 )
          log_softerror_and_alarm("Main processing loop took too long (%u ms).", dTime);
 
       if ( bMustRestart )
       {
-         for( int i=0; i<10000; i++ )
+         for( int i=0; i<1000; i++ )
             hardware_sleep_ms(500);
            
          log_line_watchdog("Restarting ruby_central process...");
@@ -176,7 +255,6 @@ int main(int argc, char *argv[])
          shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_CENTRAL, s_pProcessStatsCentral);   
          s_pProcessStatsCentral = NULL;
 
-         char szComm[128];
          sprintf(szComm, "touch %s%s", FOLDER_CONFIG, FILE_TEMP_CONTROLLER_CENTRAL_CRASHED);
          hw_execute_bash_command(szComm, NULL);
    
@@ -192,10 +270,32 @@ int main(int argc, char *argv[])
             hardware_sleep_ms(200);
          }
          hardware_sleep_ms(200);
-         hw_execute_ruby_process(NULL, "ruby_central", NULL, NULL);
+
+         char szPrefix[256];
+         szPrefix[0] = 0;
+
+         if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityCentral > 100) )
+            sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityCentral - 120);    
+         hw_execute_ruby_process(szPrefix, "ruby_central", "-nointro", NULL);
+         uTimeLastPaused = g_TimeNow;
          log_line_watchdog("Restarting ruby_central process done.");
       } 
    }
+
+   if ( NULL != pSemaphoreRestart )
+      sem_close(pSemaphoreRestart);
+   if ( NULL != pSemaphorePause )
+      sem_close(pSemaphorePause);
+   if ( NULL != pSemaphoreResume )
+      sem_close(pSemaphoreResume);
+   pSemaphoreRestart = NULL;
+   pSemaphorePause = NULL;
+   pSemaphoreResume = NULL;
+
+   sem_unlink(SEMAPHORE_WATCHDOG_CONTROLLER_PAUSE);
+   sem_unlink(SEMAPHORE_WATCHDOG_CONTROLLER_RESUME);
+   sem_unlink(SEMAPHORE_WATCHDOG_CONTROLLER_RESTART);
+
 
    shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_CENTRAL, s_pProcessStatsCentral);   
    s_pProcessStatsCentral = NULL;

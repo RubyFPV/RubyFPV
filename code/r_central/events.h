@@ -10,7 +10,7 @@ void onEventBeforePairing();
 void onEventPaired();
 void onEventBeforePairingStop();
 void onEventPairingStopped();
-void onEventPairingStartReceivingData();
+void onEventPairingStartReceivingData(u32 uVehicleId);
 
 void onEventArmed(u32 uVehicleId);
 void onEventDisarmed(u32 uVehicleId);

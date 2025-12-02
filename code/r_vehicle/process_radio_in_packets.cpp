@@ -336,7 +336,7 @@ void process_received_single_radio_packet(int iRadioInterface, u8* pData, int da
          int iParamsLength = pPH->total_length - sizeof(t_packet_header) - sizeof(t_packet_header_command);
          t_packet_header_command* pPHC = (t_packet_header_command*)(pData + sizeof(t_packet_header));
          if ( pPHC->command_type == COMMAND_ID_UPLOAD_SW_TO_VEHICLE63 )
-            g_uTimeLastCommandSowftwareUpload = g_TimeNow;
+            g_uTimeLastCommandSoftwareUpload = g_TimeNow;
 
          if ( pPHC->command_type == COMMAND_ID_SET_RADIO_LINK_FLAGS )
          if ( pPHC->command_counter != s_uLastCommandChangeDataRateCounter || (g_TimeNow > s_uLastCommandChangeDataRateTime + 4000) )

@@ -42,5 +42,6 @@ u32 g_RouterIsReadyTimestamp = 0;
 u32 g_TimeLastVideoDataOverloadAlarm = 0;
 u32 g_TimeLastVideoTxOverloadAlarm = 0;
 u32 g_TimeLastSentCurrentActiveOSDLayout = 0;
+u32 g_uTimeLastRelaySettingsChanged = 0;
 
 u32 g_uTimeLastRadioLinkOverloadAlarm = 0;

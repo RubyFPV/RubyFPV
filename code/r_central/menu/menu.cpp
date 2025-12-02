@@ -50,6 +50,7 @@
 #include "../timers.h"
 #include "../ruby_central.h"
 #include "../keyboard.h"
+#include "../process_router_messages.h"
 
 static int s_iCountRotaryEncoderCancelCount = 0;
 static int s_iCountRotaryEncoder2CancelCount = 0;
@@ -622,11 +623,16 @@ void menu_loop_parse_input_events()
    if ( keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_BACK )
    {
       log_line("[Menu] (loop %d) Pressed [Back] Key", menu_get_loop_counter()%1000);
-      if ( g_bDebugStats )
+      keyboard_clear_triggered_back_event();
+      if ( (g_iMenuStackTopIndex < 1) && g_pControllerSettings->iEnableDebugStats )
       {
-         Preferences* pP = get_Preferences();
-         if ( (NULL != pP) && (pP->iDebugStatsQAButton == 0) )
-            g_bDebugStats = false;
+         //Preferences* pP = get_Preferences();
+         //if ( (NULL != pP) && (pP->iDebugStatsQAButton == 0) )
+         {
+            g_pControllerSettings->iEnableDebugStats = 0;
+            save_ControllerSettings();
+            send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, 0xFF);
+         }
       }
       if ( osd_is_stats_flight_end_on() )
       {
@@ -773,7 +779,7 @@ void menu_render()
    float fOrigAlpha = g_pRenderEngine->getGlobalAlfa();
    Preferences* pP = get_Preferences();
    
-   g_pRenderEngine->disableRectBlending();
+   //g_pRenderEngine->disableAlpha();
 
    // If menus are stacked, render only last 3 menus
 
@@ -868,7 +874,7 @@ void menu_render()
       iMenuToRender++;
    }
    g_pRenderEngine->setGlobalAlfa(fOrigAlpha);
-   g_pRenderEngine->enableRectBlending();
+   g_pRenderEngine->enableAlpha();
 }
 
 bool menu_is_menu_on_top(Menu* pMenu)

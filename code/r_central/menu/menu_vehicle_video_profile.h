@@ -23,4 +23,6 @@ class MenuVehicleVideoProfileSelector: public Menu
       MenuItemRadio* m_pItemsRadio[10];
 
       int m_IndexVideoProfile;
+      int m_IndexSaveVideoProfile;
+      int m_IndexCompareProfiles;
 };

@@ -37,11 +37,12 @@ vehicle_and_telemetry_info_t g_VehicleTelemetryInfo;
 u32 g_uControllerId = 0;
 int g_iBootCount = 0;
 bool g_bDebugState = false;
-bool g_bDebugStats = false;
 bool g_bQuit = false;
 
 RenderEngine* g_pRenderEngine = NULL;
 RenderEngineUI* g_pRenderEngineOSDPlugins = NULL;
+
+ControllerSettings* g_pControllerSettings = NULL;
 
 u32 g_uVideoRecordingStartTime = 0;
 bool g_bIsVideoRecording = false;

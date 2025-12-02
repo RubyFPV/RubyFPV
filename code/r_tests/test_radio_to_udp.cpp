@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
          continue;
 
       int nPacketLength = 0;
-      u8* pPacketBuffer = radio_process_wlan_data_in(0, &nPacketLength, g_TimeNow); 
+      u8* pPacketBuffer = radio_process_wlan_data_in(0, &nPacketLength, NULL, g_TimeNow); 
       if ( NULL == pPacketBuffer )
       {
          log_line("NULL receive buffer. Ignoring...\n");

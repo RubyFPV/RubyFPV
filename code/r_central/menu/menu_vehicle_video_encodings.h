@@ -11,6 +11,11 @@ class MenuVehicleVideoEncodings: public Menu
       virtual void valuesToUI();
       virtual void Render();
       virtual void onSelectItem();
+
+      bool m_bShowVideo;
+      bool m_bShowRetransmissions;
+      bool m_bShowEC;
+      bool m_bShowH264;
       
    private:
       void addItems();
@@ -30,6 +35,15 @@ class MenuVehicleVideoEncodings: public Menu
       int m_IndexAdaptiveH264QuantizationStrength;
       int m_IndexHDMIOutput;
       int m_IndexNoise;
+      int m_IndexLowerDRForEC;
+      int m_IndexLowerQPDeltaOnLink;
+      int m_IndexRetransmissionsFast;
+      int m_IndexRetransmissionsGuardInterval;
+      int m_IndexMaxLinkLoadPercentage;
+
+      int m_IndexMenuEC;
+      int m_IndexMenuRetransmissions;
+      int m_IndexMenuH264;
 
       //bool m_ShowBitrateWarning;
       MenuItemSlider* m_pItemsSlider[25];

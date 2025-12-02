@@ -405,7 +405,7 @@ bool modelvideoLinkProfileIsOnlyVideoKeyframeChanged(type_video_link_profile* pO
 
    type_video_link_profile tmp;
    memcpy(&tmp, pNewProfile, sizeof(type_video_link_profile) );
-   tmp.keyframe_ms = pOldProfile->keyframe_ms;
+   tmp.iKeyframeMS = pOldProfile->iKeyframeMS;
    tmp.uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME;
    tmp.uProfileEncodingFlags |= (pOldProfile->uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME);
    if ( 0 == memcmp(pOldProfile, &tmp, sizeof(type_video_link_profile)) )

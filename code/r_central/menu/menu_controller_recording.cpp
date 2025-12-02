@@ -184,7 +184,12 @@ void MenuControllerRecording::onSelectItem()
       p->iAddOSDOnScreenshots = m_pItemsSelect[0]->getSelectedIndex();
 
    if ( 1 == m_SelectedIndex )
+   {
       p->iVideoDestination = m_pItemsSelect[1]->getSelectedIndex();
+      save_Preferences();
+      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_PREFERENCES_UPDATED, 0);
+      return;
+   }
 
    if ( m_IndexRecordIndicator == m_SelectedIndex )
       p->iShowBigRecordButton = m_pItemsSelect[2]->getSelectedIndex();
@@ -232,11 +237,17 @@ void MenuControllerRecording::onSelectItem()
    if ( m_IndexRecordArm == m_SelectedIndex )
    {
       p->iStartVideoRecOnArm =  m_pItemsSelect[5]->getSelectedIndex();
+      save_Preferences();
+      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_PREFERENCES_UPDATED, 0);
+      return;
    }
 
    if ( m_IndexRecordDisarm == m_SelectedIndex )
    {
       p->iStopVideoRecOnDisarm =  m_pItemsSelect[6]->getSelectedIndex();
+      save_Preferences();
+      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_PREFERENCES_UPDATED, 0);
+      return;
    }
 
    if ( m_iIndexStopOnLinkLost == m_SelectedIndex )
@@ -245,10 +256,16 @@ void MenuControllerRecording::onSelectItem()
          p->iStopRecordingAfterLinkLostSeconds = 0;
       else
          p->iStopRecordingAfterLinkLostSeconds = 10;
+      save_Preferences();
+      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_PREFERENCES_UPDATED, 0);
+      return;
    }
    if ( m_iIndexStopOnLinkLostTime == m_SelectedIndex )
    {
       p->iStopRecordingAfterLinkLostSeconds = m_pItemsSlider[0]->getCurrentValue();
+      save_Preferences();
+      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_PREFERENCES_UPDATED, 0);
+      return;
    }
    save_Preferences();
 }

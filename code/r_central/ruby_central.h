@@ -3,7 +3,7 @@
 #include "../base/hardware_procs.h"
 #include "popup.h"
 
-#define START_SEQ_DELAY 100
+#define START_SEQ_DELAY 50
 
 #define START_SEQ_NONE 0
 #define START_SEQ_PRE_LOAD_CONFIG 1
@@ -20,6 +20,7 @@
 
 #define START_SEQ_PRE_LOAD_DATA 30
 #define START_SEQ_LOAD_DATA 31
+#define START_SEQ_LOAD_PLUGINS 35
 #define START_SEQ_START_PROCESSES 40
 #define START_SEQ_SCAN_MEDIA_PRE 50
 #define START_SEQ_SCAN_MEDIA 51
@@ -32,6 +33,7 @@ Popup* ruby_get_startup_popup();
 
 void ruby_processing_loop(bool bNoKeys);
 
+void render_background_and_paddings(bool bForceBackground);
 void render_all(u32 timeNow, bool bForceBackground = false, bool bDoInputLoop = false);
 void render_all_with_menus(u32 timeNow, bool bRenderMenus, bool bForceBackground = false, bool bDoInputLoop = false);
 int ruby_start_recording();
@@ -45,6 +47,7 @@ void ruby_signal_alive();
 
 void ruby_pause_watchdog(const char* szReason);
 void ruby_resume_watchdog(const char* szReason);
+void ruby_resume_watchdog_force(const char* szReason);
 
 void synchronize_shared_mems();
 
@@ -52,6 +55,7 @@ void ruby_set_active_model_id(u32 uVehicleId);
 
 void ruby_mark_reinit_hdmi_display();
 void ruby_reinit_hdmi_display();
+void ruby_shutdown_ui();
 
 bool ruby_central_has_sdcard_update(bool bDoUpdateToo);
 void ruby_central_show_mira(bool bShow);

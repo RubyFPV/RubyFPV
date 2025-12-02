@@ -572,32 +572,6 @@ void _process_local_notification_model_changed(t_packet_header* pPH, u8 uChangeT
       return;
    }
 
-   // To fix may 2025
-   /*
-   if ( (uChangeType == MODEL_CHANGED_VIDEO_PROFILES) || 
-        (uChangeType == MODEL_CHANGED_VIDEO_KEYFRAME) )
-   {
-      if ( uChangeType == MODEL_CHANGED_VIDEO_PROFILES )
-         log_line("Received notification from central that only keyframe changed on current vehicle video stream.");
-      else
-         log_line("Received notification from central that video profiles have changed.");
-      int iRuntimeIndex = -1;
-      for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
-      {
-         if ( g_State.vehiclesRuntimeInfo[i].uVehicleId == g_pCurrentModel->uVehicleId )
-         {
-            iRuntimeIndex = i;
-            break;
-         }
-      }
-      if ( -1 == iRuntimeIndex )
-         log_softerror_and_alarm("Failed to find vehicle runtime info for VID %u while processing video profile changed notif from central.", g_pCurrentModel->uVehicleId);
-      else
-         adaptive_video_on_new_vehicle(iRuntimeIndex);
-      return;
-   }
-   */
-
    if ( uChangeType == MODEL_CHANGED_OSD_PARAMS )
    {
       log_line("Received notification from central that current model OSD params have changed.");
@@ -669,6 +643,13 @@ void process_local_control_packet(u8* pPacketBuffer)
       }
       if ( ! test_link_start(g_uControllerId, g_pCurrentModel->uVehicleId, iVehicleLinkIndex, (type_radio_links_parameters*)(pPacketBuffer + iHeaderSize)) )
          return;
+      return;
+   }
+
+   if ( pPH->packet_type == PACKET_TYPE_LOCAL_CONTROL_PREFERENCES_UPDATED )
+   {
+      log_line("Received local message that preferences have been updated. Reload them.");
+      load_Preferences();
       return;
    }
 
@@ -885,6 +866,7 @@ void process_local_control_packet(u8* pPacketBuffer)
       log_line("Received local message to change the search frequency to %s", str_format_frequency(pPH->vehicle_id_dest));
       for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
          radio_rx_pause_interface(i, "Controller search freq changed");
+      log_line("Paused radio rx interfaces.");
       links_set_cards_frequencies_for_search((int)pPH->vehicle_id_dest, false, -1,-1,-1,-1 );
       hardware_save_radio_info();
       g_uSearchFrequency = pPH->vehicle_id_dest;
@@ -892,6 +874,8 @@ void process_local_control_packet(u8* pPacketBuffer)
       broadcast_router_ready();
       for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
          radio_rx_resume_interface(i);
+      log_line("Resumed radio rx interfaces.");
+      radio_stats_reset_interfaces_rx_info(&g_SM_RadioStats, "Changed search frequency");
       return;
    }
 
@@ -950,9 +934,6 @@ void process_local_control_packet(u8* pPacketBuffer)
    if ( pPH->packet_type == PACKET_TYPE_LOCAL_CONTROL_RELAY_MODE_SWITCHED )
    {
       g_pCurrentModel->relay_params.uCurrentRelayMode = pPH->vehicle_id_src;
-      Model* pModel = findModelWithId(g_pCurrentModel->uVehicleId, 101);
-      if ( NULL != pModel )
-         pModel->relay_params.uCurrentRelayMode = pPH->vehicle_id_src;
 
       log_line("Received notification from central that relay mode changed to %d (%s)", g_pCurrentModel->relay_params.uCurrentRelayMode, str_format_relay_mode(g_pCurrentModel->relay_params.uCurrentRelayMode));
       int iCurrentFPS = g_pCurrentModel->video_params.iVideoFPS;
@@ -962,13 +943,13 @@ void process_local_control_packet(u8* pPacketBuffer)
       log_line("Set current keyframe to %d ms for FPS %d for current vehicle (VID: %u)", iDefaultKeyframeIntervalMs, iCurrentFPS, g_pCurrentModel->uVehicleId);
       // To fix video_link_keyframe_set_current_level_to_request(g_pCurrentModel->uVehicleId, iDefaultKeyframeIntervalMs);
       
-      pModel = findModelWithId(g_pCurrentModel->relay_params.uRelayedVehicleId, 102);
-      if ( NULL != pModel )
+      Model* pRelayedModel = findModelWithId(g_pCurrentModel->relay_params.uRelayedVehicleId, 102);
+      if ( NULL != pRelayedModel )
       {
          iDefaultKeyframeIntervalMs = DEFAULT_VIDEO_MIN_AUTO_KEYFRAME_INTERVAL;
          if ( ! relay_controller_must_display_remote_video(g_pCurrentModel) )
             iDefaultKeyframeIntervalMs = DEFAULT_VIDEO_KEYFRAME_INTERVAL_WHEN_RELAYING;
-         log_line("Set current keyframe to %d ms for remote vehicle (VID: %u)", iDefaultKeyframeIntervalMs, pModel->uVehicleId);
+         log_line("Set current keyframe to %d ms for remote vehicle (VID: %u)", iDefaultKeyframeIntervalMs, pRelayedModel->uVehicleId);
          // To fix video_link_keyframe_set_current_level_to_request(pModel->uVehicleId, iDefaultKeyframeIntervalMs);
       }
 
@@ -991,21 +972,30 @@ void process_local_control_packet(u8* pPacketBuffer)
    if ( pPH->packet_type == PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED )
    {
       log_line("Received control packet to reload controller settings.");
+      if ( pPH->vehicle_id_src == 0xFF )
+      {
+         log_line("Notification to enabled/disable debug stats.");
+         load_ControllerSettings();
+         g_pControllerSettings = get_ControllerSettings();
+         return;
+      }
       g_pControllerSettings = get_ControllerSettings();
       int iOldTxMode = g_pControllerSettings->iRadioTxUsesPPCAP;
       int iOldSocketBuffers = g_pControllerSettings->iRadioBypassSocketBuffers;
+      int iOldThreadPriorityRouter = g_pControllerSettings->iThreadPriorityRouter;
+
       #if defined (HW_PLATFORM_RADXA)
       int iOldHDMIVSync = g_pControllerSettings->iHDMIVSync;
       #endif
       hw_serial_port_info_t oldSerialPorts[MAX_SERIAL_PORTS];
-      for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+      for( int i=0; i<hardware_serial_get_ports_count(); i++ )
       {
          hw_serial_port_info_t* pPort = hardware_get_serial_port_info(i);
          if ( NULL != pPort )
             memcpy(&oldSerialPorts[i], pPort, sizeof(hw_serial_port_info_t));
       }
      
-      hardware_reload_serial_ports_settings();
+      hardware_serial_reload_ports_settings();
       load_ControllerSettings();
       g_pControllerSettings = get_ControllerSettings();
 
@@ -1033,7 +1023,7 @@ void process_local_control_packet(u8* pPacketBuffer)
       if ( NULL != g_pControllerSettings )
          radio_rx_set_timeout_interval(g_pControllerSettings->iDevRxLoopTimeout);
 
-      for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+      for( int i=0; i<hardware_serial_get_ports_count(); i++ )
       {
          hw_serial_port_info_t* pPort = hardware_get_serial_port_info(i);
          if ( NULL == pPort )
@@ -1081,11 +1071,13 @@ void process_local_control_packet(u8* pPacketBuffer)
       
       if ( NULL != g_pControllerSettings )
       {
-         log_line("Set new radio rx/tx threads priorities: %d/%d (adjustments enabled: %d)", g_pControllerSettings->iRadioRxThreadPriority, g_pControllerSettings->iRadioTxThreadPriority, g_pControllerSettings->iPrioritiesAdjustment);
+         log_line("Set new radio rx/tx threads raw priorities: %d/%d (adjustments enabled: %d)", g_pControllerSettings->iThreadPriorityRadioRx, g_pControllerSettings->iThreadPriorityRadioTx, g_pControllerSettings->iPrioritiesAdjustment);
          if ( g_pControllerSettings->iPrioritiesAdjustment )
          {
-           radio_rx_set_custom_thread_priority(g_pControllerSettings->iRadioRxThreadPriority);
-           radio_tx_set_custom_thread_priority(g_pControllerSettings->iRadioTxThreadPriority);
+           radio_rx_set_custom_thread_raw_priority(g_pControllerSettings->iThreadPriorityRadioRx);
+           radio_tx_set_custom_thread_raw_priority(g_pControllerSettings->iThreadPriorityRadioTx);
+           if ( iOldThreadPriorityRouter != g_pControllerSettings->iThreadPriorityRouter )
+              hw_set_current_thread_raw_priority("[router]", g_pControllerSettings->iThreadPriorityRouter);
          }
       }
 

@@ -39,8 +39,9 @@
 
 void broadcast_vehicle_stats();
 bool isRadioLinksInitInProgress();
+
 extern int s_fIPCToRouter;
-extern t_packet_header_ruby_telemetry_extended_v5 sPHRTE;
+extern t_packet_header_ruby_telemetry_extended_v6 sPHRTE;
 extern u32 s_CountMessagesFromFCPerSecond;
 
 u8 s_uMSPRawInputStream[256]; // Max size is one byte long
@@ -71,6 +72,9 @@ u32 s_uMSPLastRequestBatteryInfoTime = 0;
 
 void _send_msp_to_fc(u8 uCommand, u8* pData, int iDataLength)
 {
+   if ( telemetry_get_serial_port_file() <= 0 )
+      return;
+
    if ( iDataLength < 0 )
       iDataLength = 0;
    if ( iDataLength > 250 )
@@ -111,6 +115,43 @@ void _send_msp_to_fc(u8 uCommand, u8* pData, int iDataLength)
       s_iCountTelemetryMSPWriteErrors = 0;
 }
 
+
+void _send_msp_telemetry_packet_to_controller(bool bSendIfEmpty)
+{
+   if ( (! bSendIfEmpty) && (s_iMSPOutputBufferFilledBytes <= 0) )
+      return;
+
+   t_packet_header PH;
+   radio_packet_init(&PH, PACKET_COMPONENT_TELEMETRY, PACKET_TYPE_TELEMETRY_MSP, STREAM_ID_TELEMETRY);
+   PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
+   PH.vehicle_id_dest = 0;
+   PH.total_length = sizeof(t_packet_header) + sizeof(t_packet_header_telemetry_msp) + s_iMSPOutputBufferFilledBytes;
+
+   u16 uId = s_PHTMSP.uSegmentIdAndExtraInfo & 0xFFFF;
+   uId++;
+   s_PHTMSP.uSegmentIdAndExtraInfo = (s_PHTMSP.uSegmentIdAndExtraInfo & 0xFFFF0000) | uId;
+
+   s_PHTMSP.uSegmentIdAndExtraInfo = (s_PHTMSP.uSegmentIdAndExtraInfo & 0xFF00FFFF) | (((u32)base_compute_crc8(s_uMSPOutputBuffer, s_iMSPOutputBufferFilledBytes))<<16);
+   
+   u8 buffer[MAX_PACKET_TOTAL_SIZE];
+   memcpy(buffer, &PH, sizeof(t_packet_header));
+   memcpy(buffer+sizeof(t_packet_header), &s_PHTMSP, sizeof(t_packet_header_telemetry_msp));
+   if ( 0 < s_iMSPOutputBufferFilledBytes )
+      memcpy(buffer+sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_msp), s_uMSPOutputBuffer, s_iMSPOutputBufferFilledBytes);
+
+   if ( g_bRouterReady && (!g_bLongTaskStarted) && (! isRadioLinksInitInProgress()) )
+   {
+      int result = ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, PH.total_length);
+      if ( result != PH.total_length )
+         log_softerror_and_alarm("[Telem] Failed to send data to router. Sent result: %d", result );
+   }
+
+   if ( NULL != g_pProcessStats )
+      g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
+   s_uTimeLastSentMSPPacketToRouter = g_TimeNow;
+   s_iMSPOutputBufferFilledBytes = 0;
+}
+
 void telemetry_msp_on_open_port(int iSerialPortFile)
 {
    s_iMSPRawInputStreamFilledBytes = 0;
@@ -149,6 +190,18 @@ void telemetry_msp_periodic_loop()
       s_uMSPLastRequestBatteryInfoTime = g_TimeNow;
       _send_msp_to_fc(MSP_CMD_BATTERY_STATE, NULL, 0);
       _send_msp_to_fc(MSP_CMD_STATUS, NULL, 0);
+
+      // If in full raw mode (no MSP messages sent), then send some periodic empty MSP telemetry messages so that controller knows FC time and MSP screen resolution
+      if ( telemetry_will_send_full_telemetry_to_controller() )
+      {
+         static int siCountSendEmptyMSP = 0;
+         siCountSendEmptyMSP++;
+         if ( (siCountSendEmptyMSP % 4) == 0 )
+         {
+             s_iMSPOutputBufferFilledBytes = 0;
+             _send_msp_telemetry_packet_to_controller(true);
+         }
+      }
    } 
 }
 
@@ -178,54 +231,20 @@ void telemetry_msp_set_last_command_received_time(u32 uTime)
    s_uLastMSPCommandReceivedTime = uTime;
 }
 
-void _send_msp_telemetry_packet_to_controller()
-{
-   if ( s_iMSPOutputBufferFilledBytes <= 0 )
-      return;
-   t_packet_header PH;
-   radio_packet_init(&PH, PACKET_COMPONENT_TELEMETRY, PACKET_TYPE_TELEMETRY_MSP, STREAM_ID_TELEMETRY);
-   PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
-   PH.vehicle_id_dest = 0;
-   PH.total_length = sizeof(t_packet_header) + sizeof(t_packet_header_telemetry_msp) + s_iMSPOutputBufferFilledBytes;
-
-   u16 uId = s_PHTMSP.uSegmentIdAndExtraInfo & 0xFFFF;
-   uId++;
-   s_PHTMSP.uSegmentIdAndExtraInfo = (s_PHTMSP.uSegmentIdAndExtraInfo & 0xFFFF0000) | uId;
-
-   s_PHTMSP.uSegmentIdAndExtraInfo = (s_PHTMSP.uSegmentIdAndExtraInfo & 0xFF00FFFF) | (((u32)base_compute_crc8(s_uMSPOutputBuffer, s_iMSPOutputBufferFilledBytes))<<16);
-   
-   u8 buffer[MAX_PACKET_TOTAL_SIZE];
-   memcpy(buffer, &PH, sizeof(t_packet_header));
-   memcpy(buffer+sizeof(t_packet_header), &s_PHTMSP, sizeof(t_packet_header_telemetry_msp));
-   memcpy(buffer+sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_msp), s_uMSPOutputBuffer, s_iMSPOutputBufferFilledBytes);
-
-   if ( g_bRouterReady && (! isRadioLinksInitInProgress()) )
-   {
-      int result = ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, PH.total_length);
-      if ( result != PH.total_length )
-         log_softerror_and_alarm("[Telem] Failed to send data to router. Sent result: %d", result );
-   }
-
-   if ( NULL != g_pProcessStats )
-      g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
-   s_uTimeLastSentMSPPacketToRouter = g_TimeNow;
-   s_iMSPOutputBufferFilledBytes = 0;
-}
-
 void _add_msp_data_to_output(u8* pData, int iDataLength, bool bSendNow)
 {
-   if ( (NULL == pData) || (iDataLength <= 0) || (iDataLength > 255) )
+   if ( (NULL == pData) || (iDataLength <= 0) || (iDataLength > 255) || (telemetry_will_send_full_telemetry_to_controller()) )
       return;
 
    // No more room in the output? Send packet
    if ( s_iMSPOutputBufferFilledBytes + iDataLength >= 1100 )
-      _send_msp_telemetry_packet_to_controller();
+      _send_msp_telemetry_packet_to_controller(false);
 
    memcpy(&s_uMSPOutputBuffer[s_iMSPOutputBufferFilledBytes], pData, iDataLength);
    s_iMSPOutputBufferFilledBytes += iDataLength;
 
    if ( bSendNow )
-      _send_msp_telemetry_packet_to_controller();
+      _send_msp_telemetry_packet_to_controller(false);
 }
 
 void _parse_msp_osd_command()
@@ -238,6 +257,7 @@ void _parse_msp_osd_command()
 
    bool bSendNow = false;
    bool bSkip = false;
+   static u32 s_uLastTimeMSPUpdateScreenCommand = 0;
 
    switch ( s_uMSPDisplayPortCommand )
    {
@@ -303,23 +323,43 @@ void _parse_msp_osd_command()
 
       case MSP_DISPLAYPORT_CLEAR:
          //bSendNow = true;
+         _send_msp_telemetry_packet_to_controller(false);
          break;
 
       case MSP_DISPLAYPORT_KEEPALIVE:
+         if ( s_uMSPPreviousDisplayPortCommand != MSP_DISPLAYPORT_KEEPALIVE )
          if ( s_uMSPPreviousDisplayPortCommand != MSP_DISPLAYPORT_DRAW_SCREEN )
-            bSendNow = true;
+         {
+            if ( g_TimeNow > s_uLastTimeMSPUpdateScreenCommand + 200 )
+            {
+               bSendNow = true;
+               s_uLastTimeMSPUpdateScreenCommand = g_TimeNow;
+            }
+         }
          break;
 
       case MSP_DISPLAYPORT_DRAW_SCREEN:
+         if ( s_uMSPPreviousDisplayPortCommand != MSP_DISPLAYPORT_DRAW_SCREEN )
          if ( s_uMSPPreviousDisplayPortCommand != MSP_DISPLAYPORT_KEEPALIVE )
-            bSendNow = true;
+         {
+            if ( g_TimeNow > s_uLastTimeMSPUpdateScreenCommand + 200 )
+            {
+               bSendNow = true;
+               s_uLastTimeMSPUpdateScreenCommand = g_TimeNow;
+            }
+         }
          break;
 
       case MSP_DISPLAYPORT_DRAW_SYSTEM:
-         bSendNow = true;
+         if ( g_TimeNow > s_uLastTimeMSPUpdateScreenCommand + 200 )
+         {
+            bSendNow = true;
+            s_uLastTimeMSPUpdateScreenCommand = g_TimeNow;
+         }
          break;
 
-      default: break;
+      default:
+         break;
    }
 
    if ( ! bSkip )

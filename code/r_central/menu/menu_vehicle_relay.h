@@ -38,4 +38,5 @@ class MenuVehicleRelay: public Menu
 
       void _drawHeader(float yPos);
       bool _check_if_vehicle_can_be_relayed(u32 uVehicleId);
+      void _onSelectedVehicle(int iVehicleIndex);
 };

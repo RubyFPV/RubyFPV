@@ -108,7 +108,7 @@ RenderEngine::RenderEngine()
    m_fPixelHeight = 0.0;
    m_uClearBufferByte = 0;
    m_fGlobalAlfa = 1.0;
-   m_bEnableRectBlending = true;
+   m_bEnableAlpha = true;
    m_bEnableFontScaling = false;
    m_bHighlightFirstWord = false;
    m_bDrawBackgroundBoundingBoxes = false;
@@ -234,24 +234,24 @@ float RenderEngine::getGlobalAlfa()
    return m_fGlobalAlfa;
 }
 
-bool RenderEngine::isRectBlendingEnabled()
+bool RenderEngine::isAlphaEnabled()
 {
-   return m_bEnableRectBlending;
+   return m_bEnableAlpha;
 }
 
-void RenderEngine::setRectBlendingEnabled(bool bEnable)
+void RenderEngine::setAlphaEnabled(bool bEnable)
 {
-   m_bEnableRectBlending = bEnable;
+   m_bEnableAlpha = bEnable;
 }
 
-void RenderEngine::enableRectBlending()
+void RenderEngine::enableAlpha()
 {
-   m_bEnableRectBlending = true;
+   m_bEnableAlpha = true;
 }
 
-void RenderEngine::disableRectBlending()
+void RenderEngine::disableAlpha()
 {
-   m_bEnableRectBlending = false;
+   m_bEnableAlpha = false;
 }
 
 void RenderEngine::setClearBufferByte(u8 uClearByte)

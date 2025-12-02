@@ -65,26 +65,19 @@ void onEventRelayModeChanged(u32 uOldRelayMode, u32 uNewRelayMode, const char* s
    strncpy(szTmp1, str_format_relay_mode(uOldRelayMode), 63);
    strncpy(szTmp2, str_format_relay_mode(uNewRelayMode), 63);
 
-   if ( NULL != szSource )
-      log_line("[Event] Relay mode changed on this vehicle from %s to %s (source: %s)", str_format_relay_mode(uOldRelayMode), str_format_relay_mode(uNewRelayMode), szSource);
+   if ( uOldRelayMode == uNewRelayMode )
+   {
+      if ( NULL != szSource )
+         log_line("[Event] Received event that relay mode changed, but it's the same: %s (source: %s)", str_format_relay_mode(uNewRelayMode), szSource);
+      else
+         log_line("[Event] Received event that relay mode changed, but it's the same: %s (source: N/A)", str_format_relay_mode(uNewRelayMode));
+   }
    else
-      log_line("[Event] Relay mode changed on this vehicle from %s to %s", str_format_relay_mode(uOldRelayMode), str_format_relay_mode(uNewRelayMode));
-
+   {
+      if ( NULL != szSource )
+         log_line("[Event] Relay mode changed on this vehicle from %s to %s (source: %s)", str_format_relay_mode(uOldRelayMode), str_format_relay_mode(uNewRelayMode), szSource);
+      else
+         log_line("[Event] Relay mode changed on this vehicle from %s to %s", str_format_relay_mode(uOldRelayMode), str_format_relay_mode(uNewRelayMode));
+   }
    relay_on_relay_mode_changed(uOldRelayMode, uNewRelayMode);
-
-   t_packet_header PH;
-   radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_EVENT, STREAM_ID_DATA);
-   PH.vehicle_id_src = PACKET_COMPONENT_RUBY;
-   PH.vehicle_id_dest = 0;
-   PH.total_length = sizeof(t_packet_header) + 2*sizeof(u32);
-
-   u8 buffer[MAX_PACKET_TOTAL_SIZE];
-   u32 uEventType = EVENT_TYPE_RELAY_MODE_CHANGED;
-   u32 uEventInfo = uNewRelayMode;
-   memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
-   memcpy((&buffer[0])+sizeof(t_packet_header), (u8*)&uEventType, sizeof(u32));
-   memcpy((&buffer[0])+sizeof(t_packet_header) + sizeof(u32), (u8*)&uEventInfo, sizeof(u32));
-
-   if ( ! ruby_ipc_channel_send_message(s_fIPCRouterToTelemetry, buffer, PH.total_length) )
-      log_softerror_and_alarm("No pipe to telemetry to send an event message (%d)", uEventType);
 }

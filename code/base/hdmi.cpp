@@ -7,9 +7,15 @@
 #include <errno.h>
 #include <unistd.h>
 #if defined(HW_PLATFORM_RADXA)
+#include <linux/videodev2.h>
+#include <rockchip/rk_mpi.h>
+
+extern "C" {
+#include <drm.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 #include <drm_fourcc.h> 
+}
 #endif
 
 #define MAX_HDMI_RESOLUTIONS 30

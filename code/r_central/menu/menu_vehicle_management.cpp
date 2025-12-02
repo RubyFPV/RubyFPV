@@ -150,15 +150,6 @@ void MenuVehicleManagement::onReturnFromChild(int iChildMenuId, int returnValue)
       {
          onEventPairingDiscardAllUIActions();
          
-         char szComm[256];
-         char szOutput[4096];
-         memset(szOutput, 0, 4096);
-         sprintf(szComm, "./ruby_update %d %d", get_sw_version_major(g_pCurrentModel), get_sw_version_minor(g_pCurrentModel));
-         hw_execute_bash_command_raw(szComm, szOutput);
-
-         g_pCurrentModel->sw_version = (SYSTEM_SW_VERSION_MAJOR*256+SYSTEM_SW_VERSION_MINOR) | (SYSTEM_SW_BUILD_NUMBER << 16);
-         saveControllerModel(g_pCurrentModel);
-
          char szTextW[256];
          sprintf(szTextW, L("Your %s was updated. It will reboot now."), g_pCurrentModel->getVehicleTypeString());
          MenuConfirmation* pm = new MenuConfirmation( L("Upload Succeeded"), szTextW, 3, true);
@@ -167,21 +158,6 @@ void MenuVehicleManagement::onReturnFromChild(int iChildMenuId, int returnValue)
          pm->m_bDisableStacking = true;
          pm->disablePairingUIActions();
          pm->setTimeoutMs(6000);
-
-         if ( 0 < strlen(szOutput) )
-         {
-            char* pSt = szOutput;
-            while (*pSt)
-            {
-               char* pEnd = pSt;
-               while ( (*pEnd != 0) && (*pEnd != 10) && (*pEnd != 13) )
-                  pEnd++;
-               *pEnd = 0;
-               if ( pEnd > pSt )
-                  pm->addTopLine(pSt);
-               pSt = pEnd+1;
-            }
-         }
          add_menu_to_stack(pm);
       }
       return;
@@ -292,12 +268,6 @@ void MenuVehicleManagement::onSelectItem()
          return;
       }
 
-      if ( ((g_pCurrentModel->sw_version >>8) & 0xFF) == 6 )
-      if ( ((g_pCurrentModel->sw_version & 0xFF) < 9) || ( (g_pCurrentModel->sw_version & 0xFF) >= 10 && (g_pCurrentModel->sw_version & 0xFF) < 90) )
-      {
-         addMessage(L("You need to update your vehicle sowftware to be able to use core plugins."));
-         return;
-      }
       handle_commands_reset_has_received_vehicle_core_plugins_info();
       m_bWaitingForVehicleInfo = false;
 
@@ -388,11 +358,6 @@ void MenuVehicleManagement::onSelectItem()
       if ( g_pCurrentModel->hwCapabilities.uHWFlags & MODEL_HW_CAP_FLAG_OTA )
          bSupportsOTA = true;
 
-      if ( hardware_board_is_openipc(g_pCurrentModel->hwCapabilities.uBoardType) )
-      if ( ((g_pCurrentModel->sw_version >> 8) & 0xFF) == 9 )
-      if ( (g_pCurrentModel->sw_version & 0xFF) < 20 )
-         bSupportsOTA = false;
-
       if ( ! bSupportsOTA )
       {
          addMessageWithTitle(0, L("Can't update"), L("This vehicle does not support OTA (over the air) updates."));
@@ -403,7 +368,7 @@ void MenuVehicleManagement::onSelectItem()
          return;
       if ( (! pairing_isStarted()) || (NULL == g_pCurrentModel) || (! link_is_vehicle_online_now(g_pCurrentModel->uVehicleId)) )
       {
-         sprintf(szTextW, "Please connect to your %s first, if you want to update the sowftware on the vehicle.", g_pCurrentModel->getVehicleTypeString());
+         sprintf(szTextW, "Please connect to your %s first, if you want to update the software on the vehicle.", g_pCurrentModel->getVehicleTypeString());
          addMessage(szTextW);
          return;
       }
@@ -411,8 +376,7 @@ void MenuVehicleManagement::onSelectItem()
       char szBuff2[64];
       getSystemVersionString(szBuff2, g_pCurrentModel->sw_version);
 
-      if ( ((g_pCurrentModel->sw_version) & 0xFFFF) >= (SYSTEM_SW_VERSION_MAJOR*256)+SYSTEM_SW_VERSION_MINOR )
-      if ( (g_pCurrentModel->sw_version >> 16) >= SYSTEM_SW_BUILD_NUMBER )
+      if ( is_sw_version_latest(g_pCurrentModel) )
       {
          char szBuff[256];
          sprintf(szBuff, "Your %s already has the latest version of the software (version %s). Do you still want to upgrade?", g_pCurrentModel->getVehicleTypeString(), szBuff2);
@@ -425,7 +389,7 @@ void MenuVehicleManagement::onSelectItem()
       char szBuff[512];
       char szBuff3[64];
       getSystemVersionString(szBuff3, (SYSTEM_SW_VERSION_MAJOR<<8) | SYSTEM_SW_VERSION_MINOR);
-      sprintf(szBuff, "Your %s has software version %s (b%d) and software version %s (b%d) is available on the controller. Do you want to upgrade?", g_pCurrentModel->getVehicleTypeString(), szBuff2, (int)(g_pCurrentModel->sw_version >> 16), szBuff3, SYSTEM_SW_BUILD_NUMBER);
+      sprintf(szBuff, "Your %s has software version %s (b-%d) and software version %s (b-%d) is available on the controller. Do you want to upgrade?", g_pCurrentModel->getVehicleTypeString(), szBuff2, (int)get_sw_version_build(g_pCurrentModel), szBuff3, SYSTEM_SW_BUILD_NUMBER);
       MenuConfirmation* pMC = new MenuConfirmation( L("Upgrade Confirmation"), szBuff, 2);
       add_menu_to_stack(pMC);
    }

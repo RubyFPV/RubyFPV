@@ -62,10 +62,14 @@ bool g_bMPPFrameEOS = false;
 bool g_bMPPStreamChangedFlag = false;
 bool g_bMPPEnableVSync = true;
 
+u32 g_uMPPCPUAffinityMask = 0;
+int g_iMPPCPUAffinityCoreIndex = -1;
+int g_iMPPRawPriority = -1;
+
 pthread_t g_MPPDecodeThread;
 pthread_t g_MPPUpdateDisplayThread;
 extern bool g_bQuit;
-int g_iMPPFrameBufferIndexToDisplay = -1;
+int g_iMPPFrameBufferIndexToDisplay = 0;
 uint32_t g_uMPPDRMBufferIdToDisplay = 0;
 
 int _mpp_send_command(MpiCmd command, RK_U32 value)
@@ -227,31 +231,38 @@ void _mpp_core_periodic_checks()
 void* _mpp_thread_update_display(void *param)
 {
    log_line("[MPPThreadUpdateDisplay] Started.");
+   hw_log_current_thread_attributes("MPP display update");
    u32 uLastDRMBufferIdDisplayed = 0;
    u32 uNewDRMBufferIdToDisplay = 0;
    while ( (!g_bMPPFrameEOS) && (!g_bQuit) )
    {
+      if ( -1 == g_iMPPFrameBufferIndexToDisplay )
+         break;
       if ( NULL != g_pSemaphoreMPPDisplayFrameReadyRead )
       {
          struct timespec ts;
          clock_gettime(CLOCK_REALTIME, &ts);
-         ts.tv_nsec += 1000LL*(long long)10000;
+         //ts.tv_nsec += 1000LL*(long long)10000; // 10 ms
+         //if ( ts.tv_nsec > 999999999 )
+         //{
+         //   ts.tv_sec -= 999999999;
+         //   ts.tv_sec++;
+         //}
+         ts.tv_sec++;
          int iRes = sem_timedwait(g_pSemaphoreMPPDisplayFrameReadyRead, &ts);
          if ( 0 != iRes )
-            continue;
-         uNewDRMBufferIdToDisplay = g_uMPPDRMBufferIdToDisplay;
-         int iSemVal = 0;
-         if ( 0 == sem_getvalue(g_pSemaphoreMPPDisplayFrameReadyRead, &iSemVal) )
          {
-            if ( iSemVal > 0 )
-            {
-               for( int i=0; i<iSemVal; i++ )
-                  sem_trywait(g_pSemaphoreMPPDisplayFrameReadyRead);
-            }
+            if ( errno != ETIMEDOUT )
+               log_softerror_and_alarm("[MPPThreadUpdateDisplay] Failed to timewait on semaphore. Error: %d, %s", errno, strerror(errno));
+            continue;
          }
+         uNewDRMBufferIdToDisplay = g_uMPPDRMBufferIdToDisplay;
+         is_semaphore_signaled_clear_logok(g_pSemaphoreMPPDisplayFrameReadyRead, SEMAPHORE_MPP_DISPLAY_FRAME_READY, 0);
       }
       else
          uNewDRMBufferIdToDisplay = g_uMPPDRMBufferIdToDisplay;
+      if ( -1 == g_iMPPFrameBufferIndexToDisplay )
+         break;
       if ( uLastDRMBufferIdDisplayed == uNewDRMBufferIdToDisplay )
       {
          hardware_sleep_ms(1);
@@ -263,6 +274,12 @@ void* _mpp_thread_update_display(void *param)
       ruby_drm_core_set_plane_buffer(uNewDRMBufferIdToDisplay);
       uLastDRMBufferIdDisplayed = uNewDRMBufferIdToDisplay;
    }
+   if ( g_bQuit )
+      log_line("[MPPThreadUpdateDisplay] Ending render thread due to quit signal.");
+   if ( g_bMPPFrameEOS )
+      log_line("[MPPThreadUpdateDisplay] Ending render thread due to end of stream.");
+   if ( -1 == g_iMPPFrameBufferIndexToDisplay )
+      log_line("[MPPThreadUpdateDisplay] Ending render thread due signaled to end.");
    log_line("[MPPThreadUpdateDisplay] Finsihed.");
    return NULL;
 }
@@ -270,20 +287,21 @@ void* _mpp_thread_update_display(void *param)
 void* _mpp_thread_frame_decode(void *param)
 {
    log_line("[MPPThreadDecoder] Started.");
-
+   hw_log_current_thread_attributes("MPP frame decode");
    MppFrame pFrame  = NULL;
 
    log_line("[MPPThreadDecoder] Start main thread loop...");
    while ( (!g_bMPPFrameEOS) && (!g_bQuit) ) 
    {
       g_pMPPApi->decode_get_frame(g_MPPCtx, &pFrame);
+      if ( g_bQuit )
+         break;
       if ( ! pFrame )
       {
          //log_softerror_and_alarm("[MPPThreadDecoder] Received invalid frame. Skipping it.");
          hardware_sleep_ms(1);
          continue;
       }
-  
       // Frame with resolution update
       if ( mpp_frame_get_info_change(pFrame) )
       {
@@ -312,9 +330,11 @@ void* _mpp_thread_frame_decode(void *param)
          //log_line("[MPPThreadDecoder] Received first frame.");
          g_uTimeFirstFrame = get_current_timestamp_ms();
       }
-   
+
+      if ( g_bQuit )
+         break;
       MppBuffer pBuffer = mpp_frame_get_buffer(pFrame);
-      if ( pBuffer ) 
+      if ( pBuffer && (!g_bQuit) )
       {
          MppBufferInfo info;
          mpp_buffer_info_get(pBuffer, &info);
@@ -333,13 +353,12 @@ void* _mpp_thread_frame_decode(void *param)
          //log_line("[MPPThreadDecoder] Received a frame in primeId buffer index %d (max %d)", iPrimeIndex, g_iMPPBuffersSize);
          //s_iLastPrimeBufferIndex = iPrimeIndex;
          
-         if ( -1 != iPrimeIndex )
+         if ( (-1 != iPrimeIndex) && (! g_bQuit) )
          {
             //ruby_drm_core_set_plane_buffer(g_Frames[iPrimeIndex].drmBufferInfo.uBufferId);
             g_iMPPFrameBufferIndexToDisplay = iPrimeIndex;
             g_uMPPDRMBufferIdToDisplay = g_Frames[iPrimeIndex].drmBufferInfo.uBufferId;
-            if ( NULL != g_pSemaphoreMPPDisplayFrameReadyWrite )
-            if ( 0 != sem_post(g_pSemaphoreMPPDisplayFrameReadyWrite) )
+            if ( (NULL == g_pSemaphoreMPPDisplayFrameReadyWrite) || (0 != sem_post(g_pSemaphoreMPPDisplayFrameReadyWrite)) )
                log_softerror_and_alarm("Failed to signal semaphore for display frame ready.");
             u32 uTimeNow = get_current_timestamp_ms();
             if ( uTimeNow > g_uTimeMPPPeriodicChecks + 1000 )
@@ -353,7 +372,8 @@ void* _mpp_thread_frame_decode(void *param)
       g_bMPPFrameEOS = (mpp_frame_get_eos(pFrame))?true:false;
       mpp_frame_deinit(&pFrame);
       pFrame = NULL;
-
+      if ( g_bQuit )
+         break;
    }
 
    if ( g_bQuit )
@@ -366,17 +386,57 @@ void* _mpp_thread_frame_decode(void *param)
 
 int mpp_start_decoding_thread()
 {
-   if ( 0 == pthread_create(&g_MPPUpdateDisplayThread, NULL, _mpp_thread_update_display, NULL) )
-      pthread_detach(g_MPPUpdateDisplayThread);
-   if ( 0 == pthread_create(&g_MPPDecodeThread, NULL, _mpp_thread_frame_decode, NULL) )
-      pthread_detach(g_MPPDecodeThread);
+   pthread_attr_t attr;
+   int iRTPriority = -1;
+   if ( (g_iMPPRawPriority > 1) && (g_iMPPRawPriority < 100) )
+      iRTPriority = 100 - g_iMPPRawPriority;
+
+   if ( (iRTPriority > 0) && (iRTPriority < 98) )
+      iRTPriority++;
+   if ( (iRTPriority >= 0) && (iRTPriority < 99) )
+      hw_init_worker_thread_attrs(&attr, g_iMPPCPUAffinityCoreIndex, -1, SCHED_FIFO, iRTPriority, "mppdisplay");
+   else
+      hw_init_worker_thread_attrs(&attr, g_iMPPCPUAffinityCoreIndex, -1, SCHED_OTHER, 0, "mppdisplay");
+   if ( 0 != pthread_create(&g_MPPUpdateDisplayThread, &attr, _mpp_thread_update_display, NULL) )
+      log_error_and_alarm("[MPP] Failed to create frame display thread.");
+
+   pthread_attr_destroy(&attr);
+
+   if ( (iRTPriority > 0) && (iRTPriority < 98) )
+      iRTPriority++;
+   if ( (iRTPriority >= 0) && (iRTPriority < 99) )
+      hw_init_worker_thread_attrs(&attr, g_iMPPCPUAffinityCoreIndex, -1, SCHED_FIFO, iRTPriority, "mppdisplay");
+   else
+      hw_init_worker_thread_attrs(&attr, g_iMPPCPUAffinityCoreIndex, -1, SCHED_OTHER, 0, "mppdisplay");
+
+   if ( 0 != pthread_create(&g_MPPDecodeThread, &attr, _mpp_thread_frame_decode, NULL) )
+      log_error_and_alarm("[MPP] Failed to create frame decoding thread.");
+
+   pthread_attr_destroy(&attr);
+
    return 0;
 }
 
 
-int mpp_init(bool bUseH265Decoder, int iMPPBuffersSize)
+int mpp_init(bool bUseH265Decoder, int iMPPBuffersSize, u32 uCPUAffinityMask, int iRawPriority)
 {
-   log_line("[MPP] Doing MPP Initialization (for codec %s, buffers size: %d)...", (bUseH265Decoder?"H265":"H264"), iMPPBuffersSize);
+   log_line("[MPP] Doing MPP Initialization (for codec %s, buffers size: %d, cpu affinity mask: %u, raw priority: %d)...", (bUseH265Decoder?"H265":"H264"), iMPPBuffersSize, uCPUAffinityMask, iRawPriority);
+   g_uMPPCPUAffinityMask = uCPUAffinityMask;
+   g_iMPPRawPriority = iRawPriority;
+   g_iMPPCPUAffinityCoreIndex = -1;
+   if ( g_uMPPCPUAffinityMask > 0 )
+   {
+      for( int i=0; i<8; i++ )
+      {
+         if ( g_uMPPCPUAffinityMask & (0x01 << i) )
+         {
+            g_iMPPCPUAffinityCoreIndex = i;
+            break;
+         }
+      }
+   }
+   log_line("[MPP] Core affinity to core: %d", g_iMPPCPUAffinityCoreIndex);
+
    g_MPPDecodeType = MPP_VIDEO_CodingAVC;
    if ( bUseH265Decoder )
       g_MPPDecodeType = MPP_VIDEO_CodingHEVC;
@@ -434,10 +494,12 @@ int mpp_init(bool bUseH265Decoder, int iMPPBuffersSize)
       if ( (NULL == g_pSemaphoreMPPDisplayFrameReadyWrite) || (SEM_FAILED == g_pSemaphoreMPPDisplayFrameReadyWrite) )
       {
          log_error_and_alarm("[MPP] Failed to create write semaphore: %s", SEMAPHORE_MPP_DISPLAY_FRAME_READY);
+         g_pSemaphoreMPPDisplayFrameReadyWrite = NULL;
          return -1;
       }
    }
-   log_line("[MPP] Opened semaphore for signaling display frame ready: (%s)", SEMAPHORE_MPP_DISPLAY_FRAME_READY);
+   if ( (NULL != g_pSemaphoreMPPDisplayFrameReadyWrite) && (SEM_FAILED != g_pSemaphoreMPPDisplayFrameReadyWrite) )
+      log_line("[MPP] Opened semaphore for signaling display frame ready: (%s)", SEMAPHORE_MPP_DISPLAY_FRAME_READY);
 
    g_pSemaphoreMPPDisplayFrameReadyRead = sem_open(SEMAPHORE_MPP_DISPLAY_FRAME_READY, O_RDWR);
    if ( (NULL == g_pSemaphoreMPPDisplayFrameReadyRead) || (SEM_FAILED == g_pSemaphoreMPPDisplayFrameReadyRead) )
@@ -447,10 +509,12 @@ int mpp_init(bool bUseH265Decoder, int iMPPBuffersSize)
       if ( (NULL == g_pSemaphoreMPPDisplayFrameReadyRead) || (SEM_FAILED == g_pSemaphoreMPPDisplayFrameReadyRead) )
       {
          log_error_and_alarm("[MPP] Failed to create read semaphore: %s", SEMAPHORE_MPP_DISPLAY_FRAME_READY);
+         g_pSemaphoreMPPDisplayFrameReadyRead = NULL;
          return -1;
       }
    }
-   log_line("[MPP] Opened semaphore for checking display frame ready: (%s)", SEMAPHORE_MPP_DISPLAY_FRAME_READY);
+   if ( (NULL != g_pSemaphoreMPPDisplayFrameReadyRead) && (SEM_FAILED != g_pSemaphoreMPPDisplayFrameReadyRead) )
+      log_line("[MPP] Opened semaphore for checking display frame ready: (%s)", SEMAPHORE_MPP_DISPLAY_FRAME_READY);
 
    int iSemVal = 0;
    if ( 0 == sem_getvalue(g_pSemaphoreMPPDisplayFrameReadyRead, &iSemVal) )
@@ -501,6 +565,10 @@ int mpp_init(bool bUseH265Decoder, int iMPPBuffersSize)
 int mpp_uninit()
 {
    log_line("[MPP] Doing MPP Un-initialization...");
+
+   g_iMPPFrameBufferIndexToDisplay = -1;
+   if ( (NULL == g_pSemaphoreMPPDisplayFrameReadyWrite) || (0 != sem_post(g_pSemaphoreMPPDisplayFrameReadyWrite)) )
+      log_softerror_and_alarm("Failed to signal semaphore for display frame to quit.");
   
    g_pMPPApi->reset(g_MPPCtx);
    if ( g_MPPBufferGroup )
@@ -545,6 +613,7 @@ void mpp_enable_vsync(bool bEnableVSync)
 
 int mpp_mark_end_of_stream()
 {
+   log_line("[MPP] Marking end of stream...");
    g_bMPPFrameEOS = true;
    mpp_packet_set_eos(g_MPPInputPacket);
    mpp_packet_set_length(g_MPPInputPacket, 0);
@@ -553,6 +622,7 @@ int mpp_mark_end_of_stream()
       hardware_sleep_micros(10000);
    }
    g_bMPPFrameEOS = true;
+   log_line("[MPP] Marked end of stream.");
    return 0;
 }
 

@@ -48,9 +48,9 @@ bool relay_controller_is_vehicle_id_relayed_vehicle(Model* pMainModel, u32 uVehi
    return true;
 }
 
-bool relay_controller_must_display_video_from(Model* pMainModel, u32 uVehicleId)
+bool relay_controller_must_display_video_from(Model* pMainModel, u32 uRelayedVehicleId)
 {
-   if ( (NULL == pMainModel) || (0 == uVehicleId) )
+   if ( (NULL == pMainModel) || (0 == uRelayedVehicleId) )
       return false;
 
    bool bHasValidRelayedVehicle = false;
@@ -62,20 +62,21 @@ bool relay_controller_must_display_video_from(Model* pMainModel, u32 uVehicleId)
    if ( ! bHasValidRelayedVehicle )
       return true;
 
-   if ( uVehicleId != pMainModel->uVehicleId )
+   if ( uRelayedVehicleId != pMainModel->uVehicleId )
    if ( ! (pMainModel->relay_params.uRelayCapabilitiesFlags & RELAY_CAPABILITY_TRANSPORT_VIDEO) )
       return false;
 
-   if ( (pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_PIP_REMOTE) ||
+   if ( (pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE) ||
+        (pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_REMOTE) ||
+        (pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_PIP_REMOTE) ||
         (pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_PIP_MAIN) )
+   if ( uRelayedVehicleId == pMainModel->relay_params.uRelayedVehicleId )
       return true;
 
-   if ( pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_REMOTE )
-   if ( uVehicleId == pMainModel->relay_params.uRelayedVehicleId )
-      return true;
-
-   if ( pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_MAIN )
-   if ( uVehicleId == pMainModel->uVehicleId )
+   if ( (pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_MAIN) ||
+        (pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_PIP_REMOTE) ||
+        (pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_PIP_MAIN) )
+   if ( uRelayedVehicleId == pMainModel->uVehicleId )
       return true;
 
    return false;
@@ -110,18 +111,18 @@ Model* relay_controller_get_relayed_vehicle_model(Model* pMainModel)
 }
 
 
-bool relay_controller_must_forward_telemetry_from(Model* pMainModel, u32 uVehicleId)
+bool relay_controller_must_forward_telemetry_from(Model* pMainModel, u32 uRelayedVehicleId)
 {
-   if ( (NULL == pMainModel) || (0 == uVehicleId) )
+   if ( (NULL == pMainModel) || (0 == uRelayedVehicleId) )
       return false;
 
-   if ( pMainModel->uVehicleId == uVehicleId )
+   if ( pMainModel->uVehicleId == uRelayedVehicleId )
       return true;
 
    if ( (pMainModel->relay_params.isRelayEnabledOnRadioLinkId < 0) || (pMainModel->relay_params.uRelayedVehicleId == 0) )
       return false;
 
-   if ( pMainModel->relay_params.uRelayedVehicleId != uVehicleId )
+   if ( pMainModel->relay_params.uRelayedVehicleId != uRelayedVehicleId )
       return false;
 
    if ( ! (pMainModel->relay_params.uRelayCapabilitiesFlags & RELAY_CAPABILITY_TRANSPORT_TELEMETRY) )
@@ -130,17 +131,20 @@ bool relay_controller_must_forward_telemetry_from(Model* pMainModel, u32 uVehicl
    return true;
 }
 
-bool relay_vehicle_must_forward_video_from_relayed_vehicle(Model* pMainModel, u32 uVehicleId)
+bool relay_vehicle_must_forward_video_from_relayed_vehicle(Model* pMainModel, u32 uRelayedVehicleId)
 {
-   if ( (NULL == pMainModel) || (0 == uVehicleId) )
+   if ( (NULL == pMainModel) || (0 == uRelayedVehicleId) )
       return false;
 
    if ( ! (pMainModel->relay_params.uRelayCapabilitiesFlags & RELAY_CAPABILITY_TRANSPORT_VIDEO) )
       return false;
 
-   if ( pMainModel->relay_params.uRelayedVehicleId != uVehicleId )
+   if ( pMainModel->relay_params.uRelayedVehicleId != uRelayedVehicleId )
       return false;
-      
+
+   if ( pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE )
+      return true;
+
    if ( ! (pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_REMOTE) )
    if ( ! (pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_PIP_MAIN) )
    if ( ! (pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_PIP_REMOTE) )
@@ -176,6 +180,9 @@ bool relay_vehicle_must_forward_own_video(Model* pMainModel)
 
    if ( bIsRelayNode )
    {
+      if ( pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE )
+         return false;
+
       if ( ! (pMainModel->relay_params.uRelayCapabilitiesFlags & RELAY_CAPABILITY_TRANSPORT_VIDEO ) )
          return true;
 
@@ -189,6 +196,7 @@ bool relay_vehicle_must_forward_own_video(Model* pMainModel)
    // Relayed node
    if ( pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_IS_RELAYED_NODE )
    {
+      if ( ! (pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE) )
       if ( pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_MAIN )
          return false;
       return true;
@@ -208,7 +216,8 @@ bool relay_vehicle_must_forward_relayed_video(Model* pMainModel)
    if ( ! (pMainModel->relay_params.uRelayCapabilitiesFlags & RELAY_CAPABILITY_TRANSPORT_VIDEO) )
       return false;
 
-   if ( ( pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_REMOTE ) ||
+   if ( ( pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE ) ||
+        ( pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_REMOTE ) ||
         ( pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_PIP_MAIN ) ||
         ( pMainModel->relay_params.uCurrentRelayMode & RELAY_MODE_PIP_REMOTE ) )
       return true;

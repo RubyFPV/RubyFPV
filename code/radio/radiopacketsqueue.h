@@ -5,6 +5,7 @@
 
 typedef struct
 {
+   u32 uTimeAdded;
    u8  has_radio_header;
    u8  packet_buffer[MAX_PACKET_TOTAL_SIZE];
    u16 packet_length;
@@ -28,9 +29,12 @@ int packets_queue_is_empty(t_packet_queue* pQueue);
 int packets_queue_has_packets(t_packet_queue* pQueue);
 
 int packets_queue_inject_packet_first(t_packet_queue* pQueue, u8* pBuffer);
+int packets_queue_inject_packet_first_mark_time(t_packet_queue* pQueue, u8* pBuffer);
 int packets_queue_add_packet(t_packet_queue* pQueue, u8* pBuffer);
-int packets_queue_add_packet2(t_packet_queue* pQueue, u8* pBuffer, int length, int has_radio_header);
+int packets_queue_add_packet_mark_time(t_packet_queue* pQueue, u8* pBuffer);
+int packets_queue_add_packet2(t_packet_queue* pQueue, u8* pBuffer, int length, int has_radio_header, int iMarkTime);
 u8* packets_queue_pop_packet(t_packet_queue* pQueue, int* pLength);
+u8* packets_queue_pop_packet_and_time(t_packet_queue* pQueue, int* pLength, u32* puTimeAdded);
 u8* packets_queue_peek_packet(t_packet_queue* pQueue, int index, int* pLength);
 
 #ifdef __cplusplus

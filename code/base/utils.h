@@ -32,6 +32,7 @@ typedef struct
 {
    u32 uMinimumTimeToSwitchLower;
    u32 uMinimumTimeToSwitchHigher;
+   u32 uMinimumGoodTimeToSwitchHigher;
    u32 uTimeToLookBackForECUsed;
    u32 uTimeToLookBackForECMax;
    int iPercentageECUsed;
@@ -69,3 +70,6 @@ long metersBetweenPlaces(double lat1, double lon1, double lat2, double lon2);
 long distance_meters_between(double lat1, double lon1, double lat2, double lon2);
 
 void compute_adaptive_metrics(type_adaptive_metrics* pAdaptiveMetrics, int iAdaptiveStrength, u32 uAdaptiveWeights);
+void log_adaptive_metrics(Model* pModel, type_adaptive_metrics* pAdaptiveMetrics, int iAdaptiveStrength, u32 uAdaptiveWeights);
+
+void utils_log_radio_packets_sizes();

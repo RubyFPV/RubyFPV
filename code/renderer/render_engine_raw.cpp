@@ -584,6 +584,7 @@ void RenderEngineRaw::_drawSimpleText(RenderEngineRawFont* pFont, const char* sz
    if ( yPos + pFont->lineHeight * m_fPixelHeight >= 1.0 )
       return;
 
+   fbg_enable_alpha(m_pFBG, m_bEnableAlpha?1:0);
    m_pFBG->mix_color.r = m_uTextFontMixColor[0];
    m_pFBG->mix_color.g = m_uTextFontMixColor[1];
    m_pFBG->mix_color.b = m_uTextFontMixColor[2];
@@ -648,6 +649,7 @@ void RenderEngineRaw::_drawSimpleTextScaled(RenderEngineRawFont* pFont, const ch
    if ( yPos + pFont->lineHeight * fScale * m_fPixelHeight >= 1.0 )
       return;
 
+   fbg_enable_alpha(m_pFBG, m_bEnableAlpha?1:0);
    m_pFBG->mix_color.r = m_uTextFontMixColor[0];
    m_pFBG->mix_color.g = m_uTextFontMixColor[1];
    m_pFBG->mix_color.b = m_uTextFontMixColor[2];
@@ -676,8 +678,10 @@ void RenderEngineRaw::_drawSimpleTextScaled(RenderEngineRawFont* pFont, const ch
       int hImg = pFont->chars[(*szText)-pFont->charIdFirst].height;
       //unsigned char *img_pointer = (unsigned char *)(pFont->pImage->data + (yImg * pFont->pImage->width * m_pFBG->components + xImg * m_pFBG->components));
 
-      fbg_imageDrawAlpha(m_pFBG, (struct _fbg_img*) pFont->pImageObject, xPos * m_iRenderWidth, yPos * m_iRenderHeight, wImg*fScale, hImg*fScale, xImg, yImg, wImg, hImg);
-
+      if ( m_bEnableAlpha )
+         fbg_imageDrawAlpha(m_pFBG, (struct _fbg_img*) pFont->pImageObject, xPos * m_iRenderWidth, yPos * m_iRenderHeight, wImg*fScale, hImg*fScale, xImg, yImg, wImg, hImg);
+      else
+         fbg_imageDrawAlphaMask(m_pFBG, (struct _fbg_img*) pFont->pImageObject, xPos * m_iRenderWidth, yPos * m_iRenderHeight, wImg*fScale, hImg*fScale, xImg, yImg, wImg, hImg);
       xPos += fWidthCh;
       szText++;
    }
@@ -686,6 +690,7 @@ void RenderEngineRaw::_drawSimpleTextScaled(RenderEngineRawFont* pFont, const ch
 
 void RenderEngineRaw::drawLine(float x1, float y1, float x2, float y2)
 {
+   fbg_enable_alpha(m_pFBG, m_bEnableAlpha?1:0);
    // Clip horizontal or vertical lines
    if ( fabs(x2-x1) < 0.0001 )
    {
@@ -850,6 +855,8 @@ void RenderEngineRaw::drawRect(float xPos, float yPos, float fWidth, float fHeig
    int w = fWidth*m_iRenderWidth;
    int h = fHeight*m_iRenderHeight;
 
+   fbg_enable_alpha(m_pFBG, m_bEnableAlpha?1:0);
+
    if ( x >= m_iRenderWidth || y >= m_iRenderHeight)
       return;
 
@@ -876,7 +883,7 @@ void RenderEngineRaw::drawRect(float xPos, float yPos, float fWidth, float fHeig
 
    if ( 0 != m_ColorFill[3] )
    {
-      if ( m_bEnableRectBlending )
+      if ( m_bEnableAlpha )
          fbg_recta(m_pFBG, x,y, w,h, m_ColorFill[0], m_ColorFill[1], m_ColorFill[2], m_ColorFill[3]);
       else
          fbg_rect(m_pFBG, x,y, w,h, m_ColorFill[0], m_ColorFill[1], m_ColorFill[2], m_ColorFill[3]);
@@ -887,7 +894,6 @@ void RenderEngineRaw::drawRect(float xPos, float yPos, float fWidth, float fHeig
         (m_ColorStroke[3] != m_ColorFill[3]) )
    if ( m_ColorStroke[3] > 0 && m_fStrokeSizePx >= 0.9 )
    {
-      fbg_enable_rect_blending(m_pFBG, m_bEnableRectBlending?1:0);
       fbg_hline(m_pFBG, x,y,w , m_ColorStroke[0], m_ColorStroke[1], m_ColorStroke[2], m_ColorStroke[3]);
       fbg_hline(m_pFBG, x,y+h-1,w , m_ColorStroke[0], m_ColorStroke[1], m_ColorStroke[2], m_ColorStroke[3]);
       fbg_vline(m_pFBG, x,y,h , m_ColorStroke[0], m_ColorStroke[1], m_ColorStroke[2], m_ColorStroke[3]);
@@ -903,7 +909,6 @@ void RenderEngineRaw::drawRect(float xPos, float yPos, float fWidth, float fHeig
          if ( x+w<m_iRenderWidth && y > 0 && y+h < m_iRenderHeight )
             fbg_vline(m_pFBG, x+w,y,h , m_ColorStroke[0], m_ColorStroke[1], m_ColorStroke[2], m_ColorStroke[3]);
       }
-      fbg_enable_rect_blending(m_pFBG, 1);
    }
 }
 
@@ -913,6 +918,8 @@ void RenderEngineRaw::drawRoundRect(float xPos, float yPos, float fWidth, float 
    int y = yPos*m_iRenderHeight;
    int w = fWidth*m_iRenderWidth;
    int h = fHeight*m_iRenderHeight;
+
+   fbg_enable_alpha(m_pFBG, m_bEnableAlpha?1:0);
 
    if ( x >= m_iRenderWidth || y >= m_iRenderHeight)
       return;
@@ -941,13 +948,12 @@ void RenderEngineRaw::drawRoundRect(float xPos, float yPos, float fWidth, float 
 
    if ( 0 != m_ColorFill[3] )
    {
-      if ( m_bEnableRectBlending )
+      if ( m_bEnableAlpha )
          fbg_recta(m_pFBG, x+3,y, w-5,h, m_ColorFill[0], m_ColorFill[1], m_ColorFill[2], m_ColorFill[3]);
       else
          fbg_rect(m_pFBG, x+3,y, w-5,h, m_ColorFill[0], m_ColorFill[1], m_ColorFill[2], m_ColorFill[3]);
    }
 
-   fbg_enable_rect_blending(m_pFBG, m_bEnableRectBlending?1:0);
    fbg_vline(m_pFBG, x+2,y+1, h-2, m_ColorFill[0], m_ColorFill[1], m_ColorFill[2], m_ColorFill[3]);
    fbg_vline(m_pFBG, x+1,y+1, h-2 , m_ColorFill[0], m_ColorFill[1], m_ColorFill[2], m_ColorFill[3]);
    fbg_vline(m_pFBG, x,y+3, h-6, m_ColorFill[0], m_ColorFill[1], m_ColorFill[2], m_ColorFill[3]);
@@ -978,7 +984,6 @@ void RenderEngineRaw::drawRoundRect(float xPos, float yPos, float fWidth, float 
       fbg_vline(m_pFBG, x+w-1,y+1, 2, m_ColorStroke[0], m_ColorStroke[1], m_ColorStroke[2], m_ColorStroke[3]);
       fbg_vline(m_pFBG, x+w-1,y+h-3, 2, m_ColorStroke[0], m_ColorStroke[1], m_ColorStroke[2], m_ColorStroke[3]);
    }
-   fbg_enable_rect_blending(m_pFBG, 1);
 }
 
 void RenderEngineRaw::drawRoundRectMenu(float xPos, float yPos, float fWidth, float fHeight, float fCornerRadius)
@@ -988,6 +993,7 @@ void RenderEngineRaw::drawRoundRectMenu(float xPos, float yPos, float fWidth, fl
 
 void RenderEngineRaw::drawTriangle(float x1, float y1, float x2, float y2, float x3, float y3)
 {
+   fbg_enable_alpha(m_pFBG, m_bEnableAlpha?1:0);
    drawLine(x1,y1,x2,y2);
    drawLine(x2,y2,x3,y3);
    drawLine(x3,y3,x1,y1);
@@ -996,6 +1002,7 @@ void RenderEngineRaw::drawTriangle(float x1, float y1, float x2, float y2, float
 
 void RenderEngineRaw::fillTriangle(float x1, float y1, float x2, float y2, float x3, float y3)
 {
+   fbg_enable_alpha(m_pFBG, m_bEnableAlpha?1:0);
    int ix1 = x1 * m_iRenderWidth;
    int ix2 = x2 * m_iRenderWidth;
    int ix3 = x3 * m_iRenderWidth;
@@ -1096,6 +1103,7 @@ void RenderEngineRaw::fillTriangle(float x1, float y1, float x2, float y2, float
 
 void RenderEngineRaw::drawPolyLine(float* x, float* y, int count)
 {
+   fbg_enable_alpha(m_pFBG, m_bEnableAlpha?1:0);
    for( int i=0; i<count-1; i++ )
       drawLine(x[i], y[i], x[i+1], y[i+1]);
    drawLine(x[count-1], y[count-1], x[0], y[0]);
@@ -1103,6 +1111,7 @@ void RenderEngineRaw::drawPolyLine(float* x, float* y, int count)
 
 void RenderEngineRaw::fillPolygon(float* x, float* y, int count)
 {
+   fbg_enable_alpha(m_pFBG, m_bEnableAlpha?1:0);
    if ( count < 3 || count > 120 )
       return;
    float xIntersections[256];
@@ -1190,6 +1199,7 @@ void RenderEngineRaw::fillPolygon(float* x, float* y, int count)
 
 void RenderEngineRaw::fillCircle(float x, float y, float r)
 {
+   fbg_enable_alpha(m_pFBG, m_bEnableAlpha?1:0);
    u8 tmpColor[4];
 
    memcpy(tmpColor, m_ColorStroke, 4*sizeof(u8));
@@ -1212,6 +1222,7 @@ void RenderEngineRaw::fillCircle(float x, float y, float r)
 
 void RenderEngineRaw::drawCircle(float x, float y, float r)
 {
+   fbg_enable_alpha(m_pFBG, m_bEnableAlpha?1:0);
    float xp[180];
    float yp[180];
 
@@ -1234,6 +1245,7 @@ void RenderEngineRaw::drawCircle(float x, float y, float r)
 
 void RenderEngineRaw::drawArc(float x, float y, float r, float a1, float a2)
 {
+   fbg_enable_alpha(m_pFBG, m_bEnableAlpha?1:0);
    float xp[180];
    float yp[180];
 

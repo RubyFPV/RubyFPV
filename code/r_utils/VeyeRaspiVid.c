@@ -265,6 +265,8 @@ struct RASPIVID_STATE_S
    bool netListen;
    MMAL_BOOL_T addSPSTiming;
    int slices;
+   int iRawPriority;
+   unsigned int uAffinitiesMask;
 };
 
 
@@ -356,8 +358,10 @@ static void display_valid_parameters( char *app_name);
 #define CommandRaw          32
 #define CommandRawFormat    33
 #define CommandNetListen    34
-#define CommandSPSTimings	35
-#define CommandSlices		36
+#define CommandSPSTimings  	35
+#define CommandSlices     		36
+#define CommandRTPrio       37
+#define CommandAffinity     38
 
 static COMMAND_LIST cmdline_commands[] =
 {
@@ -399,8 +403,10 @@ static COMMAND_LIST cmdline_commands[] =
    { CommandRaw,           "-raw",        "r",  "Output filename <filename> for raw video", 1 },
    { CommandRawFormat,     "-raw-format", "rf", "Specify output format for raw video. Default is yuv", 1},
    { CommandNetListen,     "-listen",     "l", "Listen on a TCP socket", 0},
-   { CommandSPSTimings,    "-spstimings",    "stm", "Add in h.264 sps timings", 0},
+   { CommandSPSTimings,    "-spstimings", "stm", "Add in h.264 sps timings", 0},
    { CommandSlices   ,     "-slices",     "sl", "Horizontal slices per frame. Default 1 (off)", 1},
+   { CommandRTPrio   ,     "-rawpri",     "rawp", "Raw priority (0 off)", 0},
+   { CommandAffinity ,     "-affinity",   "aff", "CPU affinity (0 no affinity)", 0}
 };
 
 static int cmdline_commands_size = sizeof(cmdline_commands) / sizeof(cmdline_commands[0]);
@@ -471,6 +477,27 @@ void log_line_int(const char* szText, int iValue)
    long long iDeltaSec = (time_ms-sStartTimeStamp_ms)/1000;
    fprintf(s_fdLog, "%02d:%02d.%000d ", (int)((iDeltaSec/60)%60), (int)(iDeltaSec%60), (int)((time_ms-sStartTimeStamp_ms)%1000));
    fprintf(s_fdLog, "%s %d \n", szText, iValue);
+   fflush(s_fdLog);
+}
+
+void log_line_string(const char* szText, char* szValue)
+{
+   log_line("%s %s", szText, szValue);
+
+   if ( ! s_bLog )
+      return;
+   if ( NULL == s_fdLog )
+      return;
+   if ( (NULL == szText) || (0 == szText[0]) )
+      return;
+
+   struct timespec t;
+   clock_gettime(CLOCK_MONOTONIC, &t);
+   long long time_ms = t.tv_sec*1000LL + t.tv_nsec/1000LL/1000LL;
+
+   long long iDeltaSec = (time_ms-sStartTimeStamp_ms)/1000;
+   fprintf(s_fdLog, "%02d:%02d.%000d ", (int)((iDeltaSec/60)%60), (int)(iDeltaSec%60), (int)((time_ms-sStartTimeStamp_ms)%1000));
+   fprintf(s_fdLog, "%s %s \n", szText, szValue);
    fflush(s_fdLog);
 }
 
@@ -575,6 +602,8 @@ static void default_status(RASPIVID_STATE *state)
    state->netListen = false;
    state->addSPSTiming = MMAL_FALSE;
    state->slices = 1;
+   state->iRawPriority = 0;
+   state->uAffinitiesMask = 0;
 
 
    // Setup preview window defaults
@@ -1042,10 +1071,32 @@ static int parse_cmdline(int argc, const char **argv, RASPIVID_STATE *state)
 
          break;
       }
+
       case CommandSlices:
       {
          if ((sscanf(argv[i + 1], "%d", &state->slices) == 1) && (state->slices > 0))
             i++;
+         else
+            valid = 0;
+         break;
+      }
+
+      case CommandRTPrio:
+      {
+         if ((sscanf(argv[i + 1], "%d", &state->iRawPriority) == 1) && (state->iRawPriority >= 0))
+            i++;
+         else
+            valid = 0;
+         break;
+      }
+      case CommandAffinity:
+      {
+         int iAff = 0;
+         if ((sscanf(argv[i + 1], "%d", &iAff) == 1) && (iAff >= 0))
+         {
+            state->uAffinitiesMask = (unsigned int)iAff;
+            i++;
+         }
          else
             valid = 0;
          break;
@@ -2826,6 +2877,33 @@ static void connection_callback(MMAL_CONNECTION_T *connection)
 }
 
 
+static int parse_cmdline_small(int argc, const char **argv, RASPIVID_STATE *state)
+{
+   for (int i = 1; i < argc; i++)
+   {
+      if (!argv[i])
+         continue;
+
+      if (argv[i][0] != '-')
+         continue;
+
+      if ( strcmp(argv[i], "-rawp") == 0 )
+      {
+         sscanf(argv[i + 1], "%d", &state->iRawPriority) == 1;
+         i++;
+         continue;
+      }
+      if ( strcmp(argv[i], "-aff") == 0 )
+      {
+         int iAff = 0;
+         sscanf(argv[i + 1], "%d", &iAff);
+         state->uAffinitiesMask = (unsigned int)iAff;
+         i++;
+         continue;
+      }
+   }
+}
+
 /**
  * main
  */
@@ -2833,7 +2911,7 @@ int main(int argc, const char **argv)
 {
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
-      printf("10.4 (b270)");
+      printf("11.5 (b305)");
       return 0;
    }
 
@@ -2841,10 +2919,74 @@ int main(int argc, const char **argv)
    if ( strcmp(argv[1], "-dbg") == 0 )
       s_iDebug = 1;
 
-   openOutputPipe();
+   log_init("RubyVideoCapVeye");
+   initLogStartTime();
 
    // Our main data storage vessel..
    RASPIVID_STATE state;
+   state.iRawPriority = -1;
+   state.uAffinitiesMask = 0;
+   parse_cmdline_small(argc, argv, &state);
+
+   log_line_int("Raw priority:", state.iRawPriority);
+   log_line_int("Affinity mask:", state.uAffinitiesMask);
+
+    if ( (state.iRawPriority > 1) && (state.iRawPriority < 100) )
+   {
+      pthread_t this_thread = pthread_self();
+      struct sched_param params;
+      int policy = 0;
+      int ret = 0;
+      ret = pthread_getschedparam(this_thread, &policy, &params);
+      if ( ret != 0 )
+      {
+         log_line_int("RaspiCaptureVeye: Failed to get schedule param, error:", errno);
+         log_line_string("RaspiCaptureVeye: Failed to get schedule param, error:", strerror(errno));
+      }
+      else
+      {
+         log_line_int("RaspiCaptureVeye: Initial thread policy:", policy);
+         log_line_int("RaspiCaptureVeye: Initial thread priority:", params.sched_priority);
+      }
+      params.sched_priority = 100-state.iRawPriority;
+      ret = pthread_setschedparam(this_thread, SCHED_FIFO, &params);
+      if ( ret != 0 )
+      {
+         log_line_int("RaspiCaptureVeye: Failed to set thread schedule class, error:", errno);
+         log_line_string("RaspiCaptureVeye: Failed to set thread schedule class, error:", strerror(errno));
+      }
+      ret = pthread_getschedparam(this_thread, &policy, &params);
+      if ( ret != 0 )
+         log_line_int("RaspiCaptureVeye: Failed to get schedule param, error:", errno);
+      else
+      {
+         log_line_int("RaspiCaptureVeye: New thread policy:", policy);
+         log_line_int("RaspiCaptureVeye: New thread priority:", params.sched_priority);
+      }
+   }
+
+   if ( state.uAffinitiesMask != 0 )
+   {
+      pid_t pid = getpid();
+      cpu_set_t cpuSet;
+      CPU_ZERO(&cpuSet);
+      int iCore = -1;
+      for( int i=0; i<8; i++ )
+      {
+         if ( state.uAffinitiesMask & (0x01<<i) )
+         {
+            CPU_SET(i, &cpuSet);
+            iCore = i;
+         }
+      }      
+      if ( 0 != sched_setaffinity(pid, sizeof(cpuSet), &cpuSet) )
+         log_line_int("RaspiCaptureVeye: Failed to set affinities, error:", errno);
+      else
+         log_line_int("RaspiCaptureVeye: Did set cpu affinity to core: ", iCore);
+   }
+
+   openOutputPipe();
+
    int exit_code = EX_OK;
 
    MMAL_STATUS_T status = MMAL_SUCCESS;
@@ -2872,10 +3014,8 @@ int main(int argc, const char **argv)
    //signal(SIGUSR1, SIG_IGN);
 
    default_status(&state);
-
-   
-   log_init("RubyVideoCapVeye");
-   initLogStartTime();
+   state.iRawPriority = -1;
+   state.uAffinitiesMask = 0;
 
    s_bLog = 1;
  

@@ -32,6 +32,7 @@
 
 
 #include "../base/base.h"
+#include "../base/models_list.h"
 #include "../radio/radiolink.h"
 #include "shared_vars.h"
 #include "ruby_rt_station.h"
@@ -51,6 +52,7 @@ void resetVehicleRuntimeInfo(int iIndex)
       send_adaptive_video_paused_to_central(g_State.vehiclesRuntimeInfo[iIndex].uVehicleId, true);
 
    g_State.vehiclesRuntimeInfo[iIndex].uVehicleId = 0;
+   g_State.vehiclesRuntimeInfo[iIndex].bReceivedAnyData = false;
    resetPairingStateForVehicleRuntimeInfo(iIndex);
 
    for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
@@ -80,17 +82,6 @@ void resetVehicleRuntimeInfo(int iIndex)
    g_State.vehiclesRuntimeInfo[iIndex].uMaxCommandRoundtripMiliseconds = MAX_U32;
    g_State.vehiclesRuntimeInfo[iIndex].uMinCommandRoundtripMiliseconds = MAX_U32;
 
-   g_State.vehiclesRuntimeInfo[iIndex].uTimeLastDequeuedFrameData = 0;
-   g_State.vehiclesRuntimeInfo[iIndex].uTimeLastFrameStart = 0;
-   g_State.vehiclesRuntimeInfo[iIndex].uCurrentFrameId = 0;
-   g_State.vehiclesRuntimeInfo[iIndex].iLastVideoDatarateBPS = 0;
-   g_State.vehiclesRuntimeInfo[iIndex].bIsReceivingFrameData = false;
-   g_State.vehiclesRuntimeInfo[iIndex].bIsFrameEndDetected = false;
-   g_State.vehiclesRuntimeInfo[iIndex].bIsFrameEnded = false;
-   g_State.vehiclesRuntimeInfo[iIndex].uTimeStartWindowTxData = 0;
-   g_State.vehiclesRuntimeInfo[iIndex].uTimeEndWindowTxData = 0;
-   g_State.vehiclesRuntimeInfo[iIndex].uTimeLastTxData = 0;
-   
    g_State.vehiclesRuntimeInfo[iIndex].bIsDoingRetransmissions = false;
    g_State.vehiclesRuntimeInfo[iIndex].bIsAdaptiveVideoActive = false;
    g_State.vehiclesRuntimeInfo[iIndex].uAdaptiveVideoActivationTime = g_TimeNow;
@@ -99,6 +90,7 @@ void resetVehicleRuntimeInfo(int iIndex)
    g_State.vehiclesRuntimeInfo[iIndex].uAdaptiveVideoRequestId = 0;
    g_State.vehiclesRuntimeInfo[iIndex].uAdaptiveVideoAckId = 0;
    g_State.vehiclesRuntimeInfo[iIndex].uLastTimeSentAdaptiveVideoRequest = 0;
+   g_State.vehiclesRuntimeInfo[iIndex].uTimeStartCountingMetricAreOkToSwithHigher = 0;
    g_State.vehiclesRuntimeInfo[iIndex].uLastTimeRecvAdaptiveVideoAck = 0;
 
    g_State.vehiclesRuntimeInfo[iIndex].uCurrentAdaptiveVideoTargetVideoBitrateBPS = 0;
@@ -112,6 +104,7 @@ void resetVehicleRuntimeInfo(int iIndex)
    g_State.vehiclesRuntimeInfo[iIndex].uPendingDRBoostToSet = 0;
    g_State.vehiclesRuntimeInfo[iIndex].iPendingKeyFrameMsToSet = 0;
    g_State.vehiclesRuntimeInfo[iIndex].iAdaptiveLevelNow = 0;
+   g_State.vehiclesRuntimeInfo[iIndex].bIsOnLowestAdaptiveLevel = false;
 }
 
 
@@ -187,7 +180,7 @@ type_global_state_vehicle_runtime_info* getVehicleRuntimeInfo(u32 uVehicleId)
 
 void logCurrentVehiclesRuntimeInfo()
 {
-   char szBuff[256];
+   char szBuff[1024];
    int iCount = 0;
    szBuff[0] = 0;
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
@@ -197,8 +190,20 @@ void logCurrentVehiclesRuntimeInfo()
 
       iCount++;
       char szTmp[32];
-      sprintf(szTmp, " %u", g_State.vehiclesRuntimeInfo[i].uVehicleId);
+      sprintf(szTmp, "%u", g_State.vehiclesRuntimeInfo[i].uVehicleId);
+      if ( 0 != szBuff[0] )
+         strcat(szBuff, ", ");
       strcat(szBuff, szTmp);
+      Model* pModel = findModelWithId(g_State.vehiclesRuntimeInfo[i].uVehicleId, 351);
+
+      if ( NULL == pModel )
+         strcat(szBuff, " (name: N/A)");
+      else
+      {
+         strcat(szBuff, " (");
+         strcat(szBuff, pModel->getLongName());
+         strcat(szBuff, ")");
+     }
    }
    log_line("Currently known runtime vehicle IDs (%d):%s", iCount, szBuff);
 }

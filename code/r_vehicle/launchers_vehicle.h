@@ -18,5 +18,3 @@ void vehicle_stop_tx_router();
 bool vehicle_is_audio_capture_started();
 void vehicle_launch_audio_capture(Model* pModel);
 void vehicle_stop_audio_capture(Model* pModel);
-
-void vehicle_check_update_processes_affinities(bool bUseThread, bool bVeYe);

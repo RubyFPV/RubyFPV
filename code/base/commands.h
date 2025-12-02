@@ -53,13 +53,14 @@
 #define COMMAND_ID_GET_USB_INFO 13  // no params
 #define COMMAND_ID_GET_USB_INFO2 14  // no params
 
-#define COMMAND_ID_SET_NICE_VALUE_TELEMETRY 15
-// byte it's a nice+20 for: telemetry
+#define COMMAND_ID_GET_CPU_PROCS_INFO 15
 
-#define COMMAND_ID_SET_NICE_VALUES 16
-// each byte it's a nice+20 for: video, other, router, rc
+//#define COMMAND_ID_SET_PROC_PRIORITY_VALUES 16 // deprecated in 11.5
+// param u32: uProcessesFlags
+// extra u8 values (7): iThreadPriorityRouter, iThreadPriorityRadioRx, iThreadPriorityRadioTx, iThreadPriorityVideoCapture, iThreadPriorityRC, iThreadPriorityTelemetry, iThreadPriorityOthers
+// extra u8: restart now
 
-#define COMMAND_ID_SET_IONICE_VALUES 17
+//#define COMMAND_ID_SET_IONICE_VALUES 17 // deprecated in 11.5
 #define COMMAND_ID_SET_ENABLE_DHCP 18
 
 #define COMMAND_ID_SET_RADIO_LINK_DATARATES 19
@@ -148,7 +149,8 @@ typedef struct
 // an type_alarms_parameters structure as input
 
 #define COMMAND_ID_SET_THREADS_PRIORITIES 51
-// param: byte 0 - router thread priority, byte 1 - radio rx priority, byte 2 - radio tx priority
+// param: 0/1 to restart vehicle processes
+// params: model's type_processes_priorities structure
 
 #define COMMAND_ID_SET_ENCRYPTION_PARAMS 54 // (added ruby 5.1)
 // byte 0: flags, byte 1: pass key lenght; byte 2..N: pass key
@@ -220,7 +222,6 @@ typedef struct
    int overvoltage; // 0 or negative - disabled, negative - default value
    int freq_arm; // 0 - disabled; in mhz
    int freq_gpu; // 0 - disabled; in mhz; (0/1 for OIPC boost)
-   u32 uProcessesFlags;
    
 } __attribute__((packed)) command_packet_overclocking_params;
 

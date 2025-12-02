@@ -54,7 +54,7 @@ typedef struct
 
 
 int s_iRadioTxInitialized = 0;
-int s_iRadioTxSingalStop = 0;
+int s_iRadioTxSignalStop = 0;
 int s_iRadioTxMarkedForQuit = 0;
 int s_iRadioTxDevMode = 0;
 int s_iRadioTxIPCQueue = -1;
@@ -63,8 +63,8 @@ int s_iRadioTxSerialPacketSize[MAX_RADIO_INTERFACES];
 int s_iRadioTxSerialPacketSizeInitialized = 0;
 int s_iRadioTxInterfacesPaused[MAX_RADIO_INTERFACES];
 
-int s_iCurrentTxThreadPriority = -1;
-int s_iPendingTxThreadPriority = -1;
+int s_iCurrentTxThreadRawPriority = -1;
+int s_iPendingTxThreadRawPriority = -1;
 
 pthread_t s_pThreadRadioTx;
 pthread_mutex_t s_pThreadRadioTxMutex;
@@ -177,12 +177,13 @@ int _radio_tx_send_msg(int iInterfaceIndex, u8* pData, int iLength)
 static void * _thread_radio_tx(void *argument)
 {
    log_line("[RadioTxThread] Started.");
+   hw_log_current_thread_attributes("radio tx");
 
-   if ( s_iPendingTxThreadPriority > 0 )
-   if ( s_iPendingTxThreadPriority != s_iCurrentTxThreadPriority )
+   if ( s_iPendingTxThreadRawPriority > 0 )
+   if ( s_iPendingTxThreadRawPriority != s_iCurrentTxThreadRawPriority )
    {
-      hw_increase_current_thread_priority("[RadioTxThread]", s_iPendingTxThreadPriority);
-      s_iCurrentTxThreadPriority = s_iPendingTxThreadPriority;
+      hw_set_current_thread_raw_priority("[RadioTxThread]", s_iPendingTxThreadRawPriority);
+      s_iCurrentTxThreadRawPriority = s_iPendingTxThreadRawPriority;
    }
 
    log_line("[RadioTxThread] SiK packet size is: %d bytes (of which %d bytes are the header)", s_iRadioTxSiKPacketSize, (int)sizeof(t_packet_header_short));
@@ -204,15 +205,15 @@ static void * _thread_radio_tx(void *argument)
       if ( s_iRadioTxIPCQueue < 0 )
          continue;
 
-      if ( s_iPendingTxThreadPriority != s_iCurrentTxThreadPriority )
+      if ( s_iPendingTxThreadRawPriority != s_iCurrentTxThreadRawPriority )
       {
-         log_line("[RadioTxThread] New thread priority must be set, from %d to %d.", s_iCurrentTxThreadPriority, s_iPendingTxThreadPriority);
-         s_iCurrentTxThreadPriority = s_iPendingTxThreadPriority;
+         log_line("[RadioTxThread] New thread raw priority must be set, from %d to %d.", s_iCurrentTxThreadRawPriority, s_iPendingTxThreadRawPriority);
+         s_iCurrentTxThreadRawPriority = s_iPendingTxThreadRawPriority;
 
-         if ( s_iPendingTxThreadPriority > 0 )
-            hw_increase_current_thread_priority("[RadioTxThread]", s_iPendingTxThreadPriority);
+         if ( s_iPendingTxThreadRawPriority > 1 )
+            hw_set_current_thread_raw_priority("[RadioTxThread]", s_iPendingTxThreadRawPriority);
          else
-            hw_increase_current_thread_priority("[RadioTxThread]", 0);
+            hw_set_current_thread_raw_priority("[RadioTxThread]", 0);
       }
 
       type_ipc_message_tx_packet_buffer ipcMessage;
@@ -256,7 +257,7 @@ int radio_tx_start_tx_thread()
    if ( s_iRadioTxInitialized )
       return 1;
 
-   s_iRadioTxSingalStop = 0;
+   s_iRadioTxSignalStop = 0;
 
    for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
       s_iRadioTxInterfacesPaused[i] = 0;
@@ -276,7 +277,7 @@ int radio_tx_start_tx_thread()
       return 0;
    }
 
-   if ( 0 != pthread_create(&s_pThreadRadioTx, NULL, &_thread_radio_tx, (void*)&s_iRadioTxSingalStop) )
+   if ( 0 != pthread_create(&s_pThreadRadioTx, NULL, &_thread_radio_tx, (void*)&s_iRadioTxSignalStop) )
    {
       log_error_and_alarm("[RadioTx] Failed to create thread for radio rx.");
       return 0;
@@ -294,7 +295,7 @@ void radio_tx_stop_tx_thread()
       return;
 
    log_line("[RadioTx] Signaled radio Tx thread to stop.");
-   s_iRadioTxSingalStop = 1;
+   s_iRadioTxSignalStop = 1;
    s_iRadioTxInitialized = 0;
 
    pthread_mutex_lock(&s_pThreadRadioTxMutex);
@@ -313,9 +314,9 @@ void radio_tx_mark_quit()
    s_iRadioTxMarkedForQuit = 1;
 }
 
-void radio_tx_set_custom_thread_priority(int iPriority)
+void radio_tx_set_custom_thread_raw_priority(int iPriority)
 {
-   s_iPendingTxThreadPriority = iPriority;
+   s_iPendingTxThreadRawPriority = iPriority;
 }
 
 void radio_tx_set_dev_mode(int iDevMode)

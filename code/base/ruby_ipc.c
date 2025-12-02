@@ -11,9 +11,9 @@
         * Redistributions in binary form (partially or complete) must reproduce
         the above copyright notice, this list of conditions and the following disclaimer
         in the documentation and/or other materials provided with the distribution.
-         * Copyright info and developer info must be preserved as is in the user
+        * Copyright info and developer info must be preserved as is in the user
         interface, additions could be made to that info.
-       * Neither the name of the organization nor the
+        * Neither the name of the organization nor the
         names of its contributors may be used to endorse or promote products
         derived from this software without specific prior written permission.
         * Military use is not permitted.
@@ -573,6 +573,7 @@ int ruby_ipc_channel_send_message(int iChannelUniqueId, u8* pMessage, int iLengt
    u32 uCRC = base_compute_crc32((u8*)&(msg.data[4]), iLength+3);
    memcpy((u8*)&(msg.data[0]), (u8*)&uCRC, sizeof(u32));
 
+   int iRetryWriteOnly = 0;
    int iRetryCounter = 2;
    int iRetriedToRecreate = 0;
 
@@ -580,6 +581,8 @@ int ruby_ipc_channel_send_message(int iChannelUniqueId, u8* pMessage, int iLengt
    {
       if ( 0 == msgsnd(iChannelFd, &msg, iLength + 7, IPC_NOWAIT) )
       {
+         if ( iRetryWriteOnly )
+            log_line("[IPC] Succeded to send message after write retry.");
          if ( iRetriedToRecreate )
             log_line("[IPC] Succeded to send message after recreation of the channel.");
          //log_line("[IPC] Sent message ok to %s, id: %d, %d bytes, CRC: %u", _ruby_ipc_get_channel_name(s_iRubyIPCChannelsType[iFoundIndex]), msg.data[4], iLength, uCRC);
@@ -590,8 +593,8 @@ int ruby_ipc_channel_send_message(int iChannelUniqueId, u8* pMessage, int iLengt
       }
    
       res = 0;
-      int iRetryWriteOnly = 0;
 
+      iRetryWriteOnly = 0;
       if ( errno == EAGAIN )
       {
          log_softerror_and_alarm("[IPC] Failed to write to IPC %s, error code: EAGAIN", _ruby_ipc_get_channel_name(s_iRubyIPCChannelsType[iFoundIndex]) );

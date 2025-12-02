@@ -880,9 +880,14 @@ void Menu::Render()
    float yTop = RenderFrameAndTitle();
    float yPos = yTop;
 
+   bool bAlpha = g_pRenderEngine->isAlphaEnabled();
+   g_pRenderEngine->disableAlpha();
+
    s_bMenuObjectsRenderEndItems = false;
    for( int i=0; i<m_ItemsCount; i++ )
       yPos += RenderItem(i,yPos);
+
+   g_pRenderEngine->setAlphaEnabled(bAlpha);
 
    RenderEnd(yTop);
    g_pRenderEngine->setColors(get_Color_MenuText());
@@ -890,6 +895,9 @@ void Menu::Render()
 
 void Menu::RenderEnd(float yPos)
 {
+   bool bAlpha = g_pRenderEngine->isAlphaEnabled();
+   g_pRenderEngine->disableAlpha();
+
    for( int i=0; i<m_ItemsCount; i++ )
    {
       if ( m_pMenuItems[i]->isEditing() )
@@ -899,6 +907,7 @@ void Menu::RenderEnd(float yPos)
          s_bMenuObjectsRenderEndItems = false;
       }
    }
+   g_pRenderEngine->setAlphaEnabled(bAlpha);
 }
 
 float Menu::RenderFrameAndTitle()
@@ -1299,7 +1308,6 @@ float Menu::_getMenuItemTotalRenderHeight(int iMenuItemIndex)
       return 0.0;
    if ( (NULL == m_pMenuItems[iMenuItemIndex]) || m_pMenuItems[iMenuItemIndex]->isHidden() )
       return 0.0;
-
 
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
    float fItemTotalHeight = 0.0;
@@ -1985,6 +1993,17 @@ void Menu::addMessage2(int iId, const char* szMessage, const char* szLine2)
    add_menu_to_stack(pm);
 }
 
+void Menu::addMessageWithTitleAndIcon(int iId, const char* szTitle, const char* szMessage, u32 uIconId)
+{
+   Menu* pm = new MenuConfirmation(szTitle, szMessage, MENU_ID_SIMPLE_MESSAGE + iId*1000, true);
+   pm->setId(MENU_ID_SIMPLE_MESSAGE + iId*1000);
+   pm->m_xPos = 0.32; pm->m_yPos = 0.4;
+   pm->m_Width = 0.36;
+   pm->m_bDisableStacking = true;
+   pm->setIconId(uIconId);
+   add_menu_to_stack(pm); 
+}
+
 bool Menu::checkCancelUpload()
 {
    int iCount = 5;
@@ -2022,6 +2041,7 @@ static void * _thread_generate_upload(void *argument)
    if ( NULL == argument )
       return NULL;
 
+   hw_log_current_thread_attributes("generate upload arch");
    log_line("ThreadGenerateUpload started, counter %d, archive file to generate: %s", s_iThreadGenerateUploadCounter, szFileNameArchive);
 
    // Check and create update info file if missing
@@ -2047,7 +2067,7 @@ static void * _thread_generate_upload(void *argument)
          FILE* fd = fopen(szFile, "w");
          if ( NULL != fd )
          {
-            fprintf(fd, "%d.%d\n", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10);
+            fprintf(fd, "%d.%d\n", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR);
             fclose(fd);
          }
       }
@@ -2093,7 +2113,8 @@ static void * _thread_generate_upload(void *argument)
 
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %s%s %s 2>/dev/null", FOLDER_CONFIG, FILE_INFO_LAST_UPDATE, szPathTempUpload);
    hw_execute_bash_command(szComm, NULL);
-         
+
+   // This is added for updating vehicles older than 11.6, they look for ruby_update_vehicle to execute on update
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %sruby_update %sruby_update_vehicle", szFolderLocalUpdateBinaries, szFolderLocalUpdateBinaries);
    hw_execute_bash_command(szComm, NULL);
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s/ruby_update_vehicle", szFolderLocalUpdateBinaries);
@@ -2206,6 +2227,7 @@ bool Menu::_generate_upload_archive(char* szArchiveName)
          render_commands_set_progress_percent(0, true);
          g_pRenderEngine->startFrame();
          //osd_render();
+         render_background_and_paddings(false);
          popups_render();
          //menu_render();
          render_commands();
@@ -2241,13 +2263,14 @@ void Menu::updateOTAStatus(u8 uOTAStatus, u32 uOTACounter)
 
 bool Menu::uploadSoftware()
 {
-   log_line("Menu: Start upload procedure for vehicle software version %d.%d (mode: %s)...", ((g_pCurrentModel->sw_version)>>8) & 0xFF, ((g_pCurrentModel->sw_version) & 0xFF), g_pCurrentModel->is_spectator?"spectator mode":"control mode");
+   log_line("Menu: Start upload procedure for vehicle software version %d.%d (mode: %s)...", get_sw_version_major(g_pCurrentModel), get_sw_version_minor(g_pCurrentModel), g_pCurrentModel->is_spectator?"spectator mode":"control mode");
 
    ruby_pause_watchdog("uploading software to vehicle");
    render_commands_init();
    g_bUpdateInProgress = true;
    render_commands_set_progress_percent(0, true);
    g_pRenderEngine->startFrame();
+   render_background_and_paddings(false);
    popups_render();
    render_commands();
    popups_render_topmost();
@@ -2294,84 +2317,79 @@ bool Menu::uploadSoftware()
    char szProcessingError[256];
    szProcessingError[0] = 0;
 
-   if ( get_sw_version_build(g_pCurrentModel) < 242 )
-   {
-      // version 9.7 or older
-   }
-   else
-   {
-      // version 9.8 or newer
-      render_commands_set_progress_percent(-1, true);
-      render_commands_set_custom_status("Processing update on vehicle");
+   render_commands_set_progress_percent(-1, true);
+   render_commands_set_custom_status("Processing update on vehicle");
 
-      u32 uTimeLastRender = 0;
-      u32 uTimeStartProcessing = g_TimeNow;
+   u32 uTimeLastRender = 0;
+   u32 uTimeStartProcessing = g_TimeNow;
 
-      while ( true )
+   while ( true )
+   {
+      hardware_sleep_ms(100);
+      g_TimeNow = get_current_timestamp_ms();
+      g_TimeNowMicros = get_current_timestamp_micros();
+      ruby_signal_alive();
+      if ( checkCancelUpload() )
       {
-         hardware_sleep_ms(100);
-         g_TimeNow = get_current_timestamp_ms();
-         g_TimeNowMicros = get_current_timestamp_micros();
-         ruby_signal_alive();
-         if ( checkCancelUpload() )
-         {
-            log_line("Update was canceled by user.");
-            bProcessingFailed = true;
-            break;
-         }
-
-         try_read_messages_from_router(50);
-         
-         bool bTimedOut = false;
-         if ( g_TimeNow > uTimeStartProcessing + 1000*300 )
-            bTimedOut = true;
-         if ( 0 != s_uTimeLastOTACounterChanged )
-         if ( g_TimeNow > s_uTimeLastOTACounterChanged + 1000*20 )
-            bTimedOut = true;
-
-         if ( bTimedOut )
-         {
-            log_line("Update has timedout.");
-            bProcessingFailed = true;
-            break;          
-         }
-
-         if ( s_uOTAStatus == OTA_UPDATE_STATUS_START_PROCESSING )
-            render_commands_set_custom_status("Start processing the update on the vehicle");
-         if ( s_uOTAStatus == OTA_UPDATE_STATUS_UNPACK )
-            render_commands_set_custom_status("Unpacking update");
-         if ( s_uOTAStatus == OTA_UPDATE_STATUS_UPDATING )
-            render_commands_set_custom_status("Updating vehicle");
-         if ( s_uOTAStatus == OTA_UPDATE_STATUS_POST_UPDATING )
-            render_commands_set_custom_status("Post update");
-         if ( s_uOTAStatus == OTA_UPDATE_STATUS_COMPLETED )
-            render_commands_set_custom_status("Finishing up");
-         if ( s_uOTAStatus == OTA_UPDATE_STATUS_FAILED )
-         {
-            strcpy(szProcessingError, "Vehicle failed to process the update. Disk error.");
-            render_commands_set_custom_status(szProcessingError);
-            bProcessingFailed = true;
-            break;
-         }
-         if ( s_uOTAStatus == OTA_UPDATE_STATUS_FAILED_DISK_SPACE )
-         {
-            strcpy(szProcessingError, "Vehicle failed to process the update. Not enough space on device.");
-            render_commands_set_custom_status(szProcessingError);
-            break;
-         }
-         if ( g_TimeNow > (uTimeLastRender+100) )
-         {
-            uTimeLastRender = g_TimeNow;
-            g_pRenderEngine->startFrame();
-            popups_render();
-            render_commands();
-            popups_render_topmost();
-            g_pRenderEngine->endFrame();
-         }
-
-         if ( s_uOTAStatus == OTA_UPDATE_STATUS_COMPLETED )
-            break;
+         log_line("Update was canceled by user.");
+         bProcessingFailed = true;
+         break;
       }
+
+      try_read_messages_from_router(50);
+      
+      bool bTimedOut = false;
+      if ( g_TimeNow > uTimeStartProcessing + 1000*300 )
+         bTimedOut = true;
+      if ( 0 != s_uTimeLastOTACounterChanged )
+      if ( g_TimeNow > s_uTimeLastOTACounterChanged + 1000*20 )
+         bTimedOut = true;
+
+      if ( bTimedOut )
+      {
+         log_line("Update has timedout.");
+         bProcessingFailed = true;
+         break;          
+      }
+
+      if ( s_uOTAStatus == OTA_UPDATE_STATUS_START_PROCESSING )
+         render_commands_set_custom_status("Start processing the update on the vehicle");
+      if ( s_uOTAStatus == OTA_UPDATE_STATUS_UNPACK )
+         render_commands_set_custom_status("Unpacking update");
+      if ( s_uOTAStatus == OTA_UPDATE_STATUS_UPDATING )
+         render_commands_set_custom_status("Updating vehicle");
+      if ( s_uOTAStatus == OTA_UPDATE_STATUS_POST_UPDATING )
+         render_commands_set_custom_status("Post update");
+      if ( s_uOTAStatus == OTA_UPDATE_STATUS_COMPLETED )
+         render_commands_set_custom_status("Finished. Cleaning up");
+      if ( s_uOTAStatus == OTA_UPDATE_STATUS_REBOOT )
+         render_commands_set_custom_status("Finished. Vehicle rebooting");
+      if ( s_uOTAStatus == OTA_UPDATE_STATUS_FAILED )
+      {
+         strcpy(szProcessingError, "Vehicle failed to process the update. Disk error.");
+         render_commands_set_custom_status(szProcessingError);
+         bProcessingFailed = true;
+         break;
+      }
+      if ( s_uOTAStatus == OTA_UPDATE_STATUS_FAILED_DISK_SPACE )
+      {
+         strcpy(szProcessingError, "Vehicle failed to process the update. Not enough space on device.");
+         render_commands_set_custom_status(szProcessingError);
+         break;
+      }
+      if ( g_TimeNow > (uTimeLastRender+100) )
+      {
+         uTimeLastRender = g_TimeNow;
+         g_pRenderEngine->startFrame();
+         render_background_and_paddings(false);
+         popups_render();
+         render_commands();
+         popups_render_topmost();
+         g_pRenderEngine->endFrame();
+      }
+
+      if ( s_uOTAStatus == OTA_UPDATE_STATUS_COMPLETED )
+         break;
    }
 
    log_line("Finished software upload part, status: %d", s_uOTAStatus);
@@ -2407,6 +2425,7 @@ bool Menu::uploadSoftware()
          {
             uTimeLastRender = g_TimeNow;
             g_pRenderEngine->startFrame();
+            render_background_and_paddings(false);
             popups_render();
             render_commands();
             popups_render_topmost();
@@ -2418,7 +2437,7 @@ bool Menu::uploadSoftware()
       while ( link_is_vehicle_online_now(g_pCurrentModel->uVehicleId) )
       {
          g_TimeNow = get_current_timestamp_ms();
-         if ( g_TimeNow > uTimeStartWait + 10000 )
+         if ( g_TimeNow > uTimeStartWait + 20000 )
          {
             log_softerror_and_alarm("Failed to wait for vehicle to go offline after %u ms. Proceed with finishing upload.", g_TimeNow - uTimeStartWait);
             break;
@@ -2429,6 +2448,7 @@ bool Menu::uploadSoftware()
          {
             uTimeLastRender = g_TimeNow;
             g_pRenderEngine->startFrame();
+            render_background_and_paddings(false);
             popups_render();
             render_commands();
             popups_render_topmost();
@@ -2437,9 +2457,7 @@ bool Menu::uploadSoftware()
       }
       log_line("Finishing upload: Mark vehicle to sync settings.");
       g_pCurrentModel->b_mustSyncFromVehicle = true;
-      g_pCurrentModel->sw_version = (SYSTEM_SW_VERSION_MAJOR*256+SYSTEM_SW_VERSION_MINOR) | (SYSTEM_SW_BUILD_NUMBER << 16);
       g_bSyncModelSettingsOnLinkRecover = true;
-      saveControllerModel(g_pCurrentModel);
    }
    log_line("Upload software: Finished waiting for vehicle to go offline.");
 
@@ -2968,6 +2986,7 @@ bool Menu::_uploadVehicleUpdate(const char* szArchiveToUpload)
          render_commands_set_progress_percent(percent, true);
          g_pRenderEngine->startFrame();
          //osd_render();
+         render_background_and_paddings(false);
          popups_render();
          //menu_render();
          render_commands();

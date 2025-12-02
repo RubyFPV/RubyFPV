@@ -42,12 +42,9 @@
 #include "../base/hardware_camera.h"
 #include "../base/models_list.h"
 #include "../base/hardware_procs.h"
-#include "../base/radio_utils.h"
 #include "../base/config.h"
-#include "../base/vehicle_settings.h"
 #include "../base/ctrl_settings.h"
 #include "../base/ctrl_interfaces.h"
-#include "../base/utils.h"
 #include "../radio/radioflags.h"
 
 
@@ -97,6 +94,140 @@ void update_openipc_cpu(Model* pModel)
       pModel->processesPriorities.iFreqARM = DEFAULT_FREQ_OPENIPC_SIGMASTAR;
 }
 
+
+void do_update_to_116()
+{
+   log_line("Doing update to 11.6");
+ 
+   if ( ! s_isVehicle )
+   {
+      load_ControllerSettings();
+      reset_ControllerPriorities();
+      ControllerSettings* pCS = get_ControllerSettings();
+      pCS->nPingClockSyncFrequency = DEFAULT_PING_FREQUENCY;
+      pCS->iStreamerOutputMode = 1;
+      pCS->iWaitFullFrameForOutput = 0;
+      save_ControllerSettings();
+      //load_Preferences();
+      //Preferences* pP = get_Preferences();
+      //save_Preferences();
+   }
+
+   Model* pModel = getCurrentModel();
+   if ( NULL == pModel )
+      return;
+
+   for( int i=0; i<pModel->radioLinksParams.links_count; i++ )
+   {
+      int iInterface = -1;
+      for( int k=0; k<pModel->radioInterfacesParams.interfaces_count; k++ )
+      {
+         if ( pModel->radioInterfacesParams.interface_link_id[k] == i )
+         {
+            iInterface = k;
+            break;
+         }
+      }
+      radio_hw_info_t* pRadioHWInfo = NULL;
+      if ( iInterface != -1 )
+         pRadioHWInfo = hardware_get_radio_info(iInterface);
+
+      if ( (pRadioHWInfo == NULL) || hardware_radio_is_wifi_radio(pRadioHWInfo) )
+         pModel->resetRadioLinkDataRatesAndFlags(i);
+   }
+
+   pModel->radioLinksParams.uGlobalRadioLinksFlags &= ~(MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS);
+   pModel->radioRuntimeCapabilities.uFlagsRuntimeCapab = 0;
+
+   pModel->resetProcessesParams();
+   pModel->resetAdaptiveVideoParams(-1);
+
+   for( int i=0; i<MODEL_CAMERA_PROFILES; i++ )
+      pModel->validate_fps_and_exposure_settings(&(pModel->camera_params[0].profiles[i]), true);
+
+   // Must be done after radio links updates so max video bitrate for each video profile is computed correctly
+   pModel->resetVideoLinkProfiles();
+
+   pModel->telemetry_params.flags = TELEMETRY_FLAGS_REQUEST_DATA_STREAMS | TELEMETRY_FLAGS_SPECTATOR_ENABLE;
+   pModel->telemetry_params.flags |= TELEMETRY_FLAGS_ALLOW_ANY_VEHICLE_SYSID;
+
+   log_line("Updated model VID %u (%s) to v11.6", pModel->uVehicleId, pModel->getLongName());
+}
+
+void do_update_to_115()
+{
+   log_line("Doing update to 11.5");
+ 
+   if ( ! s_isVehicle )
+   {
+      load_ControllerSettings();
+      reset_ControllerPriorities();
+      ControllerSettings* pCS = get_ControllerSettings();
+      pCS->nPingClockSyncFrequency = DEFAULT_PING_FREQUENCY;
+      pCS->iStreamerOutputMode = 1;
+      pCS->iWaitFullFrameForOutput = 0;
+      save_ControllerSettings();
+      //load_Preferences();
+      //Preferences* pP = get_Preferences();
+      //save_Preferences();
+   }
+
+   Model* pModel = getCurrentModel();
+   if ( NULL == pModel )
+      return;
+
+   pModel->resetProcessesParams();
+   pModel->uDeveloperFlags &= ~DEVELOPER_FLAGS_BIT_ENABLE_VIDEO_STREAM_TIMINGS;
+
+   if ( hardware_board_is_openipc(hardware_getBoardType()) )
+   if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
+   {
+      for( int k=0; k<MODEL_MAX_CAMERAS; k++ )
+      for( int i=0; i<MODEL_CAMERA_PROFILES; i++ )
+      {
+         if ( pModel->camera_params[k].profiles[i].iShutterSpeed > DEFAULT_OIPC_SHUTTERSPEED )
+            pModel->camera_params[k].profiles[i].iShutterSpeed = DEFAULT_OIPC_SHUTTERSPEED; //milisec
+      }
+   }
+
+   if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
+   if ( pModel->video_params.iVideoHeight < 1200 )
+   if ( pModel->video_params.iVideoFPS < DEFAULT_VIDEO_FPS_OIPC_SIGMASTAR )
+      pModel->video_params.iVideoFPS = DEFAULT_VIDEO_FPS_OIPC_SIGMASTAR;
+
+   pModel->video_params.iH264Slices = DEFAULT_VIDEO_H264_SLICES;
+   if ( hardware_board_is_openipc(hardware_getBoardType()) )
+      pModel->video_params.iH264Slices = DEFAULT_VIDEO_H264_SLICES_OIPC;
+
+   pModel->video_params.lowestAllowedAdaptiveVideoBitrate = DEFAULT_LOWEST_ALLOWED_ADAPTIVE_VIDEO_BITRATE;
+
+   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
+   {
+      pModel->video_link_profiles[i].uProfileFlags &= ~VIDEO_PROFILE_FLAG_RETRANSMISSIONS_AGGRESIVE;
+      pModel->video_link_profiles[i].uProfileFlags |= VIDEO_PROFILE_FLAG_USE_LOWER_DR_FOR_EC_PACKETS;
+      pModel->video_link_profiles[i].uProfileFlags &= ~VIDEO_PROFILE_FLAG_MASK_RETRANSMISSIONS_GUARD_MASK;
+      pModel->video_link_profiles[i].uProfileFlags |= (VIDEO_PROFILE_FLAG_MASK_RETRANSMISSIONS_GUARD_MASK & (((u32)DEFAULT_VIDEO_END_FRAME_DETECTION_BUFFER_MS)<<8));
+
+      pModel->video_link_profiles[i].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_LINK | VIDEO_PROFILE_ENCODING_FLAG_USE_MEDIUM_ADAPTIVE_VIDEO;
+      pModel->video_link_profiles[i].iDefaultFPS = 0;
+      pModel->video_link_profiles[i].iDefaultLinkLoad = 0;
+      pModel->video_link_profiles[i].uDummyVP1 = 0;
+      pModel->video_link_profiles[i].uDummyVP2 = 0;
+   }
+   pModel->resetAdaptiveVideoParams(-1);
+
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].iDefaultFPS = DEFAULT_VIDEO_FPS_PROFILE_HQ;
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].iDefaultFPS = DEFAULT_VIDEO_FPS_PROFILE_HP;
+   pModel->video_link_profiles[VIDEO_PROFILE_LONG_RANGE].iDefaultFPS = DEFAULT_VIDEO_FPS_PROFILE_LR;
+   pModel->video_link_profiles[VIDEO_PROFILE_USER].iDefaultFPS = DEFAULT_VIDEO_FPS_PROFILE_HP;
+
+   for( int i=0; i<MODEL_CAMERA_PROFILES; i++ )
+      pModel->validate_fps_and_exposure_settings(&(pModel->camera_params[0].profiles[i]), true);
+
+   log_line("Updated model VID %u (%s) to v11.5", pModel->uVehicleId, pModel->getLongName());
+}
+
+
 void do_update_to_114()
 {
    log_line("Doing update to 11.4");
@@ -113,7 +244,7 @@ void do_update_to_114()
    if ( NULL == pModel )
       return;
 
-   log_line("Updated model VID %u (%s) to v11.3", pModel->uVehicleId, pModel->getLongName());
+   log_line("Updated model VID %u (%s) to v11.4", pModel->uVehicleId, pModel->getLongName());
 }
 
 void do_update_to_113()
@@ -148,7 +279,7 @@ void do_update_to_113()
    {
       for( int k=0; k<MODEL_MAX_CAMERAS; k++ )
       for( int i=0; i<MODEL_CAMERA_PROFILES; i++ )
-         pModel->camera_params[k].profiles[i].shutterspeed = DEFAULT_OIPC_SHUTTERSPEED; //milisec
+         pModel->camera_params[k].profiles[i].iShutterSpeed = DEFAULT_OIPC_SHUTTERSPEED; //milisec
    }
 
    for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
@@ -185,10 +316,6 @@ void do_update_to_112()
       pCS->nPingClockSyncFrequency = DEFAULT_PING_FREQUENCY;
       pCS->iStreamerOutputMode = 0;
       pCS->iEasterEgg1 = 0;
-
-      pCS->iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-      pCS->iRadioRxThreadPriority = DEFAULT_PRIORITY_THREAD_RADIO_RX;
-
       save_ControllerSettings();
 
       load_Preferences();
@@ -197,7 +324,7 @@ void do_update_to_112()
       pP->iLanguage = 1;
       save_Preferences();
 
-      for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+      for( int i=0; i<hardware_serial_get_ports_count(); i++ )
       {
          hw_serial_port_info_t* pInfo = hardware_get_serial_port_info(i);
          if ( NULL == pInfo )
@@ -225,9 +352,6 @@ void do_update_to_112()
          pModel->hardwareInterfacesInfo.serial_port_supported_and_usage[i] |= SERIAL_PORT_USAGE_TELEMETRY;
       }
    }
-   pModel->processesPriorities.iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-   if ( hardware_board_is_openipc(hardware_getBoardType()) )
-      pModel->processesPriorities.iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER_OPIC;
 
    pModel->uDeveloperFlags &= ~DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE;
 
@@ -246,8 +370,7 @@ void do_update_to_112()
          pModel->osd_params.osd_flags2[i] |= OSD_FLAG2_SHOW_TX_POWER;
    }
 
-   pModel->video_params.dummyV1 = 0;
-   pModel->video_params.uVideoExtraFlags = VIDEO_FLAG_RETRANSMISSIONS_FAST;
+   pModel->video_params.uVideoExtraFlags = 0;
    pModel->video_params.iCurrentVideoProfile = VIDEO_PROFILE_HIGH_QUALITY;
    pModel->video_params.iVideoWidth = DEFAULT_VIDEO_WIDTH;
    pModel->video_params.iVideoHeight = DEFAULT_VIDEO_HEIGHT;
@@ -267,11 +390,7 @@ void do_update_to_112()
    
    for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
    {
-      pModel->video_link_profiles[i].dummyVP1 = 0;
-      pModel->video_link_profiles[i].dummyVP2 = 0;
-      pModel->video_link_profiles[i].dummyVP3 = 0;
       pModel->video_link_profiles[i].iAdaptiveAdjustmentStrength = DEFAULT_VIDEO_PARAMS_ADJUSTMENT_STRENGTH;
-      pModel->video_link_profiles[i].dummyVP6 = 0;
 
       pModel->video_link_profiles[i].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_LINK;
       pModel->video_link_profiles[i].uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_USE_MEDIUM_ADAPTIVE_VIDEO;
@@ -284,12 +403,6 @@ void do_update_to_112()
    }
 
    pModel->resetVideoLinkProfiles();
-
-   for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
-   {
-     pModel->radioLinksParams.uDummy2[i] = 0;
-     pModel->radioLinksParams.uDummyR2[i] = 0;
-   }
 
    for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
    {
@@ -322,11 +435,6 @@ void do_update_to_111()
       pP->uEnabledAlarms &= ~ (ALARM_ID_CONTROLLER_CPU_LOOP_OVERLOAD | ALARM_ID_CONTROLLER_CPU_RX_LOOP_OVERLOAD | ALARM_ID_CONTROLLER_CPU_LOOP_OVERLOAD_RECORDING);
       pP->iVideoDestination = prefVideoDestination_Mem;
       save_Preferences();
-
-      load_ControllerSettings();
-      ControllerSettings* pCS = get_ControllerSettings();
-      pCS->iNiceCentral = DEFAULT_PRIORITY_PROCESS_CENTRAL;
-      save_ControllerSettings();
    }
 
    Model* pModel = getCurrentModel();
@@ -393,7 +501,6 @@ void do_update_to_108()
    {
       load_ControllerSettings();
       ControllerSettings* pCS = get_ControllerSettings();
-      pCS->iNiceRXVideo = DEFAULT_PRIORITY_PROCESS_VIDEO_RX;
       pCS->iHDMIVSync = 1;
       save_ControllerSettings();
       load_Preferences();
@@ -410,8 +517,6 @@ void do_update_to_108()
    Model* pModel = getCurrentModel();
    if ( NULL == pModel )
       return;
-
-   pModel->processesPriorities.iNiceVideo = DEFAULT_PRIORITY_PROCESS_VIDEO_TX;
    
    u32 uBoardSubType = (pModel->hwCapabilities.uBoardType & BOARD_SUBTYPE_MASK) >> BOARD_SUBTYPE_SHIFT;
    if ( (uBoardSubType != 0) && (uBoardSubType < 10) )
@@ -462,15 +567,6 @@ void do_update_to_106()
       load_ControllerSettings();
       ControllerSettings* pCS = get_ControllerSettings();
       pCS->iDeveloperMode = 0;
-      pCS->iCoresAdjustment = 1;
-      pCS->iPrioritiesAdjustment = 1;
-      pCS->iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-      pCS->ioNiceRouter = DEFAULT_IO_PRIORITY_ROUTER;
-      pCS->iNiceCentral = DEFAULT_PRIORITY_PROCESS_CENTRAL;
-      pCS->iNiceRXVideo = DEFAULT_PRIORITY_PROCESS_VIDEO_RX;
-      pCS->ioNiceRXVideo = DEFAULT_IO_PRIORITY_VIDEO_RX;
-      pCS->iRadioRxThreadPriority = DEFAULT_PRIORITY_THREAD_RADIO_RX;
-      pCS->iRadioTxThreadPriority = DEFAULT_PRIORITY_THREAD_RADIO_TX;
       save_ControllerSettings();
       load_Preferences();
       Preferences* pP = get_Preferences();
@@ -494,7 +590,7 @@ void do_update_to_106()
    {
       for( int i=0; i<MODEL_MAX_CAMERAS; i++ )
       for( int k=0; k<MODEL_CAMERA_PROFILES-1; k++ )
-            pModel->camera_params[i].profiles[k].shutterspeed = DEFAULT_OIPC_SHUTTERSPEED; //milisec
+            pModel->camera_params[i].profiles[k].iShutterSpeed = DEFAULT_OIPC_SHUTTERSPEED; //milisec
    }
 
    for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
@@ -549,18 +645,6 @@ void do_update_to_104()
  
    if ( ! s_isVehicle )
    {
-      load_ControllerSettings();
-      ControllerSettings* pCS = get_ControllerSettings();
-
-      pCS->iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-      pCS->ioNiceRouter = DEFAULT_IO_PRIORITY_ROUTER;
-      pCS->iNiceCentral = DEFAULT_PRIORITY_PROCESS_CENTRAL;
-      pCS->iNiceRXVideo = DEFAULT_PRIORITY_PROCESS_VIDEO_RX;
-      pCS->ioNiceRXVideo = DEFAULT_IO_PRIORITY_VIDEO_RX;
-
-      pCS->iRadioRxThreadPriority = DEFAULT_PRIORITY_THREAD_RADIO_RX;
-      pCS->iRadioTxThreadPriority = DEFAULT_PRIORITY_THREAD_RADIO_TX;
-      save_ControllerSettings();
    }
 
    Model* pModel = getCurrentModel();
@@ -599,711 +683,40 @@ void do_update_to_104()
    pModel->processesPriorities.iThreadPriorityRadioTx = DEFAULT_PRIORITY_VEHICLE_THREAD_RADIO_TX;
    pModel->processesPriorities.iThreadPriorityRouter = DEFAULT_PRIORITY_VEHICLE_THREAD_ROUTER;
 
-   pModel->processesPriorities.iNiceTelemetry = DEFAULT_PRIORITY_PROCESS_TELEMETRY;
-   pModel->processesPriorities.iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-   #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-   pModel->processesPriorities.iNiceTelemetry = DEFAULT_PRIORITY_PROCESS_TELEMETRY_OIPC;
-   pModel->processesPriorities.iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER_OPIC;
-   #endif
-
    log_line("Updated model VID %u (%s) to v10.4", pModel->uVehicleId, pModel->getLongName());
 }
 
 
-void do_update_to_103()
-{
-   log_line("Doing update to 10.3");
- 
-   if ( ! s_isVehicle )
-   {
-      load_Preferences();
-      Preferences* pP = get_Preferences();
-      pP->uEnabledAlarms = 0xFFFFFFFF;
-      save_Preferences();
-
-      load_ControllerSettings();
-      ControllerSettings* pCS = get_ControllerSettings();
-      pCS->iRadioTxUsesPPCAP = DEFAULT_USE_PPCAP_FOR_TX;
-      pCS->iRadioRxThreadPriority = DEFAULT_PRIORITY_THREAD_RADIO_RX;
-      pCS->iRadioTxThreadPriority = DEFAULT_PRIORITY_THREAD_RADIO_TX;
-      pCS->iStreamerOutputMode = 0; // SM
-      save_ControllerSettings();
-   }
-
-   Model* pModel = getCurrentModel();
-   if ( NULL == pModel )
-      return;
- 
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HQ<<8);
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
-   pModel->video_link_profiles[VIDEO_PROFILE_USER].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
-   pModel->video_link_profiles[VIDEO_PROFILE_USER].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
-
-   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
-   {
-      pModel->video_link_profiles[i].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_USE_MEDIUM_ADAPTIVE_VIDEO;
-      pModel->video_link_profiles[i].video_data_length = DEFAULT_VIDEO_DATA_LENGTH;
-      pModel->video_link_profiles[i].uProfileFlags = 0;
-   }
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileFlags = 0; // lowest
-
-   for( int i=0; i<MODEL_MAX_OSD_SCREENS; i++ )
-      pModel->osd_params.osd_preferences[i] &= ~(OSD_PREFERENCES_BIT_FLAG_SHOW_CONTROLLER_LINK_LOST_ALARM); // controller link lost alarm disabled
-
-   pModel->osd_params.osd_flags2[0] |= OSD_FLAG2_LAYOUT_ENABLED;
-   pModel->osd_params.osd_flags2[1] &= ~ OSD_FLAG2_LAYOUT_ENABLED;
-   pModel->osd_params.osd_flags2[2] &= ~ OSD_FLAG2_LAYOUT_ENABLED;
-   pModel->osd_params.osd_flags2[3] |= OSD_FLAG2_LAYOUT_ENABLED;
-   pModel->osd_params.osd_flags2[4] &= ~ OSD_FLAG2_LAYOUT_ENABLED;
-   if ( (pModel->osd_params.iCurrentOSDScreen != 0) && (pModel->osd_params.iCurrentOSDScreen != 3) )
-      pModel->osd_params.iCurrentOSDScreen = 0;
-   
-   pModel->uModelFlags |= MODEL_FLAG_PRIORITIZE_UPLINK;
-
-   if ( DEFAULT_USE_PPCAP_FOR_TX )
-      pModel->uDeveloperFlags |= DEVELOPER_FLAGS_USE_PCAP_RADIO_TX;
-   else
-      pModel->uDeveloperFlags &= (~DEVELOPER_FLAGS_USE_PCAP_RADIO_TX);
-
-   #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-   update_openipc_cpu(pModel);
-   if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
-   {
-      pModel->processesPriorities.iFreqARM = DEFAULT_FREQ_OPENIPC_SIGMASTAR;
-      pModel->processesPriorities.iFreqGPU = 0;
-   }
-   #endif
-
-   pModel->processesPriorities.iThreadPriorityRadioRx = DEFAULT_PRIORITY_THREAD_RADIO_RX;
-   pModel->processesPriorities.iThreadPriorityRadioTx = DEFAULT_PRIORITY_THREAD_RADIO_TX;
-   pModel->processesPriorities.iThreadPriorityRouter = DEFAULT_PRIORITY_THREAD_ROUTER;
-   pModel->rxtx_sync_type = RXTX_SYNC_TYPE_BASIC;
-  
-   pModel->video_params.iH264Slices = DEFAULT_VIDEO_H264_SLICES;
-   #if defined  (HW_PLATFORM_OPENIPC_CAMERA)
-   pModel->video_params.iH264Slices = DEFAULT_VIDEO_H264_SLICES_OIPC;
-   #endif
-
-   pModel->enc_flags = MODEL_ENC_FLAGS_NONE;
-   pModel->radioLinksParams.uGlobalRadioLinksFlags &= ~(MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS);
-   
-   pModel->validateRadioSettings();
-
-   log_line("Updated model VID %u (%s) to v10.3", pModel->uVehicleId, pModel->getLongName());
-}
-
-
-void do_update_to_102()
-{
-   log_line("Doing update to 10.2");
- 
-   if ( ! s_isVehicle )
-   {
-      load_Preferences();
-      Preferences* pP = get_Preferences();
-      pP->nLogLevel = 1;
-      save_Preferences();
-   }
-
-   Model* pModel = getCurrentModel();
-   if ( NULL == pModel )
-      return;
- 
-   for( int i=0; i<pModel->radioLinksParams.links_count; i++ )
-   {
-      if ( pModel->radioLinksParams.downlink_datarate_video_bps[i] < 0 )
-      {
-         pModel->radioLinksParams.link_radio_flags[i] |= RADIO_FLAGS_USE_MCS_DATARATES;
-         pModel->radioLinksParams.link_radio_flags[i] &= ~RADIO_FLAGS_USE_LEGACY_DATARATES;
-      }
-      else
-      {
-         pModel->radioLinksParams.link_radio_flags[i] |= RADIO_FLAGS_USE_LEGACY_DATARATES;
-         pModel->radioLinksParams.link_radio_flags[i] &= ~RADIO_FLAGS_USE_MCS_DATARATES;       
-      }
-   }
-
-   for( int i=0; i<MODEL_MAX_OSD_SCREENS; i++ )
-   {
-      pModel->osd_params.osd_preferences[i] &= 0xFFFFFF00;
-      pModel->osd_params.osd_preferences[i] |= 2;
-   }   
-
-   if ( hardware_board_is_openipc(hardware_getBoardType()) )
-   {
-      for( int i=0; i<MODEL_MAX_CAMERAS; i++ )
-      {
-         for( int k=0; k<MODEL_CAMERA_PROFILES-1; k++ )
-         {
-            pModel->camera_params[i].profiles[k].shutterspeed = 0; // auto
-            if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
-               pModel->camera_params[i].profiles[k].shutterspeed = 8; //milisec
-         }
-      }   
-   }
-
-   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
-   {
-      if ( ! hardware_board_is_goke(pModel->hwCapabilities.uBoardType) )
-         pModel->video_link_profiles[i].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME;
-
-      pModel->video_link_profiles[i].keyframe_ms = DEFAULT_VIDEO_KEYFRAME;
-   }
-
-
-   pModel->validateRadioSettings();
-
-   log_line("Updated model VID %u (%s) to v10.2", pModel->uVehicleId, pModel->getLongName());
-}
-
-
-void do_update_to_101()
-{
-   log_line("Doing update to 10.1");
- 
-   if ( ! s_isVehicle )
-   {
-      load_ControllerSettings();
-      ControllerSettings* pCS = get_ControllerSettings();
-      pCS->nGraphVideoRefreshInterval = 50;
-      pCS->iFixedTxPower = 0;
-      save_ControllerSettings();
-   }
-
-   Model* pModel = getCurrentModel();
-   if ( NULL == pModel )
-      return;
- 
-   pModel->resetVideoParamsToDefaults();
-   pModel->resetVideoLinkProfiles();
-
-   pModel->processesPriorities.iNiceTelemetry = DEFAULT_PRIORITY_PROCESS_TELEMETRY;
-   pModel->processesPriorities.iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-   #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-   pModel->processesPriorities.iNiceTelemetry = DEFAULT_PRIORITY_PROCESS_TELEMETRY_OIPC;
-   pModel->processesPriorities.iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER_OPIC;
-   #endif
-
-   #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-
-   if ( hardware_board_is_sigmastar(pModel->hwCapabilities.uBoardType & BOARD_TYPE_MASK) )
-   {
-      pModel->processesPriorities.iFreqGPU = 0;
-      hardware_set_oipc_freq_boost(pModel->processesPriorities.iFreqARM, pModel->processesPriorities.iFreqGPU);
-   }
-   pModel->video_params.iH264Slices = DEFAULT_VIDEO_H264_SLICES_OIPC;
-
-   if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
-      pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
-
-   #endif
-   
-   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
-   {
-      if ( ! hardware_board_is_goke(pModel->hwCapabilities.uBoardType) )
-         pModel->video_link_profiles[i].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME;
-
-      pModel->video_link_profiles[i].keyframe_ms = DEFAULT_VIDEO_KEYFRAME;
-      pModel->video_link_profiles[i].h264profile = 2; // high
-   }
-
-   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
-   {
-      pModel->video_link_profiles[i].iIPQuantizationDelta = DEFAULT_VIDEO_H264_IPQUANTIZATION_DELTA_HP;
-   }
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].iIPQuantizationDelta = DEFAULT_VIDEO_H264_IPQUANTIZATION_DELTA_HQ;
-   pModel->video_link_profiles[VIDEO_PROFILE_USER].iIPQuantizationDelta = DEFAULT_VIDEO_H264_IPQUANTIZATION_DELTA_HQ;
-
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HQ<<8);
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
-   pModel->video_link_profiles[VIDEO_PROFILE_USER].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
-   pModel->video_link_profiles[VIDEO_PROFILE_USER].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
-
-   pModel->radioInterfacesParams.iAutoVehicleTxPower = 1;
-   pModel->radioInterfacesParams.iAutoControllerTxPower = 1;
-
-   pModel->rxtx_sync_type = RXTX_SYNC_TYPE_BASIC;
-
-   log_line("Updated model VID %u (%s) to v10.1", pModel->uVehicleId, pModel->getLongName());
-}
-
-void do_update_to_100()
-{
-   log_line("Doing update to 10.0");
- 
-   if ( ! s_isVehicle )
-   {
-      load_Preferences();
-      Preferences* pP = get_Preferences();
-      pP->iColorOSDOutline[0] = 10;
-      pP->iColorOSDOutline[1] = 10;
-      pP->iColorOSDOutline[2] = 10;
-      pP->iColorOSDOutline[3] = 90; // 90%
-      save_Preferences();
-   }
-
-   Model* pModel = getCurrentModel();
-   if ( NULL == pModel )
-      return;
- 
-   pModel->setDefaultVideoBitrate();
-   pModel->video_params.iCurrentVideoProfile = VIDEO_PROFILE_HIGH_QUALITY;
-
-   pModel->rxtx_sync_type = RXTX_SYNC_TYPE_BASIC;
-   pModel->processesPriorities.uProcessesFlags = PROCESSES_FLAGS_BALANCE_INT_CORES;
-
-   for( int k=0; k<MODEL_MAX_CAMERAS; k++ )
-   {
-      for( int i=0; i<MODEL_CAMERA_PROFILES; i++ )
-      {
-         pModel->camera_params[k].profiles[i].uFlags |= CAMERA_FLAG_OPENIPC_3A_FPV;
-      }
-   }
-
-   for( int i=0; i<MODEL_MAX_OSD_SCREENS; i++ )
-   {
-      pModel->osd_params.osd_flags[i] |= OSD_FLAG_SHOW_FLIGHT_MODE_CHANGE;
-   }
-
-   pModel->resetVideoLinkProfiles();
-
-   #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-   if ( hardware_board_is_sigmastar(pModel->hwCapabilities.uBoardType & BOARD_TYPE_MASK) )
-   {
-      pModel->processesPriorities.iFreqGPU = 0;
-      hardware_set_oipc_freq_boost(pModel->processesPriorities.iFreqARM, pModel->processesPriorities.iFreqGPU);
-   }
-   #endif
-
-   log_line("Updated model VID %u (%s) to v10.0", pModel->uVehicleId, pModel->getLongName());
-}
-
-void do_update_to_98()
-{
-   log_line("Doing update to 9.8");
- 
-   if ( ! s_isVehicle )
-   {
-      load_ControllerSettings();
-      //ControllerSettings* pCS = get_ControllerSettings();
-      save_ControllerSettings(); 
-      
-      load_Preferences();
-      //Preferences* pP = get_Preferences();
-      save_Preferences();
-
-      #if defined (HW_PLATFORM_RADXA)
-      hardware_set_default_radxa_cpu_freq();
-      hw_execute_bash_command("sed -i '/98:03:cf/d' /etc/udev/rules.d/98-custom-wifi.rules", NULL);
-      #endif
-   }
-
-   #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-   hw_execute_bash_command("sed -i 's/console:/#console:/' /etc/inittab", NULL);
-   #endif
-
-   Model* pModel = getCurrentModel();
-   if ( NULL == pModel )
-      return;
-
-   pModel->rc_params.iRCTranslationType = RC_TRANSLATION_TYPE_2000;
-
-   pModel->setDefaultVideoBitrate();
-   
-   #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-   if ( hardware_board_is_sigmastar(pModel->hwCapabilities.uBoardType & BOARD_TYPE_MASK) )
-   {
-      pModel->processesPriorities.iFreqGPU = 0;
-      hardware_set_oipc_freq_boost(pModel->processesPriorities.iFreqARM, pModel->processesPriorities.iFreqGPU);
-   }
-   #endif
-
-   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
-   {
-      pModel->video_link_profiles[i].keyframe_ms = DEFAULT_VIDEO_KEYFRAME;
-      pModel->video_link_profiles[i].uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME;
-   }
-
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_HQ;
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].iBlockECs = DEFAULT_VIDEO_BLOCK_ECS_HQ;
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_HP;
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].iBlockECs = DEFAULT_VIDEO_BLOCK_ECS_HP;
-
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HQ<<8);
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
-   pModel->video_link_profiles[VIDEO_PROFILE_USER].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
-   pModel->video_link_profiles[VIDEO_PROFILE_USER].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
-
-   log_line("Updated model VID %u (%s) to v9.8", pModel->uVehicleId, pModel->getLongName());
-}
-
-
-void do_update_to_97()
-{
-   log_line("Doing update to 9.7");
- 
-   if ( ! s_isVehicle )
-   {
-      load_ControllerSettings();
-      ControllerSettings* pCS = get_ControllerSettings();
-      pCS->iRadioTxUsesPPCAP = DEFAULT_USE_PPCAP_FOR_TX;
-      pCS->iRadioBypassSocketBuffers = DEFAULT_BYPASS_SOCKET_BUFFERS;
-      save_ControllerSettings();
-      load_Preferences();
-      Preferences* pP = get_Preferences();
-      pP->iDebugMaxPacketSize = MAX_VIDEO_PACKET_DATA_SIZE;
-      save_Preferences();
-   }
-
-   Model* pModel = getCurrentModel();
-   if ( NULL == pModel )
-      return;
-
-   if ( DEFAULT_USE_PPCAP_FOR_TX )
-      pModel->uDeveloperFlags |= DEVELOPER_FLAGS_USE_PCAP_RADIO_TX;
-   else
-      pModel->uDeveloperFlags &= (~DEVELOPER_FLAGS_USE_PCAP_RADIO_TX);
-
-   #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-   update_openipc_cpu(pModel);
-   #endif
-
-   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
-   {
-      pModel->video_link_profiles[i].video_data_length = DEFAULT_VIDEO_DATA_LENGTH;
-   }
-
-   for( int i=0; i<MODEL_MAX_OSD_SCREENS; i++ )
-   {
-      pModel->osd_params.osd_flags3[i] |= OSD_FLAG3_RENDER_MSP_OSD;
-   }
-   pModel->osd_params.uFlags = OSD_BIT_FLAGS_SHOW_FLIGHT_END_STATS;
-   
-   log_line("Updated model VID %u (%s) to v9.7", pModel->uVehicleId, pModel->getLongName());
-}
-
-
-void do_update_to_96()
-{
-   log_line("Doing update to 9.6");
- 
-   if ( ! s_isVehicle )
-   {
-      load_ControllerSettings();
-      ControllerSettings* pCS = get_ControllerSettings();
-      pCS->iRadioTxUsesPPCAP = DEFAULT_USE_PPCAP_FOR_TX;
-      pCS->iRadioBypassSocketBuffers = DEFAULT_BYPASS_SOCKET_BUFFERS;
-      save_ControllerSettings();      
-   }
-
-   Model* pModel = getCurrentModel();
-   if ( NULL == pModel )
-      return;
-
-   #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-   update_openipc_cpu(pModel);
-   #endif
-
-   if ( DEFAULT_USE_PPCAP_FOR_TX )
-      pModel->uDeveloperFlags |= DEVELOPER_FLAGS_USE_PCAP_RADIO_TX;
-   else
-      pModel->uDeveloperFlags &= (~DEVELOPER_FLAGS_USE_PCAP_RADIO_TX);
-
-   pModel->uDeveloperFlags |= DEVELOPER_FLAGS_BIT_RADIO_SILENCE_FAILSAFE;
-
-   if ( DEFAULT_BYPASS_SOCKET_BUFFERS )
-      pModel->radioLinksParams.uGlobalRadioLinksFlags |= MODEL_RADIOLINKS_FLAGS_BYPASS_SOCKETS_BUFFERS;
-   else
-      pModel->radioLinksParams.uGlobalRadioLinksFlags &= ~MODEL_RADIOLINKS_FLAGS_BYPASS_SOCKETS_BUFFERS;
-
-   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
-   {
-      if ( pModel->video_link_profiles[i].keyframe_ms < 0 )
-      {
-         pModel->video_link_profiles[i].keyframe_ms = - pModel->video_link_profiles[i].keyframe_ms;
-         pModel->video_link_profiles[i].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME;   
-      }
-      else
-         pModel->video_link_profiles[i].uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME;   
-   }
-
-   for( int i=0; i<MODEL_MAX_OSD_SCREENS; i++ )
-   {
-      pModel->osd_params.osd_flags2[i] &= (~OSD_FLAG2_SHOW_STATS_RADIO_LINKS);
-   }
-
-   log_line("Updated model VID %u (%s) to v9.6", pModel->uVehicleId, pModel->getLongName());
-}
-
-
-void do_update_to_95()
-{
-   log_line("Doing update to 9.5");
- 
-   if ( ! s_isVehicle )
-   {
-      load_ControllerSettings();
-      //ControllerSettings* pCS = get_ControllerSettings();
-      save_ControllerSettings();      
-   }
-
-   Model* pModel = getCurrentModel();
-   if ( NULL == pModel )
-      return;
-
-   #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-   update_openipc_cpu(pModel);
-   #endif
-
-   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
-   {
-      pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_ADAPTIVE_VIDEO_LINK_GO_LOWER_ON_LINK_LOST;   
-      pModel->video_link_profiles[i].uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_ENABLE_VIDEO_ADAPTIVE_H264_QUANTIZATION;
-      pModel->video_link_profiles[i].uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_VIDEO_ADAPTIVE_QUANTIZATION_STRENGTH_HIGH;
-   }
-   pModel->processesPriorities.iThreadPriorityRadioRx = DEFAULT_PRIORITY_THREAD_RADIO_RX;
-   pModel->processesPriorities.iThreadPriorityRadioTx = DEFAULT_PRIORITY_THREAD_RADIO_TX;
-   pModel->processesPriorities.iThreadPriorityRouter = DEFAULT_PRIORITY_THREAD_ROUTER;
-
-   log_line("Updated model VID %u (%s) to v9.5", pModel->uVehicleId, pModel->getLongName());
-}
-
-
-void do_update_to_94()
-{
-   log_line("Doing update to 9.4");
- 
-   if ( ! s_isVehicle )
-   {
-      load_ControllerSettings();
-      ControllerSettings* pCS = get_ControllerSettings();
-      pCS->iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-      pCS->iNiceRXVideo = DEFAULT_PRIORITY_PROCESS_VIDEO_RX;
-      save_ControllerSettings();
-
-      #ifdef HW_PLATFORM_RADXA
-      char szOutput[2048];
-      szOutput[0] = 0;
-      hw_execute_bash_command_raw("cat /etc/NetworkManager/NetworkManager.conf | grep unmanaged-devices", szOutput);
-      if ( (0 == szOutput[0]) || (NULL == strstr(szOutput, "unmanaged-devices")) )
-      {
-         log_line("Updating network manager conf for Radxa...");
-         hw_execute_bash_command(" echo '[keyfile]' >> /etc/NetworkManager/NetworkManager.conf", NULL);
-         hw_execute_bash_command(" echo 'unmanaged-devices=interface-name:wlan0;interface-name:wlan1;interface-name:wlan2;interface-name:wlan3;interface-name:wlx' >> /etc/NetworkManager/NetworkManager.conf", NULL);
-         hw_execute_bash_command(" echo '' >> /etc/NetworkManager/NetworkManager.conf", NULL);
-      }
-      else
-         log_line("Network manager conf for Radxa is ok.");
-      #endif
-   }
-
-   Model* pModel = getCurrentModel();
-   if ( NULL == pModel )
-      return;
-
-   log_line("Updated model VID %u (%s) to v9.4", pModel->uVehicleId, pModel->getLongName());
-}
-
-
-void do_update_to_93()
-{
-   log_line("Doing update to 9.3");
- 
-   if ( ! s_isVehicle )
-   {
-      load_ControllerSettings();
-      ControllerSettings* pCS = get_ControllerSettings();
-      pCS->iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-      pCS->iNiceRXVideo = DEFAULT_PRIORITY_PROCESS_VIDEO_RX;
-      save_ControllerSettings();
-   }
-
-   Model* pModel = getCurrentModel();
-   if ( NULL == pModel )
-      return;
-
-   if ( pModel->telemetry_params.update_rate > DEFAULT_TELEMETRY_SEND_RATE )
-      pModel->telemetry_params.update_rate = DEFAULT_TELEMETRY_SEND_RATE;
-
-   log_line("Updated model VID %u (%s) to v9.3", pModel->uVehicleId, pModel->getLongName());
-}
-
-
-void do_update_to_92()
-{
-   log_line("Doing update to 9.2");
- 
-   if ( ! s_isVehicle )
-   {
-      load_ControllerSettings();
-      ControllerSettings* pCS = get_ControllerSettings();
-      pCS->iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-      pCS->iNiceRXVideo = DEFAULT_PRIORITY_PROCESS_VIDEO_RX;
-      save_ControllerSettings();
-   }
-
-   Model* pModel = getCurrentModel();
-   if ( NULL == pModel )
-      return;
-
-   if ( pModel->telemetry_params.update_rate > DEFAULT_TELEMETRY_SEND_RATE )
-      pModel->telemetry_params.update_rate = DEFAULT_TELEMETRY_SEND_RATE;
-
-   log_line("Updated model VID %u (%s) to v9.2", pModel->uVehicleId, pModel->getLongName());
-}
-
-void do_update_to_91()
-{
-   log_line("Doing update to 9.1");
- 
-   if ( ! s_isVehicle )
-   {
-      load_ControllerSettings();
-      ControllerSettings* pCS = get_ControllerSettings();
-      pCS->iNiceRXVideo = DEFAULT_PRIORITY_PROCESS_VIDEO_RX;
-      pCS->iShowVideoStreamInfoCompactType = 1;
-      save_ControllerSettings();
-   }
-
-   Model* pModel = getCurrentModel();
-   if ( NULL == pModel )
-      return;
-
-   pModel->telemetry_params.flags |= TELEMETRY_FLAGS_ALLOW_ANY_VEHICLE_SYSID;
-   pModel->video_params.uMaxAutoKeyframeIntervalMs = DEFAULT_VIDEO_MAX_AUTO_KEYFRAME_INTERVAL;
-   pModel->video_params.iH264Slices = DEFAULT_VIDEO_H264_SLICES;
-   
-   if ( s_isVehicle )
-   if ( hardware_board_is_openipc(hardware_getBoardType()) )
-   {
-      for( int i=0; i<MODEL_MAX_CAMERAS; i++ )
-      {
-         for( int k=0; k<MODEL_CAMERA_PROFILES-1; k++ )
-         {
-            pModel->camera_params[i].profiles[k].shutterspeed = 0; // auto
-            if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
-               pModel->camera_params[i].profiles[k].shutterspeed = 10; //milisec
-         }
-      }   
-   }
-
-   for( int i=0; i<MODEL_MAX_OSD_SCREENS; i++ )
-   {
-      //pModel->osd_params.osd_flags2[i] |= OSD_FLAG2_FLASH_OSD_ON_TELEMETRY_DATA_LOST;
-   }
-
-   log_line("Updated model VID %u (%s) to v9.1", pModel->uVehicleId, pModel->getLongName());
-}
-
-
-void do_update_to_90()
-{
-   log_line("Doing update to 9.0");
- 
-   if ( ! s_isVehicle )
-   {
-      load_ControllerSettings();
-      ControllerSettings* pCS = get_ControllerSettings();
-      pCS->nRetryRetransmissionAfterTimeoutMS = DEFAULT_VIDEO_RETRANS_MINIMUM_RETRY_INTERVAL;
-      pCS->nRequestRetransmissionsOnVideoSilenceMs = DEFAULT_VIDEO_RETRANS_REQUEST_ON_VIDEO_SILENCE_MS;
-      pCS->nRetryRetransmissionAfterTimeoutMS = DEFAULT_VIDEO_RETRANS_MINIMUM_RETRY_INTERVAL;   
-
-      save_ControllerSettings();
-
-      //load_Preferences();
-      //Preferences* pP = get_Preferences();
-      //pP->iPersistentMessages = 1;
-      //save_Preferences();
-   }
-
-   Model* pModel = getCurrentModel();
-   if ( NULL == pModel )
-      return;
-
-   // Remove deprecated DEVELOPER-FLAGS_BIT-USE_OLD_EC_SCHEME flag
-   pModel->uDeveloperFlags &= ~((u32)(((u32)0x01)<<18));
-
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].bitrate_fixed_bps = DEFAULT_HP_VIDEO_BITRATE;
-
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_ENABLE_RETRANSMISSIONS | VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_LINK;
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_ADAPTIVE_VIDEO_LINK_GO_LOWER_ON_LINK_LOST;
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_ADAPTIVE_VIDEO_LINK_USE_CONTROLLER_INFO_TOO;
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_ENABLE_VIDEO_ADAPTIVE_H264_QUANTIZATION;
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_USE_MEDIUM_ADAPTIVE_VIDEO;
-
-   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
-   {
-      pModel->video_link_profiles[i].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_EC_SCHEME_SPREAD_FACTOR_HIGHBIT;
-      pModel->video_link_profiles[i].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_EC_SCHEME_SPREAD_FACTOR_LOWBIT);
-   }
-
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HQ<<8);
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
-   pModel->video_link_profiles[VIDEO_PROFILE_USER].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
-   pModel->video_link_profiles[VIDEO_PROFILE_USER].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
-
-   pModel->video_params.iCurrentVideoProfile = VIDEO_PROFILE_HIGH_PERF;
-
-   pModel->rc_params.rc_frames_per_second = DEFAULT_RC_FRAMES_PER_SECOND;
-   
-   for( int i=0; i<MODEL_MAX_OSD_SCREENS; i++ )
-   {
-      pModel->osd_params.osd_flags3[i] |= OSD_FLAG3_HIGHLIGHT_CHANGING_ELEMENTS;
-   }
-
-   log_line("Updated model VID %u (%s) to v9.0", pModel->uVehicleId, pModel->getLongName());
-}
-
 void do_generic_update()
 {
    log_line("Doing generic update step");
-   hw_execute_bash_command("chmod 777 ruby*", NULL);
 
    #if defined (HW_PLATFORM_RASPBERRY)
    if( access( "ruby_capture_raspi", R_OK ) != -1 )
       hw_execute_bash_command("cp -rf ruby_capture_raspi /opt/vc/bin/raspivid", NULL);
-   else
-      hw_execute_bash_command("cp -rf /opt/vc/bin/raspivid ruby_capture_raspi", NULL);
 
    if( access( "ruby_capture_veye", R_OK ) != -1 )
       hw_execute_bash_command("cp -rf ruby_capture_veye /usr/local/bin/veye_raspivid", NULL);
-   else
-      hw_execute_bash_command("cp -rf /usr/local/bin/veye_raspivid ruby_capture_veye", NULL);
 
-   if( access( "ruby_capture_veye307", R_OK ) != -1 )
-      hw_execute_bash_command("cp -rf ruby_capture_veye307 /usr/local/bin/307/veye_raspivid", NULL);
-   else
-      hw_execute_bash_command("cp -rf /usr/local/bin/307/veye_raspivid ruby_capture_veye307", NULL);
+   if( access( "onyxfpv_capture_raspi", R_OK ) != -1 )
+      hw_execute_bash_command("cp -rf onyxfpv_capture_raspi /opt/vc/bin/raspivid", NULL);
+
+   if( access( "onyxfpv_capture_veye", R_OK ) != -1 )
+      hw_execute_bash_command("cp -rf onyxfpv_capture_veye /usr/local/bin/veye_raspivid", NULL);
    #endif
-
-   hw_execute_bash_command("chmod 777 ruby*", NULL);
-   hw_execute_bash_command("chown root:root ruby_*", NULL);
    
    #if defined (HW_PLATFORM_RASPBERRY)
-   hw_execute_bash_command("cp -rf ruby_update.log /boot/", NULL);
+   hw_execute_bash_command("cp -rf ruby_update.log /boot/ 2>/dev/null", NULL);
+   hw_execute_bash_command("cp -rf onyxfpv_update.log /boot/ 2>/dev/null", NULL);
    #endif
    #if defined (HW_PLATFORM_RADXA)
-   hw_execute_bash_command("cp -rf ruby_update.log /config/", NULL);
+   hw_execute_bash_command("cp -rf ruby_update.log /config/ 2>/dev/null", NULL);
+   hw_execute_bash_command("cp -rf onyxfpv_update.log /config/ 2>/dev/null", NULL);
    #endif
    #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-   hw_execute_bash_command("cp -rf ruby_update.log /root/ruby/", NULL);
+   hw_execute_bash_command("cp -rf ruby_update.log /root/ruby/ 2>/dev/null", NULL);
+   hw_execute_bash_command("cp -rf onyxfpv_update.log /root/onyxfpv/ 2>/dev/null", NULL);
    #endif
-
-   // Remove old unsuported plugins formats
-
-   hw_execute_bash_command("rm -rf plugins/osd/ruby_ahi*", NULL);
-   hw_execute_bash_command("rm -rf plugins/osd/ruby_plugin_gauge_speed.so*", NULL);
-   hw_execute_bash_command("rm -rf plugins/osd/ruby_plugin_gauge_altitude.so*", NULL);
-   hw_execute_bash_command("rm -rf plugins/osd/ruby_plugin_gauge_ahi.so*", NULL);
-   hw_execute_bash_command("rm -rf plugins/osd/ruby_plugin_gauge_heading.so*", NULL);
 }
 
 void handle_sigint(int sig) 
@@ -1318,7 +731,7 @@ int main(int argc, char *argv[])
 {
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
-      printf("%d.%d (b%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER);
+      printf("%d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       return 0;
    }
 
@@ -1352,14 +765,13 @@ int main(int argc, char *argv[])
    if ( NULL != strstr(szUpdateCommand, "pre" ) )
    {
       log_line("Pre-update step...");
-      log_line("Done executing pre-update step. Exit.");
-      return 0;
+      log_line("Done executing pre-update step.");
    }
 
    getSystemType();
 
    u32 uCurrentVersion = 0;
-   char szFile[128];
+   char szFile[MAX_FILE_PATH_SIZE];
    strcpy(szFile, FOLDER_CONFIG);
    strcat(szFile, FILE_CONFIG_CURRENT_VERSION);
    FILE* fd = fopen(szFile, "r");
@@ -1430,41 +842,21 @@ int main(int argc, char *argv[])
    if ( iMinor > 9 )
       iMinor = iMinor/10;
 
-   log_line("Applying update on existing version: %d.%d (b%d)", iMajor, iMinor, iBuild);
-   log_line("Updating to version: %d.%d (b%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER);
+   log_line("Applying update on existing version: %d.%d (b-%d)", iMajor, iMinor, iBuild);
+   log_line("Updating to version: %d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
 
    do_generic_update();
 
    loadAllModels();
 
-   if ( (iMajor < 9) || (iMajor == 9 && iMinor < 1) )
-      do_update_to_90();
-   if ( (iMajor < 9) || (iMajor == 9 && iMinor <= 1) )
-      do_update_to_91();
-   if ( (iMajor < 9) || (iMajor == 9 && iMinor <= 2) )
-      do_update_to_92();
-   if ( (iMajor < 9) || (iMajor == 9 && iMinor <= 3) )
-      do_update_to_93();
+   u32 uOldSwVersion = 0;
+   Model* pModel = getCurrentModel();
+   if ( NULL != pModel )
+   {
+      log_line("Current model software version: %d.%d, (b-%d)", get_sw_version_major(pModel), get_sw_version_minor(pModel), get_sw_version_build(pModel));
+      uOldSwVersion = pModel->sw_version;
+   }
 
-   if ( (iMajor < 9) || (iMajor == 9 && iMinor <= 4) )
-      do_update_to_94();
-
-   if ( (iMajor < 9) || (iMajor == 9 && iMinor <= 5) )
-      do_update_to_95();
-   if ( (iMajor < 9) || (iMajor == 9 && iMinor <= 6) )
-      do_update_to_96();
-   if ( (iMajor < 9) || (iMajor == 9 && iMinor <= 7) )
-      do_update_to_97();
-   if ( (iMajor < 9) || (iMajor == 9 && iMinor <= 8) )
-      do_update_to_98();
-   if ( (iMajor < 10) || (iMajor == 10 && iMinor <= 0) )
-      do_update_to_100();
-   if ( (iMajor < 10) || (iMajor == 10 && iMinor <= 1) )
-      do_update_to_101();
-   if ( (iMajor < 10) || (iMajor == 10 && iMinor <= 2) )
-      do_update_to_102();
-   if ( (iMajor < 10) || (iMajor == 10 && iMinor <= 3) )
-      do_update_to_103();
    if ( (iMajor < 10) || (iMajor == 10 && iMinor <= 4) )
       do_update_to_104();
    if ( (iMajor < 10) || (iMajor == 10 && iMinor <= 5) )
@@ -1485,9 +877,44 @@ int main(int argc, char *argv[])
       do_update_to_113();
    if ( (iMajor < 11) || (iMajor == 11 && iMinor <= 4) )
       do_update_to_114();
-
+   if ( (iMajor < 11) || (iMajor == 11 && iMinor <= 5) )
+      do_update_to_115();
+   if ( (iMajor < 11) || (iMajor == 11 && iMinor <= 6) )
+      do_update_to_116();
 
    saveCurrentModel();
+
+   // For vehicles older than 11.6, stop telemetry process first as it would fail to read the new model (before reboot) and try to save it in old format
+   if ( (iMajor < 11) || ((iMajor == 11) && (iMinor < 6)) ||
+        (uOldSwVersion == 0) ||
+        (((uOldSwVersion>>8) & 0xFF) < 11) ||
+        ( (((uOldSwVersion>>8) & 0xFF) == 11) && ((uOldSwVersion & 0xFF) < 6) ) )
+   {
+      log_line("Vehicle is older than 11.6, needs to restart telemetry.");
+      char szOutput[4096];
+      hw_execute_bash_command("ps -aef | grep tx_telemetry", szOutput);
+      log_line("Running telemetry processes: [%s]", szOutput);
+      hw_stop_process("ruby_tx_telemetry");
+      hardware_sleep_ms(100);
+      hw_execute_bash_command("ps -aef | grep tx_telemetry", szOutput);
+      log_line("Running telemetry processes: [%s]", szOutput);
+      saveCurrentModel();
+      hw_execute_ruby_process(NULL, "ruby_tx_telemetry", "-log", NULL);
+      // Wait for it to start
+      for( int i=0; i<10; i++ )
+      {
+         log_line("Wait a little");
+         hardware_sleep_ms(100);
+      }
+   }
+   else
+      log_line("Vehicle is newer than 11.5, no need to restart telemetry.");
+
+   #if defined (HW_PLATFORM_OPENIPC_CAMERA)
+   hw_execute_bash_command("rm -rf /usr/sbin/ruby_update_* 2>/dev/null", NULL);
+   hw_execute_bash_command("rm -rf /usr/sbin/ruby_alive 2>/dev/null", NULL);
+   hw_execute_bash_command("rm -rf /usr/sbin/majestic 2>/dev/null", NULL);
+   #endif
    
    log_line("Update finished.");
    hardware_release();

@@ -34,18 +34,221 @@
 #include "../base/hardware_radio.h"
 #include "../base/hardware_radio_sik.h"
 #include "../base/hardware_radio_serial.h"
+#include "../base/ruby_ipc.h"
 #include "../base/radio_utils.h"
 #include "../common/string_utils.h"
 #include "../common/radio_stats.h"
+#include "../radio/radiolink.h"
+#include "../radio/radio_rx.h"
 #include "../radio/radio_tx.h"
+#include "../radio/radiopacketsqueue.h"
+#include "../radio/radio_duplicate_det.h"
+#include "../utils/utils_vehicle.h"
 #include "shared_vars.h"
 #include "timers.h"
+#include "processor_relay.h"
 
+static bool s_bRadioLinksAreMarkedForRestart = false;
+static u32 s_uRadioLinksStartTime = 0;
+
+
+// Returns true if configuration has been updated
+// It's called only on vehicle side
+
+bool configure_radio_interfaces_for_current_model(Model* pModel, shared_mem_radio_stats* pSMRadioStats, shared_mem_process_stats* pProcessStats)
+{
+   bool bMissmatch = false;
+
+   log_line("--------------------------------");
+   log_line("CONFIGURE RADIO INTERFACES START");
+
+   if ( NULL == pModel )
+   {
+      log_line("Configuring all radio interfaces (%d radio interfaces) failed.", hardware_get_radio_interfaces_count());
+      log_error_and_alarm("INVALID MODEL parameter (no model, NULL)");
+      log_line("CONFIGURE RADIO END ------------------------------------------------------------");
+      return false;
+   }
+
+   // Populate radio interfaces radio flags from radio links radio flags and rates
+
+   for( int i=0; i<pModel->radioInterfacesParams.interfaces_count; i++ )
+   {
+      if ( (pModel->radioInterfacesParams.interface_link_id[i] >= 0) && (pModel->radioInterfacesParams.interface_link_id[i] < pModel->radioLinksParams.links_count) )
+         pModel->radioInterfacesParams.interface_current_radio_flags[i] = pModel->radioLinksParams.link_radio_flags[pModel->radioInterfacesParams.interface_link_id[i]];
+      else
+         log_softerror_and_alarm("No radio link or invalid radio link (%d of %d) assigned to radio interface %d.", pModel->radioInterfacesParams.interface_link_id[i], pModel->radioLinksParams.links_count, i+1);
+   }
+
+   for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
+   {
+      radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(i);
+      if ( NULL == pRadioHWInfo )
+         continue;
+      
+      int nRadioLinkId = pModel->radioInterfacesParams.interface_link_id[i];
+      if ( (nRadioLinkId < 0) || (nRadioLinkId >= pModel->radioLinksParams.links_count) )
+         continue;
+
+      if ( ! pRadioHWInfo->isConfigurable )
+      {
+         if ( NULL != pSMRadioStats )
+            radio_stats_set_card_current_frequency(pSMRadioStats, i, pRadioHWInfo->uCurrentFrequencyKhz);
+         log_line("Radio interface %d is not configurable. Skipping it.", i+1);
+         continue;
+      }
+   }
+
+   log_line("Configuring all radio interfaces (%d radio interfaces, %d radio links)", hardware_get_radio_interfaces_count(), pModel->radioLinksParams.links_count);
+
+   if ( pModel->relay_params.isRelayEnabledOnRadioLinkId >= 0 )
+      log_line("A relay link is enabled on radio link %d (now at %s), on %s", pModel->relay_params.isRelayEnabledOnRadioLinkId+1, str_format_frequency(pModel->radioLinksParams.link_frequency_khz[pModel->relay_params.isRelayEnabledOnRadioLinkId]), str_format_frequency(pModel->relay_params.uRelayFrequencyKhz));
+
+   for( int iLink=0; iLink<pModel->radioLinksParams.links_count; iLink++ )
+   {
+      if ( pModel->radioLinksParams.link_capabilities_flags[iLink] & RADIO_HW_CAPABILITY_FLAG_DISABLED )
+      {
+         log_softerror_and_alarm("Radio Link %d is disabled! Skipping it.", iLink+1 );
+         continue;
+      }
+
+      u32 uRadioLinkFrequency = pModel->radioLinksParams.link_frequency_khz[iLink];
+
+      if ( pModel->relay_params.isRelayEnabledOnRadioLinkId == iLink )
+      if ( pModel->relay_params.uRelayFrequencyKhz != 0 )
+      {
+         uRadioLinkFrequency = pModel->relay_params.uRelayFrequencyKhz;
+         log_line("Radio link %d is a relay link on %s", iLink+1, str_format_frequency(uRadioLinkFrequency));
+      }
+   
+      log_line("Radio link %d must be set to %s", iLink+1, str_format_frequency(uRadioLinkFrequency));
+
+      int iLinkConfiguredInterfacesCount = 0;
+
+      for( int iInterface=0; iInterface<hardware_get_radio_interfaces_count(); iInterface++ )
+      {
+         if ( pModel->radioInterfacesParams.interface_link_id[iInterface] != iLink )
+            continue;
+         if ( pModel->radioInterfacesParams.interface_capabilities_flags[iInterface] & RADIO_HW_CAPABILITY_FLAG_DISABLED )
+         {
+            log_softerror_and_alarm("Radio Interface %d (assigned to radio link %d) is disabled!", iInterface+1, iLink+1 );
+            continue;
+         }
+
+         if ( ! hardware_radioindex_supports_frequency(iInterface, uRadioLinkFrequency ) )
+         {
+            log_softerror_and_alarm("Radio interface %d (assigned to radio link %d) does not support radio link frequency %s!", iInterface+1, iLink+1, str_format_frequency(uRadioLinkFrequency));
+            bMissmatch = true;
+            continue;
+         }
+
+         if ( hardware_radio_index_is_sik_radio(iInterface) )
+         {
+            log_line("Configuring SiK radio interface %d for radio link %d", iInterface+1, iLink+1);
+            radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(iInterface);
+            if ( NULL == pRadioHWInfo )
+            {
+               log_softerror_and_alarm("Failed to get radio hardware info for radio interface %d.", iInterface+1);
+               continue;
+            }
+            u32 uFreqKhz = uRadioLinkFrequency;
+            u32 uTxPower = pModel->radioInterfacesParams.interface_raw_power[iInterface];
+            u32 uECC = (pModel->radioLinksParams.link_radio_flags[iLink] & RADIO_FLAGS_SIK_ECC)? 1:0;
+            u32 uLBT = (pModel->radioLinksParams.link_radio_flags[iLink] & RADIO_FLAGS_SIK_LBT)? 1:0;
+            u32 uMCSTR = (pModel->radioLinksParams.link_radio_flags[iLink] & RADIO_FLAGS_SIK_MCSTR)? 1:0;
+            u32 uDataRate = pModel->radioLinksParams.downlink_datarate_data_bps[iLink];
+            bool bDataRateOk = false;
+            for( int k=0; k<getSiKAirDataRatesCount(); k++ )
+            {
+               if ( (int)uDataRate == getSiKAirDataRates()[k] )
+               {
+                  bDataRateOk = true;
+                  break;
+               }
+            }
+
+            if ( ! bDataRateOk )
+            {
+               log_softerror_and_alarm("Invalid radio datarate for SiK radio: %d bps. Revert to %d bps.", uDataRate, DEFAULT_RADIO_DATARATE_SIK_AIR);
+               uDataRate = DEFAULT_RADIO_DATARATE_SIK_AIR;
+            }
+
+            int iRetry = 0;
+            while ( iRetry < 2 )
+            {
+               int iRes = hardware_radio_sik_set_frequency_txpower_airspeed_lbt_ecc(pRadioHWInfo,
+                  uRadioLinkFrequency, uTxPower, uDataRate,
+                  uECC, uLBT, uMCSTR,
+                  pProcessStats);
+               if ( iRes != 1 )
+               {
+                  log_softerror_and_alarm("Failed to configure SiK radio interface %d", iInterface+1);
+                  iRetry++;
+               }
+               else
+               {
+                  log_line("Updated successfully SiK radio interface %d to txpower %d, airrate: %d bps, ECC/LBT/MCSTR: %d/%d/%d",
+                     iInterface+1, uTxPower, uDataRate, uECC, uLBT, uMCSTR);
+                  if ( NULL != pSMRadioStats )
+                     radio_stats_set_card_current_frequency(pSMRadioStats, iInterface, uFreqKhz);
+                  break;
+               }
+            }
+            if ( iRetry < 2 )
+               iLinkConfiguredInterfacesCount++;
+         }
+         else if ( hardware_radio_index_is_serial_radio(iInterface) )
+         {
+            iLinkConfiguredInterfacesCount++;          
+         }
+         else
+         {
+            radio_utils_set_interface_frequency(pModel, iInterface, iLink, uRadioLinkFrequency, pProcessStats, 0);
+            if ( NULL != pSMRadioStats )
+               radio_stats_set_card_current_frequency(pSMRadioStats, iInterface, uRadioLinkFrequency);
+            iLinkConfiguredInterfacesCount++;
+         }
+
+         if ( pModel->relay_params.isRelayEnabledOnRadioLinkId == iLink )
+         {
+            log_line("Did set radio interface %d to frequency %s (assigned to radio link %d in relay mode)", iInterface+1, str_format_frequency(uRadioLinkFrequency), iLink+1 );
+            pModel->radioInterfacesParams.interface_capabilities_flags[iInterface] |= RADIO_HW_CAPABILITY_FLAG_USED_FOR_RELAY;
+         }
+         else
+         {
+            log_line("Did set radio interface %d to frequency %s (assigned to radio link %d)", iInterface+1, str_format_frequency(uRadioLinkFrequency), iLink+1 );
+            pModel->radioInterfacesParams.interface_capabilities_flags[iInterface] &= (~RADIO_HW_CAPABILITY_FLAG_USED_FOR_RELAY);
+         }
+         pModel->radioInterfacesParams.interface_current_frequency_khz[iInterface] = uRadioLinkFrequency;
+      }
+      log_line("Configured a total of %d radio interfaces for radio link %d", iLinkConfiguredInterfacesCount, iLink+1);
+   }
+
+   if ( bMissmatch )
+   if ( 1 == pModel->radioLinksParams.links_count )
+   if ( 1 == pModel->radioInterfacesParams.interfaces_count )
+   {
+      log_line("There was a missmatch of frequency configuration for the single radio link present on vehicle. Reseting it to default.");
+      pModel->radioLinksParams.link_frequency_khz[0] = DEFAULT_FREQUENCY;
+      pModel->radioInterfacesParams.interface_current_frequency_khz[0] = pModel->radioLinksParams.link_frequency_khz[0];
+      radio_utils_set_interface_frequency(pModel, 0, 0, pModel->radioLinksParams.link_frequency_khz[0], pProcessStats, 0);
+      if ( NULL != pSMRadioStats )
+         radio_stats_set_card_current_frequency(pSMRadioStats, 0, pModel->radioLinksParams.link_frequency_khz[0]);
+      log_line("Set radio interface 1 to link 1 frequency %s", str_format_frequency(pModel->radioLinksParams.link_frequency_khz[0]) );
+   }
+   hardware_save_radio_info();
+   hardware_sleep_ms(50);
+
+   log_line("CONFIGURE RADIO END ---------------------------------------------------------");
+
+   return bMissmatch;
+}
 
 int radio_links_open_rxtx_radio_interfaces()
 {
    log_line("OPENING INTERFACES BEGIN =========================================================");
-   log_line("Opening RX/TX radio interfaces...");
+   s_uRadioLinksStartTime = g_TimeNow = get_current_timestamp_ms();
+   log_line("[RadioLinks] Opening RX/TX radio interfaces...");
    if ( g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId >= 0 )
       log_line("Relaying is enabled on radio link %d on frequency: %s.", g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId+1, str_format_frequency(g_pCurrentModel->relay_params.uRelayFrequencyKhz));
 
@@ -141,9 +344,11 @@ int radio_links_open_rxtx_radio_interfaces()
       }
    }
 
+   s_uRadioLinksStartTime = g_TimeNow = get_current_timestamp_ms();
+
    if ( countOpenedForRead == 0 )
    {
-      log_error_and_alarm("Failed to find or open any RX interface for receiving data.");
+      log_error_and_alarm("[RadioLinks] Failed to find or open any RX interface for receiving data.");
       radio_links_close_rxtx_radio_interfaces();
       return -1;
    }
@@ -230,14 +435,16 @@ int radio_links_open_rxtx_radio_interfaces()
       radio_tx_start_tx_thread();
    }
 
+   s_uRadioLinksStartTime = g_TimeNow = get_current_timestamp_ms();
+
    if ( 0 == countOpenedForWrite )
    {
-      log_error_and_alarm("Can't find any TX interfaces for video/data or failed to init it.");
+      log_error_and_alarm("[RadioLinks] Can't find any TX interfaces for video/data or failed to init it.");
       radio_links_close_rxtx_radio_interfaces();
       return -1;
    }
 
-   log_line("Opening RX/TX radio interfaces complete. %d interfaces for RX, %d interfaces for TX :", countOpenedForRead, countOpenedForWrite);
+   log_line("[RadioLinks] Opening RX/TX radio interfaces complete. %d interfaces for RX, %d interfaces for TX :", countOpenedForRead, countOpenedForWrite);
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
    {
       radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(i);
@@ -265,7 +472,9 @@ int radio_links_open_rxtx_radio_interfaces()
 
 void radio_links_close_rxtx_radio_interfaces()
 {
-   log_line("Closing all radio interfaces (rx/tx).");
+   log_line("[RadioLinks] Closing all radio interfaces (rx/tx).");
+
+   s_uRadioLinksStartTime = 0;
 
    radio_tx_mark_quit();
    hardware_sleep_ms(10);
@@ -294,7 +503,7 @@ void radio_links_close_rxtx_radio_interfaces()
       g_SM_RadioStats.radio_interfaces[i].openedForRead = 0;
       g_SM_RadioStats.radio_interfaces[i].openedForWrite = 0;
    }
-   log_line("Closed all radio interfaces (rx/tx)."); 
+   log_line("[RadioLinks] Closed all radio interfaces (rx/tx)."); 
 }
 
 
@@ -304,6 +513,8 @@ bool radio_links_apply_settings(Model* pModel, int iRadioLink, type_radio_links_
       return false;
    if ( (iRadioLink < 0) || (iRadioLink >= pModel->radioLinksParams.links_count) )
       return false;
+
+   s_uRadioLinksStartTime = g_TimeNow = get_current_timestamp_ms();
 
    // Update frequencies if needed
    // Update HT20/HT40 if needed
@@ -358,6 +569,121 @@ bool radio_links_apply_settings(Model* pModel, int iRadioLink, type_radio_links_
    }
 
    // Radio flags are applied on the fly, when sending each radio packet
+   s_uRadioLinksStartTime = g_TimeNow = get_current_timestamp_ms();   
+   return true;
+}
+
+u32 radio_links_get_last_start_time()
+{
+   return s_uRadioLinksStartTime;
+}
+
+bool radio_links_are_marked_for_restart()
+{
+   return s_bRadioLinksAreMarkedForRestart;
+}
+
+// Returns false if radio interfaces can't be configured or none are present
+bool radio_links_restart(bool bAsync)
+{
+   if ( bAsync )
+   {
+      log_line("[RadioLinks] Marked for restart, async. Currently where marked for restart? %s", s_bRadioLinksAreMarkedForRestart?"yes":"no");
+      s_bRadioLinksAreMarkedForRestart = true;
+      return true;
+   }
+   log_line("-----------------------------------");
+   log_line("[RadioLinks] Restart radio links...");
+   s_bRadioLinksAreMarkedForRestart = false;
+   radio_rx_stop_rx_thread();
+   radio_links_close_rxtx_radio_interfaces();
+
+   packets_queue_init(&g_QueueRadioPacketsOut);
+   packets_queue_init(&s_QueueControlPackets);
+
+   for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
+   {
+      memset(&g_UplinkInfoRxStats[i], 0, sizeof(type_uplink_rx_info_stats));
+      g_UplinkInfoRxStats[i].lastReceivedDBM = 1000;
+      g_UplinkInfoRxStats[i].lastReceivedDBMNoise = 1000;
+      g_UplinkInfoRxStats[i].lastReceivedSNR = 1000;
+      g_UplinkInfoRxStats[i].lastReceivedDataRate = 0;
+      g_UplinkInfoRxStats[i].timeLastLogWrongRxPacket = 0;
+   }
+   relay_init_and_set_rx_info_stats(&(g_UplinkInfoRxStats[0]));
+
+   if ( NULL != g_pProcessStats )
+   {
+      g_TimeNow = get_current_timestamp_ms();
+      g_pProcessStats->lastActiveTime = g_TimeNow;
+      g_pProcessStats->lastIPCIncomingTime = g_TimeNow;
+   }
+
+   if ( NULL == g_pCurrentModel )
+   {
+      log_error_and_alarm("[RadioLinks] Current model is NULL.");
+      return false;
+   }
+
+   if ( 0 == hardware_get_radio_interfaces_count() )
+   {
+      log_error_and_alarm("[RadioLinks] No radio interfaces present.");
+      return false;
+   }
+
+   configure_radio_interfaces_for_current_model(g_pCurrentModel, &g_SM_RadioStats, g_pProcessStats);
    
+   radio_duplicate_detection_remove_data_for_all_except(g_uControllerId);
+
+   if ( g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_USE_PCAP_RADIO_TX )
+      radio_set_use_pcap_for_tx(1);
+   else
+      radio_set_use_pcap_for_tx(0);
+
+   if ( g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_BYPASS_SOCKETS_BUFFERS )
+      radio_set_bypass_socket_buffers(1);
+   else
+      radio_set_bypass_socket_buffers(0);
+
+   int iDevMode = (g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE)?1:0;
+   radio_tx_set_dev_mode(iDevMode);
+   radio_rx_set_dev_mode(iDevMode);
+   radio_set_debug_flag(iDevMode);
+
+   radio_links_open_rxtx_radio_interfaces();
+   radio_rx_start_rx_thread(&g_SM_RadioStats, 0, g_pCurrentModel->getVehicleFirmwareType());
+    
+   if ( NULL != g_pProcessStats )
+   {
+      g_TimeNow = get_current_timestamp_ms();
+      g_pProcessStats->lastActiveTime = g_TimeNow;
+      g_pProcessStats->lastIPCIncomingTime = g_TimeNow;
+   }
+
+   log_line("[RadioLinks] Restart radio links: completed.");
+   log_line("--------------------------------------------");
+
+   static bool s_bFirstRadioStart = true;
+
+   if ( ! s_bFirstRadioStart )
+   {
+      log_line("[RadioLinks] Notify other processes to reload model");
+      t_packet_header PH;
+      radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_LOCAL_CONTROL_MODEL_CHANGED, STREAM_ID_DATA);
+      PH.vehicle_id_src = PACKET_COMPONENT_RUBY | (MODEL_CHANGED_GENERIC<<8);
+      PH.total_length = sizeof(t_packet_header);
+
+      ruby_ipc_channel_send_message(s_fIPCRouterToTelemetry, (u8*)&PH, PH.total_length);
+      ruby_ipc_channel_send_message(s_fIPCRouterToCommands, (u8*)&PH, PH.total_length);
+      if ( g_pCurrentModel->rc_params.rc_enabled )
+         ruby_ipc_channel_send_message(s_fIPCRouterToRC, (u8*)&PH, PH.total_length);
+               
+      if ( NULL != g_pProcessStats )
+         g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
+   }
+   s_bFirstRadioStart = false;
+   if ( NULL != g_pProcessStats )
+      g_pProcessStats->lastActiveTime = get_current_timestamp_ms();
+
    return true;
 }

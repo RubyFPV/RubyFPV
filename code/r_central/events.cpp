@@ -310,7 +310,8 @@ void onEventBeforePairingStop()
    if ( NULL != g_pCurrentModel )
    if ( g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId >= 0 )
    {
-      g_pCurrentModel->relay_params.uCurrentRelayMode = RELAY_MODE_MAIN | RELAY_MODE_IS_RELAY_NODE;
+      if ( ! (g_pCurrentModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE) )
+         g_pCurrentModel->relay_params.uCurrentRelayMode = RELAY_MODE_MAIN | RELAY_MODE_IS_RELAY_NODE;
       saveControllerModel(g_pCurrentModel);
    }
 
@@ -358,9 +359,9 @@ void onEventPairingStopped()
    log_line("[Events] Handled event Pairing Stopped. Done.");
 }
 
-void onEventPairingStartReceivingData()
+void onEventPairingStartReceivingData(u32 uVehicleId)
 {
-   log_line("[Events] Hadling event 'Started receiving data from a vehicle'.");
+   log_line("[Events] Hadling event 'Started receiving data from a vehicle', for VID: %u", uVehicleId);
    log_current_runtime_vehicles_info();
 
    if ( NULL != g_pPopupLooking )
@@ -384,16 +385,32 @@ void onEventPairingStartReceivingData()
       log_line("Removed popup wrong model (3).");
    }
 
+   t_structure_vehicle_info* pVRTInfo = NULL;
+   if ( g_bSearching )
+      pVRTInfo = &g_SearchVehicleRuntimeInfo;
+   else
+      pVRTInfo = &(g_VehiclesRuntimeInfo[g_iCurrentActiveVehicleRuntimeInfoIndex]);
+   log_line("[Events] Got already telemetry for this VID %u ? Ruby telem: %s, FC telemetry: %s",
+      uVehicleId, pVRTInfo->bGotRubyTelemetryInfo? "yes":"no",
+      pVRTInfo->bGotFCTelemetry? "yes":"no");
 
-   log_line("[Events] Got already telemetry for the current active vehicle runtime?: Ruby telem: %s, FC telemetry: %s",
-      g_VehiclesRuntimeInfo[g_iCurrentActiveVehicleRuntimeInfoIndex].bGotRubyTelemetryInfo? "yes":"no",
-      g_VehiclesRuntimeInfo[g_iCurrentActiveVehicleRuntimeInfoIndex].bGotFCTelemetry? "yes":"no");
+   log_line("[Events] Ruby telemetry received VID: %u", pVRTInfo->headerRubyTelemetryExtended.uVehicleId);
 
-   log_line("[Events] Mode 'Must sync settings on link recover' : %s", g_bSyncModelSettingsOnLinkRecover?"yes":"no");
+   log_line("[Events] Is pairing initated with this vehicle? %s", pVRTInfo->bNotificationPairingRequestSent?"Yes":"No");
+   log_line("[Events] Is pairing done and confirmed with this vehicle? %s", pVRTInfo->bPairedConfirmed?"Yes":"No");
+
+   if ( g_bSearching )
+   {
+      log_line("[Events] Handled event 'Started receiving data from vehicle' (while searching)");
+      return;
+   }
+
+   log_line("[Events] Mode 'Must sync settings on link recover' is set? %s", g_bSyncModelSettingsOnLinkRecover?"Yes":"No");
+
    if ( NULL == g_pCurrentModel )
       log_line("[Events] No current model active.");
    else
-      log_line("[Events] Must sync model settings: %s", g_pCurrentModel->b_mustSyncFromVehicle?"yes":"no");
+      log_line("[Events] Must sync current model settings: %s", g_pCurrentModel->b_mustSyncFromVehicle?"yes":"no");
    if ( g_bSyncModelSettingsOnLinkRecover )
    {
       log_line("Must sync model setings on link recover.");
@@ -441,24 +458,29 @@ bool _onEventCheck_NegociateRadioLinks(Model* pCurrentlyStoredModel, Model* pNew
    g_bMustNegociateRadioLinksFlag = false;
 
    if ( NULL != pNewReceivedModel )
-   if ( get_sw_version_build(pNewReceivedModel) != SYSTEM_SW_BUILD_NUMBER )
+   if ( ! is_sw_version_latest(pNewReceivedModel) )
+   {
+      log_line("Negociate radio links? No, vehicle's SW version %d.%d (b-%d) is different than controller's %d.%d", get_sw_version_major(pNewReceivedModel), get_sw_version_minor(pNewReceivedModel), get_sw_version_build(pNewReceivedModel), SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR);
       return false;
-
+   }
    if ( (NULL == pNewReceivedModel) && (NULL != pCurrentlyStoredModel) )
-   if ( get_sw_version_build(pCurrentlyStoredModel) != SYSTEM_SW_BUILD_NUMBER )
+   if ( ! is_sw_version_latest(pCurrentlyStoredModel) )
+   {
+      log_line("Negociate radio links? No, received vehicle is null, current vehicle's SW build version %d.%d different than controller's %d.%d", get_sw_version_major(pCurrentlyStoredModel), get_sw_version_minor(pCurrentlyStoredModel), SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR);
       return false;
+   }
 
    if ( NULL != pNewReceivedModel )
    if ( pNewReceivedModel->uControllerId != g_uControllerId )
    {
-      log_line("Vehicle was paired with a different controller: %u (this controller: %u)", pNewReceivedModel->uControllerId, g_uControllerId);
+      log_line("Negociate radio links? Yes, vehicle was paired with a different controller: %u (this controller: %u)", pNewReceivedModel->uControllerId, g_uControllerId);
       g_bMustNegociateRadioLinksFlag = true;
    }
 
    if ( NULL != pCurrentlyStoredModel )
    if ( !(pCurrentlyStoredModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS) )
    {
-      log_line("Currently stored model has not negociated radio links.");
+      log_line("Negociate radio links? Yes, currently stored model has not negociated radio links.");
       g_bMustNegociateRadioLinksFlag = true;
    }
 
@@ -466,28 +488,28 @@ bool _onEventCheck_NegociateRadioLinks(Model* pCurrentlyStoredModel, Model* pNew
    if ( g_pCurrentModel->uVehicleId == pCurrentlyStoredModel->uVehicleId )
    if ( !(pCurrentlyStoredModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS) )
    {
-      log_line("Currently stored model (2) has not negociated radio links.");
+      log_line("Negociate radio links? Yes, currently stored model (2) has not negociated radio links.");
       g_bMustNegociateRadioLinksFlag = true;
    }
 
    if ( NULL != pNewReceivedModel )
    if ( !(pNewReceivedModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS) )
    {
-      log_line("Received model has not negociated radio links.");
+      log_line("Negociate radio links? Yes, received model has not negociated radio links.");
       g_bMustNegociateRadioLinksFlag = true;
    }
 
    if ( NULL != pNewReceivedModel )
    if ( !(pNewReceivedModel->radioRuntimeCapabilities.uFlagsRuntimeCapab & MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED) )
    {
-      log_line("Received model has not computed runtime radio links capabilities.");
+      log_line("Negociate radio links? Yes, received model has no computed runtime radio links capabilities.");
       g_bMustNegociateRadioLinksFlag = true;
    }
 
    if ( (NULL != pCurrentlyStoredModel) && (NULL != pNewReceivedModel) )
    if ( pCurrentlyStoredModel->radioInterfacesParams.interfaces_count != pNewReceivedModel->radioInterfacesParams.interfaces_count )
    {
-      log_line("Received model and current model have different interfaces count.");
+      log_line("Negociate radio links? Yes, received model and current model have different interfaces count.");
       g_bMustNegociateRadioLinksFlag = true;
    }
    if ( (NULL != pCurrentlyStoredModel) && (NULL != pNewReceivedModel) )
@@ -495,24 +517,24 @@ bool _onEventCheck_NegociateRadioLinks(Model* pCurrentlyStoredModel, Model* pNew
    {
        if ( pCurrentlyStoredModel->radioInterfacesParams.interface_card_model[i] != pNewReceivedModel->radioInterfacesParams.interface_card_model[i] )
        {
-          log_line("Received model and current model have different interfaces model for radio interface %d: %d != %d", i+1, pCurrentlyStoredModel->radioInterfacesParams.interface_card_model[i], pNewReceivedModel->radioInterfacesParams.interface_card_model[i] );
+          log_line("Negociate radio links? Yes, received model and current model have different interfaces model for radio interface %d: %d != %d", i+1, pCurrentlyStoredModel->radioInterfacesParams.interface_card_model[i], pNewReceivedModel->radioInterfacesParams.interface_card_model[i] );
           g_bMustNegociateRadioLinksFlag = true;
        }
        if ( pCurrentlyStoredModel->radioInterfacesParams.interface_radiotype_and_driver[i] != pNewReceivedModel->radioInterfacesParams.interface_radiotype_and_driver[i] )
        {
-          log_line("Received model and current model have different interfaces drivers for radio interface %d: %d != %d", i+1, pCurrentlyStoredModel->radioInterfacesParams.interface_radiotype_and_driver[i], pNewReceivedModel->radioInterfacesParams.interface_radiotype_and_driver[i] );
+          log_line("Negociate radio links? Yes, received model and current model have different interfaces drivers for radio interface %d: %d != %d", i+1, pCurrentlyStoredModel->radioInterfacesParams.interface_radiotype_and_driver[i], pNewReceivedModel->radioInterfacesParams.interface_radiotype_and_driver[i] );
           g_bMustNegociateRadioLinksFlag = true;
        }
        if ( 0 != strcmp(pCurrentlyStoredModel->radioInterfacesParams.interface_szMAC[i], pNewReceivedModel->radioInterfacesParams.interface_szMAC[i]) )
        {
-          log_line("Received model and current model have different interfaces names for radio interface %d: (%s) != (%s)", i+1, pCurrentlyStoredModel->radioInterfacesParams.interface_szMAC[i], pNewReceivedModel->radioInterfacesParams.interface_szMAC[i] );
+          log_line("Negociate radio links? Yes, received model and current model have different interfaces names for radio interface %d: (%s) != (%s)", i+1, pCurrentlyStoredModel->radioInterfacesParams.interface_szMAC[i], pNewReceivedModel->radioInterfacesParams.interface_szMAC[i] );
           g_bMustNegociateRadioLinksFlag = true;
        }
    }
 
    if ( g_bLinkWizardAfterUpdate )
    {
-      log_line("An update was done. Must show radio link wizard.");
+      log_line("Negociate radio links? Yes, an update was done. Must show radio link wizard.");
       g_bMustNegociateRadioLinksFlag = true;
    }
    //if ( g_bDidAnUpdate )
@@ -648,7 +670,7 @@ bool _onEventCheckChangesToModel(Model* pCurrentlyStoredModel, Model* pNewReceiv
 
 // Returns true if actions where taken or needed to be taken
 
-bool _onEventCheckNewPairedModelForUIActionsToTake()
+bool _onEventCheckNewlyPairedModelForUIActionsToTake()
 {
    log_line("[Events] Checking for pairing UI actions to take...");
 
@@ -687,7 +709,7 @@ bool _onEventCheckNewPairedModelForUIActionsToTake()
    }
 
    if ( ! s_bEventTookPairingUIActionUpdateController )
-   if ( SYSTEM_SW_BUILD_NUMBER < get_sw_version_build(s_pEventsLastRecvModelSettings) )
+   if ( ! is_sw_version_latest(s_pEventsLastRecvModelSettings) )
    {
       char szBuff[256];
       char szBuff2[32];
@@ -696,7 +718,7 @@ bool _onEventCheckNewPairedModelForUIActionsToTake()
       getSystemVersionString(szBuff2, s_pEventsLastRecvModelSettings->sw_version);
       getSystemVersionString(szBuff3, (SYSTEM_SW_VERSION_MAJOR<<8) | SYSTEM_SW_VERSION_MINOR);
       strcpy(szBuff4, s_pEventsLastRecvModelSettings->getVehicleTypeString());
-      snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%s has Ruby version %s (b%u) and your controller %s (b%u). You should update your controller.", szBuff4, szBuff2, s_pEventsLastRecvModelSettings->sw_version>>16, szBuff3, SYSTEM_SW_BUILD_NUMBER);
+      snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%s has Ruby version %s (b-%u) and your controller %s (b-%u). You should update your controller.", szBuff4, szBuff2, get_sw_version_build(s_pEventsLastRecvModelSettings), szBuff3, SYSTEM_SW_BUILD_NUMBER);
       szBuff[0] = toupper(szBuff[0]);
       warnings_add(s_pEventsLastRecvModelSettings->uVehicleId, szBuff, 0, NULL, 10);
       MenuConfirmation* pMC = new MenuConfirmation(L("Update Info"), szBuff, 0, true);
@@ -710,10 +732,7 @@ bool _onEventCheckNewPairedModelForUIActionsToTake()
    }
 
    bool bMustUpdate = false;
-   if ( ((u32)SYSTEM_SW_VERSION_MAJOR)*(int)256 + (u32)SYSTEM_SW_VERSION_MINOR > (s_pEventsLastRecvModelSettings->sw_version & 0xFFFF) )
-      bMustUpdate = true;
-   
-   if ( SYSTEM_SW_BUILD_NUMBER > (s_pEventsLastRecvModelSettings->sw_version >> 16) )
+   if ( ! is_sw_version_latest(s_pEventsLastRecvModelSettings) )
       bMustUpdate = true;
 
    if ( s_pEventsLastRecvModelSettings->isRunningOnOpenIPCHardware() )
@@ -729,7 +748,7 @@ bool _onEventCheckNewPairedModelForUIActionsToTake()
       getSystemVersionString(szBuff2, s_pEventsLastRecvModelSettings->sw_version);
       getSystemVersionString(szBuff3, (SYSTEM_SW_VERSION_MAJOR<<8) | SYSTEM_SW_VERSION_MINOR);
       strcpy(szBuff4, s_pEventsLastRecvModelSettings->getVehicleTypeString());
-      snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), L("%s has Ruby version %s (b%u) and your controller %s (b%u). You should update your %s."), szBuff4, szBuff2, s_pEventsLastRecvModelSettings->sw_version>>16, szBuff3, SYSTEM_SW_BUILD_NUMBER, szBuff4);
+      snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), L("%s has Ruby version %s (b-%u) and your controller %s (b-%u). You should update your %s."), szBuff4, szBuff2, get_sw_version_build(s_pEventsLastRecvModelSettings), szBuff3, SYSTEM_SW_BUILD_NUMBER, szBuff4);
       szBuff[0] = toupper(szBuff[0]);
       warnings_add(s_pEventsLastRecvModelSettings->uVehicleId, szBuff, 0, NULL, 12);
       bool bArmed = false;
@@ -752,7 +771,6 @@ bool _onEventCheckNewPairedModelForUIActionsToTake()
    }
 
    if ( ! g_pCurrentModel->is_spectator )
-   if ( is_sw_version_atleast(s_pEventsLastRecvModelSettings, 9, 7) )
    if ( hardware_board_is_sigmastar(s_pEventsLastRecvModelSettings->hwCapabilities.uBoardType) )
    if ( (s_pEventsLastRecvModelSettings->hwCapabilities.uBoardType & BOARD_SUBTYPE_MASK) == BOARD_SUBTYPE_OPENIPC_UNKNOWN )
    if ( ! menu_has_menu(MENU_ID_VEHICLE_BOARD) )
@@ -765,7 +783,7 @@ bool _onEventCheckNewPairedModelForUIActionsToTake()
    }
 
    if ( ! g_pCurrentModel->is_spectator )
-   if ( get_sw_version_build(s_pEventsLastRecvModelSettings) >= 279 )
+   if ( is_sw_version_latest(s_pEventsLastRecvModelSettings) )
    if ( ! s_bEventTookPairingUIActionSimpleSetup )
    if ( s_pEventsLastRecvModelSettings->osd_params.uFlags & OSD_BIT_FLAGS_MUST_CHOOSE_PRESET )
    {
@@ -812,21 +830,28 @@ bool _onEventCheckNewPairedModelForUIActionsToTake()
    }
    #endif
 
-   if ( ! g_pCurrentModel->is_spectator )
-   if ( s_pEventsLastRecvModelSettings->hasCamera() )
-   if ( ! menu_has_menu(MENU_ID_NEGOCIATE_RADIO) )
-   if ( ! menu_has_menu(MENU_ID_VEHICLE_BOARD) )
-   if ( ! g_bAskedForNegociateRadioLink )
-   if ( (s_pEventsLastRecvModelSettings->sw_version >> 16) > 288 )
-   if ( ! s_bEventTookPairingUIActionNegociateRadio )
    if ( g_bMustNegociateRadioLinksFlag )
    {
-      add_menu_to_stack(new MenuNegociateRadio());
-      s_bEventTookPairingUIActionNegociateRadio = true;
-      log_line("[Events] Added pairing UI action: negociate radio links.");
-      return true;
+      if ( ! g_pCurrentModel->is_spectator )
+      if ( ! menu_has_menu(MENU_ID_NEGOCIATE_RADIO) )
+      if ( ! menu_has_menu(MENU_ID_VEHICLE_BOARD) )
+      if ( ! g_bAskedForNegociateRadioLink )
+      if ( is_sw_version_latest(s_pEventsLastRecvModelSettings) )
+      if ( ! s_bEventTookPairingUIActionNegociateRadio )
+      {
+         add_menu_to_stack(new MenuNegociateRadio());
+         s_bEventTookPairingUIActionNegociateRadio = true;
+         log_line("[Events] Added pairing UI action: negociate radio links.");
+         return true;
+      }
+      log_line("[Events] Flag is set that we must negociate radio links, but checks fail: spectator? %s, has camera: %s, has other menus visible? %s, already asked for negociate? %s, sw too old? %s, already took pairing action to start radio link negociation? %s",
+         g_pCurrentModel->is_spectator?"yes":"no",
+         s_pEventsLastRecvModelSettings->hasCamera()?"yes":"no",
+         (menu_has_menu(MENU_ID_NEGOCIATE_RADIO) || menu_has_menu(MENU_ID_VEHICLE_BOARD))?"yes":"no",
+         g_bAskedForNegociateRadioLink?"yes":"no",
+         is_sw_version_latest(s_pEventsLastRecvModelSettings)?"no":"yes",
+         s_bEventTookPairingUIActionNegociateRadio?"yes":"no");
    }
-
    #if defined HW_PLATFORM_RASPBERRY
    if ( ! s_bEventTookPairingUIActionEncoderSpikes )
    //if ( ! g_bDidAnUpdate )
@@ -1091,23 +1116,6 @@ bool onEventReceivedModelSettings(u32 uVehicleId, u8* pBuffer, int length, bool 
    log_line("[Events] Received model (VID %u) radio links configuration:", s_pEventsLastRecvModelSettings->uVehicleId);
    s_pEventsLastRecvModelSettings->logVehicleRadioInfo();
 
-   // Remove relay flags from radio links flags for vehicles version 7.6 or older (build 79)
-
-   bool bRemoveRelayFlags = false;
-   if ( (s_pEventsLastRecvModelSettings->sw_version>>16) < 79 )
-      bRemoveRelayFlags = true;
-
-   if ( bRemoveRelayFlags )
-   {
-      log_line("Received model settings for vehicle version 7.5 or older. Remove relay flags.");
-
-      for( int i=0; i<s_pEventsLastRecvModelSettings->radioLinksParams.links_count; i++ )
-         s_pEventsLastRecvModelSettings->radioLinksParams.link_capabilities_flags[i] &= ~(RADIO_HW_CAPABILITY_FLAG_USED_FOR_RELAY);
-
-      for( int i=0; i<s_pEventsLastRecvModelSettings->radioInterfacesParams.interfaces_count; i++ )
-         s_pEventsLastRecvModelSettings->radioInterfacesParams.interface_capabilities_flags[i] &= ~(RADIO_HW_CAPABILITY_FLAG_USED_FOR_RELAY);
-   }
-
    log_line("Current (before update) local model (VID: %u) mode: %s, has negociated radio? %s, controller id: %u", pCurrentlyStoredModel->uVehicleId, pCurrentlyStoredModel->is_spectator?"spectator mode":"control mode", (pCurrentlyStoredModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS)?"yes":"no", pCurrentlyStoredModel->uControllerId);
    log_line("Current (before update) current model (g_pCurrentModel) (VID: %u) mode: %s, has negociated radio? %s", g_pCurrentModel->uVehicleId, g_pCurrentModel->is_spectator?"spectator mode":"control mode", (g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS)?"yes":"no");
    log_line("Current (before update) current camera index: %d, type: %s", g_pCurrentModel->iCurrentCamera,
@@ -1151,7 +1159,7 @@ bool onEventReceivedModelSettings(u32 uVehicleId, u8* pBuffer, int length, bool 
    else
       warnings_add(pCurrentlyStoredModel->uVehicleId, L("Synchronized vehicle settings."), g_idIconCheckOK);
 
-   log_line("The currently stored vehicle has Ruby version %d.%d (b%d) (%u) and the controller %d.%d (b%d) (%u)", ((pCurrentlyStoredModel->sw_version)>>8) & 0xFF, (pCurrentlyStoredModel->sw_version) & 0xFF, ((pCurrentlyStoredModel->sw_version)>>16), pCurrentlyStoredModel->sw_version, SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER, (SYSTEM_SW_VERSION_MAJOR*256+SYSTEM_SW_VERSION_MINOR) | (SYSTEM_SW_BUILD_NUMBER<<16) );
+   log_line("The currently stored vehicle has Ruby version %d.%d (b-%d) and the controller %d.%d (b-%d)", get_sw_version_major(pCurrentlyStoredModel), get_sw_version_minor(pCurrentlyStoredModel), get_sw_version_build(pCurrentlyStoredModel), SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER );
 
    bool bOldIsSpectator = pCurrentlyStoredModel->is_spectator;
    osd_parameters_t oldOSDParams;
@@ -1241,7 +1249,7 @@ bool onEventReceivedModelSettings(u32 uVehicleId, u8* pBuffer, int length, bool 
 
    log_line("[Events] Handled of event OnReceivedModelSettings complete.");
 
-   s_bEventTookPairingUIAction = _onEventCheckNewPairedModelForUIActionsToTake();
+   s_bEventTookPairingUIAction = _onEventCheckNewlyPairedModelForUIActionsToTake();
    if ( ! s_bEventTookPairingUIAction )
    {
       log_line("[Events] No pairing UI action to take.");
@@ -1300,7 +1308,7 @@ void onEventCheckForPairPendingUIActionsToTake()
       return;
    if ( g_pCurrentModel->uVehicleId != s_pEventsLastRecvModelSettings->uVehicleId )
       return;
-   s_bEventTookPairingUIAction = _onEventCheckNewPairedModelForUIActionsToTake();
+   s_bEventTookPairingUIAction = _onEventCheckNewlyPairedModelForUIActionsToTake();
    if ( ! s_bEventTookPairingUIAction )
    {
       log_line("[Events] No pairing UI action to take.");

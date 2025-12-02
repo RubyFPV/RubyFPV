@@ -139,7 +139,7 @@ typedef unsigned char gf;
  * Primitive polynomials - see Lin & Costello, Appendix A,
  * and  Lee & Messerschmitt, p. 453.
  */
-static char *allPp[] = {    /* GF_BITS	polynomial		*/
+static const char *allPp[] = {    /* GF_BITS	polynomial		*/
     NULL,		    /*  0	no code			*/
     NULL,		    /*  1	no code			*/
     "111",		    /*  2	1+x+x^2			*/
@@ -250,7 +250,7 @@ generate_gf(void)
 {
     int i;
     gf mask;
-    char *Pp =  allPp[GF_BITS] ;
+    const char *Pp =  allPp[GF_BITS] ;
 
     mask = 1;	/* x ** 0 = 1 */
     gf_exp[GF_BITS] = 0; /* will be updated at the end of the 1st loop */
@@ -585,7 +585,7 @@ invert_mat(gf *src, int k)
     int ipiv[k];
     gf id_row[k];
 
-    memset(id_row, 0, k*sizeof(gf));
+    memset(id_row, 0, k*(int)sizeof(gf));
     DEB( pivloops=0; pivswaps=0 ; /* diagnostic */ )
 	/*
 	 * ipiv marks elements already used as pivots.

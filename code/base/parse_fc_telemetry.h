@@ -9,7 +9,7 @@ void parse_telemetry_set_show_local_vspeed(bool bShowLocalVerticalSpeed);
 void parse_telemetry_remove_duplicate_messages(bool bRemove);
 void parse_telemetry_force_always_armed(bool bForce);
 
-bool parse_telemetry_from_fc( u8* buffer, int length, t_packet_header_fc_telemetry* pphfct, t_packet_header_ruby_telemetry_extended_v5* pPHRTE, u8 vehicleType, int telemetry_type );
+bool parse_telemetry_from_fc( u8* buffer, int length, t_packet_header_fc_telemetry* pphfct, t_packet_header_ruby_telemetry_extended_v6* pPHRTE, u8 vehicleType, int telemetry_type );
 bool has_received_gps_info();
 bool has_received_flight_mode();
 u32  get_last_message_time();

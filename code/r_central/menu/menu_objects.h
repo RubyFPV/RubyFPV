@@ -118,6 +118,10 @@
 #define MENU_ID_CONTROLLER_UPDATE_NET 130
 #define MENU_ID_VEHICLE_RADIO_PIT 131
 #define MENU_ID_VEHICLE_RADIO_RUNTIME_CAPS 132
+#define MENU_ID_CONTROLLER_CPU_PRIORITIES 133
+#define MENU_ID_VEHICLE_CPU_PRIORITIES 134
+#define MENU_ID_PROC_INFO 135
+#define MENU_ID_VEHICLE_VIDEO_COMPARE 137
 
 
 #define MAX_MENU_ITEMS 150
@@ -241,6 +245,7 @@ class Menu
      void addMessage(const char* szMessage);
      void addMessage(int iId, const char* szMessage);
      void addMessage2(int iId, const char* szMessage, const char* szLine2);
+     void addMessageWithTitleAndIcon(int iId, const char* szTitle, const char* szMessage, u32 uIconId);
 
      static void updateOTAStatus(u8 uOTAStatus, u32 uOTACounter);
 

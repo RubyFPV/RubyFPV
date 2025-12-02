@@ -90,7 +90,7 @@ bool MenuSystemHardware::periodicLoop()
          break;
 
       if ( hardware_is_known_i2c_device(m_nSearchI2CDeviceAddress) )
-      if ( hardware_has_i2c_device_id(m_nSearchI2CDeviceAddress) )
+      if ( hardware_i2c_has_device_id(m_nSearchI2CDeviceAddress) )
       {
          s_nMenuSystemI2CDevices[m_nSearchI2CDeviceAddress] = m_nSearchI2CDeviceAddress;
          hardware_i2c_get_device_settings((u8)m_nSearchI2CDeviceAddress);
@@ -260,7 +260,7 @@ float MenuSystemHardware::renderVehicleInfo(float xPos, float yPos, float width)
             continue;
          char szName[128];
          szName[0] = 0;
-         hardware_get_i2c_device_name(g_pCurrentModel->hardwareInterfacesInfo.i2c_devices_address[k], szName);
+         hardware_i2c_get_device_name(g_pCurrentModel->hardwareInterfacesInfo.i2c_devices_address[k], szName);
          if ( hardware_is_known_i2c_device(g_pCurrentModel->hardwareInterfacesInfo.i2c_devices_address[k]) )
             sprintf(szBuff, "Address 0x%02X - %s", g_pCurrentModel->hardwareInterfacesInfo.i2c_devices_address[k], szName);
          else
@@ -325,11 +325,11 @@ float MenuSystemHardware::renderControllerInfo(float xPos, float yPos, float wid
    //-----------------------------------------
    // Serial ports
 
-   sprintf(szBuff, "Serial Ports: %d found", hardware_get_serial_ports_count());
+   sprintf(szBuff, "Serial Ports: %d found", hardware_serial_get_ports_count());
    yPos += g_pRenderEngine->drawMessageLines(xPos, yPos, szBuff, MENU_TEXTLINE_SPACING, width, g_idFontMenu);
    yPos += MENU_TEXTLINE_SPACING * height_text;
 
-   for( int i=0; i<hardware_get_serial_ports_count(); i++ )
+   for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
       hw_serial_port_info_t* pInfo = hardware_get_serial_port_info(i);
       if ( NULL == pInfo )
@@ -353,16 +353,16 @@ float MenuSystemHardware::renderControllerInfo(float xPos, float yPos, float wid
    yPos += g_pRenderEngine->drawMessageLines(xPos, yPos, "I2C Devices and Busses:", MENU_TEXTLINE_SPACING, width, g_idFontMenu);
    yPos += MENU_TEXTLINE_SPACING * height_text;
 
-   for( int i=0; i<hardware_get_i2c_busses_count(); i++ )
+   for( int i=0; i<hardware_i2c_get_busses_count(); i++ )
    {
-      hw_i2c_bus_info_t* pBus = hardware_get_i2c_bus_info(i);
+      hw_i2c_bus_info_t* pBus = hardware_i2c_get_bus_info(i);
 
       int count = 0;
       for( int k=1; k<128; k++ )
       {
-         if ( ! hardware_has_i2c_device_id(k) )
+         if ( ! hardware_i2c_has_device_id(k) )
             continue;
-         if ( hardware_get_i2c_device_bus_number(k) != pBus->nBusNumber )
+         if ( hardware_i2c_get_device_bus_number(k) != pBus->nBusNumber )
             continue;
          count++;
       }
@@ -376,9 +376,9 @@ float MenuSystemHardware::renderControllerInfo(float xPos, float yPos, float wid
       count = 0;
       for( int k=1; k<128; k++ )
       {
-         if ( ! hardware_has_i2c_device_id(k) )
+         if ( ! hardware_i2c_has_device_id(k) )
             continue;
-         if ( hardware_get_i2c_device_bus_number(k) != pBus->nBusNumber )
+         if ( hardware_i2c_get_device_bus_number(k) != pBus->nBusNumber )
             continue;
          t_i2c_device_settings* pInfo = hardware_i2c_get_device_settings((u8)k);
          if ( NULL != pInfo )

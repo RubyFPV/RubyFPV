@@ -6,6 +6,7 @@
 typedef struct
 {
    u32 uVehicleId;
+   bool bReceivedAnyData;
 
    // Pairing info
    bool bIsPairingDone;
@@ -40,18 +41,6 @@ typedef struct
    u32 uMaxCommandRoundtripMiliseconds;
    u32 uMinCommandRoundtripMiliseconds;
 
-   // Transmission frame info
-   u32 uTimeLastDequeuedFrameData;
-   u32 uTimeLastFrameStart;
-   u16 uCurrentFrameId;
-   int iLastVideoDatarateBPS;
-   bool bIsReceivingFrameData;
-   bool bIsFrameEndDetected;
-   bool bIsFrameEnded;
-   u32 uTimeStartWindowTxData;
-   u32 uTimeEndWindowTxData;
-   u32 uTimeLastTxData;
-
    // Adaptive video info
    bool bIsDoingRetransmissions;
    bool bIsAdaptiveVideoActive;
@@ -62,6 +51,8 @@ typedef struct
    u32 uAdaptiveVideoAckId;
    u32 uLastTimeSentAdaptiveVideoRequest;
    u32 uLastTimeRecvAdaptiveVideoAck;
+   u32 uTimeStartCountingMetricAreOkToSwithHigher;
+
 
    u32 uCurrentAdaptiveVideoTargetVideoBitrateBPS;
    u16 uCurrentAdaptiveVideoECScheme; // high: data, low: EC
@@ -73,6 +64,7 @@ typedef struct
    u8  uPendingDRBoostToSet;
    int iPendingKeyFrameMsToSet;
    int iAdaptiveLevelNow; // from 0 to max lowest adaptive level
+   bool bIsOnLowestAdaptiveLevel;
 } ALIGN_STRUCT_SPEC_INFO type_global_state_vehicle_runtime_info;
 
 

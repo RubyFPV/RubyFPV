@@ -50,7 +50,7 @@ bool s_bOnArmEventHandled = false;
 bool s_bLogNextMAVLinkMessage = true;
 static int s_iCountTelemetryMAVLinkWriteErrors = 0;
 
-extern t_packet_header_ruby_telemetry_extended_v5 sPHRTE;
+extern t_packet_header_ruby_telemetry_extended_v6 sPHRTE;
 u32 s_SentTelemetryCounter = 0;
 long int s_lLastPosLat = 0;
 long int s_lLastPosLon = 0;
@@ -121,7 +121,7 @@ void _telemetry_mavlink_send_setup()
    else
       s_iCountTelemetryMAVLinkWriteErrors = 0;
    
-   int rate = g_pCurrentModel->telemetry_params.update_rate;
+   int rate = g_pCurrentModel->telemetry_params.iUpdateRateHz;
    if ( rate < 1 ) rate = 1;
    if ( rate > 10 ) rate = 10;
    mavlink_msg_request_data_stream_pack(g_pCurrentModel->telemetry_params.controller_mavlink_id, componentId, &msgDataStreams, g_pCurrentModel->telemetry_params.vehicle_mavlink_id, MAV_COMP_ID_AUTOPILOT1, MAV_DATA_STREAM_ALL, rate, 1);

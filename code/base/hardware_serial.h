@@ -28,16 +28,16 @@ typedef struct
 } ALIGN_STRUCT_SPEC_INFO hw_serial_port_info_t;
 
 
-int* hardware_get_serial_baud_rates();
-int hardware_get_serial_baud_rates_count();
+int* hardware_serial_get_baud_rates();
+int hardware_serial_get_baud_rates_count();
 
-int hardware_init_serial_ports();
-int hardware_reload_serial_ports_settings();
+int hardware_serial_init_ports();
+int hardware_serial_reload_ports_settings();
 void hardware_serial_save_configuration();
 
-int hardware_has_unsupported_serial_ports();
+int hardware_serial_has_unsupported_ports();
 
-int hardware_get_serial_ports_count();
+int hardware_serial_get_ports_count();
 hw_serial_port_info_t* hardware_get_serial_port_info(int iPortIndex);
 hw_serial_port_info_t* hardware_get_serial_port_info_from_serial_port_name(char* szPortName);
 

@@ -14,15 +14,6 @@ class MenuVehicleExpert: public Menu
       virtual void onSelectItem();
       
    private:
-      int m_IndexNiceRouter, m_IndexNiceRC, m_IndexIONiceRouter, m_IndexIONiceRouterValue;
-      int m_IndexIONice, m_IndexIONiceValue;
-      int m_IndexNiceVideo, m_IndexNiceTelemetry, m_IndexNiceOthers;
-      int m_IndexEnableRouter;
-      int m_IndexRouter;
-      int m_IndexEnableRadio;
-      int m_IndexRadioRx;
-      int m_IndexRadioTx;
-
       int m_IndexReboot;
       int m_IndexDHCP;
       int m_IndexCPUEnabled;
@@ -32,6 +23,7 @@ class MenuVehicleExpert: public Menu
       int m_IndexGPUSpeed;
       int m_IndexVoltage;
       int m_IndexReset;
+      int m_IndexPriorities;
       
       MenuItemSlider* m_pItemsSlider[20];
       MenuItemSelect* m_pItemsSelect[20];

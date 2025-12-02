@@ -595,7 +595,13 @@ float osd_show_video_profile_mode(float xPos, float yPos, u32 uFontId, bool bLef
       strcat(szBuff, "-1Way");
    if (((pVDS->PHVS.uVideoStreamIndexAndType >> 4) & 0x0F) == VIDEO_TYPE_H265 )
       strcat(szBuff, " H265");
-     
+   
+   if ( pVDS->bIsOnLowestAdaptiveLevel )
+   {
+      char szTmp[64];
+      snprintf(szTmp, sizeof(szTmp)/sizeof(szTmp[0]), "%s.", szBuff);
+      strcpy(szBuff, szTmp);
+   }
    fWidth = g_pRenderEngine->textWidth(uFontId, szBuff);
 
    if ( bLeft )
@@ -636,8 +642,8 @@ float osd_render_relay(float xCenter, float yBottom, bool bHorizontal)
    float fWidth = 0.0;
    float yPos = yBottom-fHeight;
    
-   Model *pModel = findModelWithId(g_pCurrentModel->relay_params.uRelayedVehicleId, 30);
-   if ( NULL == pModel || ( pModel->uVehicleId == g_pCurrentModel->uVehicleId ) )
+   Model *pRelayedModel = findModelWithId(g_pCurrentModel->relay_params.uRelayedVehicleId, 30);
+   if ( (NULL == pRelayedModel) || (pRelayedModel->uVehicleId == g_pCurrentModel->uVehicleId) )
    {
       fHeight = height_text + 2.0*fPaddingY;
       yPos = yBottom - fHeight;
@@ -662,7 +668,7 @@ float osd_render_relay(float xCenter, float yBottom, bool bHorizontal)
    strncpy(szName1, g_pCurrentModel->getLongName(), 127);
    szName1[0] = toupper(szName1[0]);
 
-   strncpy(szName2, pModel->getLongName(), 127);
+   strncpy(szName2, pRelayedModel->getLongName(), 127);
    szName2[0] = toupper(szName2[0]);
 
    float fWidthName1 = g_pRenderEngine->textWidth(g_idFontOSDSmall, szName1);
@@ -678,30 +684,44 @@ float osd_render_relay(float xCenter, float yBottom, bool bHorizontal)
    float fWidthRight = fWidthName2;
    if ( fWidthTextRelay > fWidthRight )
       fWidthRight = fWidthTextRelay;
-
+   
    float xLeft = xCenter - fWidthLeft - 2.0 * fPaddingX;
    float xRight = xCenter + fWidthRight + 2.0 * fPaddingX;
+
+   if ( g_pCurrentModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE )
+   {
+      xLeft = xCenter - 0.5 * fWidthRight - fPaddingX;
+      xRight = xCenter + 0.5 * fWidthRight + fPaddingX;
+   }
    fWidth = xRight - xLeft;
 
    g_pRenderEngine->setFill(0,0,0,0.1);
    g_pRenderEngine->setStrokeSize(1.0);
    g_pRenderEngine->drawRoundRect(xLeft, yPos, fWidth, fHeight, 0.01);
-   g_pRenderEngine->drawLine(xCenter, yPos, xCenter, yBottom - g_pRenderEngine->getPixelHeight());
+   if ( ! (g_pCurrentModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE) )
+      g_pRenderEngine->drawLine(xCenter, yPos, xCenter, yBottom - g_pRenderEngine->getPixelHeight());
 
    bool bMainVehicleActive = true;
-   if (( g_pCurrentModel->relay_params.uCurrentRelayMode & RELAY_MODE_REMOTE ) &&
-       bRelayedVehicleIsOnline )
+   if ( g_pCurrentModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE )
+      bMainVehicleActive = false;
+   if ( (g_pCurrentModel->relay_params.uCurrentRelayMode & RELAY_MODE_REMOTE) && bRelayedVehicleIsOnline )
       bMainVehicleActive = false;
 
    double pCA[4];
    memcpy(pCA,get_Color_IconSucces(), 4*sizeof(double));
    for( int i=0; i<3; i++ )
+   {
       if ( pCA[i] > 70 )
          pCA[i] -= 70;
       else
          pCA[i] = 0;
-
-   if ( bMainVehicleActive )
+   }
+   if ( g_pCurrentModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE )
+   {
+      g_pRenderEngine->setFill(pCA[0],pCA[1],pCA[2],pCA[3]);
+      g_pRenderEngine->drawRoundRect(xLeft, yPos, fWidth, fHeight, 0.01);
+   }
+   else if ( bMainVehicleActive )
    {
       g_pRenderEngine->setFill(pCA[0],pCA[1],pCA[2],pCA[3]);
       g_pRenderEngine->drawRoundRect(xLeft, yPos, xCenter-xLeft, fHeight, 0.01);
@@ -717,7 +737,12 @@ float osd_render_relay(float xCenter, float yBottom, bool bHorizontal)
 
    yPos += fPaddingY;
 
-   if ( bMainVehicleActive )
+   if ( g_pCurrentModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE )
+   {
+      osd_set_colors();
+      g_pRenderEngine->drawText(xLeft + fPaddingX + 0.5*(fWidthRight - fWidthTextRelay), yPos, g_idFontOSDSmall, szTextRelay);
+   }
+   else if ( bMainVehicleActive )
    {
       g_pRenderEngine->drawText(xLeft + fPaddingX + 0.5*(fWidthLeft - fWidthTextMain), yPos, g_idFontOSDSmall, szTextMain);
       float fa = g_pRenderEngine->setGlobalAlfa(fInactiveAlpha);
@@ -738,7 +763,12 @@ float osd_render_relay(float xCenter, float yBottom, bool bHorizontal)
 
    yPos += height_text_small*1.2;
 
-   if ( bMainVehicleActive )
+   if ( g_pCurrentModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE )
+   {
+      osd_set_colors();
+      g_pRenderEngine->drawText(xLeft + fPaddingX, yPos, g_idFontOSDSmall, szName2);
+   }
+   else if ( bMainVehicleActive )
    {
       g_pRenderEngine->drawText(xLeft + fPaddingX, yPos, g_idFontOSDSmall, szName1);
       float fa = g_pRenderEngine->setGlobalAlfa(fInactiveAlpha);
@@ -765,10 +795,15 @@ float osd_render_relay(float xCenter, float yBottom, bool bHorizontal)
       float fa = g_pRenderEngine->setGlobalAlfa(fInactiveAlpha);
       osd_set_colors();
       float fwt = g_pRenderEngine->textWidth(g_idFontOSDSmall, "Online");
-      g_pRenderEngine->drawText(xCenter + fPaddingX + 0.5*(fWidthRight - fwt), yPos, g_idFontOSDSmall, "Online");
+      float fxHighlight = xCenter + 0.5*(fWidthRight - fwt);
+      if ( g_pCurrentModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE )
+         fxHighlight = xLeft + 0.5*(fWidthRight - fwt);
+      if ( g_pCurrentModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE )
+
+      g_pRenderEngine->drawText(fxHighlight, yPos, g_idFontOSDSmall, "Online");
       const double* pc = get_Color_IconSucces();
       g_pRenderEngine->setFill(pc[0], pc[1], pc[2], pc[3]);
-      g_pRenderEngine->fillCircle(xCenter + fPaddingX + 0.5*(fWidthRight-fwt) - height_text_small/g_pRenderEngine->getAspectRatio(), yPos + height_text_small*0.5, fRadius);
+      g_pRenderEngine->fillCircle(fxHighlight - height_text_small/g_pRenderEngine->getAspectRatio(), yPos + height_text_small*0.5, fRadius);
    
       g_pRenderEngine->setGlobalAlfa(fa);
       osd_set_colors();
@@ -776,10 +811,13 @@ float osd_render_relay(float xCenter, float yBottom, bool bHorizontal)
    else
    {
       float fwt = g_pRenderEngine->textWidth(g_idFontOSDSmall, "Offline");
-      g_pRenderEngine->drawText(xCenter + fPaddingX + 0.5*(fWidthRight - fwt), yPos, g_idFontOSDSmall, "Offline");
+      float fxHighlight = xCenter + 0.5*(fWidthRight - fwt);
+      if ( g_pCurrentModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE )
+         fxHighlight = xLeft + 0.5*(fWidthRight - fwt);
+      g_pRenderEngine->drawText(fxHighlight, yPos, g_idFontOSDSmall, "Offline");
       const double* pc = get_Color_IconError();
       g_pRenderEngine->setFill(pc[0], pc[1], pc[2], pc[3]);
-      g_pRenderEngine->fillCircle(xCenter + fPaddingX + 0.5*(fWidthRight-fwt) - height_text_small/g_pRenderEngine->getAspectRatio(), yPos + height_text_small*0.5, fRadius);
+      g_pRenderEngine->fillCircle(fxHighlight - height_text_small/g_pRenderEngine->getAspectRatio(), yPos + height_text_small*0.5, fRadius);
    }
 
    osd_set_colors();

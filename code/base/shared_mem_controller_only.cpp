@@ -136,3 +136,23 @@ void shared_mem_router_vehicles_runtime_info_close(shared_mem_router_vehicles_ru
       munmap(pAddress, sizeof(shared_mem_router_vehicles_runtime_info));
    //shm_unlink(szName);
 }
+
+
+shared_mem_ctrl_ping_stats* shared_mem_ctrl_ping_stats_info_open_for_read()
+{
+   void *retVal = open_shared_mem_for_read(SHARED_MEM_CONTROLLER_PING_STATS, sizeof(shared_mem_ctrl_ping_stats));
+   return (shared_mem_ctrl_ping_stats*)retVal;
+}
+
+shared_mem_ctrl_ping_stats* shared_mem_rctrl_ping_stats_info_open_for_write()
+{
+   void *retVal = open_shared_mem_for_write(SHARED_MEM_CONTROLLER_PING_STATS, sizeof(shared_mem_ctrl_ping_stats));
+   return (shared_mem_ctrl_ping_stats*)retVal;
+}
+
+void shared_mem_ctrl_ping_stats_info_close(shared_mem_ctrl_ping_stats* pAddress)
+{
+   if ( NULL != pAddress )
+      munmap(pAddress, sizeof(shared_mem_ctrl_ping_stats));
+   //shm_unlink(szName);
+}

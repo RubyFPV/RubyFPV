@@ -14,23 +14,12 @@ class MenuVehicleCPU_OIPC: public Menu
       virtual void onSelectItem();
       
    private:
-      int m_IndexEnableNice;
-      int m_IndexNiceRouter;
-      int m_IndexEnableVideo;
-      int m_IndexNiceVideo;
-      int m_IndexEnableRouter;
-      int m_IndexRouter;
-      int m_IndexEnableRadio;
-      int m_IndexRadioRx;
-      int m_IndexRadioTx;
       int m_IndexCPUSpeed;
       int m_IndexGPUBoost;
       int m_IndexGPUFreqCore1;
       int m_IndexGPUFreqCore2;
-      int m_IndexBalanceIntCores;
+      int m_IndexPriorities;
       
       MenuItemSlider* m_pItemsSlider[10];
       MenuItemSelect* m_pItemsSelect[10];
-
-      void send_threads_values();
 };

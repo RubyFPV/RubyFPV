@@ -55,7 +55,6 @@ MenuVehicleDev::MenuVehicleDev(void)
 void MenuVehicleDev::addItems()
 {
    int iTmp = getSelectedMenuItemIndex();
-   ControllerSettings* pCS = get_ControllerSettings();
    float fSliderWidth = 0.14 * m_sfScaleFactor;
    removeAllItems();
 
@@ -104,7 +103,7 @@ void MenuVehicleDev::addItems()
    m_IndexRadioSilence = addMenuItem(m_pItemsSelect[1]);
 
    m_pItemsSlider[9] = new MenuItemSlider("Radio Rx Loop Check Max Time (ms)", "The threshold for generating an alarm when radio Rx loop takes too much time (in miliseconds).", 1,1000,10, fSliderWidth);
-   m_pItemsSlider[9]->setCurrentValue(pCS->iDevRxLoopTimeout);
+   m_pItemsSlider[9]->setCurrentValue(g_pControllerSettings->iDevRxLoopTimeout);
    m_IndexRxLoopTimeout = addMenuItem(m_pItemsSlider[9]);
 
    addMenuItem(new MenuItemSection("Video"));
@@ -137,6 +136,14 @@ void MenuVehicleDev::addItems()
    if ( g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_INJECT_VIDEO_FAULTS )
       m_pItemsSelect[12]->setSelectedIndex(1);
    m_IndexInjectVideoFaults = addMenuItem(m_pItemsSelect[12]);
+
+   m_pItemsSelect[3] = new MenuItemSelect("Insert Debug Video Timings", "Measure video pipeline timings");
+   m_pItemsSelect[3]->addSelection(L("Off"));
+   m_pItemsSelect[3]->addSelection(L("On"));
+   //m_pItemsSelect[3]->setIsEditable();
+   m_pItemsSelect[3]->setUseMultiViewLayout();
+   m_pItemsSelect[3]->setSelection((g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_VIDEO_STREAM_TIMINGS)?1:0);
+   m_IndexInsertVideoDbgTimings = addMenuItem(m_pItemsSelect[3]);
 
    m_pItemsSelect[2] = new MenuItemSelect("Test Adaptive Video", "Tests adaptive video functionality.");
    m_pItemsSelect[2]->addSelection(L("Off"));
@@ -215,7 +222,6 @@ void MenuVehicleDev::onSelectItem()
    
    if ( m_IndexPCAPRadioTx == m_SelectedIndex )
    {
-      ControllerSettings* pCS = get_ControllerSettings();
       if ( 0 == m_pItemsSelect[9]->getSelectedIndex() )
          g_pCurrentModel->uDeveloperFlags &= (~DEVELOPER_FLAGS_USE_PCAP_RADIO_TX);
       else
@@ -248,7 +254,6 @@ void MenuVehicleDev::onSelectItem()
 
    if ( m_IndexRadioSilence == m_SelectedIndex )
    {
-      ControllerSettings* pCS = get_ControllerSettings();
       if ( 0 == m_pItemsSelect[1]->getSelectedIndex() )
          g_pCurrentModel->uDeveloperFlags &= (~DEVELOPER_FLAGS_BIT_RADIO_SILENCE_FAILSAFE);
       else
@@ -260,8 +265,7 @@ void MenuVehicleDev::onSelectItem()
 
    if ( m_IndexRxLoopTimeout == m_SelectedIndex )
    {
-      ControllerSettings* pCS = get_ControllerSettings();
-      pCS->iDevRxLoopTimeout = m_pItemsSlider[9]->getCurrentValue();
+      g_pControllerSettings->iDevRxLoopTimeout = m_pItemsSlider[9]->getCurrentValue();
       save_ControllerSettings();
       valuesToUI();
       send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
@@ -295,8 +299,8 @@ void MenuVehicleDev::onSelectItem()
       }
       else
       {
-         log_line("MenuVehicleDev: Switched to user profile");
-         paramsNew.iCurrentVideoProfile = VIDEO_PROFILE_USER;
+         log_line("MenuVehicleDev: Switched to custom profile");
+         paramsNew.iCurrentVideoProfile = VIDEO_PROFILE_CUST;
       }
       memcpy((u8*)&profiles[paramsNew.iCurrentVideoProfile ], &profileNew, sizeof(type_video_link_profile));
       g_pCurrentModel->logVideoSettingsDifferences(&paramsNew, &profileNew);
@@ -319,7 +323,6 @@ void MenuVehicleDev::onSelectItem()
 
    if ( m_IndexInjectVideoFaults == m_SelectedIndex )
    {
-      ControllerSettings* pCS = get_ControllerSettings();
       if ( 0 == m_pItemsSelect[12]->getSelectedIndex() )
          g_pCurrentModel->uDeveloperFlags &= (~DEVELOPER_FLAGS_BIT_INJECT_VIDEO_FAULTS);
       else
@@ -330,13 +333,22 @@ void MenuVehicleDev::onSelectItem()
 
    if ( m_IndexInjectMinorVideoFaults == m_SelectedIndex )
    {
-      ControllerSettings* pCS = get_ControllerSettings();
       if ( 0 == m_pItemsSelect[15]->getSelectedIndex() )
          g_pCurrentModel->uDeveloperFlags &= (~DEVELOPER_FLAGS_BIT_INJECT_RECOVERABLE_VIDEO_FAULTS);
       else
          g_pCurrentModel->uDeveloperFlags |= DEVELOPER_FLAGS_BIT_INJECT_RECOVERABLE_VIDEO_FAULTS;
       if ( ! handle_commands_send_developer_flags(g_pCurrentModel->uDeveloperFlags) )
          valuesToUI();  
+   }
+
+   if ( m_IndexInsertVideoDbgTimings == m_SelectedIndex )
+   {
+      if ( 0 == m_pItemsSelect[3]->getSelectedIndex() )
+         g_pCurrentModel->uDeveloperFlags &= (~DEVELOPER_FLAGS_BIT_ENABLE_VIDEO_STREAM_TIMINGS);
+      else
+         g_pCurrentModel->uDeveloperFlags |= DEVELOPER_FLAGS_BIT_ENABLE_VIDEO_STREAM_TIMINGS;
+      if ( ! handle_commands_send_developer_flags(g_pCurrentModel->uDeveloperFlags) )
+         valuesToUI();
    }
 
    if ( m_IndexTestAdaptive == m_SelectedIndex )

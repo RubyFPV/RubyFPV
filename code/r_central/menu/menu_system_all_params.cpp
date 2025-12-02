@@ -194,13 +194,7 @@ float MenuSystemAllParams::renderVehicleCamera(float xPos, float yPos, float wid
 
    g_pRenderEngine->drawMessageLines(xPos, yPos, szBuff, MENU_TEXTLINE_SPACING, width, g_idFontMenuSmall);
 
-   strcpy(szTemp, "[N/A]");
-   if ( g_pCurrentModel->video_params.iCurrentVideoProfile == VIDEO_PROFILE_HIGH_PERF )
-      strcpy(szTemp, "[HP]");
-   if ( g_pCurrentModel->video_params.iCurrentVideoProfile == VIDEO_PROFILE_HIGH_QUALITY )
-      strcpy(szTemp, "[HQ]");
-   if ( g_pCurrentModel->video_params.iCurrentVideoProfile == VIDEO_PROFILE_USER )
-      strcpy(szTemp, "[USR]");
+   strcpy(szTemp, str_get_video_profile_name(g_pCurrentModel->video_params.iCurrentVideoProfile));
 
    snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "S: %s/%d/%d/%d", szTemp, 
               (g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_RETRANSMISSIONS)?1:0,
@@ -256,7 +250,7 @@ float MenuSystemAllParams::renderVehicleRC(float xPos, float yPos, float width, 
       strcpy(szTelemetryType, "LTM");
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_TRANSPARENT )
       strcpy(szTelemetryType, "Transp.");
-   sprintf(szBuff, "  %s / rate %d", szTelemetryType, g_pCurrentModel->telemetry_params.update_rate);
+   sprintf(szBuff, "  %s / rate %d", szTelemetryType, g_pCurrentModel->telemetry_params.iUpdateRateHz);
 
    yPos += g_pRenderEngine->drawMessageLines(xPos, yPos, szBuff, MENU_TEXTLINE_SPACING, width, g_idFontMenuSmall);
    yPos += MENU_TEXTLINE_SPACING * height_text;
@@ -440,11 +434,11 @@ float MenuSystemAllParams::renderProcesses(float xPos, float yPos, float width, 
 
    g_pRenderEngine->setColors(get_Color_MenuText());
 
-   snprintf(szBuff, 1023, "Controller router/video/UI: %d/%d/%d", -pCS->iNiceRouter, -pCS->iNiceRXVideo, -pCS->iNiceCentral);
+   snprintf(szBuff, 1023, "Controller router/video/UI: %d/%d/%d", pCS->iThreadPriorityRouter, pCS->iThreadPriorityVideo, -pCS->iThreadPriorityCentral);
    if ( NULL == g_pCurrentModel )
       strncpy(szBuff2, "No vehicle", 1023);
    else
-      snprintf(szBuff2, 1023, "Vehicle router/video/telemetry/RC: %d/%d/%d/%d", -g_pCurrentModel->processesPriorities.iNiceRouter, -g_pCurrentModel->processesPriorities.iNiceVideo, -g_pCurrentModel->processesPriorities.iNiceTelemetry, -g_pCurrentModel->processesPriorities.iNiceRC);
+      snprintf(szBuff2, 1023, "Vehicle router/video/telemetry/RC: %d/%d/%d/%d", g_pCurrentModel->processesPriorities.iThreadPriorityRouter, g_pCurrentModel->processesPriorities.iThreadPriorityVideoCapture, g_pCurrentModel->processesPriorities.iThreadPriorityTelemetry, g_pCurrentModel->processesPriorities.iThreadPriorityRC);
 
    g_pRenderEngine->drawMessageLines(xPos+0.16*m_sfScaleFactor, yPos, szBuff, MENU_TEXTLINE_SPACING, width, g_idFontMenuSmall);
    yPos += g_pRenderEngine->drawMessageLines(xPos+0.41*m_sfScaleFactor, yPos, szBuff2, MENU_TEXTLINE_SPACING, width, g_idFontMenuSmall);
@@ -471,11 +465,11 @@ float MenuSystemAllParams::renderSoftware(float xPos, float yPos, float width, f
 
    g_pRenderEngine->setColors(get_Color_MenuText());
 
-   snprintf(szBuff, 63, "Controller version %d.%d (b%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER);
+   snprintf(szBuff, 63, "Controller version %d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
    if ( NULL == g_pCurrentModel )
       strncpy(szBuff2, "No vehicle", 63);
    else
-      snprintf(szBuff2, 63, "Vehicle version: %d.%d (b%d)", (g_pCurrentModel->sw_version>>8) & 0xFF, (g_pCurrentModel->sw_version & 0xFF)/10, g_pCurrentModel->sw_version >> 16);
+      snprintf(szBuff2, 63, "Vehicle version: %d.%d (b-%d)", get_sw_version_major(g_pCurrentModel), get_sw_version_minor(g_pCurrentModel), get_sw_version_build(g_pCurrentModel));
 
    g_pRenderEngine->drawMessageLines(xPos+0.16*m_sfScaleFactor, yPos, szBuff, MENU_TEXTLINE_SPACING, width, g_idFontMenuSmall);
    yPos += g_pRenderEngine->drawMessageLines(xPos+0.32*m_sfScaleFactor, yPos, szBuff2, MENU_TEXTLINE_SPACING, width, g_idFontMenuSmall);
@@ -561,7 +555,7 @@ float MenuSystemAllParams::renderCPUParams(float xPos, float yPos, float width, 
 
    g_pRenderEngine->setColors(get_Color_MenuText());
 
-   sprintf(szBuff, "Controller: CPU: %d Mhz, GPU: %d Mhz, OverVoltage: %d, IOPriority: %d, %d", pCS->iFreqARM, pCS->iFreqGPU, pCS->iOverVoltage, pCS->ioNiceRouter, pCS->ioNiceRXVideo);
+   sprintf(szBuff, "Controller: CPU: %d Mhz, GPU: %d Mhz, OverVoltage: %d, IOPriority: %d, %d", pCS->iFreqARM, pCS->iFreqGPU, pCS->iOverVoltage, pCS->ioNiceRouter, pCS->ioNiceRxVideo);
    yPos += g_pRenderEngine->drawMessageLines(xPos, yPos, szBuff, MENU_TEXTLINE_SPACING, width, g_idFontMenuSmall);
    yPos += MENU_TEXTLINE_SPACING * height_text;
 

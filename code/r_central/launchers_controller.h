@@ -2,8 +2,6 @@
 #include "../base/base.h"
 #include "../base/models.h"
 
-void controller_compute_cpu_info();
-
 void controller_launch_router(bool bSearchMode, int iFirmwareType);
 void controller_stop_router();
 
@@ -19,6 +17,3 @@ void controller_stop_i2c();
 const char* controller_validate_radio_settings(Model* pModel, u32* pVehicleNICFreq, int* pVehicleNICFlags, int* pVehicleNICRadioFlags, int* pControllerNICFlags, int* pControllerNICRadioFlags);
 
 void controller_wait_for_stop_all();
-
-
-void controller_check_update_processes_affinities();

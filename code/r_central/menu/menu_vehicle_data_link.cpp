@@ -57,10 +57,10 @@ MenuVehicleDataLink::MenuVehicleDataLink(void)
    m_IndexPort = addMenuItem(m_pItemsSelect[0]);
 
    m_pItemsSelect[1] = new MenuItemSelect("Vehicle Serial Baudrate", "Sets the baud rate on the vehicle serial port for the auxiliary data link.");
-   for( int i=0; i<hardware_get_serial_baud_rates_count(); i++ )
+   for( int i=0; i<hardware_serial_get_baud_rates_count(); i++ )
    {
       char szBuff[32];
-      sprintf(szBuff, "%d bps", hardware_get_serial_baud_rates()[i]);
+      sprintf(szBuff, "%d bps", hardware_serial_get_baud_rates()[i]);
       m_pItemsSelect[1]->addSelection(szBuff);
    }
    m_pItemsSelect[1]->setIsEditable();
@@ -102,7 +102,7 @@ void MenuVehicleDataLink::valuesToUI()
    bool bSpeedFound = false;
    for(int i=0; i<m_pItemsSelect[1]->getSelectionsCount(); i++ )
    {
-      if ( hardware_get_serial_baud_rates()[i] == (int)uCurrentSerialPortSpeed )
+      if ( hardware_serial_get_baud_rates()[i] == (int)uCurrentSerialPortSpeed )
       {
          m_pItemsSelect[1]->setSelection(i);
          bSpeedFound = true;
@@ -219,7 +219,7 @@ void MenuVehicleDataLink::onSelectItem()
       if ( -1 == iCurrentSerialPortIndex )
          return;
 
-      long val = hardware_get_serial_baud_rates()[m_pItemsSelect[1]->getSelectedIndex()];
+      long val = hardware_serial_get_baud_rates()[m_pItemsSelect[1]->getSelectedIndex()];
       if ( val == g_pCurrentModel->hardwareInterfacesInfo.serial_port_speed[iCurrentSerialPortIndex] )
          return;
 

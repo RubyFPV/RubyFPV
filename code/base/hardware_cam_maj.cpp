@@ -45,69 +45,306 @@ static u32 s_uMajesticLastChangeAudioTime = 0;
 
 pthread_t s_ThreadMajLogEntry;
 
-static camera_profile_parameters_t s_CurrentMajesticVideoCamSettings;
+static Model* s_pCurrentMajesticModel = NULL;
 static camera_profile_parameters_t s_CurrentMajesticCamSettings;
 static video_parameters_t s_CurrentMajesticVideoParams;
 static int s_iCurrentMajesticVideoProfile = -1;
-static Model* s_pCurrentMajesticModel = NULL;
-volatile bool s_bDisableAsyncMajOperations = false;
-volatile int s_iCountAsyncMajOperationsInProgress = 0;
 
 static int s_iLastMajesticIRFilterMode = -5;
-pthread_t s_ThreadMajSetIRFilter;
-volatile bool s_bMajThreadSetIRFilterRunning = false;
-
 static int s_iLastMajesticDaylightMode = -5;
-pthread_t s_ThreadMajSetDaylightMode;
-volatile bool s_bMajThreadSetDaylightModeRunning = false;
-pthread_t s_ThreadMajSetBrightness;
-pthread_t s_ThreadMajSetContrast;
-pthread_t s_ThreadMajSetHue;
-pthread_t s_ThreadMajSetStaturation;
-volatile bool s_bMajThreadSetBrightnessRunning = false;
-volatile bool s_bMajThreadSetContrastRunning = false;
-volatile bool s_bMajThreadSetHueRunning = false;
-volatile bool s_bMajThreadSetSaturationRunning = false;
-
-pthread_t s_ThreadMajSetImageParams;
-volatile bool s_bMajThreadSetImageParamsRunning = false;
-
 static int s_iCurrentMajesticNALSize = 0;
-pthread_t s_ThreadMajSetNALSize;
-volatile bool s_bMajThreadSetNALSizeRunning = false;
-
-pthread_t s_ThreadMajSetAllParams;
-volatile bool s_bMajThreadSetAllParamsRunning = false;
 
 static float s_fCurrentMajesticGOP = -1.0;
 static float s_fTemporaryMajesticGOP = -1.0;
 static int s_iCurrentMajesticKeyframeMs = 0;
 static int s_iTemporaryMajesticKeyframeMs = 0;
-pthread_t s_ThreadMajSetGOP;
-volatile bool s_bMajThreadSetGOPRunning = false;
 
 static u32 s_uCurrentMajesticBitrate = 0;
 static u32 s_uTemporaryMajesticBitrate = 0;
-pthread_t s_ThreadMajSetBitrate;
-volatile bool s_bMajThreadSetBitrateRunning = false;
 
 static int s_iCurrentMajesticQPDelta = -1000;
 static int s_iTemporaryMajesticQPDelta = -1000;
-pthread_t s_ThreadMajSetQPDelta;
-volatile bool s_bMajThreadSetQPDeltaRunning = false;
-
-pthread_t s_ThreadMajSetBitrateQPDelta;
-volatile bool s_bMajThreadSetBitrateQPDeltaRunning = false;
 
 static int s_iCurrentMajAudioVolume = 0;
 static int s_iCurrentMajAudioBitrate = 0;
 
-pthread_t s_ThreadMajSetAudioVolume;
-volatile bool s_bMajThreadSetAudioVolumeRunning = false;
 
-pthread_t s_ThreadMajSetAudioBitrate;
-volatile bool s_bMajThreadSetAudioBitrateRunning = false;
+#define MAX_MAJESTIC_COMMAND_LENGTH 64
+#define MAX_MAJESTIC_COMMANDS 48
+typedef struct
+{
+   u32 uCommandNumber;
+   bool bSignalMajestic;
+   char szCommand[MAX_MAJESTIC_COMMAND_LENGTH];
+} t_majestic_command;
 
+typedef struct
+{
+   t_majestic_command commands[MAX_MAJESTIC_COMMANDS];
+   int iNextCommandIndexToFill;
+   u32 uNextCommandNumber;
+} t_majestic_command_queue;
+
+static pthread_t s_pThreadSetMajesticParams;
+static volatile bool s_bThreadSetMajesticParamsRunning = false;
+static pthread_mutex_t s_MutexSetMajesticParams = PTHREAD_MUTEX_INITIALIZER;
+static sem_t* s_pSemaphoreSetMajesticParamsWrite = NULL;
+static sem_t* s_pSemaphoreSetMajesticParamsRead = NULL;
+static t_majestic_command_queue s_MajesticSetParamsCommandsQueue;
+
+
+int _execute_maj_command_wait(const char* szCommand)
+{
+   //return hw_execute_bash_command(szCommand, NULL);
+   return hw_execute_process_wait(szCommand);
+}
+
+int _hardware_maj_send_req(char *szCommand)
+{
+   struct sockaddr_in addr;
+   char szRequest[256];
+
+   int iSock = socket(AF_INET, SOCK_STREAM, 0);
+   if ( iSock < 0 )
+   {
+      log_softerror_and_alarm("[HwCamMajestic] Failed to open command socket to majestic.");
+      return -1;
+   }
+
+   struct timeval tv = { .tv_sec = 0, .tv_usec = 300000 }; // 300ms timeout
+   setsockopt(iSock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+
+   addr.sin_family = AF_INET;
+   addr.sin_port = htons(80);
+   addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+   int iRes = connect(iSock, (struct sockaddr *)&addr, sizeof(addr));
+   if ( iRes < 0 )
+   {
+       log_softerror_and_alarm("[HwCamMajestic] Failed to connect to commands majestic.");
+       close(iSock);
+       return -1;
+   }
+
+   char* szTmp = strstr(szCommand, "/api");
+   if ( NULL == szTmp )
+   {
+      log_softerror_and_alarm("[HwCamMajestic] Failed to parse majestic command.");
+      close(iSock);
+      return -1;
+   }
+
+   snprintf(szRequest, sizeof(szRequest)/sizeof(szRequest[0]), "GET %s HTTP/1.0\r\n\r\n", szTmp);
+
+   iRes = send(iSock, szRequest, strlen(szRequest), 0);
+   if ( iRes < 0 )
+   {
+      log_softerror_and_alarm("[HwCamMajestic] Failed to send majestic command.");
+      close(iSock);
+      return -1;
+   }
+
+   /*
+   char szBuff[258];
+   iRes = read(iSock, szBuff, 255);
+   if ( iRes > 0 )
+   {
+      szBuff[iRes] = 0;
+   }
+   */
+   close(iSock);
+   return 0;
+}
+
+
+void* _thread_set_majestic_params_async(void *argument)
+{
+   sched_yield();
+   hw_log_current_thread_attributes("[HwCamMajesticThread]");
+
+   t_majestic_command_queue localCommandsQueue;
+   int iNextCommandIndexToExecute = 0;
+   u32 uLastCommandNumberExecuted = MAX_U32;
+
+   while ( s_bThreadSetMajesticParamsRunning )
+   {
+      int iRes = sem_wait(s_pSemaphoreSetMajesticParamsRead);
+      if ( 0 != iRes )
+      {
+         if ( ! s_bThreadSetMajesticParamsRunning )
+            break;
+         continue;
+      }
+      pthread_mutex_lock(&s_MutexSetMajesticParams);
+      if ( ! s_bThreadSetMajesticParamsRunning )
+      {
+         pthread_mutex_unlock(&s_MutexSetMajesticParams);
+         break;
+      }
+      memcpy((u8*)(&localCommandsQueue), (u8*)(&s_MajesticSetParamsCommandsQueue), sizeof(t_majestic_command_queue));
+      pthread_mutex_unlock(&s_MutexSetMajesticParams);
+      bool bSignalMajestic = false;
+      while ( iNextCommandIndexToExecute != localCommandsQueue.iNextCommandIndexToFill )
+      {
+         if ( (uLastCommandNumberExecuted == localCommandsQueue.commands[iNextCommandIndexToExecute].uCommandNumber) || (localCommandsQueue.commands[iNextCommandIndexToExecute].szCommand[0] == 0) )
+         {
+             iNextCommandIndexToExecute = (iNextCommandIndexToExecute + 1) % MAX_MAJESTIC_COMMANDS;
+             continue;
+         }
+         if ( 0 != strncmp(localCommandsQueue.commands[iNextCommandIndexToExecute].szCommand, "curl", 4) )
+            hw_execute_process_wait(localCommandsQueue.commands[iNextCommandIndexToExecute].szCommand);
+
+         if ( 0 != s_iPIDMajestic )
+         if ( 0 == strncmp(localCommandsQueue.commands[iNextCommandIndexToExecute].szCommand, "curl", 4) )
+            _hardware_maj_send_req(localCommandsQueue.commands[iNextCommandIndexToExecute].szCommand);
+         
+         //if ( 0 != strstr(localCommandsQueue.commands[iNextCommandIndexToExecute].szCommand, "bitrate") )
+         //    log_line("[HwCamMajestic] Video throughtput updated maj bitrate to: [%s]", &localCommandsQueue.commands[iNextCommandIndexToExecute].szCommand[10]);
+         bSignalMajestic |= localCommandsQueue.commands[iNextCommandIndexToExecute].bSignalMajestic;
+         iNextCommandIndexToExecute = (iNextCommandIndexToExecute + 1) % MAX_MAJESTIC_COMMANDS;
+      }
+      if ( bSignalMajestic )
+         hw_execute_bash_command_raw("killall -1 majestic", NULL);
+   }
+
+   log_line("[HwCamMajesticThread] Thread ended.");
+   return NULL;
+}
+
+void _add_maj_command_to_queue(const char* szCommand, bool bSignalMajestic)
+{
+   if ( (NULL == szCommand) || (0 == szCommand[0]) )
+      return;
+
+   pthread_mutex_lock(&s_MutexSetMajesticParams);
+   strncpy(s_MajesticSetParamsCommandsQueue.commands[s_MajesticSetParamsCommandsQueue.iNextCommandIndexToFill].szCommand, szCommand, MAX_MAJESTIC_COMMAND_LENGTH);
+   s_MajesticSetParamsCommandsQueue.commands[s_MajesticSetParamsCommandsQueue.iNextCommandIndexToFill].bSignalMajestic = bSignalMajestic;
+   s_MajesticSetParamsCommandsQueue.commands[s_MajesticSetParamsCommandsQueue.iNextCommandIndexToFill].uCommandNumber = s_MajesticSetParamsCommandsQueue.uNextCommandNumber;
+   s_MajesticSetParamsCommandsQueue.uNextCommandNumber++;
+   s_MajesticSetParamsCommandsQueue.iNextCommandIndexToFill = (s_MajesticSetParamsCommandsQueue.iNextCommandIndexToFill + 1) % MAX_MAJESTIC_COMMANDS;
+   pthread_mutex_unlock(&s_MutexSetMajesticParams);
+   if ( 0 != sem_post(s_pSemaphoreSetMajesticParamsWrite) )
+      log_softerror_and_alarm("Failed to signal semaphore for executing majestic commands.");
+}
+
+void _add_maj_command_to_queue_or_exec(const char* szCommand, bool bSignalMajestic)
+{
+   if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
+      _add_maj_command_to_queue(szCommand, bSignalMajestic);
+   else
+      _execute_maj_command_wait(szCommand);
+}
+
+void hardware_camera_maj_init_threads(Model* pModel)
+{
+   if ( s_bThreadSetMajesticParamsRunning )
+   {
+      log_line("[HwCamMajestic] Settings thread already running.");
+      return;
+   }
+
+   memset((u8*) &s_MajesticSetParamsCommandsQueue, 0, sizeof(t_majestic_command_queue));
+   s_MajesticSetParamsCommandsQueue.iNextCommandIndexToFill = 0;
+
+   s_pSemaphoreSetMajesticParamsWrite = sem_open(SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC, O_CREAT | O_RDWR, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL == s_pSemaphoreSetMajesticParamsWrite) || (SEM_FAILED == s_pSemaphoreSetMajesticParamsWrite) )
+   {
+      log_error_and_alarm("[HwCamMajestic] Failed to create write semaphore: %s, try alternative.", SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC);
+      s_pSemaphoreSetMajesticParamsWrite = sem_open(SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC, O_CREAT, S_IWUSR | S_IRUSR, 0); 
+      if ( (NULL == s_pSemaphoreSetMajesticParamsWrite) || (SEM_FAILED == s_pSemaphoreSetMajesticParamsWrite) )
+      {
+         log_error_and_alarm("[HwCamMajestic] Failed to create write semaphore: %s", SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC);
+         s_pSemaphoreSetMajesticParamsWrite = NULL;
+         return;
+      }
+      log_line("[HwCamMajestic] Opened semaphore for signaling set majestic params: (%s)", SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC);
+   }
+   else
+      log_line("[HwCamMajestic] Opened semaphore for signaling set majestic params: (%s)", SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC);
+
+   s_pSemaphoreSetMajesticParamsRead = sem_open(SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC, O_RDWR);
+   if ( (NULL == s_pSemaphoreSetMajesticParamsRead) || (SEM_FAILED == s_pSemaphoreSetMajesticParamsRead) )
+   {
+      log_error_and_alarm("[HwCamMajestic] Failed to create read semaphore: %s, try alternative.", SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC);
+      s_pSemaphoreSetMajesticParamsRead = sem_open(SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC, O_CREAT, S_IWUSR | S_IRUSR, 0); 
+      if ( (NULL == s_pSemaphoreSetMajesticParamsRead) || (SEM_FAILED == s_pSemaphoreSetMajesticParamsRead) )
+      {
+         log_error_and_alarm("[HwCamMajestic] Failed to create read semaphore: %s", SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC);
+         s_pSemaphoreSetMajesticParamsRead = NULL;
+         return;
+      }
+      else
+         log_line("[HwCamMajestic] Opened semaphore for checking set majestic params: (%s)", SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC);
+   }
+   else
+      log_line("[HwCamMajestic] Opened semaphore for checking set majestic params: (%s)", SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC);
+
+   int iSemVal = 0;
+   if ( 0 == sem_getvalue(s_pSemaphoreSetMajesticParamsRead, &iSemVal) )
+      log_line("[HwCamMajestic] Semaphore set majestic params initial value: %d", iSemVal);
+   else
+      log_softerror_and_alarm("[HwCamMajestic] Failed to get semaphore set majestic params initial value.");
+
+   pthread_attr_t attr;
+   int iCoreAff = CORE_AFFINITY_OTHERS_OIPC;
+   if ( NULL != pModel )
+   {
+      if ( pModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_AFFINITY_CORES )
+         iCoreAff = pModel->processesPriorities.iCoreOthers;
+      else
+         iCoreAff = -1;
+   }
+   /*
+   int iPrio = g_pCurrentModel->processesPriorities.iThreadPriorityOthers;
+   if ( ! (g_pCurrentModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS) )
+      iPrio = -1;
+   */
+   int iPrio = -1;
+
+   if ( (iPrio > 1) && (iPrio < 100) )
+      hw_init_worker_thread_attrs(&attr, iCoreAff, 32000, SCHED_FIFO, iPrio, "[HwCamMajesticThread]");
+   else
+      hw_init_worker_thread_attrs(&attr, iCoreAff, 32000, SCHED_OTHER, 0, "[HwCamMajesticThread]");
+
+   if ( 0 != pthread_create(&s_pThreadSetMajesticParams, &attr, &_thread_set_majestic_params_async, NULL) )
+   {
+      s_bThreadSetMajesticParamsRunning = false;
+      log_softerror_and_alarm("[HwCamMajestic] Failed to create thread to set settings.");
+   }
+   else
+   {
+      s_bThreadSetMajesticParamsRunning = true;
+      log_line("[HwCamMajestic] Started thread to set settings.");
+   }
+   pthread_attr_destroy(&attr);
+}
+
+void hardware_camera_maj_stop_threads()
+{
+   if ( ! s_bThreadSetMajesticParamsRunning )
+      log_line("[HwCamMajestic] Thread to set settings is not running. Nothing to stop.");
+   else
+   {
+      pthread_mutex_lock(&s_MutexSetMajesticParams);
+      s_bThreadSetMajesticParamsRunning = false;
+      pthread_mutex_unlock(&s_MutexSetMajesticParams);
+
+      if ( (NULL != s_pSemaphoreSetMajesticParamsWrite) && (0 != sem_post(s_pSemaphoreSetMajesticParamsWrite)) )
+         log_softerror_and_alarm("[HwCamMajestic] Failed to signal semaphore for quiting majestic set params thread.");
+
+      hardware_sleep_ms(50);
+   }
+
+   if ( NULL != s_pSemaphoreSetMajesticParamsWrite )
+      sem_close(s_pSemaphoreSetMajesticParamsWrite);
+   if ( NULL != s_pSemaphoreSetMajesticParamsRead )
+      sem_close(s_pSemaphoreSetMajesticParamsRead);
+   s_pSemaphoreSetMajesticParamsWrite = NULL;
+   s_pSemaphoreSetMajesticParamsRead = NULL;
+   sem_unlink(SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC);
+
+   log_line("[HwCamMajestic] Stopped thread to set settings.");
+}
 
 int hardware_camera_maj_validate_config()
 {
@@ -183,21 +420,9 @@ void hardware_camera_maj_add_log(const char* szLog, bool bAsync)
    */
 }
 
-int _execute_maj_command_wait(char* szCommand)
-{
-   if ( (!s_bDisableAsyncMajOperations) || (s_iCountAsyncMajOperationsInProgress > 0) )
-      return hw_execute_bash_command(szCommand, NULL);
-   else
-      return hw_execute_process_wait(szCommand);
-}
 int hardware_camera_maj_get_current_pid()
 {
    return s_iPIDMajestic;
-}
-
-int hardware_camera_maj_get_current_async_threads_count()
-{
-   return s_iCountAsyncMajOperationsInProgress;
 }
 
 bool hardware_camera_maj_start_capture_program(bool bEnableLog)
@@ -335,8 +560,48 @@ bool hardware_camera_maj_stop_capture_program()
    return false;
 }
 
-void _hardware_camera_maj_set_image_params()
+
+int hardware_camera_maj_get_current_nal_size()
 {
+   return s_iCurrentMajesticNALSize;
+}
+
+void hardware_camera_maj_update_nal_size(Model* pModel)
+{
+   if ( NULL == pModel )
+      return;
+   s_pCurrentMajesticModel = pModel;
+   s_iCurrentMajesticVideoProfile = s_pCurrentMajesticModel->video_params.iCurrentVideoProfile;
+
+   // Allow room for video header important and 5 bytes for NAL header
+   int iNALSize = s_pCurrentMajesticModel->video_link_profiles[s_iCurrentMajesticVideoProfile].video_data_length;
+   iNALSize -= 6; // NAL delimitator+header (00 00 00 01 [aa] [bb])
+   iNALSize -= sizeof(t_packet_header_video_segment_important);
+   iNALSize = iNALSize - (iNALSize % 4);
+
+   if ( iNALSize == s_iCurrentMajesticNALSize )
+   {
+      //log_line("[HwCamMajestic] Received req to update nal size, but it's unchanged: %d bytes", s_iCurrentMajesticNALSize);
+      return;
+   }
+   log_line("[HwCamMajestic] Received req to update nal size, from %d bytes to %d bytes (for video profile index: %d, %s)", s_iCurrentMajesticNALSize, iNALSize, s_iCurrentMajesticVideoProfile, str_get_video_profile_name(s_iCurrentMajesticVideoProfile));
+
+   s_uMajesticLastChangeTime = get_current_timestamp_ms();
+   s_iCurrentMajesticNALSize = iNALSize;
+
+   char szComm[256];
+   sprintf(szComm, "cli -s .outgoing.naluSize %d", s_iCurrentMajesticNALSize);
+   _execute_maj_command_wait(szComm);
+   hardware_sleep_ms(1);
+   hw_execute_bash_command_raw("killall -1 majestic", NULL);
+   hardware_sleep_ms(5);
+}
+
+
+void _hardware_camera_maj_apply_image_settings()
+{
+   s_uMajesticLastChangeTime = get_current_timestamp_ms();
+
    char szComm[128];
    sprintf(szComm, "cli -s .image.luminance %d", s_CurrentMajesticCamSettings.brightness);
    _execute_maj_command_wait(szComm);
@@ -372,166 +637,34 @@ void _hardware_camera_maj_set_image_params()
       _execute_maj_command_wait(szComm);
    }
 
-   if ( 0 == s_CurrentMajesticCamSettings.shutterspeed )
+   if ( 0 == s_CurrentMajesticCamSettings.iShutterSpeed )
    {
       sprintf(szComm, "cli -d .isp.exposure");
       _execute_maj_command_wait(szComm);
    }
    else
    {
-      sprintf(szComm, "cli -s .isp.exposure %.2f", (float)s_CurrentMajesticCamSettings.shutterspeed/1000.0);
+      int iShutterSpeed = s_CurrentMajesticCamSettings.iShutterSpeed;
+      if ( (iShutterSpeed > -3) && (iShutterSpeed < 3) )
+         iShutterSpeed = 3;
+      if ( iShutterSpeed > 0 )
+         sprintf(szComm, "cli -s .isp.exposure %.2f", (float)iShutterSpeed/1000.0);
+      else
+         sprintf(szComm, "cli -s .isp.exposure %.2f", -(float)iShutterSpeed/1000.0);
+
       // exposure is in milisec for ssc338q
       if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
-         sprintf(szComm, "cli -s .isp.exposure %d", s_CurrentMajesticCamSettings.shutterspeed);
+      {
+         if ( iShutterSpeed > 0 )
+            sprintf(szComm, "cli -s .isp.exposure %d", iShutterSpeed);
+         else
+            sprintf(szComm, "cli -s .isp.exposure %d", -iShutterSpeed);
+      }
       _execute_maj_command_wait(szComm);
    }
 
    hardware_camera_maj_set_irfilter_off(s_CurrentMajesticCamSettings.uFlags & CAMERA_FLAG_IR_FILTER_OFF, false);
-   hardware_camera_maj_add_log("Applied settings. Signal majestic to reload it's settings...", false);
-   hw_execute_bash_command_raw("killall -1 majestic", NULL);
 }
-
-void* _thread_majestic_set_image_params(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetImageParamsRunning = true;
-   log_line("[HwCamMajestic] Started thread to set image params...");
-   _hardware_camera_maj_set_image_params();
-   log_line("[HwCamMajestic] Finished thread to set image params.");
-   s_bMajThreadSetImageParamsRunning = false;
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL;
-}
-
-void hardware_camera_maj_apply_image_settings(camera_profile_parameters_t* pCameraParams, bool bAsync)
-{
-   if ( NULL == pCameraParams )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Received invalid params to set majestic image settings.");
-      return;
-   }
-
-   s_uMajesticLastChangeTime = get_current_timestamp_ms();
-
-   if ( s_bMajThreadSetImageParamsRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to apply image params is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetImageParams);
-   }
-
-   memcpy(&s_CurrentMajesticCamSettings, pCameraParams, sizeof(camera_profile_parameters_t));
-
-   if ( (! bAsync) || s_bDisableAsyncMajOperations )
-   {
-      _hardware_camera_maj_set_image_params();
-      return;
-   }
-
-   s_bMajThreadSetImageParamsRunning = true;
-   pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "maj apply cam settings");
-   if ( 0 != pthread_create(&s_ThreadMajSetImageParams, &attr, &_thread_majestic_set_image_params, NULL) )
-   {
-      s_bMajThreadSetImageParamsRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread to set image params. Set them manualy.");
-      _hardware_camera_maj_set_image_params();
-   }
-   pthread_attr_destroy(&attr);
-}
-
-
-void _hardware_cam_maj_set_nal_size()
-{
-   if ( NULL == s_pCurrentMajesticModel )
-      return;
-
-   // Allow room for video header important and 5 bytes for NAL header
-   
-   int iVideoProfile = s_iCurrentMajesticVideoProfile;
-   if ( -1 == iVideoProfile )
-      iVideoProfile = s_pCurrentMajesticModel->video_params.iCurrentVideoProfile;
-
-   int iNALSize = s_pCurrentMajesticModel->video_link_profiles[iVideoProfile].video_data_length;
-   iNALSize -= 6; // NAL delimitator+header (00 00 00 01 [aa] [bb])
-   iNALSize -= sizeof(t_packet_header_video_segment_important);
-   iNALSize = iNALSize - (iNALSize % 4);
-   s_iCurrentMajesticNALSize = iNALSize;
-   log_line("[HwCamMajestic] Set majestic NAL size to %d bytes (for video profile index: %d, %s)", iNALSize, iVideoProfile, str_get_video_profile_name(iVideoProfile));
-   char szComm[256];
-   sprintf(szComm, "cli -s .outgoing.naluSize %d", iNALSize);
-   _execute_maj_command_wait(szComm);
-   hardware_sleep_ms(1);
-   hw_execute_bash_command_raw("killall -1 majestic", NULL);
-   hardware_sleep_ms(5);
-}
-
-void* _thread_majestic_set_nal_size(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetNALSizeRunning = true;
-   log_line("[HwCamMajestic] Started thread to set NAL size...");
-   _hardware_cam_maj_set_nal_size();
-   s_bMajThreadSetNALSizeRunning = false;
-   log_line("[HwCamMajestic] Finished thread to set NAL size.");
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL; 
-}
-
-int hardware_camera_maj_get_current_nal_size()
-{
-   return s_iCurrentMajesticNALSize;
-}
-
-void hardware_camera_maj_update_nal_size(Model* pModel, bool bAsync)
-{
-   if ( NULL == pModel )
-      return;
-   s_pCurrentMajesticModel = pModel;
-   int iVideoProfile = s_iCurrentMajesticVideoProfile;
-   if ( (-1 == iVideoProfile) && (NULL != s_pCurrentMajesticModel) )
-      iVideoProfile = s_pCurrentMajesticModel->video_params.iCurrentVideoProfile;
-
-   int iNALSize = s_pCurrentMajesticModel->video_link_profiles[iVideoProfile].video_data_length;
-   iNALSize -= 6; // NAL delimitator+header (00 00 00 01 [aa] [bb])
-   iNALSize -= sizeof(t_packet_header_video_segment_important);
-   iNALSize = iNALSize - (iNALSize % 4);
-
-
-   if ( iNALSize == s_iCurrentMajesticNALSize )
-   {
-      //log_line("[HwCamMajestic] Received req to update nal size, but it's unchanged: %d bytes", s_iCurrentMajesticNALSize);
-      return;
-   }
-   log_line("[HwCamMajestic] Received req to update %s nal size, from %d bytes to %d bytes", bAsync?"async":"sync", s_iCurrentMajesticNALSize, iNALSize);
-
-   if ( s_bMajThreadSetNALSizeRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to set NAL size is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetNALSize);
-   }
-
-   s_uMajesticLastChangeTime = get_current_timestamp_ms();
-
-   if ( ! bAsync )
-   {
-      s_bMajThreadSetNALSizeRunning = false;
-      _hardware_cam_maj_set_nal_size();
-      return;
-   }
-   s_bMajThreadSetNALSizeRunning = true;
-   //pthread_attr_t attr;
-   //hw_init_worker_thread_attrs(&attr);
-   if ( 0 != pthread_create(&s_ThreadMajSetNALSize, NULL, &_thread_majestic_set_nal_size, NULL) )
-   {
-      s_bMajThreadSetNALSizeRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread. Set NAL size manualy.");
-      _hardware_cam_maj_set_nal_size();
-   }
-   else
-      pthread_detach(s_ThreadMajSetNALSize);
-   //pthread_attr_destroy(&attr);
-}
-
 
 void _hardware_camera_maj_set_all_params()
 {
@@ -567,7 +700,14 @@ void _hardware_camera_maj_set_all_params()
    sprintf(szComm, "cli -s .video0.fps %d", s_pCurrentMajesticModel->video_params.iVideoFPS);
    _execute_maj_command_wait(szComm);
 
-   s_uCurrentMajesticBitrate = s_pCurrentMajesticModel->video_link_profiles[s_iCurrentMajesticVideoProfile].bitrate_fixed_bps;
+   s_uCurrentMajesticBitrate = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
+   if ( s_pCurrentMajesticModel->video_link_profiles[s_iCurrentMajesticVideoProfile].bitrate_fixed_bps > 0 )
+      s_uCurrentMajesticBitrate = s_pCurrentMajesticModel->video_link_profiles[s_iCurrentMajesticVideoProfile].bitrate_fixed_bps;
+
+   if ( NULL != s_pCurrentMajesticModel )
+   if ( ! (s_pCurrentMajesticModel->radioRuntimeCapabilities.uFlagsRuntimeCapab & MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED) )
+      s_uCurrentMajesticBitrate = (s_pCurrentMajesticModel->getMaxVideoBitrateForRadioDatarate(9000000, 0) * 9) / 10;
+
    if ( s_uTemporaryMajesticBitrate > 0 )
       s_uCurrentMajesticBitrate = s_uTemporaryMajesticBitrate;
 
@@ -623,24 +763,13 @@ void _hardware_camera_maj_set_all_params()
    else
       _execute_maj_command_wait("cli -s .fpv.noiseLevel 0");
 
-   hardware_camera_maj_set_daylight_off((s_CurrentMajesticVideoCamSettings.uFlags & CAMERA_FLAG_OPENIPC_DAYLIGHT_OFF)?1:0, false);
+   hardware_camera_maj_set_daylight_off((s_CurrentMajesticCamSettings.uFlags & CAMERA_FLAG_OPENIPC_DAYLIGHT_OFF)?1:0, false);
 
-   hardware_camera_maj_apply_image_settings(&s_CurrentMajesticVideoCamSettings, false);
+   _hardware_camera_maj_apply_image_settings();
 }
 
-void* _thread_majestic_set_all_params(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetAllParamsRunning = true;
-   log_line("[HwCamMajestic] Started thread to set all params...");
-   _hardware_camera_maj_set_all_params();
-   log_line("[HwCamMajestic] Finished thread to set all params.");
-   s_bMajThreadSetAllParamsRunning = false;
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL;
-}
 
-void hardware_camera_maj_apply_all_settings(Model* pModel, camera_profile_parameters_t* pCameraParams, int iVideoProfile, video_parameters_t* pVideoParams, bool bAsync)
+void hardware_camera_maj_apply_all_settings(Model* pModel, camera_profile_parameters_t* pCameraParams, int iVideoProfile, video_parameters_t* pVideoParams)
 {
    if ( (NULL == pCameraParams) || (NULL == pModel) || (iVideoProfile < 0) || (NULL == pVideoParams) )
    {
@@ -649,34 +778,18 @@ void hardware_camera_maj_apply_all_settings(Model* pModel, camera_profile_parame
    }
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
 
-   if ( s_bMajThreadSetAllParamsRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to apply all params is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetAllParams);
-   }
-
-   memcpy(&s_CurrentMajesticVideoCamSettings, pCameraParams, sizeof(camera_profile_parameters_t));
+   memcpy(&s_CurrentMajesticCamSettings, pCameraParams, sizeof(camera_profile_parameters_t));
    memcpy(&s_CurrentMajesticVideoParams, pVideoParams, sizeof(video_parameters_t));
    s_pCurrentMajesticModel = pModel;
    s_iCurrentMajesticVideoProfile = iVideoProfile;
 
-   if ( ! bAsync )
-   {
-      s_bDisableAsyncMajOperations = true;
-      _hardware_camera_maj_set_all_params();
-      s_bDisableAsyncMajOperations = false;
-      return;
-   }
-   s_bMajThreadSetAllParamsRunning = true;
-   pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "maj apply all settings");
-   if ( 0 != pthread_create(&s_ThreadMajSetAllParams, &attr, &_thread_majestic_set_all_params, NULL) )
-   {
-      s_bMajThreadSetAllParamsRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread to set all params. Set them manualy.");
-      _hardware_camera_maj_set_all_params();
-   }
-   pthread_attr_destroy(&attr);
+   log_line("[HwCamMajestic] Apply all settings..");
+
+   _hardware_camera_maj_set_all_params();
+
+   log_line("[HwCamMajestic] Applied all settings. Signal majestic to update its' settings.");
+   hardware_camera_maj_add_log("Applied settings. Signal majestic to reload it's settings...", false);
+   hw_execute_bash_command_raw("killall -1 majestic", NULL);
 }
 
 void _hardware_camera_maj_set_irfilter_off_sync()
@@ -693,61 +806,49 @@ void _hardware_camera_maj_set_irfilter_off_sync()
    {
       if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
       {
-         _execute_maj_command_wait("gpio set 23");
-         _execute_maj_command_wait("gpio clear 24");
+         _add_maj_command_to_queue_or_exec("gpio set 23", false);
+         _add_maj_command_to_queue_or_exec("gpio clear 24", false);
       }
       if ( (hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_OPENIPC_GOKE200 )
       {
-         _execute_maj_command_wait("gpio set 14");
-         _execute_maj_command_wait("gpio clear 15");
+         _add_maj_command_to_queue_or_exec("gpio set 14", false);
+         _add_maj_command_to_queue_or_exec("gpio clear 15", false);
       }
       if ( (hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_OPENIPC_GOKE210 )
       {
-         _execute_maj_command_wait("gpio set 13");
-         _execute_maj_command_wait("gpio clear 15");
+         _add_maj_command_to_queue_or_exec("gpio set 13", false);
+         _add_maj_command_to_queue_or_exec("gpio clear 15", false);
       }
       if ( (hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_OPENIPC_GOKE300 )
       {
-         _execute_maj_command_wait("gpio set 10");
-         _execute_maj_command_wait("gpio clear 11");
+         _add_maj_command_to_queue_or_exec("gpio set 10", false);
+         _add_maj_command_to_queue_or_exec("gpio clear 11", false);
       }
    }
    else
    {
       if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
       {
-         _execute_maj_command_wait("gpio set 24");
-         _execute_maj_command_wait("gpio clear 23");
+         _add_maj_command_to_queue_or_exec("gpio set 24", false);
+         _add_maj_command_to_queue_or_exec("gpio clear 23", false);
       }
       if ( (hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_OPENIPC_GOKE200 )
       {
-         _execute_maj_command_wait("gpio set 15");
-         _execute_maj_command_wait("gpio clear 14");
+         _add_maj_command_to_queue_or_exec("gpio set 15", false);
+         _add_maj_command_to_queue_or_exec("gpio clear 14", false);
       }
       if ( (hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_OPENIPC_GOKE210 )
       {
-         _execute_maj_command_wait("gpio set 15");
-         _execute_maj_command_wait("gpio clear 13");
+         _add_maj_command_to_queue_or_exec("gpio set 15", false);
+         _add_maj_command_to_queue_or_exec("gpio clear 13", false);
       }
       if ( (hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_OPENIPC_GOKE300 )
       {
-         _execute_maj_command_wait("gpio set 11");
-         _execute_maj_command_wait("gpio clear 10");
+         _add_maj_command_to_queue_or_exec("gpio set 11", false);
+         _add_maj_command_to_queue_or_exec("gpio clear 10", false);
       }
    }
    }
-}
-
-void* _thread_majestic_set_irfilter_mode(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetIRFilterRunning = true;
-   log_line("[HwCamMajestic] Started thread to set IR filter mode...");
-   _hardware_camera_maj_set_irfilter_off_sync();
-   log_line("[HwCamMajestic] Finsished thread to set IR filter mode.");
-   s_bMajThreadSetIRFilterRunning = false;
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL;
 }
 
 void hardware_camera_maj_set_irfilter_off(int iOff, bool bAsync)
@@ -755,46 +856,8 @@ void hardware_camera_maj_set_irfilter_off(int iOff, bool bAsync)
    if ( ! hardware_board_is_openipc(hardware_getBoardType()) )
       return;
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
-
-   if ( (! bAsync) || s_bDisableAsyncMajOperations )
-   {
-      s_iLastMajesticIRFilterMode = iOff;
-      _hardware_camera_maj_set_irfilter_off_sync();
-      return;
-   }
-
-   if ( s_bMajThreadSetIRFilterRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to set IR filter is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetIRFilter);
-   }
-
-   s_bMajThreadSetIRFilterRunning = true;
-   pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "maj set ir filter");
-   if ( 0 != pthread_create(&s_ThreadMajSetIRFilter, &attr, &_thread_majestic_set_irfilter_mode, NULL) )
-   {
-      s_bMajThreadSetIRFilterRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread. Set IR filter mode manualy.");
-      _hardware_camera_maj_set_irfilter_off_sync();
-   }
-   pthread_attr_destroy(&attr);
-}
-
-void* _thread_majestic_set_daylight_mode(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetDaylightModeRunning = true;
-   log_line("[HwCamMajestic] Started thread to set daylight mode...");
-   // Daylight Off? Activate Night Mode
-   if (s_iLastMajesticDaylightMode)
-      _execute_maj_command_wait("curl -s localhost/night/on");
-   else 
-      _execute_maj_command_wait("curl -s localhost/night/off");
-   log_line("[HwCamMajestic] Finished thread to set daylight mode.");
-   s_bMajThreadSetDaylightModeRunning = false;
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL; 
+   s_iLastMajesticIRFilterMode = iOff;
+   _hardware_camera_maj_set_irfilter_off_sync();
 }
 
 void hardware_camera_maj_set_daylight_off(int iDLOff, bool bAsync)
@@ -806,38 +869,17 @@ void hardware_camera_maj_set_daylight_off(int iDLOff, bool bAsync)
    if ( iDLOff == s_iLastMajesticDaylightMode )
       return;
 
-   if ( s_bDisableAsyncMajOperations )
-   {
-      s_iLastMajesticDaylightMode = iDLOff;
-      if (s_iLastMajesticDaylightMode)
-         _execute_maj_command_wait("curl -s localhost/night/on");
-      else 
-         _execute_maj_command_wait("curl -s localhost/night/off");
-      return;
-   }
-
-   if ( s_bMajThreadSetDaylightModeRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to set daylight mode is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetDaylightMode);
-   }
-
    s_iLastMajesticDaylightMode = iDLOff;
-
-   s_bMajThreadSetDaylightModeRunning = true;
-   pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "maj set daylight mode");
-   if ( 0 != pthread_create(&s_ThreadMajSetDaylightMode, &attr, &_thread_majestic_set_daylight_mode, NULL) )
+   if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
    {
-      s_bMajThreadSetDaylightModeRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread. Set daylight mode manualy.");
-      // Daylight Off? Activate Night Mode
       if (s_iLastMajesticDaylightMode)
-         _execute_maj_command_wait("curl -s localhost/night/on");
+         _add_maj_command_to_queue("curl -s localhost/night/on", false);
       else 
-         _execute_maj_command_wait("curl -s localhost/night/off");
+         _add_maj_command_to_queue("curl -s localhost/night/off", false);
    }
-   pthread_attr_destroy(&attr);
+   else
+   {
+   }
 }
 
 void hardware_camera_maj_set_calibration_file(int iCameraType, int iCalibrationFileType, char* szCalibrationFile)
@@ -868,23 +910,6 @@ void hardware_camera_maj_set_calibration_file(int iCameraType, int iCalibrationF
    hw_execute_bash_command_raw("killall -1 majestic", NULL);   
 }
 
-void* _thread_majestic_set_brightness(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetBrightnessRunning = true;
-   log_line("[HwCamMajestic] Started thread to set brightness...");
-   char szComm[128];
-   sprintf(szComm, "curl -s localhost/api/v1/set?image.luminance=%u", s_CurrentMajesticCamSettings.brightness);
-   _execute_maj_command_wait(szComm);
-   
-   sprintf(szComm, "cli -s .image.luminance %d", s_CurrentMajesticCamSettings.brightness);
-   _execute_maj_command_wait(szComm);
-
-   s_bMajThreadSetBrightnessRunning = false;
-   log_line("[HwCamMajestic] Finished thread to set brightness.");
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL; 
-}
 
 void hardware_camera_maj_set_brightness(u32 uValue)
 {
@@ -892,45 +917,20 @@ void hardware_camera_maj_set_brightness(u32 uValue)
       return;
 
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
-
-   if ( s_bMajThreadSetBrightnessRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to set brightness is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetBrightness);
-   }
-
    s_CurrentMajesticCamSettings.brightness = uValue;
 
-   s_bMajThreadSetBrightnessRunning = true;
-   pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "maj set br");
-   if ( 0 != pthread_create(&s_ThreadMajSetBrightness, &attr, &_thread_majestic_set_brightness, NULL) )
+   char szComm[128];
+
+   if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
    {
-      s_bMajThreadSetBrightnessRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread. Set brightness manualy.");
-      char szComm[128];
       sprintf(szComm, "curl -s localhost/api/v1/set?image.luminance=%u", s_CurrentMajesticCamSettings.brightness);
-      _execute_maj_command_wait(szComm);
+      _add_maj_command_to_queue(szComm, false);
+   }
+   else
+   {
       sprintf(szComm, "cli -s .image.luminance %d", s_CurrentMajesticCamSettings.brightness);
       _execute_maj_command_wait(szComm);
    }
-   pthread_attr_destroy(&attr);
-}
-
-void* _thread_majestic_set_contrast(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetContrastRunning = true;
-   log_line("[HwCamMajestic] Started thread to set contrast...");
-   char szComm[128];
-   sprintf(szComm, "curl -s localhost/api/v1/set?image.contrast=%u", s_CurrentMajesticCamSettings.contrast);
-   _execute_maj_command_wait(szComm);
-   sprintf(szComm, "cli -s .image.contrast %d", s_CurrentMajesticCamSettings.contrast);
-   _execute_maj_command_wait(szComm);
-   s_bMajThreadSetContrastRunning = false;
-   log_line("[HwCamMajestic] Finished thread to set contrast.");
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL; 
 }
 
 void hardware_camera_maj_set_contrast(u32 uValue)
@@ -939,45 +939,19 @@ void hardware_camera_maj_set_contrast(u32 uValue)
       return;
 
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
-
-   if ( s_bMajThreadSetContrastRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to set contrast is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetContrast);
-   }
-
    s_CurrentMajesticCamSettings.contrast = uValue;
    
-   s_bMajThreadSetContrastRunning = true;
-   pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "maj set co");
-   if ( 0 != pthread_create(&s_ThreadMajSetContrast, &attr, &_thread_majestic_set_contrast, NULL) )
+   char szComm[128];
+   if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
    {
-      s_bMajThreadSetContrastRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread. Set contrast manualy.");
-      char szComm[128];
       sprintf(szComm, "curl -s localhost/api/v1/set?image.contrast=%u", s_CurrentMajesticCamSettings.contrast);
-      _execute_maj_command_wait(szComm);
+      _add_maj_command_to_queue(szComm, false);
+   }
+   else
+   {
       sprintf(szComm, "cli -s .image.contrast %d", s_CurrentMajesticCamSettings.contrast);
       _execute_maj_command_wait(szComm);
    }
-   pthread_attr_destroy(&attr);
-}
-
-void* _thread_majestic_set_hue(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetHueRunning = true;
-   log_line("[HwCamMajestic] Started thread to set hue...");
-   char szComm[128];
-   sprintf(szComm, "curl -s localhost/api/v1/set?image.hue=%u", s_CurrentMajesticCamSettings.hue);
-   _execute_maj_command_wait(szComm);
-   sprintf(szComm, "cli -s .image.hue %d", s_CurrentMajesticCamSettings.hue);
-   _execute_maj_command_wait(szComm);
-   s_bMajThreadSetHueRunning = false;
-   log_line("[HwCamMajestic] Finished thread to set hue.");
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL; 
 }
 
 void hardware_camera_maj_set_hue(u32 uValue)
@@ -986,103 +960,90 @@ void hardware_camera_maj_set_hue(u32 uValue)
       return;
 
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
-
-   if ( s_bMajThreadSetHueRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to set hue is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetHue);
-   }
-
    s_CurrentMajesticCamSettings.hue = uValue;
 
-   s_bMajThreadSetHueRunning = true;
-   pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "maj set hue");
-   if ( 0 != pthread_create(&s_ThreadMajSetHue, &attr, &_thread_majestic_set_hue, NULL) )
+   char szComm[128];
+   if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
    {
-      s_bMajThreadSetHueRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread. Set hue manualy.");
-      char szComm[128];
       sprintf(szComm, "curl -s localhost/api/v1/set?image.hue=%u", s_CurrentMajesticCamSettings.hue);
-      _execute_maj_command_wait(szComm);
+      _add_maj_command_to_queue(szComm, false);
+   }
+   else
+   {
       sprintf(szComm, "cli -s .image.hue %d", s_CurrentMajesticCamSettings.hue);
       _execute_maj_command_wait(szComm);
    }
-   pthread_attr_destroy(&attr);
 }
 
-void* _thread_majestic_set_saturation(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetSaturationRunning = true;
-   log_line("[HwCamMajestic] Started thread to set saturation...");
-   char szComm[128];
-   sprintf(szComm, "curl -s localhost/api/v1/set?image.saturation=%u", s_CurrentMajesticCamSettings.saturation/2);
-   _execute_maj_command_wait(szComm);
-   sprintf(szComm, "cli -s .image.saturation %d", s_CurrentMajesticCamSettings.saturation/2);
-   _execute_maj_command_wait(szComm);
-   s_bMajThreadSetSaturationRunning = false;
-   log_line("[HwCamMajestic] Finished thread to set saturation.");
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL; 
-}
 
 void hardware_camera_maj_set_saturation(u32 uValue)
 {
    if ( uValue == s_CurrentMajesticCamSettings.saturation )
       return;
 
-   if ( 0 == s_iPIDMajestic )
-   {
-      s_CurrentMajesticCamSettings.saturation = uValue;
-      char szComm[128];
-      sprintf(szComm, "cli -s .image.saturation %d", s_CurrentMajesticCamSettings.saturation/2);
-      _execute_maj_command_wait(szComm);
-      return;
-   }
-
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
-
-   if ( s_bMajThreadSetSaturationRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to set saturation is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetStaturation);
-   }
-
    s_CurrentMajesticCamSettings.saturation = uValue;
 
-   s_bMajThreadSetSaturationRunning = true;
-   pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "maj set sat");
-   if ( 0 != pthread_create(&s_ThreadMajSetStaturation, &attr, &_thread_majestic_set_saturation, NULL) )
+   char szComm[128];
+   if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
    {
-      s_bMajThreadSetSaturationRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread. Set hue manualy.");
-      char szComm[128];
       sprintf(szComm, "curl -s localhost/api/v1/set?image.saturation=%u", s_CurrentMajesticCamSettings.saturation/2);
-      _execute_maj_command_wait(szComm);
+      _add_maj_command_to_queue(szComm, false);
+   }
+   else
+   {
       sprintf(szComm, "cli -s .image.saturation %d", s_CurrentMajesticCamSettings.saturation/2);
       _execute_maj_command_wait(szComm);
    }
-   pthread_attr_destroy(&attr);
+}
+
+void hardware_camera_maj_set_exposure(int iValue)
+{
+   if ( (iValue == s_CurrentMajesticCamSettings.iShutterSpeed) || (iValue == 0) || (iValue > 100) || (iValue < -100) )
+      return;
+
+   s_uMajesticLastChangeTime = get_current_timestamp_ms();
+   s_CurrentMajesticCamSettings.iShutterSpeed = iValue;
+
+   if ( iValue < 0 )
+      iValue = -iValue;
+
+   char szComm[128];
+   if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
+   {
+      sprintf(szComm, "curl -s localhost/api/v1/set?isp.exposure=%d", iValue);
+      _add_maj_command_to_queue(szComm, false);
+   }
+   else
+   {
+      sprintf(szComm, "cli -s .isp.exposure %d", iValue);
+      _execute_maj_command_wait(szComm);
+   }
 }
 
 void hardware_camera_maj_set_temp_values(u32 uBitrate, int iKeyframeMs, int iQPDelta)
 {
+   char szComm[256];
    if ( uBitrate > 0 )
    {
       s_uTemporaryMajesticBitrate = uBitrate;
+      sprintf(szComm, "cli -s .video0.bitrate %u", s_uTemporaryMajesticBitrate/1000);
+      _execute_maj_command_wait(szComm);
       log_line("[HwCamMajestic] Did set temp runtime video bitrate value to: %.3f", (float)s_uTemporaryMajesticBitrate/1000.0/1000.0);
    }
    if ( iQPDelta > -100 )
    {
       s_iTemporaryMajesticQPDelta = iQPDelta;
+      sprintf(szComm, "cli -s .video0.qpDelta %d", s_iTemporaryMajesticQPDelta);
+      _execute_maj_command_wait(szComm);
       log_line("[HwCamMajestic] Did set temp runtime QPDelta value to: %d", s_iTemporaryMajesticQPDelta);
    }
    if ( iKeyframeMs > 0 )
    {
       s_iTemporaryMajesticKeyframeMs = iKeyframeMs;
       s_fTemporaryMajesticGOP = ((float)iKeyframeMs)/1000.0;
+      sprintf(szComm, "cli -s .video0.gopSize %.2f", s_fTemporaryMajesticGOP);
+      _execute_maj_command_wait(szComm);
       log_line("[HwCamMajestic] Did set temp runtime keyframe value to: %d ms", s_iTemporaryMajesticKeyframeMs);
    }
 }
@@ -1096,21 +1057,6 @@ void hardware_camera_maj_clear_temp_values()
    log_line("[HwCamMajestic] Cleared temp runtime values.");
 }
 
-void* _thread_majestic_set_temp_gop(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetGOPRunning = true;
-   log_line("[HwCamMajestic] Started thread to set GOP to %.2f ...", s_fTemporaryMajesticGOP);
-   char szComm[128];
-   sprintf(szComm, "curl -s localhost/api/v1/set?video0.gopSize=%.2f", s_fTemporaryMajesticGOP);
-   _execute_maj_command_wait(szComm);
-   sprintf(szComm, "cli -s .video0.gopSize %.2f", s_fTemporaryMajesticGOP);
-   _execute_maj_command_wait(szComm);
-   s_bMajThreadSetGOPRunning = false;
-   log_line("[HwCamMajestic] Finished thread to set GOP.");
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL; 
-}
 
 void hardware_camera_maj_set_keyframe(int iKeyframeMs)
 {
@@ -1123,67 +1069,21 @@ void hardware_camera_maj_set_keyframe(int iKeyframeMs)
    if ( fGOP <= 0.0001 )
       return;
 
-   if ( 0 == s_iPIDMajestic )
-   {
-      s_fTemporaryMajesticGOP = fGOP;
-      s_iTemporaryMajesticKeyframeMs = iKeyframeMs;
-
-      char szComm[128];
-      sprintf(szComm, "cli -s .video0.gopSize %.2f", s_fTemporaryMajesticGOP);
-      _execute_maj_command_wait(szComm);
-      return;
-   }
-
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
-
-   if ( s_bMajThreadSetGOPRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to set GOP is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetGOP);
-   }
-
    s_fTemporaryMajesticGOP = fGOP;
    s_iTemporaryMajesticKeyframeMs = iKeyframeMs;
 
-   s_bMajThreadSetGOPRunning = true;
-   //pthread_attr_t attr;
-   //hw_init_worker_thread_attrs(&attr);
-   //pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
-   if ( 0 != pthread_create(&s_ThreadMajSetGOP, NULL, &_thread_majestic_set_temp_gop, NULL) )
+   char szComm[128];
+   if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
    {
-      s_bMajThreadSetGOPRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread. Set GOP manualy.");
-      char szComm[128];
       sprintf(szComm, "curl -s localhost/api/v1/set?video0.gopSize=%.2f", s_fTemporaryMajesticGOP);
-      _execute_maj_command_wait(szComm);
-      sprintf(szComm, "cli -s .video0.gopSize %.2f", s_fTemporaryMajesticGOP);
-      _execute_maj_command_wait(szComm);
-      s_bMajThreadSetGOPRunning = false;
+      _add_maj_command_to_queue(szComm, false);
    }
    else
-      pthread_detach(s_ThreadMajSetGOP);
-   //pthread_attr_destroy(&attr);
-}
-
-void* _thread_majestic_set_bitrate(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetBitrateRunning = true;
-   u32 uBitrate = s_uCurrentMajesticBitrate;
-   if ( s_uTemporaryMajesticBitrate != 0 )
-      uBitrate = s_uTemporaryMajesticBitrate;
-   log_line("[HwCamMajestic] Started thread to set bitrate to %u bps ...", uBitrate);
-   
-   char szComm[128];
-   sprintf(szComm, "curl -s localhost/api/v1/set?video0.bitrate=%u", uBitrate/1000);
-   _execute_maj_command_wait(szComm);
-   sprintf(szComm, "cli -s .video0.bitrate %u", uBitrate/1000);
-   _execute_maj_command_wait(szComm);
-
-   s_bMajThreadSetBitrateRunning = false;
-   log_line("[HwCamMajestic] Finished thread to set bitrate.");
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL; 
+   {
+      sprintf(szComm, "cli -s .video0.gopSize %.2f", s_fTemporaryMajesticGOP);
+      _execute_maj_command_wait(szComm);
+   }
 }
 
 int hardware_camera_maj_get_current_keyframe()
@@ -1209,65 +1109,22 @@ void hardware_camera_maj_set_bitrate(u32 uBitrate)
    if ( 0 == uBitrate )
       return;
 
-   if ( 0 == s_iPIDMajestic )
-   {
-      s_uTemporaryMajesticBitrate = uBitrate;
-
-      char szComm[128];
-      sprintf(szComm, "cli -s .video0.bitrate %u", s_uTemporaryMajesticBitrate/1000);
-      _execute_maj_command_wait(szComm);
-      return;
-   }
-
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
-
-   if ( s_bMajThreadSetBitrateRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to set bitrate is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetBitrate);
-   }
-
    s_uTemporaryMajesticBitrate = uBitrate;
    
-   s_bMajThreadSetBitrateRunning = true;
-   //pthread_attr_t attr;
-   //hw_init_worker_thread_attrs(&attr);
-   //pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
-   if ( 0 != pthread_create(&s_ThreadMajSetBitrate, NULL, &_thread_majestic_set_bitrate, NULL) )
+   char szComm[128];
+   if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
    {
-      s_bMajThreadSetBitrateRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread. Set bitrate manualy.");
-      char szComm[128];
       sprintf(szComm, "curl -s localhost/api/v1/set?video0.bitrate=%u", s_uTemporaryMajesticBitrate/1000);
-      _execute_maj_command_wait(szComm);
+      _add_maj_command_to_queue(szComm, false);
+   }
+   else
+   {
       sprintf(szComm, "cli -s .video0.bitrate %u", s_uTemporaryMajesticBitrate/1000);
       _execute_maj_command_wait(szComm);
    }
-   else
-      pthread_detach(s_ThreadMajSetBitrate);
-   //pthread_attr_destroy(&attr);
 }
 
-void* _thread_majestic_set_qpdelta(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetQPDeltaRunning = true;
-   int iQPDelta = s_iCurrentMajesticQPDelta;
-   if ( s_iTemporaryMajesticQPDelta > -100 )
-      iQPDelta = s_iTemporaryMajesticQPDelta;
-   log_line("[HwCamMajestic] Started thread to set QP delta to %d ...", iQPDelta);
-   
-   char szComm[128];
-   sprintf(szComm, "curl -s localhost/api/v1/set?video0.qpDelta=%d", iQPDelta);
-   _execute_maj_command_wait(szComm);
-   sprintf(szComm, "cli -s .video0.qpDelta %d", iQPDelta);
-   _execute_maj_command_wait(szComm);
-
-   s_bMajThreadSetQPDeltaRunning = false;
-   log_line("[HwCamMajestic] Finished thread to set QP delta.");
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL; 
-}
 
 int hardware_camera_maj_get_current_qpdelta()
 {
@@ -1283,76 +1140,20 @@ void hardware_camera_maj_set_qpdelta(int iQPDelta)
    if ( (s_iTemporaryMajesticQPDelta < -100) && (iQPDelta == s_iCurrentMajesticQPDelta) )
       return;
 
-   if ( 0 == s_iPIDMajestic )
-   {
-      s_iTemporaryMajesticQPDelta = iQPDelta;
-
-      char szComm[128];
-      sprintf(szComm, "cli -s .video0.qpDelta %d", iQPDelta);
-      _execute_maj_command_wait(szComm);
-      return;
-   }
-
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
-
-   if ( s_bMajThreadSetQPDeltaRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to set qp delta is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetQPDelta);
-   }
-
    s_iTemporaryMajesticQPDelta = iQPDelta;
-   
-   s_bMajThreadSetQPDeltaRunning = true;
-   //pthread_attr_t attr;
-   //hw_init_worker_thread_attrs(&attr);
-   //pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
-   if ( 0 != pthread_create(&s_ThreadMajSetQPDelta, NULL, &_thread_majestic_set_qpdelta, NULL) )
+
+   char szComm[128];
+   if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
    {
-      s_bMajThreadSetQPDeltaRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread. Set qp delta manualy.");
-      char szComm[128];
-      sprintf(szComm, "curl -s localhost/api/v1/set?video0.qpDelta=%d", iQPDelta);
-      _execute_maj_command_wait(szComm);
-      sprintf(szComm, "cli -s .video0.qpDelta %d", iQPDelta);
-      _execute_maj_command_wait(szComm);
+      sprintf(szComm, "curl -s localhost/api/v1/set?video0.qpDelta=%d", s_iTemporaryMajesticQPDelta);
+      _add_maj_command_to_queue(szComm, false);
    }
    else
-      pthread_detach(s_ThreadMajSetQPDelta);
-   //pthread_attr_destroy(&attr);
-}
-
-void* _thread_majestic_set_bitrate_qpdelta(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetBitrateQPDeltaRunning = true;
-   u32 uBitrate = s_uCurrentMajesticBitrate;
-   if ( s_uTemporaryMajesticBitrate != 0 )
-      uBitrate = s_uTemporaryMajesticBitrate;
-   int iQPDelta = s_iCurrentMajesticQPDelta;
-   if ( s_iTemporaryMajesticQPDelta > -100 )
-      iQPDelta = s_iTemporaryMajesticQPDelta;
-
-   log_line("[HwCamMajestic] Started thread to set bitrate to %u bps and QP delta to %d ...", uBitrate, iQPDelta);
-   
-   char szComm[128];
-   
-   sprintf(szComm, "curl -s localhost/api/v1/set?video0.bitrate=%u", uBitrate/1000);
-   _execute_maj_command_wait(szComm);
-
-   sprintf(szComm, "curl -s localhost/api/v1/set?video0.qpDelta=%d", iQPDelta);
-   _execute_maj_command_wait(szComm);
-
-   sprintf(szComm, "cli -s .video0.bitrate %u", uBitrate/1000);
-   _execute_maj_command_wait(szComm);
-
-   sprintf(szComm, "cli -s .video0.qpDelta %d", iQPDelta);
-   _execute_maj_command_wait(szComm);
-
-   s_bMajThreadSetBitrateQPDeltaRunning = false;
-   log_line("[HwCamMajestic] Finished thread to set bitrate and QP delta.");
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL; 
+   {
+      sprintf(szComm, "cli -s .video0.qpDelta %d", s_iTemporaryMajesticQPDelta);
+      _execute_maj_command_wait(szComm);
+   }
 }
 
 void hardware_camera_maj_set_bitrate_and_qpdelta(u32 uBitrate, int iQPDelta)
@@ -1387,53 +1188,26 @@ void hardware_camera_maj_set_bitrate_and_qpdelta(u32 uBitrate, int iQPDelta)
       return;
    }
 
-   if ( 0 == s_iPIDMajestic )
-   {
-      s_uTemporaryMajesticBitrate = uBitrate;
-      s_iTemporaryMajesticQPDelta = iQPDelta;
-
-      char szComm[128];
-      sprintf(szComm, "cli -s .video0.bitrate %u", s_uTemporaryMajesticBitrate/1000);
-      _execute_maj_command_wait(szComm);
-      sprintf(szComm, "cli -s .video0.qpDelta %d", s_iTemporaryMajesticQPDelta);
-      _execute_maj_command_wait(szComm);
-      return;
-   }
-
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
-
-   if ( s_bMajThreadSetBitrateQPDeltaRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to set bitrate and qp delta is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetBitrateQPDelta);
-   }
-
    s_uTemporaryMajesticBitrate = uBitrate;
    s_iTemporaryMajesticQPDelta = iQPDelta;
    
-   s_bMajThreadSetBitrateQPDeltaRunning = true;
-   //pthread_attr_t attr;
-   //hw_init_worker_thread_attrs(&attr);
-   //pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
-   if ( 0 != pthread_create(&s_ThreadMajSetBitrateQPDelta, NULL, &_thread_majestic_set_bitrate_qpdelta, NULL) )
+   char szComm[128];
+   if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
    {
-      s_bMajThreadSetBitrateQPDeltaRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread. Set bitrate and qp delta manualy.");
-      char szComm[128];
       sprintf(szComm, "curl -s localhost/api/v1/set?video0.bitrate=%u", s_uTemporaryMajesticBitrate/1000);
-      _execute_maj_command_wait(szComm);
+      _add_maj_command_to_queue(szComm, false);
       sprintf(szComm, "curl -s localhost/api/v1/set?video0.qpDelta=%d", s_iTemporaryMajesticQPDelta);
-      _execute_maj_command_wait(szComm);
-
+      _add_maj_command_to_queue(szComm, false);
+   }
+   else
+   {
       sprintf(szComm, "cli -s .video0.bitrate %u", s_uTemporaryMajesticBitrate/1000);
       _execute_maj_command_wait(szComm);
 
       sprintf(szComm, "cli -s .video0.qpDelta %d", s_iTemporaryMajesticQPDelta);
       _execute_maj_command_wait(szComm);
    }
-   else
-      pthread_detach(s_ThreadMajSetBitrateQPDelta);
-   //pthread_attr_destroy(&attr);
 }
 
 u32 hardware_camera_maj_get_last_change_time()
@@ -1447,6 +1221,7 @@ void hardware_camera_maj_enable_audio(bool bEnable, int iBitrate, int iVolume)
 
    s_uMajesticLastChangeTime = s_uMajesticLastChangeAudioTime = get_current_timestamp_ms();
    char szComm[128];
+
    if ( bEnable )
    {
       s_iCurrentMajAudioVolume = iVolume;
@@ -1455,41 +1230,19 @@ void hardware_camera_maj_enable_audio(bool bEnable, int iBitrate, int iVolume)
          s_iCurrentMajAudioBitrate = 4000;
       if ( s_iCurrentMajAudioBitrate >= 32000 )
          s_iCurrentMajAudioBitrate = 48000;
-      _execute_maj_command_wait("cli -s .audio.outputEnabled false");
-      _execute_maj_command_wait("cli -s .audio.codec pcm");
+
+      _add_maj_command_to_queue_or_exec("cli -s .audio.outputEnabled false", false);
+      _add_maj_command_to_queue_or_exec("cli -s .audio.codec pcm", false);
       sprintf(szComm, "cli -s .audio.srate %d", s_iCurrentMajAudioBitrate);
-      _execute_maj_command_wait(szComm);
+      _add_maj_command_to_queue_or_exec(szComm, false);
       sprintf(szComm, "cli -s .audio.volume %d", s_iCurrentMajAudioVolume);
-      _execute_maj_command_wait(szComm);
-      _execute_maj_command_wait("cli -s .audio.enabled true");
+      _add_maj_command_to_queue_or_exec(szComm, false);
+      _add_maj_command_to_queue_or_exec("cli -s .audio.enabled true", true);
    }
    else
-   {
-      _execute_maj_command_wait("cli -s .audio.enabled false");
-   }
+      _add_maj_command_to_queue_or_exec("cli -s .audio.enabled false", true);
    hardware_sleep_ms(10);
-
-   hw_execute_bash_command_raw("killall -1 majestic", NULL);
 }
-
-
-void* _thread_majestic_set_audio_volume(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetAudioVolumeRunning = true;
-   log_line("[HwCamMajestic] Started thread to set audio volume to %d ...", s_iCurrentMajAudioVolume);
-   
-   char szComm[128];
-   sprintf(szComm, "cli -s .audio.volume %d", s_iCurrentMajAudioVolume);
-   _execute_maj_command_wait(szComm);
-   hw_execute_bash_command_raw("killall -1 majestic", NULL);
-
-   s_bMajThreadSetAudioVolumeRunning = false;
-   log_line("[HwCamMajestic] Finished thread to set audio volume.");
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL; 
-}
-
 
 void hardware_camera_maj_set_audio_volume(int iVolume)
 {
@@ -1499,48 +1252,12 @@ void hardware_camera_maj_set_audio_volume(int iVolume)
       return;
    }
    s_uMajesticLastChangeTime = s_uMajesticLastChangeAudioTime = get_current_timestamp_ms();
-
-   if ( s_bMajThreadSetAudioVolumeRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to set audio volume is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetAudioVolume);
-   }
-
    s_iCurrentMajAudioVolume = iVolume;
    
-   s_bMajThreadSetAudioVolumeRunning = true;
-   pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "maj set audio volume");
-   pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
-   if ( 0 != pthread_create(&s_ThreadMajSetAudioVolume, &attr, &_thread_majestic_set_audio_volume, NULL) )
-   {
-      s_bMajThreadSetAudioVolumeRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread. Set audio volume manualy.");
-      char szComm[128];
-      sprintf(szComm, "cli -s .audio.volume %d", s_iCurrentMajAudioVolume);
-      _execute_maj_command_wait(szComm);
-      hw_execute_bash_command_raw("killall -1 majestic", NULL);
-   }
-   pthread_attr_destroy(&attr);
-}
-
-void* _thread_majestic_set_audio_bitrate(void *argument)
-{
-   s_iCountAsyncMajOperationsInProgress++;
-   s_bMajThreadSetAudioBitrateRunning = true;
-   log_line("[HwCamMajestic] Started thread to set audio bitrate to %d ...", s_iCurrentMajAudioBitrate);
-   
    char szComm[128];
-   sprintf(szComm, "cli -s .audio.srate %d", s_iCurrentMajAudioBitrate);
-   _execute_maj_command_wait(szComm);
-   hw_execute_bash_command_raw("killall -1 majestic", NULL);
-
-   s_bMajThreadSetAudioBitrateRunning = false;
-   log_line("[HwCamMajestic] Finished thread to set audio bitrate.");
-   s_iCountAsyncMajOperationsInProgress--;
-   return NULL; 
+   sprintf(szComm, "cli -s .audio.volume %d", s_iCurrentMajAudioVolume);
+   _add_maj_command_to_queue_or_exec(szComm, true);
 }
-
 
 void hardware_camera_maj_set_audio_quality(int iBitrate)
 {
@@ -1560,29 +1277,11 @@ void hardware_camera_maj_set_audio_quality(int iBitrate)
    }
    
    s_uMajesticLastChangeTime = s_uMajesticLastChangeAudioTime = get_current_timestamp_ms();
-
-   if ( s_bMajThreadSetAudioBitrateRunning )
-   {
-      log_softerror_and_alarm("[HwCamMajestic] Another thread to set audio bitrate is running. Stop it.");
-      pthread_cancel(s_ThreadMajSetAudioBitrate);
-   }
-
    s_iCurrentMajAudioBitrate = iNewBitrate;
-   
-   s_bMajThreadSetAudioBitrateRunning = true;
-   pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "maj set audio qual");
-   pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
-   if ( 0 != pthread_create(&s_ThreadMajSetAudioBitrate, &attr, &_thread_majestic_set_audio_bitrate, NULL) )
-   {
-      s_bMajThreadSetAudioBitrateRunning = false;
-      log_softerror_and_alarm("[HwCamMajestic] Can't create thread. Set audio bitrate manualy.");
-      char szComm[128];
-      sprintf(szComm, "cli -s .audio.srate %d", s_iCurrentMajAudioBitrate);
-      _execute_maj_command_wait(szComm);
-      hw_execute_bash_command_raw("killall -1 majestic", NULL);
-   }
-   pthread_attr_destroy(&attr);
+
+   char szComm[128];
+   sprintf(szComm, "cli -s .audio.srate %d", s_iCurrentMajAudioBitrate);
+   _add_maj_command_to_queue_or_exec(szComm, true);
 }
 
 u32  hardware_camera_maj_get_last_audio_change_time()

@@ -108,7 +108,7 @@ int wiringPiI2CWriteBlockDataIoctl(int fd, int addr, uint8_t reg, uint8_t length
        return -1;
 
     struct i2c_msg msg[2];
-    uint8_t *buffer = malloc(length + 1);
+    uint8_t *buffer = (uint8_t*)malloc(length + 1);
     if ( NULL == buffer )
        return -1;
  

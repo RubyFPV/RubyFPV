@@ -3,9 +3,6 @@
 #include "../base/config.h"
 #include "../base/shared_mem.h"
 
-// In router
-extern type_radio_tx_timers g_RadioTxTimers;
-
 // Globals
 
 extern u32 g_TimeLastPeriodicCheck;
@@ -56,7 +53,7 @@ extern u32 g_TimeLastTxPacket;
 extern u32 g_TimeLastVideoPacketIn;
 extern u32 g_TimeLastNotificationRelayParamsChanged;
 
-extern u32 g_uTimeLastCommandSowftwareUpload;
+extern u32 g_uTimeLastCommandSoftwareUpload;
 
 extern u32 g_uTimeLastVideoTxOverload;
 

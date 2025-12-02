@@ -15,7 +15,7 @@ void warnings_add(u32 uVehicleId, const char* szTitle, u32 iconId, const double*
 void warnings_add_error_null_model(int code);
 void warnings_add_radio_reinitialized();
 void warnings_add_too_much_data(u32 uVehicleId, int current_kbps, int max_kbps);
-void warnings_add_vehicle_overloaded(u32 uVehicleId);
+void warnings_add_vehicle_overloaded(u32 uVehicleId, bool bEC, bool bTx, u32 uECMsPerSec, u32 uTxMsPerSec);
 
 void warnings_add_link_to_controller_lost(u32 uVehicleId);
 void warnings_add_link_to_controller_recovered(u32 uVehicleId);

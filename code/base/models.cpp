@@ -48,7 +48,7 @@
 #include "../radio/radiopackets2.h"
 #include "../radio/radiolink.h"
 
-#define MODEL_FILE_STAMP_ID "vVIII.3stamp"
+#define MODEL_FILE_STAMP_ID "vXI.5stm"
 
 static const char* s_szModelFlightModeNONE = "NONE";
 static const char* s_szModelFlightModeMAN  = "MAN";
@@ -243,6 +243,7 @@ int Model::getLoadedFileVersion()
 
 bool Model::isRunningOnOpenIPCHardware()
 {
+   check_detect_board_type();
    if ( hardware_board_is_openipc(hwCapabilities.uBoardType & BOARD_TYPE_MASK) )
       return true;
    return false;
@@ -250,6 +251,7 @@ bool Model::isRunningOnOpenIPCHardware()
 
 bool Model::isRunningOnPiHardware()
 {
+   check_detect_board_type();
    if ( hardware_board_is_raspberry(hwCapabilities.uBoardType & BOARD_TYPE_MASK) )
       return true;
    return false;
@@ -257,6 +259,7 @@ bool Model::isRunningOnPiHardware()
 
 bool Model::isRunningOnRadxaHardware()
 {
+   check_detect_board_type();
    if ( hardware_board_is_radxa(hwCapabilities.uBoardType & BOARD_TYPE_MASK) )
       return true;
    return false;
@@ -318,6 +321,8 @@ bool Model::loadFromFile(const char* filename, bool bLoadStats)
          //log_line("Found model file version: %d.", iVersion);
          if ( 10 == iVersionMain )
             bMainFileLoadedOk = loadVersion10(fd);
+         if ( 11 == iVersionMain )
+            bMainFileLoadedOk = loadVersion11(fd);
          if ( bMainFileLoadedOk )
          {
             iLoadedFileVersion = iVersionMain;
@@ -334,7 +339,6 @@ bool Model::loadFromFile(const char* filename, bool bLoadStats)
    {
       if ( ! bLoadStats ) 
          memcpy((u8*)&m_Stats, (u8*)&stats, sizeof(type_vehicle_stats_info));
-      validate_settings();
 
       timeStart = get_current_timestamp_ms() - timeStart;
       char szFreq1[64];
@@ -344,11 +348,12 @@ bool Model::loadFromFile(const char* filename, bool bLoadStats)
       strcpy(szFreq2, str_format_frequency(radioLinksParams.link_frequency_khz[1]));
       strcpy(szFreq3, str_format_frequency(radioLinksParams.link_frequency_khz[2]));
 
-      log_line("Loaded vehicle (%s) successfully from file: %s; name: [%s], VID: %u, %s, software: %d.%d (b%d), on time: %02d:%02d",
+      log_line("Loaded vehicle (%s) successfully from file: [%s] name: [%s], VID: %u, %s, software: %d.%d (b-%d), has negociated radio: %s, on time: %02d:%02d",
          bLoadStats?"with stats":"without stats",
          filename, vehicle_name, uVehicleId, 
          is_spectator?"spectator mode": "control mode",
-         (sw_version >> 8) & 0xFF, sw_version & 0xFF, sw_version>>16,
+         get_sw_version_major(this), get_sw_version_minor(this), get_sw_version_build(this),
+         (radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS)?"yes":"no",
          m_Stats.uCurrentOnTime/60, m_Stats.uCurrentOnTime%60);
       constructLongName();
       return true;
@@ -368,6 +373,8 @@ bool Model::loadFromFile(const char* filename, bool bLoadStats)
          //log_line("Found model file version: %d.", iVersion);
          if ( 10 == iVersionBackup )
             bBackupFileLoadedOk = loadVersion10(fd);
+         if ( 11 == iVersionBackup )
+            bBackupFileLoadedOk = loadVersion11(fd);
          if ( bBackupFileLoadedOk )
          {
             iLoadedFileVersion = iVersionBackup;
@@ -391,17 +398,16 @@ bool Model::loadFromFile(const char* filename, bool bLoadStats)
 
    if ( ! bLoadStats ) 
       memcpy((u8*)&m_Stats, (u8*)&stats, sizeof(type_vehicle_stats_info));
-   validate_settings();
 
    timeStart = get_current_timestamp_ms() - timeStart;
-   log_line("Loaded vehicle successfully (%d ms) from backup file: %s; version %d, save count: %d, vehicle name: [%s], vehicle id: %u, software: %d.%d (b%d), is in control mode: %s", timeStart, filename, iLoadedFileVersion, iSaveCount, vehicle_name, uVehicleId, (sw_version >> 8) & 0xFF, sw_version & 0xFF, sw_version>>16, is_spectator?"no (is spectator)":"yes");
+   log_line("Loaded vehicle successfully (%d ms) from backup file: %s; version %d, save count: %d, vehicle name: [%s], vehicle id: %u, software: %d.%d (b-%d), is in control mode: %s", timeStart, filename, iLoadedFileVersion, iSaveCount, vehicle_name, uVehicleId, get_sw_version_major(this), get_sw_version_minor(this), get_sw_version_build(this), is_spectator?"no (is spectator)":"yes");
 
    constructLongName();
    
    fd = fopen(szFileNormal, "w");
    if ( NULL != fd )
    {
-      saveVersion10(fd, false);
+      saveVersion11(fd, false);
       fclose(fd);
       log_line("Restored main model file from backup model file.");
    }
@@ -423,23 +429,23 @@ bool Model::loadVersion10(FILE* fd)
    bool bOk = true;
 
    if ( 1 != fscanf(fd, "%s", szBuff) )
-      { log_softerror_and_alarm("Load model8: Error on line stamp"); return false; }
+      { log_softerror_and_alarm("10-1"); return false; }
 
    if ( 1 != fscanf(fd, "%*s %d", &iSaveCount) )
-      { log_softerror_and_alarm("Load model8: Error on line save count"); return false; }
+      { log_softerror_and_alarm("10-2"); return false; }
 
    if ( 4 != fscanf(fd, "%*s %u %d %d %u", &sw_version, &uVehicleId, &uControllerId, &hwCapabilities.uBoardType) )
-      { log_softerror_and_alarm("Load model8: Error on line 1"); return false; }
+      { log_softerror_and_alarm("10-3"); return false; }
 
    if ( hardware_is_vehicle() )
       sw_version = (SYSTEM_SW_VERSION_MAJOR * 256 + SYSTEM_SW_VERSION_MINOR) | (SYSTEM_SW_BUILD_NUMBER<<16);
 
    if ( bOk && (1 != fscanf(fd, "%u", &uModelFlags )) )
-      { log_softerror_and_alarm("Load model8: Error on line 2a"); uModelFlags = 0; return false; }
+      { log_softerror_and_alarm("10-4"); uModelFlags = 0; return false; }
 
 
    if ( 1 != fscanf(fd, "%s", vehicle_name) )
-      { log_softerror_and_alarm("Load model8: Error on line 2"); return false; }
+      { log_softerror_and_alarm("10-5"); return false; }
    if ( vehicle_name[0] == '*' && vehicle_name[1] == 0 )
       vehicle_name[0] = 0;
 
@@ -449,11 +455,11 @@ bool Model::loadVersion10(FILE* fd)
 
    str_sanitize_modelname(vehicle_name);
 
-   if ( 3 != fscanf(fd, "%d %u %d", &rxtx_sync_type, &camera_rc_channels, &processesPriorities.iNiceTelemetry ) )
-      { log_softerror_and_alarm("Load model8: Error on line 3"); return false; }
+   if ( 3 != fscanf(fd, "%d %u %d", &rxtx_sync_type, &camera_rc_channels, &tmp1 ) )
+      { log_softerror_and_alarm("10-6"); return false; }
 
    if ( 4 != fscanf(fd, "%d %d %u %d", &tmp1, &vt, &m_Stats.uTotalFlightTime, &iGPSCount ) )
-      { log_softerror_and_alarm("Load model8: Error on line 3b"); return false; }
+      { log_softerror_and_alarm("10-7"); return false; }
 
    is_spectator = (bool)tmp1;
    vehicle_type = vt;
@@ -461,28 +467,28 @@ bool Model::loadVersion10(FILE* fd)
    //----------------------------------------
    // CPU
 
-   if ( 3 != fscanf(fd, "%*s %d %d %d", &processesPriorities.iNiceVideo, &processesPriorities.iNiceOthers, &processesPriorities.ioNiceVideo) )
-      { log_softerror_and_alarm("Load model8: Error on line 4"); return false; }
+   if ( 3 != fscanf(fd, "%*s %d %d %d", &tmp1, &tmp2, &processesPriorities.ioNiceVideo) )
+      { log_softerror_and_alarm("10-8"); return false; }
    if ( 3 != fscanf(fd, "%d %d %d", &processesPriorities.iOverVoltage, &processesPriorities.iFreqARM, &processesPriorities.iFreqGPU) )
-      { log_softerror_and_alarm("Load model8: Error on line 5"); }
-   if ( 3 != fscanf(fd, "%d %d %d", &processesPriorities.iNiceRouter, &processesPriorities.ioNiceRouter, &processesPriorities.iNiceRC) )
-      { log_softerror_and_alarm("Load model8: Error on extra line 2b"); }
+      { log_softerror_and_alarm("10-9"); }
+   if ( 3 != fscanf(fd, "%d %d %d", &tmp1, &processesPriorities.ioNiceRouter, &tmp2) )
+      { log_softerror_and_alarm("10-10"); }
 
    //----------------------------------------
    // Radio
 
    if ( 1 != fscanf(fd, "%*s %d", &radioInterfacesParams.interfaces_count) )
-      { log_softerror_and_alarm("Load model8: Error on line 6"); return false; }
+      { log_softerror_and_alarm("10-11"); return false; }
 
    for( int i=0; i<radioInterfacesParams.interfaces_count; i++ )
    {
       char szTmp[256];
       char szTmp2[256];
       if ( 3 != fscanf(fd, "%d %d %u", &(radioInterfacesParams.interface_card_model[i]), &(radioInterfacesParams.interface_link_id[i]), &(radioInterfacesParams.interface_current_frequency_khz[i])) )
-         { log_softerror_and_alarm("Load model8: Error on line 7a"); return false; }
+         { log_softerror_and_alarm("10-12"); return false; }
 
       if ( 8 != fscanf(fd, "%u %d %u %d %d %d %s %s", &u4, &tmp2, &tmp32, &tmp5, &tmp6, &tmp7, szTmp2, szTmp) )
-         { log_softerror_and_alarm("Load model8: Error on line 7b"); return false; }
+         { log_softerror_and_alarm("10-13"); return false; }
       radioInterfacesParams.interface_capabilities_flags[i] = u4;
       radioInterfacesParams.interface_supported_bands[i] = (u8)tmp2;
       radioInterfacesParams.interface_radiotype_and_driver[i] = tmp32;
@@ -503,113 +509,89 @@ bool Model::loadVersion10(FILE* fd)
          radioInterfacesParams.interface_szPort[i][iStrLen-1] = 0;
    }
 
-   if ( 9 != fscanf(fd, "%d %d %d %u %d %d %d %d %d", &tmp1, &radioInterfacesParams.iAutoVehicleTxPower, &radioInterfacesParams.iAutoControllerTxPower, &radioInterfacesParams.uFlagsRadioInterfaces, &radioInterfacesParams.iDummyR4, &radioInterfacesParams.iDummyR5, &radioInterfacesParams.iDummyR6,  &radioInterfacesParams.iDummyR7, &radioInterfacesParams.iDummyR8) )
-      { log_softerror_and_alarm("Load model8: Error on line 8"); return false; }
+   if ( 9 != fscanf(fd, "%d %d %d %u %d %d %d %d %d", &tmp1, &radioInterfacesParams.iAutoVehicleTxPower, &radioInterfacesParams.iAutoControllerTxPower, &radioInterfacesParams.uFlagsRadioInterfaces, &tmp2, &tmp3, &tmp4,  &tmp5, &tmp5) )
+      { log_softerror_and_alarm("10-14"); return false; }
    enableDHCP = (bool)tmp1;
 
-   if ( 1 != fscanf(fd, "%d", &radioInterfacesParams.iDummyR9) )
-   {
-      radioInterfacesParams.iDummyR9 = 0;
-   }
+   fscanf(fd, "%d", &tmp1);
 
    if ( 1 != fscanf(fd, "%*s %d", &radioLinksParams.links_count) )
-      { log_softerror_and_alarm("Load model8: Error on line r0"); return false; }
+      { log_softerror_and_alarm("10-15"); return false; }
 
    for( int i=0; i<radioLinksParams.links_count; i++ )
    {
       if ( 5 != fscanf(fd, "%u %u %u %d %d", &(radioLinksParams.link_frequency_khz[i]), &(radioLinksParams.link_capabilities_flags[i]), &(radioLinksParams.link_radio_flags[i]), &(radioLinksParams.downlink_datarate_video_bps[i]), &(radioLinksParams.downlink_datarate_data_bps[i])) )
-         { log_softerror_and_alarm("Load model8: Error on line r3"); return false; }
+         { log_softerror_and_alarm("10-16"); return false; }
 
-      if ( 4 != fscanf(fd, "%d %u %d %d", &tmp1, &(radioLinksParams.uDummy2[i]), &(radioLinksParams.uplink_datarate_video_bps[i]), &(radioLinksParams.uplink_datarate_data_bps[i])) )
-         { log_softerror_and_alarm("Load model8: Error on line r4"); return false; }
+      if ( 4 != fscanf(fd, "%d %u %d %d", &tmp1, &u1, &(radioLinksParams.uplink_datarate_video_bps[i]), &(radioLinksParams.uplink_datarate_data_bps[i])) )
+         { log_softerror_and_alarm("10-17"); return false; }
       radioLinksParams.uSerialPacketSize[i] = tmp1;
-      if ( (radioLinksParams.uSerialPacketSize[i] < DEFAULT_RADIO_SERIAL_AIR_MIN_PACKET_SIZE) ||
-           (radioLinksParams.uSerialPacketSize[i] > DEFAULT_RADIO_SERIAL_AIR_MAX_PACKET_SIZE) )
-         radioLinksParams.uSerialPacketSize[i] = DEFAULT_RADIO_SERIAL_AIR_PACKET_SIZE;
 
       if ( 2 != fscanf(fd, "%d %d", &tmp1, &tmp2) )
       {
-         log_softerror_and_alarm("Load model10: Error on line r5");
+         log_softerror_and_alarm("10-18");
          radioLinksParams.uMaxLinkLoadPercent[i] = DEFAULT_RADIO_LINK_LOAD_PERCENT;
          tmp1 = 0;
          tmp2 = 0;
       }
       else
       {
-         if ( (tmp1 < 10) || (tmp1 > 90) )
-            tmp1 = DEFAULT_RADIO_LINK_LOAD_PERCENT;
          radioLinksParams.uMaxLinkLoadPercent[i] = tmp1;
       }
    }
 
    if ( 2 != fscanf(fd, "%d %u", &radioLinksParams.iSiKPacketSize, &radioLinksParams.uGlobalRadioLinksFlags) )
    {
-      log_softerror_and_alarm("Load model10: error on radio 9");
+      log_softerror_and_alarm("10-19");
       return false;
    }
-   for( unsigned int j=0; j<(sizeof(radioLinksParams.uDummyRadio)/sizeof(radioLinksParams.uDummyRadio[0])); j++ )
+   for( unsigned int j=0; j<7; j++ )
    {
       if ( 1 != fscanf(fd, "%d", &tmp1) )
-         { log_softerror_and_alarm("Load model10: Error on line radio4 dummy data"); return false; }
-      radioLinksParams.uDummyRadio[j] = tmp1;
+         { log_softerror_and_alarm("10-20"); return false; }
    }
 
    //-------------------------------
    // Relay params
 
    if ( 5 != fscanf(fd, "%*s %d %u %d %u %u", &relay_params.isRelayEnabledOnRadioLinkId, &(relay_params.uRelayFrequencyKhz), &tmp2, &relay_params.uRelayedVehicleId, &relay_params.uRelayCapabilitiesFlags) )
-      { log_softerror_and_alarm("Load model8: Error on line 10"); return false; }
+      { log_softerror_and_alarm("10-21"); return false; }
    relay_params.uCurrentRelayMode = tmp2;
 
    //----------------------------------------
    // Telemetry
 
-   if ( 5 != fscanf(fd, "%*s %d %d %d %d %d", &telemetry_params.fc_telemetry_type, &telemetry_params.iDummyTL3, &telemetry_params.update_rate, &tmp1, &tmp2) )
-      { log_softerror_and_alarm("Load model8: Error on line 12"); return false; }
+   if ( 5 != fscanf(fd, "%*s %d %d %d %d %d", &telemetry_params.fc_telemetry_type, &tmp3, &telemetry_params.iUpdateRateHz, &tmp1, &tmp2) )
+      { log_softerror_and_alarm("10-22"); return false; }
 
-   if ( telemetry_params.update_rate > 200 )
-      telemetry_params.update_rate = 200;
-
-   if ( 4 != fscanf(fd, "%d %u %d %u", &telemetry_params.iVideoBitrateHistoryGraphSampleInterval, &telemetry_params.dummy2, &telemetry_params.dummy3, &telemetry_params.dummy4) )
-      { log_softerror_and_alarm("Load model8: Error on line 13"); return false; }
+   if ( 4 != fscanf(fd, "%d %u %d %u", &telemetry_params.iVideoBitrateHistoryGraphSampleInterval, &u1, &tmp1, &u2) )
+      { log_softerror_and_alarm("10-23"); return false; }
 
    if ( 3 != fscanf(fd, "%d %d %d", &telemetry_params.vehicle_mavlink_id, &telemetry_params.controller_mavlink_id, &telemetry_params.flags) )
-      { log_softerror_and_alarm("Load mode8: Error on line 13b"); return false; }
+      { log_softerror_and_alarm("10-24"); return false; }
 
-   if ( 2 != fscanf(fd, "%d %u", &telemetry_params.dummy5, &telemetry_params.dummy6) )
-      { telemetry_params.dummy5 = -1; }
+   fscanf(fd, "%d %u", &tmp1, &u1);
 
    if ( 1 != fscanf(fd, "%d", &tmp1) ) // not used
-      { log_softerror_and_alarm("Load model8: Error on line 13b"); return false; }
+      { log_softerror_and_alarm("10-25"); return false; }
 
    //----------------------------------------
    // Video
 
-   if ( 4 != fscanf(fd, "%*s %d %d %d %u", &video_params.iCurrentVideoProfile, &video_params.iH264Slices, &video_params.dummyV1, &video_params.lowestAllowedAdaptiveVideoBitrate) )
-      { log_softerror_and_alarm("Load model8: Error on line 19"); return false; }
-
-   if ( video_params.iH264Slices < 1 || video_params.iH264Slices > 16 )
-   {
-      video_params.iH264Slices = DEFAULT_VIDEO_H264_SLICES;
-      if ( hardware_board_is_openipc(hardware_getBoardType()) )
-         video_params.iH264Slices = DEFAULT_VIDEO_H264_SLICES_OIPC;
-   }
-   if ( video_params.lowestAllowedAdaptiveVideoBitrate < 250000 )
-      video_params.lowestAllowedAdaptiveVideoBitrate = DEFAULT_LOWEST_ALLOWED_ADAPTIVE_VIDEO_BITRATE;
+   if ( 4 != fscanf(fd, "%*s %d %d %d %u", &video_params.iCurrentVideoProfile, &video_params.iH264Slices, &u2, &video_params.lowestAllowedAdaptiveVideoBitrate) )
+      { log_softerror_and_alarm("10-26"); return false; }
 
    if ( 1 != fscanf(fd, "%u", &video_params.uMaxAutoKeyframeIntervalMs) )
-      { log_softerror_and_alarm("Load model8: Error on line 20"); return false; }
-   if ( video_params.uMaxAutoKeyframeIntervalMs < 50 || video_params.uMaxAutoKeyframeIntervalMs > DEFAULT_VIDEO_MAX_AUTO_KEYFRAME_INTERVAL )
-       video_params.uMaxAutoKeyframeIntervalMs = DEFAULT_VIDEO_MAX_AUTO_KEYFRAME_INTERVAL;
+      { log_softerror_and_alarm("10-27"); return false; }
 
    if ( 1 != fscanf(fd, "%u", &video_params.uVideoExtraFlags) )
-      { log_softerror_and_alarm("Load model8: Error on line 20c"); return false; }
+      { log_softerror_and_alarm("10-28"); return false; }
    
    if ( 3 != fscanf(fd, "%d %d %d", &video_params.iVideoWidth, &video_params.iVideoHeight, &video_params.iVideoFPS) )
-      { log_softerror_and_alarm("Load model8: Error on line 20c"); return false; }
+      { log_softerror_and_alarm("10-29"); return false; }
 
    if ( bOk && (1 != fscanf(fd, "%*s %d", &tmp7)) )
-      { log_softerror_and_alarm("Load model8: Error: missing count of video link profiles"); bOk = false; tmp7=0; }
+      { log_softerror_and_alarm("10-30"); bOk = false; tmp7=0; }
 
    for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
       { video_link_profiles[i].uProfileFlags = 0; video_link_profiles[i].uProfileEncodingFlags = 0; }
@@ -620,22 +602,19 @@ bool Model::loadVersion10(FILE* fd)
    for( int i=0; i<tmp7; i++ )
    {
       if ( ! bOk )
-        { log_softerror_and_alarm("Load model8: Error on video link profiles 0"); bOk = false; }
+        { log_softerror_and_alarm("10-31"); bOk = false; }
  
-      if ( bOk && (6 != fscanf(fd, "%u %u %u %d %u %u", &(video_link_profiles[i].uProfileFlags), &(video_link_profiles[i].uProfileEncodingFlags), &(video_link_profiles[i].bitrate_fixed_bps), &(video_link_profiles[i].iAdaptiveAdjustmentStrength), &(video_link_profiles[i].uAdaptiveWeights), &(video_link_profiles[i].dummyVP6))) )
-         { log_softerror_and_alarm("Load model8: Error on video link profiles 1"); bOk = false; }
+      if ( bOk && (6 != fscanf(fd, "%u %u %u %d %u %d", &(video_link_profiles[i].uProfileFlags), &(video_link_profiles[i].uProfileEncodingFlags), &(video_link_profiles[i].bitrate_fixed_bps), &(video_link_profiles[i].iAdaptiveAdjustmentStrength), &(video_link_profiles[i].uAdaptiveWeights), &(video_link_profiles[i].iDefaultFPS))) )
+         { log_softerror_and_alarm("10-32"); bOk = false; }
 
-      if ( (video_link_profiles[i].iAdaptiveAdjustmentStrength < 1) || (video_link_profiles[i].iAdaptiveAdjustmentStrength > 10) )
-         video_link_profiles[i].iAdaptiveAdjustmentStrength = DEFAULT_VIDEO_PARAMS_ADJUSTMENT_STRENGTH;
+      if ( bOk && (2 != fscanf(fd, "%d %d", &u2, &u3)) )
+         { log_softerror_and_alarm("10-33"); bOk = false; }
 
-      if ( bOk && (2 != fscanf(fd, "%d %d", &(video_link_profiles[i].dummyVP1), &(video_link_profiles[i].dummyVP2))) )
-         { log_softerror_and_alarm("Load model8: Error on video link profiles 2"); bOk = false; }
-
-      if ( bOk && (5 != fscanf(fd, "%d %d %d %d %d", &(video_link_profiles[i].iBlockDataPackets), &(video_link_profiles[i].iBlockECs), &(video_link_profiles[i].video_data_length), &(video_link_profiles[i].dummyVP3), &(video_link_profiles[i].keyframe_ms))) )
-         { log_softerror_and_alarm("Load model8: Error on video link profiles 3"); bOk = false; }
+      if ( bOk && (5 != fscanf(fd, "%d %d %d %d %d", &(video_link_profiles[i].iBlockDataPackets), &(video_link_profiles[i].iBlockECs), &(video_link_profiles[i].video_data_length), &tmp1, &(video_link_profiles[i].iKeyframeMS))) )
+         { log_softerror_and_alarm("10-34"); bOk = false; }
       
       if ( bOk && (5 != fscanf(fd, "%d %d %d %d %d", &(video_link_profiles[i].h264profile), &(video_link_profiles[i].h264level), &(video_link_profiles[i].h264refresh), &(video_link_profiles[i].h264quantization), &(video_link_profiles[i].iIPQuantizationDelta))) )
-         { log_softerror_and_alarm("Load model8: Error on video link profiles 4"); bOk = false; }
+         { log_softerror_and_alarm("10-35"); bOk = false; }
    }
 
 
@@ -643,21 +622,21 @@ bool Model::loadVersion10(FILE* fd)
    // Camera params
 
    if ( 2 != fscanf(fd, "%*s %d %d", &iCameraCount, &iCurrentCamera) )
-      { log_softerror_and_alarm("Load model8: Error on line 20"); return false; }
+      { log_softerror_and_alarm("10-36"); return false; }
 
    for( int k=0; k<MODEL_MAX_CAMERAS; k++ )
    {
 
       // Camera type:
       if ( 3 != fscanf(fd, "%*s %d %d %d", &(camera_params[k].iCameraType), &(camera_params[k].iForcedCameraType), &(camera_params[k].iCurrentProfile)) )
-         { log_softerror_and_alarm("Load model8: Error on line camera 2"); return false; }
+         { log_softerror_and_alarm("10-37"); return false; }
 
       //----------------------------------------
       // Camera sensor name
 
       char szTmp[1024];
       if ( bOk && (1 != fscanf(fd, "%*s %s", szTmp)) )
-         { log_softerror_and_alarm("Load model8: Error on line camera name"); camera_params[k].szCameraName[0] = 0; bOk = false; }
+         { log_softerror_and_alarm("10-38"); camera_params[k].szCameraName[0] = 0; bOk = false; }
       else
       {
          szTmp[MAX_CAMERA_NAME_LENGTH-1] = 0;
@@ -674,59 +653,56 @@ bool Model::loadVersion10(FILE* fd)
       for( int i=0; i<MODEL_CAMERA_PROFILES; i++ )
       {
          if ( 1 != fscanf(fd, "%*s %d", &camera_params[k].profiles[i].uFlags) )
-            { log_softerror_and_alarm("Load model8: Error on line 21, cam profile %d", i); return false; }
+            { log_softerror_and_alarm("10-39 %d", i); return false; }
          if ( 1 != fscanf(fd, "%d", &tmp1) )
-            { log_softerror_and_alarm("Load model8: Error on line 21b, cam profile %d", i); return false; }
+            { log_softerror_and_alarm("10-40 %d", i); return false; }
          camera_params[k].profiles[i].flip_image = (bool)tmp1;
 
          if ( 4 != fscanf(fd, "%d %d %d %d", &tmp1, &tmp2, &tmp3, &tmp4) )
-            { log_softerror_and_alarm("Load model8: Error on line 22, cam profile %d", i); return false; }
+            { log_softerror_and_alarm("10-41 %d", i); return false; }
          camera_params[k].profiles[i].brightness = tmp1;
          camera_params[k].profiles[i].contrast = tmp2;
          camera_params[k].profiles[i].saturation = tmp3;
          camera_params[k].profiles[i].sharpness = tmp4;
 
          if ( 4 != fscanf(fd, "%d %d %d %d", &tmp1, &tmp2, &tmp3, &tmp4) )
-            { log_softerror_and_alarm("Load model8: Error on line 23, cam profile %d", i); return false; }
+            { log_softerror_and_alarm("10-42 %d", i); return false; }
          camera_params[k].profiles[i].exposure = tmp1;
          camera_params[k].profiles[i].whitebalance = tmp2;
          camera_params[k].profiles[i].metering = tmp3;
          camera_params[k].profiles[i].drc = tmp4;
 
          if ( 3 != fscanf(fd, "%f %f %f", &(camera_params[k].profiles[i].analogGain), &(camera_params[k].profiles[i].awbGainB), &(camera_params[k].profiles[i].awbGainR)) )
-            { log_softerror_and_alarm("Load model8: Error on line 24, cam profile %d", i); }
+            { log_softerror_and_alarm("10-43 %d", i); }
 
          if ( 2 != fscanf(fd, "%f %f", &(camera_params[k].profiles[i].fovH), &(camera_params[k].profiles[i].fovV)) )
-            { log_softerror_and_alarm("Load model8: Error on line 25, cam profile %d", i); }
+            { log_softerror_and_alarm("10-44 %d", i); }
 
          if ( 4 != fscanf(fd, "%d %d %d %d", &tmp1, &tmp2, &tmp3, &tmp4) )
-            { log_softerror_and_alarm("Load model8: Error on line 26, cam profile %d", i); return false; }
+            { log_softerror_and_alarm("10-45 %d", i); return false; }
          camera_params[k].profiles[i].vstab = tmp1;
          camera_params[k].profiles[i].ev = tmp2;
          camera_params[k].profiles[i].iso = tmp3;
-         camera_params[k].profiles[i].shutterspeed = tmp4;
+         camera_params[k].profiles[i].iShutterSpeed = tmp4;
 
          if ( 1 != fscanf(fd, "%d", &tmp1) )
-            { log_softerror_and_alarm("Load model8: Error on line 25b, cam profile %d", i); }
+            { log_softerror_and_alarm("10-46 %d", i); }
          else
             camera_params[k].profiles[i].wdr = (u8)tmp1;
 
          if ( 1 != fscanf(fd, "%d", &tmp1) )
-            { log_softerror_and_alarm("Load model10: Error on line 25c, night mode, cam profile %d", i); camera_params[k].profiles[i].dayNightMode = 0; }
+            { log_softerror_and_alarm("10-48 %d", i); camera_params[k].profiles[i].dayNightMode = 0; }
          else
             camera_params[k].profiles[i].dayNightMode = (u8)tmp1;
            
          if ( 1 != fscanf(fd, "%d", &tmp1) )
-            { log_softerror_and_alarm("Load model10: Error on line 25f, hue, cam profile %d", i); camera_params[k].profiles[i].hue = 0; }
+            { log_softerror_and_alarm("10-49 %d", i); camera_params[k].profiles[i].hue = 0; }
          else
             camera_params[k].profiles[i].hue = (u8)tmp1;
 
-         for( unsigned int j=0; j<(sizeof(camera_params[k].profiles[i].dummyCamP)/sizeof(camera_params[k].profiles[i].dummyCamP[0])); j++ )
-         {
-            if ( 1 != fscanf(fd, "%d", &tmp1) )
-               { log_softerror_and_alarm("Load model10: Error on line 27, cam profile %d", i); return false; }
-            camera_params[k].profiles[i].dummyCamP[j] = tmp1;
-         }
+         if ( 1 != fscanf(fd, "%d", &tmp1) )
+            { log_softerror_and_alarm("10-50 %d", i); return false; }
+         camera_params[k].profiles[i].uDummyCamP = tmp1;
       }
 
    }
@@ -738,7 +714,7 @@ bool Model::loadVersion10(FILE* fd)
    if ( 1 == fscanf(fd, "%*s %d", &tmp1) )
       audio_params.has_audio_device = (bool)tmp1;
    else
-      { bOk = false; log_softerror_and_alarm("Load model8: Error on audio line 1"); }
+      { bOk = false; log_softerror_and_alarm("10-51"); }
    if ( 4 == fscanf(fd, "%d %d %d %u", &tmp2, &audio_params.volume, &audio_params.quality, &audio_params.uFlags) )
    {
       audio_params.has_audio_device = tmp1;
@@ -747,7 +723,7 @@ bool Model::loadVersion10(FILE* fd)
    else
    {
       bOk = false;
-      log_softerror_and_alarm("Load model8: Error on audio line 2");
+      log_softerror_and_alarm("10-52");
    }
    
    if ( 1 != fscanf(fd, "%*s %u", &alarms) )
@@ -759,23 +735,23 @@ bool Model::loadVersion10(FILE* fd)
    if ( 4 == fscanf(fd, "%*s %d %d %d %d", &hardwareInterfacesInfo.radio_interface_count, &hardwareInterfacesInfo.i2c_bus_count, &hardwareInterfacesInfo.i2c_device_count, &hardwareInterfacesInfo.serial_port_count) )
    {
       if ( hardwareInterfacesInfo.i2c_bus_count < 0 || hardwareInterfacesInfo.i2c_bus_count > MAX_MODEL_I2C_BUSSES )
-         { log_softerror_and_alarm("Load model8: Error on hw info1"); return false; }
+         { log_softerror_and_alarm("10-53"); return false; }
       if ( hardwareInterfacesInfo.i2c_device_count < 0 || hardwareInterfacesInfo.i2c_device_count > MAX_MODEL_I2C_DEVICES )
-         { log_softerror_and_alarm("Load model8: Error on hw info2"); return false; }
+         { log_softerror_and_alarm("10-54"); return false; }
       if ( hardwareInterfacesInfo.serial_port_count < 0 || hardwareInterfacesInfo.serial_port_count > MAX_MODEL_SERIAL_PORTS )
-         { log_softerror_and_alarm("Load model8: Error on hw info3"); return false; }
+         { log_softerror_and_alarm("10-55"); return false; }
 
       for( int i=0; i<hardwareInterfacesInfo.i2c_bus_count; i++ )
          if ( 1 != fscanf(fd, "%d", &(hardwareInterfacesInfo.i2c_bus_numbers[i])) )
-            { log_softerror_and_alarm("Load model8: Error on hw info4"); return false; }
+            { log_softerror_and_alarm("10-56"); return false; }
 
       for( int i=0; i<hardwareInterfacesInfo.i2c_device_count; i++ )
          if ( 2 != fscanf(fd, "%d %d", &(hardwareInterfacesInfo.i2c_devices_bus[i]), &(hardwareInterfacesInfo.i2c_devices_address[i])) )
-            { log_softerror_and_alarm("Load model8: Error on hw info5"); return false; }
+            { log_softerror_and_alarm("10-57"); return false; }
 
       for( int i=0; i<hardwareInterfacesInfo.serial_port_count; i++ )
          if ( 3 != fscanf(fd, "%d %u %s", &(hardwareInterfacesInfo.serial_port_speed[i]), &(hardwareInterfacesInfo.serial_port_supported_and_usage[i]), &(hardwareInterfacesInfo.serial_port_names[i][0])) )
-            { log_softerror_and_alarm("Load model8: Error on hw info6"); return false; }
+            { log_softerror_and_alarm("10-58"); return false; }
    }
    else
    {
@@ -790,17 +766,17 @@ bool Model::loadVersion10(FILE* fd)
    // OSD
 
    if ( 5 != fscanf(fd, "%*s %d %d %f %d %d", &osd_params.iCurrentOSDScreen, &tmp1, &osd_params.voltage_alarm, &tmp2, &tmp3) )
-      { log_softerror_and_alarm("Load model8: Error on line 29"); return false; }
+      { log_softerror_and_alarm("10-59"); return false; }
    osd_params.voltage_alarm_enabled = (bool)tmp1;
    osd_params.altitude_relative = (bool)tmp2;
    osd_params.show_gps_position = (bool)tmp3;
 
    if ( 5 != fscanf(fd, "%d %d %d %d %d", &osd_params.battery_show_per_cell,  &osd_params.battery_cell_count, &osd_params.battery_capacity_percent_alarm, &tmp1, &osd_params.home_arrow_rotate) )
-      { log_softerror_and_alarm("Load model8: Error on line 30"); return false; }
+      { log_softerror_and_alarm("10-60"); return false; }
    osd_params.invert_home_arrow = (bool)tmp1;
 
    if ( 7 != fscanf(fd, "%d %d %d %d %d %d %d", &tmp1, &tmp2, &tmp3, &tmp4, &tmp5, &tmp6, &osd_params.ahi_warning_angle) )
-      { log_softerror_and_alarm("Load model8: Error on line 31"); return false; }
+      { log_softerror_and_alarm("10-61"); return false; }
 
    osd_params.show_overload_alarm = (bool)tmp1;
    osd_params.show_stats_rx_detailed = (bool)tmp2;
@@ -808,36 +784,28 @@ bool Model::loadVersion10(FILE* fd)
    osd_params.show_stats_rc = (bool)tmp4;
    osd_params.show_full_stats = (bool)tmp5;
    osd_params.show_instruments = (bool)tmp6;
-   if ( osd_params.ahi_warning_angle < 0 ) osd_params.ahi_warning_angle = 0;
-   if ( osd_params.ahi_warning_angle > 80 ) osd_params.ahi_warning_angle = 80;
 
-   for( int i=0; i<5; i++ )
+   for( int i=0; i<MODEL_MAX_OSD_SCREENS; i++ )
       if ( 5 != fscanf(fd, "%u %u %u %u %u", &(osd_params.osd_flags[i]), &(osd_params.osd_flags2[i]), &(osd_params.osd_flags3[i]), &(osd_params.instruments_flags[i]), &(osd_params.osd_preferences[i])) )
-         { bOk = false; log_softerror_and_alarm("Load model8: Error on osd params os flags line 2"); }
+         { bOk = false; log_softerror_and_alarm("10-62"); }
 
    //----------------------------------------
    // RC
 
    if ( 4 != fscanf(fd, "%*s %d %d %d %d", &tmp1, &tmp2, &rc_params.receiver_type, &rc_params.rc_frames_per_second ) )
-      { log_softerror_and_alarm("Load model8: Error on line 34"); return false; }
+      { log_softerror_and_alarm("10-63"); return false; }
    rc_params.rc_enabled = tmp1;
-   rc_params.dummy1 = tmp2;
-
-   if ( rc_params.receiver_type >= RECEIVER_TYPE_LAST || rc_params.receiver_type < 0 )
-      rc_params.receiver_type = RECEIVER_TYPE_BUILDIN;
-   if ( rc_params.rc_frames_per_second < 2 || rc_params.rc_frames_per_second > 200 )
-      rc_params.rc_frames_per_second = DEFAULT_RC_FRAMES_PER_SECOND;
 
    if ( 1 != fscanf(fd, "%d", &rc_params.inputType) )
-      { log_softerror_and_alarm("Load model10: Error on line 35"); return false; }
+      { log_softerror_and_alarm("10-64"); return false; }
 
    if ( 4 != fscanf(fd, "%d %ld %d %ld", &rc_params.inputSerialPort, &rc_params.inputSerialPortSpeed, &rc_params.outputSerialPort, &rc_params.outputSerialPortSpeed ) )
-      { log_softerror_and_alarm("Load model10: Error on line 36"); return false; }
+      { log_softerror_and_alarm("10-65"); return false; }
    
    for( int i=0; i<MAX_RC_CHANNELS; i++ )
    {
       if ( 7 != fscanf(fd, "%u %u %u %u %u %u %u", &u1, &u2, &u3, &u4, &u5, &u6, &u7) )
-         { log_softerror_and_alarm("Load model10: Error on line 38"); return false; }
+         { log_softerror_and_alarm("10-66"); return false; }
       rc_params.rcChAssignment[i] = u1;
       rc_params.rcChMid[i] = u2;
       rc_params.rcChMin[i] = u3;
@@ -848,53 +816,50 @@ bool Model::loadVersion10(FILE* fd)
    }
    
    if ( 3 != fscanf(fd, "%d %u %u", &rc_params.rc_failsafe_timeout_ms, &rc_params.failsafeFlags, &rc_params.channelsCount ) )
-      { log_softerror_and_alarm("Load model10: Error on line 37a"); return false; }
+      { log_softerror_and_alarm("10-67"); return false; }
    if ( 1 != fscanf(fd, "%u", &rc_params.hid_id ) )
-      { log_softerror_and_alarm("Load model10: Error on line 37b"); return false; }
+      { log_softerror_and_alarm("10-68"); return false; }
 
    if ( 1 != fscanf(fd, "%u", &rc_params.flags ) )
-      { log_softerror_and_alarm("Load model10: Error on line 37c"); return false; }
+      { log_softerror_and_alarm("10-69"); return false; }
 
    if ( 1 != fscanf(fd, "%u", &rc_params.rcChAssignmentThrotleReverse ) )
-      { log_softerror_and_alarm("Load model10: Error on line 37d"); return false; }
+      { log_softerror_and_alarm("10-70"); return false; }
 
    if ( 1 != fscanf(fd, "%d", &rc_params.iRCTranslationType ) )
-      { log_softerror_and_alarm("Load model10: Error on line 37e"); return false; }
+      { log_softerror_and_alarm("10-71"); return false; }
 
-   for( unsigned int i=0; i<(sizeof(rc_params.rcDummy)/sizeof(rc_params.rcDummy[0])); i++ )
-      if ( 1 != fscanf(fd, "%u", &(rc_params.rcDummy[i])) )
-         { log_softerror_and_alarm("Load model10: Error on line 37"); return false; }
-
-   if ( rc_params.rc_failsafe_timeout_ms < 50 || rc_params.rc_failsafe_timeout_ms > 5000 )
-      rc_params.rc_failsafe_timeout_ms = DEFAULT_RC_FAILSAFE_TIME;
+   for( unsigned int i=0; i<8; i++ )
+      if ( 1 != fscanf(fd, "%u", &u1) )
+         { log_softerror_and_alarm("10-72"); return false; }
 
    //----------------------------------------
    // Misc
 
    if ( 2 != fscanf(fd, "%*s %u %u", &uModelPersistentStatusFlags, &uDeveloperFlags) )
-      { log_softerror_and_alarm("Load model8: Error on line 39"); uDeveloperFlags = (((u32)DEFAULT_DELAY_WIFI_CHANGE)<<DEVELOPER_FLAGS_WIFI_GUARD_DELAY_MASK_SHIFT); }
+      { log_softerror_and_alarm("10-73"); uDeveloperFlags = (((u32)DEFAULT_DELAY_WIFI_CHANGE)<<DEVELOPER_FLAGS_WIFI_GUARD_DELAY_MASK_SHIFT); }
   
    if ( 1 != fscanf(fd, "%u", &enc_flags) )
    {
       enc_flags = MODEL_ENC_FLAGS_NONE;
-      log_softerror_and_alarm("Load model8: Error on line extra 3");
+      log_softerror_and_alarm("10-74");
    }
 
    if ( bOk && (1 != fscanf(fd, "%*s %u", &m_Stats.uTotalFlights)) )
    {
-      log_softerror_and_alarm("Load model8: error on stats1");
+      log_softerror_and_alarm("10-75");
       m_Stats.uTotalFlights = 0;
       bOk = false;
    }
    if ( bOk && (4 != fscanf(fd, "%u %u %u %u", &m_Stats.uCurrentOnTime, &m_Stats.uCurrentFlightTime, &m_Stats.uCurrentFlightDistance, &m_Stats.uCurrentFlightTotalCurrent)) )
    {
-      log_softerror_and_alarm("Load model8: missing extra data 1");
+      log_softerror_and_alarm("10-76");
       m_Stats.uCurrentOnTime = 0; m_Stats.uCurrentFlightTime = 0; m_Stats.uCurrentFlightDistance = 0;
       bOk = false;
    }
    if ( bOk && (5 != fscanf(fd, "%u %u %u %u %u", &m_Stats.uCurrentTotalCurrent, &m_Stats.uCurrentMaxAltitude, &m_Stats.uCurrentMaxDistance, &m_Stats.uCurrentMaxCurrent, &m_Stats.uCurrentMinVoltage)) )
    {
-      log_softerror_and_alarm("Load model8: missing extra data 2");
+      log_softerror_and_alarm("10-77");
       m_Stats.uCurrentTotalCurrent = 0;
       m_Stats.uCurrentMaxAltitude = 0;
       m_Stats.uCurrentMaxDistance = 0;
@@ -905,13 +870,13 @@ bool Model::loadVersion10(FILE* fd)
 
    if ( bOk && (3 != fscanf(fd, "%u %u %u", &m_Stats.uTotalOnTime, &m_Stats.uTotalFlightTime, &m_Stats.uTotalFlightDistance)) )
    {
-      log_softerror_and_alarm("Load model8: missing extra data 3");
+      log_softerror_and_alarm("10-78");
       m_Stats.uTotalOnTime = 0; m_Stats.uTotalFlightTime = 0; m_Stats.uTotalFlightDistance = 0;
       bOk = false;
    }
    if ( bOk && (5 != fscanf(fd, "%u %u %u %u %u", &m_Stats.uTotalTotalCurrent, &m_Stats.uTotalMaxAltitude, &m_Stats.uTotalMaxDistance, &m_Stats.uTotalMaxCurrent, &m_Stats.uTotalMinVoltage)) )
    {
-      log_softerror_and_alarm("Load model8: missing extra data 4");
+      log_softerror_and_alarm("10-79");
       m_Stats.uTotalTotalCurrent = 0;
       m_Stats.uTotalMaxAltitude = 0;
       m_Stats.uTotalMaxDistance = 0;
@@ -925,7 +890,7 @@ bool Model::loadVersion10(FILE* fd)
    // Functions & Triggers
 
    if ( bOk && (3 != fscanf(fd, "%*s %d %d %d", &tmp1, &tmp2, &tmp3 )) )
-      { log_softerror_and_alarm("Load model8: Error on line func_1"); bOk = false; tmp1 = 0; tmp2 = 0; tmp3 = 0; }
+      { log_softerror_and_alarm("10-80"); bOk = false; tmp1 = 0; tmp2 = 0; tmp3 = 0; }
 
    functions_params.bEnableRCTriggerFreqSwitchLink1 = (bool)tmp1;
    functions_params.bEnableRCTriggerFreqSwitchLink2 = (bool)tmp2;
@@ -933,10 +898,10 @@ bool Model::loadVersion10(FILE* fd)
 
 
    if ( bOk && (3 != fscanf(fd, "%d %d %d", &functions_params.iRCTriggerChannelFreqSwitchLink1, &functions_params.iRCTriggerChannelFreqSwitchLink2, &functions_params.iRCTriggerChannelFreqSwitchLink3 )) )
-      { log_softerror_and_alarm("Load model8: Error on line func_2"); bOk = false; functions_params.iRCTriggerChannelFreqSwitchLink1 = -1; functions_params.iRCTriggerChannelFreqSwitchLink2 = -1; functions_params.iRCTriggerChannelFreqSwitchLink3 = -1; }
+      { log_softerror_and_alarm("10-81"); bOk = false; functions_params.iRCTriggerChannelFreqSwitchLink1 = -1; functions_params.iRCTriggerChannelFreqSwitchLink2 = -1; functions_params.iRCTriggerChannelFreqSwitchLink3 = -1; }
 
    if ( bOk && (3 != fscanf(fd, "%d %d %d", &tmp1, &tmp2, &tmp3 )) )
-      { log_softerror_and_alarm("Load model8: Error on line func_3"); bOk = false; }
+      { log_softerror_and_alarm("10-82"); bOk = false; }
 
    functions_params.bRCTriggerFreqSwitchLink1_is3Position = (bool)tmp1;
    functions_params.bRCTriggerFreqSwitchLink2_is3Position = (bool)tmp2;
@@ -945,15 +910,15 @@ bool Model::loadVersion10(FILE* fd)
    for( int i=0; i<3; i++ )
    {
       if ( bOk && (6 != fscanf(fd, "%u %u %u %u %u %u", &functions_params.uChannels433FreqSwitch[i], &functions_params.uChannels868FreqSwitch[i], &functions_params.uChannels23FreqSwitch[i], &functions_params.uChannels24FreqSwitch[i], &functions_params.uChannels25FreqSwitch[i], &functions_params.uChannels58FreqSwitch[i])) )
-         { log_softerror_and_alarm("Load model10: Error on line func_ch"); bOk = false; }
+         { log_softerror_and_alarm("10-83"); bOk = false; }
    }
 
-   for( unsigned int i=0; i<(sizeof(functions_params.dummy)/sizeof(functions_params.dummy[0])); i++ )
-      if ( bOk && (1 != fscanf(fd, "%u", &(functions_params.dummy[i]))) )
-         { log_softerror_and_alarm("Load model10: Error on line funct_d"); bOk = false; }
+   for( unsigned int i=0; i<12; i++ )
+      if ( bOk && (1 != fscanf(fd, "%u", &u1)) )
+         { log_softerror_and_alarm("10-84"); bOk = false; }
 
    //----------------------------------------------------
-   // Start of extra params, might be zero when loading older versions.
+   // Start of extra params, might be zero on load
 
    if ( 1 != fscanf(fd, "%d", &tmp1) )
       alarms_params.uAlarmMotorCurrentThreshold = (1<<7) & 30;
@@ -968,42 +933,40 @@ bool Model::loadVersion10(FILE* fd)
 
    if ( 1 != fscanf(fd, "%u", &hwCapabilities.uRubyBaseVersion) )
       hwCapabilities.uRubyBaseVersion = 0;
-   for( unsigned int i=0; i<(sizeof(hwCapabilities.dummyhwc)/sizeof(hwCapabilities.dummyhwc[0])); i++ )
-      if ( bOk && (1 != fscanf(fd, "%d", &(hwCapabilities.dummyhwc[i]))) )
+   for( unsigned int i=0; i<1; i++ )
+      if ( bOk && (1 != fscanf(fd, "%d", &tmp1)) )
          { bOk = false; }
 
-   for( unsigned int i=0; i<(sizeof(hwCapabilities.dummyhwc2)/sizeof(hwCapabilities.dummyhwc2[0])); i++ )
-      if ( bOk && (1 != fscanf(fd, "%u", &(hwCapabilities.dummyhwc2[i]))) )
+   for( unsigned int i=0; i<3; i++ )
+      if ( bOk && (1 != fscanf(fd, "%u", &u1)) )
          { bOk = false; }
 
    if ( ! bOk )
-      log_softerror_and_alarm("Load model10: file is not ok. can't load th-prio");
+      log_softerror_and_alarm("10-85");
    if ( bOk )
    if ( 3 != fscanf(fd, "%d %d %d", &processesPriorities.iThreadPriorityRadioRx, &processesPriorities.iThreadPriorityRadioTx, &processesPriorities.iThreadPriorityRouter) )
    {
-      log_softerror_and_alarm("Load model10: Error on line th-prio");
-      processesPriorities.iThreadPriorityRadioRx = DEFAULT_PRIORITY_VEHICLE_THREAD_RADIO_RX;
-      processesPriorities.iThreadPriorityRadioTx = DEFAULT_PRIORITY_VEHICLE_THREAD_RADIO_TX;
-      processesPriorities.iThreadPriorityRouter = DEFAULT_PRIORITY_VEHICLE_THREAD_ROUTER;
+      log_softerror_and_alarm("10-86");
+      resetProcessesParams();
    }
 
    if ( bOk && (1 != fscanf(fd, "%u", &osd_params.uFlags)) )
    {
-      log_softerror_and_alarm("Failed to read OSD uFlags from model config file.");
+      log_softerror_and_alarm("10-87");
       osd_params.uFlags = 0;
       bOk = false;
    }
 
    if ( bOk && (1 != fscanf(fd, "%u", &processesPriorities.uProcessesFlags)) )
    {
-      log_softerror_and_alarm("Failed to read processes flags.");
-      processesPriorities.uProcessesFlags = PROCESSES_FLAGS_BALANCE_INT_CORES;
+      log_softerror_and_alarm("10-88");
+      resetProcessesParams();
       bOk = false;
    }
 
    if ( bOk && (3 != fscanf(fd, "%d %d %d", &video_params.iRemovePPSVideoFrames, &video_params.iInsertPPSVideoFrames, &video_params.iInsertSPTVideoFramesTimings)) )
    {
-      log_softerror_and_alarm("Failed to read video frames i flags.");
+      log_softerror_and_alarm("10-89");
       video_params.iRemovePPSVideoFrames = 0;
       video_params.iInsertPPSVideoFrames = 1;
       video_params.iInsertSPTVideoFramesTimings = 0;
@@ -1012,7 +975,7 @@ bool Model::loadVersion10(FILE* fd)
 
    if ( bOk && (3 != fscanf(fd, "%d %d %u", &tmp1, &tmp2, &audio_params.uDummyA1)) )
    {
-      log_softerror_and_alarm("Failed to read audio extra params.");
+      log_softerror_and_alarm("10-90");
       audio_params.uECScheme = (((u32)DEFAULT_AUDIO_P_DATA) << 4) | ((u32)DEFAULT_AUDIO_P_EC);
       audio_params.uDummyA1 = 0;
       audio_params.uPacketLength = DEFAULT_AUDIO_PACKET_LENGTH;
@@ -1140,12 +1103,16 @@ bool Model::loadVersion10(FILE* fd)
 
    // Validate settings;
 
-   if ( processesPriorities.iNiceRC < -18 || processesPriorities.iNiceRC > 5 )
-      processesPriorities.iNiceRC = DEFAULT_PRIORITY_PROCESS_RC;
-   if ( processesPriorities.iNiceRouter < -18 || processesPriorities.iNiceRouter > 5 )
-      processesPriorities.iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-   if ( processesPriorities.ioNiceRouter < -7 || processesPriorities.ioNiceRouter > 7 )
-      processesPriorities.ioNiceRouter = DEFAULT_IO_PRIORITY_ROUTER;
+   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
+   {
+      video_link_profiles[i].iDefaultFPS = 0;
+      video_link_profiles[i].iDefaultLinkLoad = 0;
+      video_link_profiles[i].uDummyVP1 = 0;
+      video_link_profiles[i].uDummyVP2 = 0;
+   }
+
+   resetProcessesParams();
+   validate_settings();
 
    if ( telemetry_params.vehicle_mavlink_id <= 0 || telemetry_params.vehicle_mavlink_id > 255 )
       telemetry_params.vehicle_mavlink_id = DEFAULT_MAVLINK_SYS_ID_VEHICLE;
@@ -1176,6 +1143,576 @@ bool Model::loadVersion10(FILE* fd)
    return true;
 }
 
+bool Model::loadVersion11(FILE* fd)
+{
+   char szBuff[256];
+   int tmp1 = 0, tmp2 = 0, tmp3 = 0, tmp4 = 0, tmp5 = 0, tmp6 = 0;
+   u32 u1 = 0, u2 = 0, u3 = 0, u4 = 0, u5 = 0, u6 = 0, u7 = 0;
+   int vt = 0;
+
+   bool bOk = true;
+
+   if ( 1 != fscanf(fd, "%s", szBuff) )
+      { bOk = false; log_softerror_and_alarm("11-0"); return false; }
+
+   if ( 1 != fscanf(fd, "%*s %d", &iSaveCount) )
+      { bOk = false; log_softerror_and_alarm("11-1"); return false; }
+
+   if ( 5 != fscanf(fd, "%*s %u %u %u %u %u", &sw_version, &uVehicleId, &uModelFlags, &hwCapabilities.uBoardType, &alarms) )
+      { bOk = false; log_softerror_and_alarm("11-2"); return false; }
+
+   if ( hardware_is_vehicle() )
+      sw_version = (SYSTEM_SW_VERSION_MAJOR * 256 + SYSTEM_SW_VERSION_MINOR) | (SYSTEM_SW_BUILD_NUMBER<<16);
+
+   if ( 2 != fscanf(fd, "%*s %u %u", &uControllerId, &uControllerBoardType ) )
+      { bOk = false; log_softerror_and_alarm("11-3"); return false; }
+
+   if ( 1 != fscanf(fd, "%s", vehicle_name) )
+      { bOk = false; log_softerror_and_alarm("11-4"); return false; }
+   if ( vehicle_name[0] == '*' && vehicle_name[1] == 0 )
+      vehicle_name[0] = 0;
+
+   for( int i=0; i<(int)strlen(vehicle_name); i++ )
+      if ( vehicle_name[i] == '_' )
+         vehicle_name[i] = ' ';
+
+   str_sanitize_modelname(vehicle_name);
+
+   if ( 2 != fscanf(fd, "%d %u", &rxtx_sync_type, &camera_rc_channels ) )
+      { bOk = false; log_softerror_and_alarm("11-5"); return false; }
+
+   if ( 4 != fscanf(fd, "%d %d %u %d", &tmp1, &vt, &m_Stats.uTotalFlightTime, &iGPSCount ) )
+      { bOk = false; log_softerror_and_alarm("11-6"); return false; }
+
+   is_spectator = (bool)tmp1;
+   vehicle_type = vt;
+
+   //----------------------------------------
+   // CPU & processes 
+
+   if ( 4 != fscanf(fd, "%*s %u %d %d %d", &processesPriorities.uProcessesFlags, &processesPriorities.iOverVoltage, &processesPriorities.iFreqARM, &processesPriorities.iFreqGPU) )
+      { bOk = false; log_softerror_and_alarm("11-7"); return false; }
+   if ( 2 != fscanf(fd, "%d %d", &processesPriorities.ioNiceRouter, &processesPriorities.ioNiceVideo) )
+      { bOk = false; log_softerror_and_alarm("11-8"); return false; }
+   if ( 7 != fscanf(fd, "%d %d %d %d %d %d %d", &processesPriorities.iThreadPriorityRouter, &processesPriorities.iThreadPriorityRadioRx,
+     &processesPriorities.iThreadPriorityRadioTx, &processesPriorities.iThreadPriorityVideoCapture,
+     &processesPriorities.iThreadPriorityRC, &processesPriorities.iThreadPriorityTelemetry,
+     &processesPriorities.iThreadPriorityOthers) )
+      { bOk = false; log_softerror_and_alarm("11-9"); return false; }
+   if ( 7 != fscanf(fd, "%d %d %d %d %d %d %d", &processesPriorities.iCoreRadioRx, &processesPriorities.iCoreRouter, &processesPriorities.iCoreVideoCapture, &processesPriorities.iCoreTelemetry, &processesPriorities.iCoreCommands, &processesPriorities.iCoreRC, &processesPriorities.iCoreOthers) )
+      { bOk = false; log_softerror_and_alarm("11-10"); return false; }
+
+   //----------------------------------------
+   // Radio interfaces
+
+   if ( 1 != fscanf(fd, "%*s %d", &radioInterfacesParams.interfaces_count) )
+      { bOk = false; log_softerror_and_alarm("11-11"); return false; }
+   if ( (radioInterfacesParams.interfaces_count < 0) || (radioInterfacesParams.interfaces_count >= MAX_RADIO_INTERFACES) )
+      { bOk = false; log_softerror_and_alarm("11-12"); return false; }
+
+   for( int i=0; i<radioInterfacesParams.interfaces_count; i++ )
+   {
+      char szTmp[256];
+      char szTmp2[256];
+      if ( 3 != fscanf(fd, "%d %d %u", &(radioInterfacesParams.interface_card_model[i]), &(radioInterfacesParams.interface_link_id[i]), &(radioInterfacesParams.interface_current_frequency_khz[i])) )
+         { bOk = false; log_softerror_and_alarm("11-13"); return false; }
+
+      if ( 7 != fscanf(fd, "%u %d %u %u %d %s %s", &u1, &tmp1, &u2, &u3, &tmp2, szTmp2, szTmp) )
+         { bOk = false; log_softerror_and_alarm("11-14"); return false; }
+      radioInterfacesParams.interface_capabilities_flags[i] = u1;
+      radioInterfacesParams.interface_supported_bands[i] = (u8)tmp1;
+      radioInterfacesParams.interface_radiotype_and_driver[i] = u2;
+      radioInterfacesParams.interface_current_radio_flags[i] = u3;
+      radioInterfacesParams.interface_raw_power[i] = tmp2;
+
+      szTmp[sizeof(szTmp)/sizeof(szTmp[0]) - 1] = 0;
+      szTmp2[sizeof(szTmp2)/sizeof(szTmp2[0]) - 1] = 0;
+      strncpy(radioInterfacesParams.interface_szMAC[i], szTmp2, MAX_MAC_LENGTH-1);
+      radioInterfacesParams.interface_szMAC[i][MAX_MAC_LENGTH-1] = 0;
+      int iStrLen = strlen(radioInterfacesParams.interface_szMAC[i]);
+      if ( (iStrLen > 1) && (radioInterfacesParams.interface_szMAC[i][iStrLen-1] == '-') )
+         radioInterfacesParams.interface_szMAC[i][iStrLen-1] = 0;
+      strncpy(radioInterfacesParams.interface_szPort[i], szTmp, MAX_RADIO_PORT_NAME_LENGTH-1);
+      radioInterfacesParams.interface_szPort[i][MAX_RADIO_PORT_NAME_LENGTH-1] = 0;
+      iStrLen = strlen(radioInterfacesParams.interface_szPort[i]);
+      if ( (iStrLen > 1) && (radioInterfacesParams.interface_szPort[i][iStrLen-1] == '-') )
+         radioInterfacesParams.interface_szPort[i][iStrLen-1] = 0;
+   }
+
+   if ( 5 != fscanf(fd, "%d %d %d %u %d", &tmp1, &radioInterfacesParams.iAutoVehicleTxPower, &radioInterfacesParams.iAutoControllerTxPower, &radioInterfacesParams.uFlagsRadioInterfaces, &radioInterfacesParams.iDummyR1) )
+      { bOk = false; log_softerror_and_alarm("11-15"); return false; }
+   enableDHCP = (bool)tmp1;
+
+   //---------------------------------------
+   // Radio links
+
+   if ( 1 != fscanf(fd, "%*s %d", &radioLinksParams.links_count) )
+      { bOk = false; log_softerror_and_alarm("11-16"); return false; }
+   if ( (radioLinksParams.links_count < 0) || (radioLinksParams.links_count >= MAX_RADIO_INTERFACES) )
+      { bOk = false; log_softerror_and_alarm("11-17"); return false; }
+
+   for( int i=0; i<radioLinksParams.links_count; i++ )
+   {
+      if ( 5 != fscanf(fd, "%u %u %u %d %d", &(radioLinksParams.link_frequency_khz[i]), &(radioLinksParams.link_capabilities_flags[i]), &(radioLinksParams.link_radio_flags[i]), &(radioLinksParams.downlink_datarate_video_bps[i]), &(radioLinksParams.downlink_datarate_data_bps[i])) )
+         { bOk = false; log_softerror_and_alarm("11-18"); return false; }
+
+      if ( 5 != fscanf(fd, "%d %d %d %d %u", &tmp1, &(radioLinksParams.uplink_datarate_video_bps[i]), &(radioLinksParams.uplink_datarate_data_bps[i]), &tmp2, &(radioLinksParams.uDummyR1[i]) ) )
+         { bOk = false; log_softerror_and_alarm("11-19"); return false; }
+      radioLinksParams.uSerialPacketSize[i] = tmp1;
+      radioLinksParams.uMaxLinkLoadPercent[i] = tmp2;
+   }
+
+   if ( 2 != fscanf(fd, "%d %u", &radioLinksParams.iSiKPacketSize, &radioLinksParams.uGlobalRadioLinksFlags) )
+      { bOk = false;  log_softerror_and_alarm("11-20"); return false; }
+   for(int i=0; i<MAX_RADIO_INTERFACES; i++ )
+   {
+      radioLinksParams.uDummyR1[i] = 0;
+   }
+
+   //-------------------------------
+   // Relay params
+
+   if ( 5 != fscanf(fd, "%*s %d %u %d %u %u", &relay_params.isRelayEnabledOnRadioLinkId, &(relay_params.uRelayFrequencyKhz), &tmp2, &relay_params.uRelayedVehicleId, &relay_params.uRelayCapabilitiesFlags) )
+      { bOk = false; log_softerror_and_alarm("11-21"); return false; }
+   relay_params.uCurrentRelayMode = tmp2;
+
+   //----------------------------------------
+   // Telemetry
+
+   if ( 3 != fscanf(fd, "%*s %d %d %u", &telemetry_params.fc_telemetry_type, &telemetry_params.iUpdateRateHz, &telemetry_params.uDummyT1) )
+      { bOk = false; log_softerror_and_alarm("11-22"); return false; }
+
+   if ( 4 != fscanf(fd, "%d %d %d %u", &telemetry_params.iVideoBitrateHistoryGraphSampleInterval, &telemetry_params.vehicle_mavlink_id, &telemetry_params.controller_mavlink_id, &telemetry_params.flags ) )
+      { bOk = false; log_softerror_and_alarm("11-23"); return false; }
+
+   //----------------------------------------
+   // Video
+
+   if ( 4 != fscanf(fd, "%*s %d %d %u %u", &video_params.iCurrentVideoProfile, &video_params.iH264Slices, &video_params.uDummyV1, &video_params.lowestAllowedAdaptiveVideoBitrate) )
+      { bOk = false; log_softerror_and_alarm("11-24"); return false; }
+   
+   if ( 5 != fscanf(fd, "%u %u %d %d %d", &video_params.uMaxAutoKeyframeIntervalMs, &video_params.uVideoExtraFlags, &video_params.iVideoWidth, &video_params.iVideoHeight, &video_params.iVideoFPS) )
+      { bOk = false; log_softerror_and_alarm("11-25"); return false; }
+
+   if ( 3 != fscanf(fd, "%d %d %d", &video_params.iRemovePPSVideoFrames, &video_params.iInsertPPSVideoFrames, &video_params.iInsertSPTVideoFramesTimings) )
+      { bOk = false; log_softerror_and_alarm("11-26"); return false; }
+
+   //--------------------------------------
+   // Video link profiles
+
+   if ( bOk && (1 != fscanf(fd, "%*s %d", &tmp1)) )
+      { bOk = false; log_softerror_and_alarm("11-27"); return false; }
+   if ( tmp1 != MAX_VIDEO_LINK_PROFILES )
+      { bOk = false; log_softerror_and_alarm("11-28"); return false; }
+
+   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
+   {
+      if ( 7 != fscanf(fd, "%u %u %u %d %u %d %d", &(video_link_profiles[i].uProfileFlags), &(video_link_profiles[i].uProfileEncodingFlags), &(video_link_profiles[i].bitrate_fixed_bps), &(video_link_profiles[i].iAdaptiveAdjustmentStrength), &(video_link_profiles[i].uAdaptiveWeights), &(video_link_profiles[i].iDefaultFPS), &(video_link_profiles[i].iECPercentage)) )
+         { bOk = false; log_softerror_and_alarm("11-29 %d", i); return false; }
+
+      if ( is_sw_version_atleast(this, 11, 6) )
+      {
+         if ( 3 != fscanf(fd, "%d %u %u", &(video_link_profiles[i].iDefaultLinkLoad), &(video_link_profiles[i].uDummyVP1), &(video_link_profiles[i].uDummyVP2)) )
+            { bOk = false; log_softerror_and_alarm("11-30 %d", i); return false; }
+      }
+      else
+      {
+         video_link_profiles[i].iDefaultLinkLoad = 0;
+         video_link_profiles[i].uDummyVP1 = 0;
+         video_link_profiles[i].uDummyVP2 = 0;
+      }
+      if ( 4 != fscanf(fd, "%d %d %d %d", &(video_link_profiles[i].iBlockDataPackets), &(video_link_profiles[i].iBlockECs), &(video_link_profiles[i].video_data_length), &(video_link_profiles[i].iKeyframeMS)) )
+         { bOk = false; log_softerror_and_alarm("11-31 %d", i); return false; }
+      
+      if ( 5 != fscanf(fd, "%d %d %d %d %d", &(video_link_profiles[i].h264profile), &(video_link_profiles[i].h264level), &(video_link_profiles[i].h264refresh), &(video_link_profiles[i].h264quantization), &(video_link_profiles[i].iIPQuantizationDelta)) )
+         { bOk = false; log_softerror_and_alarm("11-32 %d", i); return false; }
+   }
+
+
+   //----------------------------------------
+   // Camera params
+
+   if ( 2 != fscanf(fd, "%*s %d %d", &iCameraCount, &iCurrentCamera) )
+      { bOk = false; log_softerror_and_alarm("11-33"); return false; }
+
+   for( int k=0; k<MODEL_MAX_CAMERAS; k++ )
+   {
+
+      // Camera type:
+      if ( 3 != fscanf(fd, "%*s %d %d %d", &(camera_params[k].iCameraType), &(camera_params[k].iForcedCameraType), &(camera_params[k].iCurrentProfile)) )
+         { bOk = false; log_softerror_and_alarm("11-34"); return false; }
+
+      //----------------------------------------
+      // Camera sensor name
+
+      char szTmp[1024];
+      if ( 1 != fscanf(fd, "%*s %s", szTmp) )
+         { bOk = false; log_softerror_and_alarm("11-35"); camera_params[k].szCameraName[0] = 0; return false; }
+      else
+      {
+         szTmp[MAX_CAMERA_NAME_LENGTH-1] = 0;
+         strcpy(camera_params[k].szCameraName, szTmp);
+         camera_params[k].szCameraName[MAX_CAMERA_NAME_LENGTH-1] = 0;
+
+         if ( camera_params[k].szCameraName[0] == '*' && camera_params[k].szCameraName[1] == 0 )
+            camera_params[k].szCameraName[0] = 0;
+         for( int i=0; i<(int)strlen(camera_params[k].szCameraName); i++ )
+            if ( camera_params[k].szCameraName[i] == '*' )
+               camera_params[k].szCameraName[i] = ' ';
+      }
+
+      for( int i=0; i<MODEL_CAMERA_PROFILES; i++ )
+      {
+         if ( 1 != fscanf(fd, "%*s %d", &camera_params[k].profiles[i].uFlags) )
+            { bOk = false; log_softerror_and_alarm("11-36 %d", i); return false; }
+         if ( 1 != fscanf(fd, "%d", &tmp1) )
+            { bOk = false; log_softerror_and_alarm("11-37 %d", i); return false; }
+         camera_params[k].profiles[i].flip_image = (bool)tmp1;
+
+         if ( 4 != fscanf(fd, "%d %d %d %d", &tmp1, &tmp2, &tmp3, &tmp4) )
+            { bOk = false; log_softerror_and_alarm("11-38 %d", i); return false; }
+         camera_params[k].profiles[i].brightness = tmp1;
+         camera_params[k].profiles[i].contrast = tmp2;
+         camera_params[k].profiles[i].saturation = tmp3;
+         camera_params[k].profiles[i].sharpness = tmp4;
+
+         if ( 4 != fscanf(fd, "%d %d %d %d", &tmp1, &tmp2, &tmp3, &tmp4) )
+            { bOk = false; log_softerror_and_alarm("11-39 %d", i); return false; }
+         camera_params[k].profiles[i].exposure = tmp1;
+         camera_params[k].profiles[i].whitebalance = tmp2;
+         camera_params[k].profiles[i].metering = tmp3;
+         camera_params[k].profiles[i].drc = tmp4;
+
+         if ( 3 != fscanf(fd, "%f %f %f", &(camera_params[k].profiles[i].analogGain), &(camera_params[k].profiles[i].awbGainB), &(camera_params[k].profiles[i].awbGainR)) )
+            { bOk = false; log_softerror_and_alarm("11-40 %d", i); return false; }
+
+         if ( 2 != fscanf(fd, "%f %f", &(camera_params[k].profiles[i].fovH), &(camera_params[k].profiles[i].fovV)) )
+            { bOk = false; log_softerror_and_alarm("11-41 %d", i); return false; }
+
+         if ( 4 != fscanf(fd, "%d %d %d %d", &tmp1, &tmp2, &tmp3, &tmp4) )
+            { bOk = false; log_softerror_and_alarm("11-42 %d", i); return false; }
+         camera_params[k].profiles[i].vstab = tmp1;
+         camera_params[k].profiles[i].ev = tmp2;
+         camera_params[k].profiles[i].iso = tmp3;
+         camera_params[k].profiles[i].iShutterSpeed = tmp4;
+
+         if ( 3 != fscanf(fd, "%d %d %d", &tmp1, &tmp2, &tmp3) )
+            { bOk = false; log_softerror_and_alarm("11-43 %d", i); return false; }
+
+         camera_params[k].profiles[i].wdr = (u8)tmp1;
+         camera_params[k].profiles[i].dayNightMode = (u8)tmp2;
+         camera_params[k].profiles[i].hue = (u8)tmp3;
+
+         if ( 1 != fscanf(fd, "%u", &u1) )
+            { bOk = false; log_softerror_and_alarm("11-44 %d", i); return false; }
+         camera_params[k].profiles[i].uDummyCamP = u1;
+      }
+
+   }
+
+   for( int i=0; i<MODEL_MAX_CAMERAS; i++ )
+   {
+      camera_params[i].iCameraBinProfile = 0;
+      camera_params[i].szCameraBinProfileName[0] = 0;
+
+      char szTmpBin[MAX_CAMERA_BIN_PROFILE_NAME];
+      if ( 2 != fscanf(fd, "%d %s", &camera_params[i].iCameraBinProfile, szTmpBin) )
+         { bOk = false; log_softerror_and_alarm("11-45 %d", i); return false; }
+
+      strncpy(camera_params[i].szCameraBinProfileName, szTmpBin, MAX_CAMERA_BIN_PROFILE_NAME-1);
+      camera_params[i].szCameraBinProfileName[MAX_CAMERA_BIN_PROFILE_NAME-1] = 0;
+      if ( '-' == camera_params[i].szCameraBinProfileName[0] )
+         camera_params[i].szCameraBinProfileName[0] = 0;
+   }
+
+   //----------------------------------------
+   // Audio Settings
+
+   if ( 1 != fscanf(fd, "%*s %d", &tmp1) )
+      { bOk = false; log_softerror_and_alarm("11-46"); return false; }
+
+   audio_params.has_audio_device = (bool)tmp1;
+
+   if ( 4 != fscanf(fd, "%d %d %d %u", &tmp2, &audio_params.volume, &audio_params.quality, &audio_params.uFlags) )
+      { bOk = false; log_softerror_and_alarm("11-47"); return false; }
+
+   audio_params.has_audio_device = tmp1;
+   audio_params.enabled = tmp2;
+
+   if ( 3 != fscanf(fd, "%d %d %u", &tmp1, &tmp2, &audio_params.uDummyA1) )
+      { bOk = false; log_softerror_and_alarm("11-48"); return false; }
+   audio_params.uECScheme = (u8)tmp1;
+   audio_params.uPacketLength = (u16)tmp2;
+   
+   //----------------------------------------
+   // Hardware info
+
+   if ( 4 == fscanf(fd, "%*s %d %d %d %d", &hardwareInterfacesInfo.radio_interface_count, &hardwareInterfacesInfo.i2c_bus_count, &hardwareInterfacesInfo.i2c_device_count, &hardwareInterfacesInfo.serial_port_count) )
+   {
+      if ( hardwareInterfacesInfo.i2c_bus_count < 0 || hardwareInterfacesInfo.i2c_bus_count > MAX_MODEL_I2C_BUSSES )
+         { log_softerror_and_alarm("11-49"); return false; }
+      if ( hardwareInterfacesInfo.i2c_device_count < 0 || hardwareInterfacesInfo.i2c_device_count > MAX_MODEL_I2C_DEVICES )
+         { log_softerror_and_alarm("11-50"); return false; }
+      if ( hardwareInterfacesInfo.serial_port_count < 0 || hardwareInterfacesInfo.serial_port_count > MAX_MODEL_SERIAL_PORTS )
+         { log_softerror_and_alarm("11-51"); return false; }
+
+      for( int i=0; i<hardwareInterfacesInfo.i2c_bus_count; i++ )
+         if ( 1 != fscanf(fd, "%d", &(hardwareInterfacesInfo.i2c_bus_numbers[i])) )
+            { log_softerror_and_alarm("11-52"); return false; }
+
+      for( int i=0; i<hardwareInterfacesInfo.i2c_device_count; i++ )
+         if ( 2 != fscanf(fd, "%d %d", &(hardwareInterfacesInfo.i2c_devices_bus[i]), &(hardwareInterfacesInfo.i2c_devices_address[i])) )
+            { log_softerror_and_alarm("11-53"); return false; }
+
+      for( int i=0; i<hardwareInterfacesInfo.serial_port_count; i++ )
+         if ( 3 != fscanf(fd, "%d %u %s", &(hardwareInterfacesInfo.serial_port_speed[i]), &(hardwareInterfacesInfo.serial_port_supported_and_usage[i]), &(hardwareInterfacesInfo.serial_port_names[i][0])) )
+            { log_softerror_and_alarm("11-54"); return false; }
+   }
+   else
+   {
+      hardwareInterfacesInfo.radio_interface_count = 0;
+      hardwareInterfacesInfo.i2c_bus_count = 0;
+      hardwareInterfacesInfo.i2c_device_count = 0;
+      hardwareInterfacesInfo.serial_port_count = 0;
+      bOk = false;
+      log_softerror_and_alarm("11-55");
+      return false;
+   }
+
+   if ( 3 != fscanf(fd, "%d %d %u", &hwCapabilities.iMaxTxVideoBlocksBuffer, &hwCapabilities.iMaxTxVideoBlockPackets, &hwCapabilities.uHWFlags) )
+      { log_softerror_and_alarm("11-56"); return false; }
+
+   if ( 3 != fscanf(fd, "%u %u %u", &hwCapabilities.uRubyBaseVersion, &hwCapabilities.uDummyHW1, &hwCapabilities.uDummyHW2) )
+      { log_softerror_and_alarm("11-57"); return false; }
+
+   //----------------------------------------
+   // OSD
+
+   if ( 6 != fscanf(fd, "%*s %d %d %d %f %d %d", &tmp5, &osd_params.iCurrentOSDScreen, &tmp1, &osd_params.voltage_alarm, &tmp2, &tmp3) )
+      { bOk = false; log_softerror_and_alarm("11-58"); return false; }
+   if ( tmp5 != MODEL_MAX_OSD_SCREENS )
+      { bOk = false; log_softerror_and_alarm("11-59"); return false; }
+   osd_params.voltage_alarm_enabled = (bool)tmp1;
+   osd_params.altitude_relative = (bool)tmp2;
+   osd_params.show_gps_position = (bool)tmp3;
+
+   if ( 6 != fscanf(fd, "%d %d %d %d %d %d", &osd_params.battery_show_per_cell,  &osd_params.battery_cell_count, &osd_params.battery_capacity_percent_alarm, &tmp1, &osd_params.home_arrow_rotate, &osd_params.iRadioInterfacesGraphRefreshIntervalMs) )
+      { bOk = false; log_softerror_and_alarm("11-60"); return false; }
+   osd_params.invert_home_arrow = (bool)tmp1;
+
+   if ( 7 != fscanf(fd, "%d %d %d %d %d %d %d", &tmp1, &tmp2, &tmp3, &tmp4, &tmp5, &tmp6, &osd_params.ahi_warning_angle) )
+      { bOk = false; log_softerror_and_alarm("11-61"); return false; }
+
+   osd_params.show_overload_alarm = (bool)tmp1;
+   osd_params.show_stats_rx_detailed = (bool)tmp2;
+   osd_params.show_stats_decode = (bool)tmp3;
+   osd_params.show_stats_rc = (bool)tmp4;
+   osd_params.show_full_stats = (bool)tmp5;
+   osd_params.show_instruments = (bool)tmp6;
+
+   for( int i=0; i<MODEL_MAX_OSD_SCREENS; i++ )
+   {
+      if ( 6 != fscanf(fd, "%u %u %u %u %u %d", &(osd_params.osd_flags[i]), &(osd_params.osd_flags2[i]), &(osd_params.osd_flags3[i]), &(osd_params.instruments_flags[i]), &(osd_params.osd_preferences[i]), &tmp1) )
+         { bOk = false; log_softerror_and_alarm("11-62"); return false; }
+      osd_params.osd_layout_preset[i] = (u8)tmp1;
+   }
+
+   if ( 1 != fscanf(fd, "%u", &osd_params.uFlags) )
+      { bOk = false; log_softerror_and_alarm("11-63"); return false; }
+
+   //----------------------------------------
+   // RC
+
+   if ( 4 != fscanf(fd, "%*s %d %d %d %d", &tmp1, &tmp2, &rc_params.receiver_type, &rc_params.rc_frames_per_second ) )
+      { bOk = false; log_softerror_and_alarm("11-64"); return false; }
+   if ( tmp1 != MAX_RC_CHANNELS )
+      { bOk = false; log_softerror_and_alarm("11-65"); return false; }
+   rc_params.rc_enabled = tmp2;
+
+   if ( 5 != fscanf(fd, "%d %d %ld %d %ld", &rc_params.inputType, &rc_params.inputSerialPort, &rc_params.inputSerialPortSpeed, &rc_params.outputSerialPort, &rc_params.outputSerialPortSpeed ) )
+      { bOk = false; log_softerror_and_alarm("11-66"); return false; }
+   
+   for( int i=0; i<MAX_RC_CHANNELS; i++ )
+   {
+      if ( 7 != fscanf(fd, "%u %u %u %u %u %u %u", &u1, &u2, &u3, &u4, &u5, &u6, &u7) )
+         { bOk = false; log_softerror_and_alarm("11-67"); return false; }
+      rc_params.rcChAssignment[i] = u1;
+      rc_params.rcChMid[i] = u2;
+      rc_params.rcChMin[i] = u3;
+      rc_params.rcChMax[i] = u4;
+      rc_params.rcChFailSafe[i] = u5;
+      rc_params.rcChExpo[i] = u6;
+      rc_params.rcChFlags[i] = u7;
+   }
+   
+   if ( 3 != fscanf(fd, "%d %u %u", &rc_params.rc_failsafe_timeout_ms, &rc_params.failsafeFlags, &rc_params.channelsCount ) )
+      { bOk = false; log_softerror_and_alarm("11-68"); return false; }
+   
+   if ( 4 != fscanf(fd, "%u %u %u %d", &rc_params.hid_id,  &rc_params.flags, &rc_params.rcChAssignmentThrotleReverse, &rc_params.iRCTranslationType) )
+      { bOk = false; log_softerror_and_alarm("11-69"); return false; }
+
+   //----------------------------------------
+   // Misc
+
+   if ( 4 != fscanf(fd, "%*s %u %u %u %d", &uModelPersistentStatusFlags, &uDeveloperFlags, &enc_flags, &tmp1) )
+      { bOk = false; log_softerror_and_alarm("11-70"); uDeveloperFlags = (((u32)DEFAULT_DELAY_WIFI_CHANGE)<<DEVELOPER_FLAGS_WIFI_GUARD_DELAY_MASK_SHIFT); return false; }
+
+   alarms_params.uAlarmMotorCurrentThreshold = tmp1;
+  
+   if ( 5 != fscanf(fd, "%*s %u %u %u %u %u", &m_Stats.uTotalFlights, &m_Stats.uCurrentOnTime, &m_Stats.uCurrentFlightTime, &m_Stats.uCurrentFlightDistance, &m_Stats.uCurrentFlightTotalCurrent) )
+      { bOk = false; log_softerror_and_alarm("11-71"); return false;}
+   if ( 5 != fscanf(fd, "%u %u %u %u %u", &m_Stats.uCurrentTotalCurrent, &m_Stats.uCurrentMaxAltitude, &m_Stats.uCurrentMaxDistance, &m_Stats.uCurrentMaxCurrent, &m_Stats.uCurrentMinVoltage) )
+      { bOk = false; log_softerror_and_alarm("11-72"); return false;}
+   if ( 3 != fscanf(fd, "%u %u %u", &m_Stats.uTotalOnTime, &m_Stats.uTotalFlightTime, &m_Stats.uTotalFlightDistance) )
+      { bOk = false; log_softerror_and_alarm("11-73"); return false;}
+   if ( 5 != fscanf(fd, "%u %u %u %u %u", &m_Stats.uTotalTotalCurrent, &m_Stats.uTotalMaxAltitude, &m_Stats.uTotalMaxDistance, &m_Stats.uTotalMaxCurrent, &m_Stats.uTotalMinVoltage) )
+      { bOk = false; log_softerror_and_alarm("11-74"); return false;}
+  
+   //----------------------------------------
+   // Functions & Triggers
+
+   if ( 3 != fscanf(fd, "%*s %d %d %d", &tmp1, &tmp2, &tmp3 ) )
+      { bOk = false; log_softerror_and_alarm("11-75"); return false; }
+
+   functions_params.bEnableRCTriggerFreqSwitchLink1 = (bool)tmp1;
+   functions_params.bEnableRCTriggerFreqSwitchLink2 = (bool)tmp2;
+   functions_params.bEnableRCTriggerFreqSwitchLink3 = (bool)tmp3;
+
+
+   if ( 3 != fscanf(fd, "%d %d %d", &functions_params.iRCTriggerChannelFreqSwitchLink1, &functions_params.iRCTriggerChannelFreqSwitchLink2, &functions_params.iRCTriggerChannelFreqSwitchLink3 ) )
+      { bOk = false; log_softerror_and_alarm("11-76"); return false; }
+
+   if ( 3 != fscanf(fd, "%d %d %d", &tmp1, &tmp2, &tmp3 ) )
+      { bOk = false; log_softerror_and_alarm("11-77"); return false; }
+
+   functions_params.bRCTriggerFreqSwitchLink1_is3Position = (bool)tmp1;
+   functions_params.bRCTriggerFreqSwitchLink2_is3Position = (bool)tmp2;
+   functions_params.bRCTriggerFreqSwitchLink3_is3Position = (bool)tmp3;
+
+   for( int i=0; i<3; i++ )
+   {
+      if ( 6 != fscanf(fd, "%u %u %u %u %u %u", &functions_params.uChannels433FreqSwitch[i], &functions_params.uChannels868FreqSwitch[i], &functions_params.uChannels23FreqSwitch[i], &functions_params.uChannels24FreqSwitch[i], &functions_params.uChannels25FreqSwitch[i], &functions_params.uChannels58FreqSwitch[i]) )
+         { bOk = false; log_softerror_and_alarm("11-78"); return false; }
+   }
+
+   for( unsigned int i=0; i<(sizeof(functions_params.uDummyF)/sizeof(functions_params.uDummyF[0])); i++ )
+   {
+      if ( 1 != fscanf(fd, "%u", &(functions_params.uDummyF[i])) )
+         { bOk = false; log_softerror_and_alarm("11-79"); return false; }
+   }
+
+   //---------------------------------------
+   // Radio runtime capabilities
+
+   tmp1 = 0;
+   if ( 4 != fscanf(fd, "%*s %d %d %d %u", &tmp1, &radioRuntimeCapabilities.iMaxSupportedMCSDataRate, &radioRuntimeCapabilities.iMaxSupportedLegacyDataRate, &radioRuntimeCapabilities.uSupportedMCSFlags) )
+      { bOk = false; log_softerror_and_alarm("11-80"); return false; }
+   radioRuntimeCapabilities.uFlagsRuntimeCapab = (u8)tmp1;
+
+   bool bCapabOk = true;
+   for( int iLink=0; iLink<MODEL_MAX_STORED_QUALITIES_LINKS; iLink++ )
+   {
+      for( int i=0; i<MODEL_MAX_STORED_QUALITIES_VALUES; i++ )
+      {
+         if ( 1 != fscanf(fd, "%f", &radioRuntimeCapabilities.fQualitiesLegacy[iLink][i]) )
+         {
+            bCapabOk = false;
+            break;
+         }
+      }
+      for( int i=0; i<MODEL_MAX_STORED_QUALITIES_VALUES; i++ )
+      {
+         if ( 1 != fscanf(fd, "%f", &radioRuntimeCapabilities.fQualitiesMCS[iLink][i]) )
+         {
+            bCapabOk = false;
+            break;
+         }
+      }
+      if ( ! bCapabOk )
+         break;
+   }
+
+   for( int iLink=0; iLink<MODEL_MAX_STORED_QUALITIES_LINKS; iLink++ )
+   {
+      for( int i=0; i<MODEL_MAX_STORED_QUALITIES_VALUES; i++ )
+      {
+         if ( 1 != fscanf(fd, "%d", &radioRuntimeCapabilities.iMaxTxPowerMwLegacy[iLink][i]) )
+         {
+            bCapabOk = false;
+            break;
+         }
+      }
+      for( int i=0; i<MODEL_MAX_STORED_QUALITIES_VALUES; i++ )
+      {
+         if ( 1 != fscanf(fd, "%d", &radioRuntimeCapabilities.iMaxTxPowerMwMCS[iLink][i]) )
+         {
+            bCapabOk = false;
+            break;
+         }
+      }
+      if ( ! bCapabOk )
+         break;
+   }
+
+   if ( ! bCapabOk )
+      { bOk = false; log_softerror_and_alarm("11-81"); return false; }
+
+
+   //-----------------------------------
+   // End of standard file
+
+   if ( 1 != fscanf(fd, "%s", szBuff) )
+      { bOk = false; log_softerror_and_alarm("11-82"); return false; }
+   if ( 0 != strcmp(szBuff, "END_ST") )
+      { bOk = false; log_softerror_and_alarm("11-83"); return false; }
+
+   //----------------------------------------------------
+   // Start of extra params, might be zero when loading older versions.
+
+  
+   if ( bOk )
+   {
+      if ( 1 != fscanf(fd, "%u", &uControllerBoardType) )
+         uControllerBoardType = 0;
+   }
+   else
+      uControllerBoardType = 0;
+
+   //--------------------------------------------------
+   // End reading file;
+   //----------------------------------------
+
+   // Validate settings;
+   validate_settings();
+
+   if ( telemetry_params.vehicle_mavlink_id <= 0 || telemetry_params.vehicle_mavlink_id > 255 )
+      telemetry_params.vehicle_mavlink_id = DEFAULT_MAVLINK_SYS_ID_VEHICLE;
+   if ( telemetry_params.controller_mavlink_id <= 0 || telemetry_params.controller_mavlink_id > 255 )
+      telemetry_params.controller_mavlink_id = DEFAULT_MAVLINK_SYS_ID_CONTROLLER;
+   if ( telemetry_params.flags == 0 )
+      telemetry_params.flags = TELEMETRY_FLAGS_REQUEST_DATA_STREAMS | TELEMETRY_FLAGS_SPECTATOR_ENABLE;
+   if ( rxtx_sync_type < 0 || rxtx_sync_type >= RXTX_SYNC_TYPE_LAST )
+      rxtx_sync_type = RXTX_SYNC_TYPE_BASIC;
+
+   /*
+   log_line("---------------------------------------");
+   log_line("Loaded radio links %d:", radioLinksParams.links_count);
+   for( int i=0; i<radioLinksParams.links_count; i++ )
+   {
+      char szBuffR[128];
+      str_get_radio_frame_flags_description(radioLinksParams.link_radio_flags[i], szBuffR);
+      log_line("Radio link %d frame flags: [%s]", i+1, szBuffR);
+   }
+   log_line("Loaded radio interfaces %d:", radioInterfacesParams.interfaces_count);
+   for( int i=0; i<radioInterfacesParams.interfaces_count; i++ )
+   {
+      char szBuffR[128];
+      str_get_radio_frame_flags_description(radioInterfacesParams.interface_current_radio_flags[i], szBuffR);
+      log_line("Radio interface %d frame flags: [%s]", i+1, szBuffR);
+   }
+   */
+   return true;
+}
 
 bool Model::saveToFile(const char* filename, bool isOnController)
 {
@@ -1204,12 +1741,13 @@ bool Model::saveToFile(const char* filename, bool isOnController)
       log_softerror_and_alarm("Failed to save model configuration to file: %s",filename);
       return false;
    }
-   saveVersion10(fd, isOnController);
+   saveVersion11(fd, isOnController);
    fflush(fd);
    fclose(fd);
 
-   log_line("Saved vehicle successfully to file: %s; name: [%s], VID: %u, software: %d.%d (b%d), is on controller: %s, %s, on time: %02d:%02d",
-         filename, vehicle_name, uVehicleId, (sw_version >> 8) & 0xFF, sw_version & 0xFF, sw_version>>16,
+   log_line("Saved vehicle successfully to file: [%s] name: [%s], VID: %u, software: %d.%d (b-%d), has negociated radio: %s, is on controller: %s, %s, on time: %02d:%02d",
+         filename, vehicle_name, uVehicleId, get_sw_version_major(this), get_sw_version_minor(this), get_sw_version_build(this),
+         (radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS)?"yes":"no",
          isOnController?"yes":"no",
          is_spectator?"spectator mode": "control mode",
          m_Stats.uCurrentOnTime/60, m_Stats.uCurrentOnTime%60);
@@ -1225,31 +1763,15 @@ bool Model::saveToFile(const char* filename, bool isOnController)
       log_softerror_and_alarm("Failed to save model configuration to file: %s",szBuff);
       return false;
    }
-   saveVersion10(fd, isOnController);
+   saveVersion11(fd, isOnController);
    fflush(fd);
    fclose(fd);
-
-   /*
-   timeStart = get_current_timestamp_ms() - timeStart;
-   char szLog[512];
-   char szFreq1[64];
-   char szFreq2[64];
-   char szFreq3[64];
-   strcpy(szFreq1, str_format_frequency(radioLinksParams.link_frequency_khz[0]));
-   strcpy(szFreq2, str_format_frequency(radioLinksParams.link_frequency_khz[1]));
-   strcpy(szFreq3, str_format_frequency(radioLinksParams.link_frequency_khz[2]));
-   
-   sprintf(szLog, "Saved model version 8 (%d ms) to file [%s] and [*.bak], UID: %u, save count: %d: name: [%s], vehicle id: %u, software: %d.%d (b%d), (is on controller side: %s, is in control mode: %s), %d radio links: 1: %s 2: %s 3: %s",
-      timeStart, filename, uVehicleId,
-      iSaveCount, vehicle_name, uVehicleId, (sw_version >> 8) & 0xFF, sw_version & 0xFF, sw_version >> 16, isOnController?"yes":"no", is_spectator?"no (spectator mode)":"yes",
-      radioLinksParams.links_count, szFreq1, szFreq2, szFreq3 );
-   log_line(szLog);
-   */
 
    return true;
 }
 
-bool Model::saveVersion10(FILE* fd, bool isOnController)
+
+bool Model::saveVersion11(FILE* fd, bool isOnController)
 {
    char szSetting[256];
    char szModel[8096];
@@ -1261,16 +1783,16 @@ bool Model::saveVersion10(FILE* fd, bool isOnController)
       sw_version = (SYSTEM_SW_VERSION_MAJOR * 256 + SYSTEM_SW_VERSION_MINOR) | (SYSTEM_SW_BUILD_NUMBER<<16);
 
 
-   sprintf(szSetting, "ver: 10\n"); // version number
+   sprintf(szSetting, "v 11\n"); // version number
    strcat(szModel, szSetting);
    sprintf(szSetting, "%s\n",MODEL_FILE_STAMP_ID);
    strcat(szModel, szSetting);
-   sprintf(szSetting, "savecounter: %d\n", iSaveCount);
+   sprintf(szSetting, "cnt: %d\n", iSaveCount);
    strcat(szModel, szSetting);
-   sprintf(szSetting, "id: %u %u %u %u\n", sw_version, uVehicleId, uControllerId, hwCapabilities.uBoardType); 
+   sprintf(szSetting, "id: %u %u %u %u %u\n", sw_version, uVehicleId, uModelFlags, hwCapabilities.uBoardType, alarms);
    strcat(szModel, szSetting);
 
-   sprintf(szSetting, "%u\n", uModelFlags);
+   sprintf(szSetting, "ctrl: %u %u\n", uControllerId, uControllerBoardType);
    strcat(szModel, szSetting);
 
    char szVeh[MAX_VEHICLE_NAME_LENGTH+1];
@@ -1289,60 +1811,55 @@ bool Model::saveVersion10(FILE* fd, bool isOnController)
       sprintf(szSetting, "%s\n", szVeh);
    strcat(szModel, szSetting);
  
-   sprintf(szSetting, "%d %u %d\n", rxtx_sync_type, camera_rc_channels, processesPriorities.iNiceTelemetry );
+   sprintf(szSetting, "%d %u ", rxtx_sync_type, camera_rc_channels );
    strcat(szModel, szSetting);
    sprintf(szSetting, "%d %d %u %d\n", is_spectator, vehicle_type, m_Stats.uTotalFlightTime, iGPSCount);
    strcat(szModel, szSetting);
    
    //----------------------------------------
-   // CPU 
+   // CPU & processes 
 
-   sprintf(szSetting, "cpu: %d %d %d\n", processesPriorities.iNiceVideo, processesPriorities.iNiceOthers, processesPriorities.ioNiceVideo); 
+   sprintf(szSetting, "cpu: %u %d %d %d\n", processesPriorities.uProcessesFlags, processesPriorities.iOverVoltage, processesPriorities.iFreqARM, processesPriorities.iFreqGPU);
    strcat(szModel, szSetting);
-   sprintf(szSetting, "%d %d %d\n", processesPriorities.iOverVoltage, processesPriorities.iFreqARM, processesPriorities.iFreqGPU);
+   sprintf(szSetting, "%d %d\n", processesPriorities.ioNiceRouter, processesPriorities.ioNiceVideo);
    strcat(szModel, szSetting);
-   sprintf(szSetting, "%d %d %d\n", processesPriorities.iNiceRouter, processesPriorities.ioNiceRouter, processesPriorities.iNiceRC);
+   sprintf(szSetting, "%d %d %d %d %d %d %d\n",
+     processesPriorities.iThreadPriorityRouter, processesPriorities.iThreadPriorityRadioRx,
+     processesPriorities.iThreadPriorityRadioTx, processesPriorities.iThreadPriorityVideoCapture,
+     processesPriorities.iThreadPriorityRC, processesPriorities.iThreadPriorityTelemetry,
+     processesPriorities.iThreadPriorityOthers );
+   strcat(szModel, szSetting);
+   sprintf(szSetting, "%d %d %d %d %d %d %d\n", processesPriorities.iCoreRadioRx, processesPriorities.iCoreRouter, processesPriorities.iCoreVideoCapture, processesPriorities.iCoreTelemetry, processesPriorities.iCoreCommands, processesPriorities.iCoreRC, processesPriorities.iCoreOthers);
    strcat(szModel, szSetting);
 
    //----------------------------------------
-   // Radio
+   // Radio int
 
-   sprintf(szSetting, "radio_interfaces: %d\n", radioInterfacesParams.interfaces_count); 
+   sprintf(szSetting, "radioint: %d\n", radioInterfacesParams.interfaces_count); 
    strcat(szModel, szSetting);
    for( int i=0; i<radioInterfacesParams.interfaces_count; i++ )
    {
       sprintf(szSetting, "%d %d %u\n", radioInterfacesParams.interface_card_model[i], radioInterfacesParams.interface_link_id[i], radioInterfacesParams.interface_current_frequency_khz[i]);
       strcat(szModel, szSetting);
-      sprintf(szSetting, "  %u %d %u %d %d %d %s- %s-\n", radioInterfacesParams.interface_capabilities_flags[i], radioInterfacesParams.interface_supported_bands[i], radioInterfacesParams.interface_radiotype_and_driver[i], radioInterfacesParams.interface_current_radio_flags[i], radioInterfacesParams.interface_raw_power[i], radioInterfacesParams.interface_dummy2[i], radioInterfacesParams.interface_szMAC[i], radioInterfacesParams.interface_szPort[i]);
+      sprintf(szSetting, "%u %d %u %u %d %s- %s-\n", radioInterfacesParams.interface_capabilities_flags[i], radioInterfacesParams.interface_supported_bands[i], radioInterfacesParams.interface_radiotype_and_driver[i], radioInterfacesParams.interface_current_radio_flags[i], radioInterfacesParams.interface_raw_power[i], radioInterfacesParams.interface_szMAC[i], radioInterfacesParams.interface_szPort[i]);
       strcat(szModel, szSetting);
    }
-   sprintf(szSetting, "%d %d %d %u %d %d %d %d %d\n", enableDHCP, radioInterfacesParams.iAutoVehicleTxPower, radioInterfacesParams.iAutoControllerTxPower, radioInterfacesParams.uFlagsRadioInterfaces, radioInterfacesParams.iDummyR4, radioInterfacesParams.iDummyR5, radioInterfacesParams.iDummyR6, radioInterfacesParams.iDummyR7, radioInterfacesParams.iDummyR8); 
+   sprintf(szSetting, "%d %d %d %u %d\n", enableDHCP, radioInterfacesParams.iAutoVehicleTxPower, radioInterfacesParams.iAutoControllerTxPower, radioInterfacesParams.uFlagsRadioInterfaces, radioInterfacesParams.iDummyR1);
    strcat(szModel, szSetting);
 
-   sprintf(szSetting, "%d\n", radioInterfacesParams.iDummyR9);
-   strcat(szModel, szSetting);
-
-   sprintf(szSetting, "radio_links: %d\n", radioLinksParams.links_count); 
+   //----------------------------------------
+   // Radio links
+   sprintf(szSetting, "radiolinks: %d\n", radioLinksParams.links_count); 
    strcat(szModel, szSetting);
 
    for( int i=0; i<radioLinksParams.links_count; i++ )
    {
-      sprintf( szSetting, "%u %u %u %d %d   ", radioLinksParams.link_frequency_khz[i], radioLinksParams.link_capabilities_flags[i], radioLinksParams.link_radio_flags[i], radioLinksParams.downlink_datarate_video_bps[i], radioLinksParams.downlink_datarate_data_bps[i] );
+      sprintf( szSetting, "%u %u %u %d %d", radioLinksParams.link_frequency_khz[i], radioLinksParams.link_capabilities_flags[i], radioLinksParams.link_radio_flags[i], radioLinksParams.downlink_datarate_video_bps[i], radioLinksParams.downlink_datarate_data_bps[i] );
       strcat(szModel, szSetting);
-      sprintf( szSetting, "%d %u %d %d\n", (int)radioLinksParams.uSerialPacketSize[i], radioLinksParams.uDummy2[i], radioLinksParams.uplink_datarate_video_bps[i], radioLinksParams.uplink_datarate_data_bps[i] );
-      strcat(szModel, szSetting);
-      sprintf( szSetting, "%d %d\n", radioLinksParams.uMaxLinkLoadPercent[i], radioLinksParams.uDummyR2[i] );
+      sprintf( szSetting, " %d %d %d %d %u\n", (int)radioLinksParams.uSerialPacketSize[i], radioLinksParams.uplink_datarate_video_bps[i], radioLinksParams.uplink_datarate_data_bps[i], radioLinksParams.uMaxLinkLoadPercent[i], radioLinksParams.uDummyR1[i] );
       strcat(szModel, szSetting);
    }
-   sprintf(szSetting, " %d %u\n", radioLinksParams.iSiKPacketSize, radioLinksParams.uGlobalRadioLinksFlags);
-   strcat(szModel, szSetting);
-
-   for( unsigned int j=0; j<(sizeof(radioLinksParams.uDummyRadio)/sizeof(radioLinksParams.uDummyRadio[0])); j++ )
-   {
-      sprintf(szSetting, " %d", radioLinksParams.uDummyRadio[j]); 
-      strcat(szModel, szSetting);
-   }
-   sprintf(szSetting, "\n");      
+   sprintf(szSetting, "%d %u\n", radioLinksParams.iSiKPacketSize, radioLinksParams.uGlobalRadioLinksFlags);
    strcat(szModel, szSetting);
 
    //---------------------------------
@@ -1354,44 +1871,38 @@ bool Model::saveVersion10(FILE* fd, bool isOnController)
    //----------------------------------------
    // Telemetry
 
-   sprintf(szSetting, "telem: %d %d %d %d %d\n", telemetry_params.fc_telemetry_type, 0, telemetry_params.update_rate, 0, 0);
+   sprintf(szSetting, "telem: %d %d %u ", telemetry_params.fc_telemetry_type, telemetry_params.iUpdateRateHz, telemetry_params.uDummyT1);
    strcat(szModel, szSetting);
-   sprintf(szSetting, "%d %u %d %u\n", telemetry_params.iVideoBitrateHistoryGraphSampleInterval, telemetry_params.dummy2, telemetry_params.dummy3, telemetry_params.dummy4);
-   strcat(szModel, szSetting);
-   sprintf(szSetting, "%d %d %d\n", telemetry_params.vehicle_mavlink_id, telemetry_params.controller_mavlink_id, telemetry_params.flags);
-   strcat(szModel, szSetting);
-   sprintf(szSetting, "%d %u\n", telemetry_params.dummy5, telemetry_params.dummy6);
-   strcat(szModel, szSetting);
-   sprintf(szSetting, "%d\n", 0); // not used
+   sprintf(szSetting, "%d %d %d %u\n", telemetry_params.iVideoBitrateHistoryGraphSampleInterval, telemetry_params.vehicle_mavlink_id, telemetry_params.controller_mavlink_id, telemetry_params.flags);
    strcat(szModel, szSetting);
  
    //----------------------------------------
    // Video 
 
-   sprintf(szSetting, "video: %d %d %d %u\n", video_params.iCurrentVideoProfile, video_params.iH264Slices, video_params.dummyV1, video_params.lowestAllowedAdaptiveVideoBitrate);
+   sprintf(szSetting, "video: %d %d %u %u ", video_params.iCurrentVideoProfile, video_params.iH264Slices, video_params.uDummyV1, video_params.lowestAllowedAdaptiveVideoBitrate);
+   strcat(szModel, szSetting);
+ 
+   sprintf(szSetting, "%u %u %d %d %d\n", video_params.uMaxAutoKeyframeIntervalMs, video_params.uVideoExtraFlags, video_params.iVideoWidth, video_params.iVideoHeight, video_params.iVideoFPS);
    strcat(szModel, szSetting);
    
-   sprintf(szSetting, "%u\n", video_params.uMaxAutoKeyframeIntervalMs);
+   sprintf(szSetting, "%d %d %d\n", video_params.iRemovePPSVideoFrames, video_params.iInsertPPSVideoFrames, video_params.iInsertSPTVideoFramesTimings);
    strcat(szModel, szSetting);
-   
-   sprintf(szSetting, "%u\n", video_params.uVideoExtraFlags);
-   strcat(szModel, szSetting);
-   
-   sprintf(szSetting, "%d %d %d\n", video_params.iVideoWidth, video_params.iVideoHeight, video_params.iVideoFPS);
-   strcat(szModel, szSetting);
-   
+
    //----------------------------------------
    // Video link profiles
 
-   sprintf(szSetting, "video_link_profiles: %d\n", (int)MAX_VIDEO_LINK_PROFILES);
+   sprintf(szSetting, "video_prof: %d\n", (int)MAX_VIDEO_LINK_PROFILES);
    strcat(szModel, szSetting);
    for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
    {
-      sprintf(szSetting, "%u %u %u %d %u %u   ", video_link_profiles[i].uProfileFlags, video_link_profiles[i].uProfileEncodingFlags, video_link_profiles[i].bitrate_fixed_bps, video_link_profiles[i].iAdaptiveAdjustmentStrength, video_link_profiles[i].uAdaptiveWeights, video_link_profiles[i].dummyVP6);
+      sprintf(szSetting, "%u %u %u %d %u %d %d ", video_link_profiles[i].uProfileFlags, video_link_profiles[i].uProfileEncodingFlags, video_link_profiles[i].bitrate_fixed_bps, video_link_profiles[i].iAdaptiveAdjustmentStrength, video_link_profiles[i].uAdaptiveWeights, video_link_profiles[i].iDefaultFPS, video_link_profiles[i].iECPercentage);
       strcat(szModel, szSetting);
-      sprintf(szSetting, "%d %d\n", video_link_profiles[i].dummyVP1, video_link_profiles[i].dummyVP2);
-      strcat(szModel, szSetting);
-      sprintf(szSetting, "   %d %d %d %d %d   ", video_link_profiles[i].iBlockDataPackets, video_link_profiles[i].iBlockECs, video_link_profiles[i].video_data_length, video_link_profiles[i].dummyVP3, video_link_profiles[i].keyframe_ms);
+      if ( is_sw_version_atleast(this, 11, 6) )
+      {
+         sprintf(szSetting, "%d %u %u\n", video_link_profiles[i].iDefaultLinkLoad, video_link_profiles[i].uDummyVP1, video_link_profiles[i].uDummyVP2);
+         strcat(szModel, szSetting);
+      }
+      sprintf(szSetting, "%d %d %d %d ", video_link_profiles[i].iBlockDataPackets, video_link_profiles[i].iBlockECs, video_link_profiles[i].video_data_length, video_link_profiles[i].iKeyframeMS);
       strcat(szModel, szSetting);
       sprintf(szSetting, "%d %d %d %d %d\n", video_link_profiles[i].h264profile, video_link_profiles[i].h264level, video_link_profiles[i].h264refresh, video_link_profiles[i].h264quantization, video_link_profiles[i].iIPQuantizationDelta);
       strcat(szModel, szSetting);
@@ -1429,43 +1940,50 @@ bool Model::saveVersion10(FILE* fd, bool isOnController)
 
       for( int i=0; i<MODEL_CAMERA_PROFILES; i++ )
       {
-      sprintf(szSetting, "cam_profile_%d: %d %d\n", i, camera_params[k].profiles[i].uFlags, camera_params[k].profiles[i].flip_image); 
+      sprintf(szSetting, "cam_profile_%d: %d %d ", i, camera_params[k].profiles[i].uFlags, camera_params[k].profiles[i].flip_image); 
       strcat(szModel, szSetting);
-      sprintf(szSetting, "%d %d %d %d\n", camera_params[k].profiles[i].brightness, camera_params[k].profiles[i].contrast, camera_params[k].profiles[i].saturation, camera_params[k].profiles[i].sharpness);
+      sprintf(szSetting, "%d %d %d %d ", camera_params[k].profiles[i].brightness, camera_params[k].profiles[i].contrast, camera_params[k].profiles[i].saturation, camera_params[k].profiles[i].sharpness);
       strcat(szModel, szSetting);
       sprintf(szSetting, "%d %d %d %d\n", camera_params[k].profiles[i].exposure, camera_params[k].profiles[i].whitebalance, camera_params[k].profiles[i].metering, camera_params[k].profiles[i].drc);
       strcat(szModel, szSetting);
-      sprintf(szSetting, "%f %f %f\n", camera_params[k].profiles[i].analogGain, camera_params[k].profiles[i].awbGainB, camera_params[k].profiles[i].awbGainR);
+      sprintf(szSetting, "%f %f %f", camera_params[k].profiles[i].analogGain, camera_params[k].profiles[i].awbGainB, camera_params[k].profiles[i].awbGainR);
       strcat(szModel, szSetting);
-      sprintf(szSetting, "%f %f\n", camera_params[k].profiles[i].fovH, camera_params[k].profiles[i].fovV);
+      sprintf(szSetting, "%f %f ", camera_params[k].profiles[i].fovH, camera_params[k].profiles[i].fovV);
       strcat(szModel, szSetting);
-      sprintf(szSetting, "%d %d %d %d\n", camera_params[k].profiles[i].vstab, camera_params[k].profiles[i].ev, camera_params[k].profiles[i].iso, camera_params[k].profiles[i].shutterspeed); 
-      strcat(szModel, szSetting);
-
-      sprintf(szSetting, "%d\n", (int)camera_params[k].profiles[i].wdr); 
+      sprintf(szSetting, "%d %d %d %d\n", camera_params[k].profiles[i].vstab, camera_params[k].profiles[i].ev, camera_params[k].profiles[i].iso, camera_params[k].profiles[i].iShutterSpeed);
       strcat(szModel, szSetting);
 
-      sprintf(szSetting, "%d %d \n", (int)camera_params[k].profiles[i].dayNightMode, (int)camera_params[k].profiles[i].hue);
+      sprintf(szSetting, "%d ", (int)camera_params[k].profiles[i].wdr); 
       strcat(szModel, szSetting);
 
-      for( unsigned int j=0; j<(sizeof(camera_params[k].profiles[i].dummyCamP)/sizeof(camera_params[k].profiles[i].dummyCamP[0])); j++ )
-      {
-         sprintf(szSetting, " %d", camera_params[k].profiles[i].dummyCamP[j]); 
-         strcat(szModel, szSetting);
-      }
-      sprintf(szSetting, "\n");      
+      sprintf(szSetting, "%d %d ", (int)camera_params[k].profiles[i].dayNightMode, (int)camera_params[k].profiles[i].hue);
+      strcat(szModel, szSetting);
+
+      sprintf(szSetting, " %u\n", camera_params[k].profiles[i].uDummyCamP); 
       strcat(szModel, szSetting);
       }
    }
+
+   for( int i=0; i<MODEL_MAX_CAMERAS; i++ )
+   {
+      if ( i != 0 )
+         strcat(szModel, " ");
+      if ( 0 == camera_params[i].szCameraBinProfileName[0] )
+         sprintf(szSetting, "%d -", camera_params[i].iCameraBinProfile);
+      else
+         sprintf(szSetting, "%d %s", camera_params[i].iCameraBinProfile, camera_params[i].szCameraBinProfileName);
+      strcat(szModel, szSetting);
+   }
+   strcat(szModel, "\n");
+
    //----------------------------------------
    // Audio
 
-   sprintf(szSetting, "audio: %d\n", (int)audio_params.has_audio_device);
+   sprintf(szSetting, "audio: %d ", (int)audio_params.has_audio_device);
    strcat(szModel, szSetting);
-   sprintf(szSetting, "%d %d %d %u\n", (int)audio_params.enabled, audio_params.volume, audio_params.quality, audio_params.uFlags);
+   sprintf(szSetting, "%d %d %d %u ", (int)audio_params.enabled, audio_params.volume, audio_params.quality, audio_params.uFlags);
    strcat(szModel, szSetting);
-
-   sprintf(szSetting, "alarms: %u\n", alarms);
+   sprintf(szSetting, "%d %d %u\n", (int)audio_params.uECScheme, (int)audio_params.uPacketLength, audio_params.uDummyA1);
    strcat(szModel, szSetting);
 
    //----------------------------------------
@@ -1484,39 +2002,43 @@ bool Model::saveVersion10(FILE* fd, bool isOnController)
 
    for( int i=0; i<hardwareInterfacesInfo.i2c_device_count; i++ )
    {
-      sprintf(szSetting, " %d %d\n", hardwareInterfacesInfo.i2c_devices_bus[i], hardwareInterfacesInfo.i2c_devices_address[i]);
+      sprintf(szSetting, "%d %d\n", hardwareInterfacesInfo.i2c_devices_bus[i], hardwareInterfacesInfo.i2c_devices_address[i]);
       strcat(szModel, szSetting);
    }
 
    for( int i=0; i<hardwareInterfacesInfo.serial_port_count; i++ )
    {
-      sprintf(szSetting, " %d %u %s\n", hardwareInterfacesInfo.serial_port_speed[i], hardwareInterfacesInfo.serial_port_supported_and_usage[i], hardwareInterfacesInfo.serial_port_names[i]);
+      sprintf(szSetting, "%d %u %s\n", hardwareInterfacesInfo.serial_port_speed[i], hardwareInterfacesInfo.serial_port_supported_and_usage[i], hardwareInterfacesInfo.serial_port_names[i]);
       strcat(szModel, szSetting);
    }
+
+   sprintf(szSetting, "%d %d %u %u %u %u\n", hwCapabilities.iMaxTxVideoBlocksBuffer, hwCapabilities.iMaxTxVideoBlockPackets, hwCapabilities.uHWFlags, hwCapabilities.uRubyBaseVersion, hwCapabilities.uDummyHW1, hwCapabilities.uDummyHW2);
+   strcat(szModel, szSetting);
 
    //----------------------------------------
    // OSD 
 
-   sprintf(szSetting, "osd: %d %d %f %d %d\n", osd_params.iCurrentOSDScreen, osd_params.voltage_alarm_enabled, osd_params.voltage_alarm, osd_params.altitude_relative, osd_params.show_gps_position); 
+   sprintf(szSetting, "osd: %d %d %d %f %d %d\n", MODEL_MAX_OSD_SCREENS, osd_params.iCurrentOSDScreen, osd_params.voltage_alarm_enabled, osd_params.voltage_alarm, osd_params.altitude_relative, osd_params.show_gps_position); 
    strcat(szModel, szSetting);
-   sprintf(szSetting, "%d %d %d %d %d\n", osd_params.battery_show_per_cell, osd_params.battery_cell_count, osd_params.battery_capacity_percent_alarm, osd_params.invert_home_arrow, osd_params.home_arrow_rotate); 
+   sprintf(szSetting, "%d %d %d %d %d %d\n", osd_params.battery_show_per_cell, osd_params.battery_cell_count, osd_params.battery_capacity_percent_alarm, osd_params.invert_home_arrow, osd_params.home_arrow_rotate, osd_params.iRadioInterfacesGraphRefreshIntervalMs);
    strcat(szModel, szSetting);
+
    sprintf(szSetting, "%d %d %d %d %d %d %d\n", osd_params.show_overload_alarm, osd_params.show_stats_rx_detailed, osd_params.show_stats_decode, osd_params.show_stats_rc, osd_params.show_full_stats, osd_params.show_instruments, osd_params.ahi_warning_angle);
    strcat(szModel, szSetting);
    for( int i=0; i<MODEL_MAX_OSD_SCREENS; i++ )
    {
-      sprintf(szSetting, "%u %u %u %u %u\n", osd_params.osd_flags[i], osd_params.osd_flags2[i], osd_params.osd_flags3[i], osd_params.instruments_flags[i], osd_params.osd_preferences[i]);
+      sprintf(szSetting, "%u %u %u %u %u %d\n", osd_params.osd_flags[i], osd_params.osd_flags2[i], osd_params.osd_flags3[i], osd_params.instruments_flags[i], osd_params.osd_preferences[i], osd_params.osd_layout_preset[i]);
       strcat(szModel, szSetting);
    }
+   sprintf(szSetting, "%u\n", osd_params.uFlags);
+   strcat(szModel, szSetting);
 
    //----------------------------------------
    // RC 
 
-   sprintf(szSetting, "rc: %d %d %d %d\n", rc_params.rc_enabled, rc_params.dummy1, rc_params.receiver_type, rc_params.rc_frames_per_second);
+   sprintf(szSetting, "rc: %d %d %d %d ", MAX_RC_CHANNELS, rc_params.rc_enabled, rc_params.receiver_type, rc_params.rc_frames_per_second);
    strcat(szModel, szSetting);
-   sprintf(szSetting, "%d\n", rc_params.inputType);
-   strcat(szModel, szSetting);
-   sprintf(szSetting, "%d %ld %d %ld\n", rc_params.inputSerialPort, rc_params.inputSerialPortSpeed, rc_params.outputSerialPort, rc_params.outputSerialPortSpeed);
+   sprintf(szSetting, "%d %d %ld %d %ld\n", rc_params.inputType, rc_params.inputSerialPort, rc_params.inputSerialPortSpeed, rc_params.outputSerialPort, rc_params.outputSerialPortSpeed);
    strcat(szModel, szSetting);
    for( int i=0; i<MAX_RC_CHANNELS; i++ )
    {
@@ -1524,37 +2046,21 @@ bool Model::saveVersion10(FILE* fd, bool isOnController)
       strcat(szModel, szSetting);
    }
 
-   sprintf(szSetting, "%d %u %u\n", rc_params.rc_failsafe_timeout_ms, rc_params.failsafeFlags, rc_params.channelsCount );
+   sprintf(szSetting, "%d %u %u ", rc_params.rc_failsafe_timeout_ms, rc_params.failsafeFlags, rc_params.channelsCount );
    strcat(szModel, szSetting);
-   sprintf(szSetting, "%u\n", rc_params.hid_id );
-   strcat(szModel, szSetting);
-   sprintf(szSetting, "%u\n", rc_params.flags );
-   strcat(szModel, szSetting);
-   sprintf(szSetting, "%u %d\n", rc_params.rcChAssignmentThrotleReverse, rc_params.iRCTranslationType );
-   strcat(szModel, szSetting);
-   for( unsigned int i=0; i<(sizeof(rc_params.rcDummy)/sizeof(rc_params.rcDummy[0])); i++ )
-   {
-      sprintf(szSetting, " %u",rc_params.rcDummy[i]);
-      strcat(szModel, szSetting);
-   }
-   sprintf(szSetting, "\n");
+   sprintf(szSetting, "%u %u %u %d\n", rc_params.hid_id, rc_params.flags, rc_params.rcChAssignmentThrotleReverse, rc_params.iRCTranslationType );
    strcat(szModel, szSetting);
 
    //----------------------------------------
    // Misc
 
-   sprintf(szSetting, "misc_dev: %u %u\n", uModelPersistentStatusFlags, uDeveloperFlags);
+   sprintf(szSetting, "misc: %u %u %u %d\n", uModelPersistentStatusFlags, uDeveloperFlags, enc_flags, (int)alarms_params.uAlarmMotorCurrentThreshold);
    strcat(szModel, szSetting);
-   sprintf(szSetting, "%u\n", enc_flags);
-   strcat(szModel, szSetting);
-
-   sprintf(szSetting, "stats: %u\n", m_Stats.uTotalFlights);
-   strcat(szModel, szSetting);
-   sprintf(szSetting, "%u %u %u %u\n", m_Stats.uCurrentOnTime, m_Stats.uCurrentFlightTime, m_Stats.uCurrentFlightDistance, m_Stats.uCurrentFlightTotalCurrent);
+   sprintf(szSetting, "stats: %u %u %u %u %u ", m_Stats.uTotalFlights, m_Stats.uCurrentOnTime, m_Stats.uCurrentFlightTime, m_Stats.uCurrentFlightDistance, m_Stats.uCurrentFlightTotalCurrent);
    strcat(szModel, szSetting);
    sprintf(szSetting, "%u %u %u %u %u\n", m_Stats.uCurrentTotalCurrent, m_Stats.uCurrentMaxAltitude, m_Stats.uCurrentMaxDistance, m_Stats.uCurrentMaxCurrent, m_Stats.uCurrentMinVoltage);
    strcat(szModel, szSetting);
-   sprintf(szSetting, "%u %u %u\n", m_Stats.uTotalOnTime, m_Stats.uTotalFlightTime, m_Stats.uTotalFlightDistance);
+   sprintf(szSetting, "%u %u %u ", m_Stats.uTotalOnTime, m_Stats.uTotalFlightTime, m_Stats.uTotalFlightDistance);
    strcat(szModel, szSetting);
    sprintf(szSetting, "%u %u %u %u %u\n", m_Stats.uTotalTotalCurrent, m_Stats.uTotalMaxAltitude, m_Stats.uTotalMaxDistance, m_Stats.uTotalMaxCurrent, m_Stats.uTotalMinVoltage);
    strcat(szModel, szSetting);
@@ -1562,9 +2068,9 @@ bool Model::saveVersion10(FILE* fd, bool isOnController)
    //----------------------------------------
    // Functions triggers 
 
-   sprintf(szSetting, "func: %d %d %d\n", functions_params.bEnableRCTriggerFreqSwitchLink1, functions_params.bEnableRCTriggerFreqSwitchLink2, functions_params.bEnableRCTriggerFreqSwitchLink3);
+   sprintf(szSetting, "func: %d %d %d ", functions_params.bEnableRCTriggerFreqSwitchLink1, functions_params.bEnableRCTriggerFreqSwitchLink2, functions_params.bEnableRCTriggerFreqSwitchLink3);
    strcat(szModel, szSetting);
-   sprintf(szSetting, "%d %d %d\n", functions_params.iRCTriggerChannelFreqSwitchLink1, functions_params.iRCTriggerChannelFreqSwitchLink2, functions_params.iRCTriggerChannelFreqSwitchLink3);
+   sprintf(szSetting, "%d %d %d ", functions_params.iRCTriggerChannelFreqSwitchLink1, functions_params.iRCTriggerChannelFreqSwitchLink2, functions_params.iRCTriggerChannelFreqSwitchLink3);
    strcat(szModel, szSetting);
    sprintf(szSetting, "%d %d %d\n", functions_params.bRCTriggerFreqSwitchLink1_is3Position, functions_params.bRCTriggerFreqSwitchLink2_is3Position, functions_params.bRCTriggerFreqSwitchLink3_is3Position);
    strcat(szModel, szSetting);
@@ -1574,92 +2080,18 @@ bool Model::saveVersion10(FILE* fd, bool isOnController)
       sprintf(szSetting, "%u %u %u %u %u %u\n", functions_params.uChannels433FreqSwitch[i], functions_params.uChannels868FreqSwitch[i], functions_params.uChannels23FreqSwitch[i], functions_params.uChannels24FreqSwitch[i], functions_params.uChannels25FreqSwitch[i], functions_params.uChannels58FreqSwitch[i]);
       strcat(szModel, szSetting);
    }
-   for( unsigned int i=0; i<(sizeof(functions_params.dummy)/sizeof(functions_params.dummy[0])); i++ )
+   for( unsigned int i=0; i<(sizeof(functions_params.uDummyF)/sizeof(functions_params.uDummyF[0])); i++ )
    {
-      sprintf(szSetting, " %u",functions_params.dummy[i]);
+      sprintf(szSetting, " %u",functions_params.uDummyF[i]);
       strcat(szModel, szSetting);
    }
    sprintf(szSetting, "\n");
    strcat(szModel, szSetting);
 
-   //----------------------------------------
    //-------------------------------------------
-   // Starting extra params, might be zero on load
-
-   sprintf(szSetting, "%d\n", (int)alarms_params.uAlarmMotorCurrentThreshold);
-   strcat(szModel, szSetting);
-   
-   sprintf(szSetting, "%d\n", osd_params.iRadioInterfacesGraphRefreshIntervalMs);
-   strcat(szModel, szSetting);
-   
-   sprintf(szSetting, "%d %d %u\n", hwCapabilities.iMaxTxVideoBlocksBuffer, hwCapabilities.iMaxTxVideoBlockPackets, hwCapabilities.uHWFlags);
-   strcat(szModel, szSetting);
-
-   sprintf(szSetting, "%u\n", hwCapabilities.uRubyBaseVersion);
-   strcat(szModel, szSetting);
-
-   for( unsigned int i=0; i<(sizeof(hwCapabilities.dummyhwc)/sizeof(hwCapabilities.dummyhwc[0])); i++ )
-   {
-      sprintf(szSetting, " %d", hwCapabilities.dummyhwc[i]);
-      strcat(szModel, szSetting);
-   }
-   for( unsigned int i=0; i<(sizeof(hwCapabilities.dummyhwc2)/sizeof(hwCapabilities.dummyhwc2[0])); i++ )
-   {
-      sprintf(szSetting, " %u", hwCapabilities.dummyhwc2[i]);
-      strcat(szModel, szSetting);
-   }
-   sprintf(szSetting,"\n");
-   strcat(szModel, szSetting);
-
-   sprintf(szSetting, "%d %d %d\n", processesPriorities.iThreadPriorityRadioRx, processesPriorities.iThreadPriorityRadioTx, processesPriorities.iThreadPriorityRouter);
-   strcat(szModel, szSetting);
-
-   sprintf(szSetting, "%u\n", osd_params.uFlags);
-   strcat(szModel, szSetting);
-
-   sprintf(szSetting, "%u\n", processesPriorities.uProcessesFlags);
-   strcat(szModel, szSetting);
-
-   sprintf(szSetting, "%d %d %d\n", video_params.iRemovePPSVideoFrames, video_params.iInsertPPSVideoFrames, video_params.iInsertSPTVideoFramesTimings);
-   strcat(szModel, szSetting);
-
-   sprintf(szSetting, "%d %d %u\n", (int)audio_params.uECScheme, (int)audio_params.uPacketLength, audio_params.uDummyA1);
-   strcat(szModel, szSetting);
-
-   for( int i=0; i<MODEL_MAX_OSD_SCREENS; i++ )
-   {
-      sprintf(szSetting, "%u", osd_params.osd_layout_preset[i]);
-      strcat(szModel, szSetting);
-      if ( i < MODEL_MAX_OSD_SCREENS-1 )
-         strcat(szModel, " ");
-      else
-         strcat(szModel, "\n");
-   }
-
-   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
-   {
-      if ( i != 0 )
-         strcat(szModel, " ");
-      sprintf(szSetting, "%d", video_link_profiles[i].iECPercentage);
-      strcat(szModel, szSetting);
-   }
-   strcat(szModel, "\n");
-
-   for( int i=0; i<MODEL_MAX_CAMERAS; i++ )
-   {
-      if ( i != 0 )
-         strcat(szModel, " ");
-      if ( 0 == camera_params[i].szCameraBinProfileName[0] )
-         sprintf(szSetting, "%d -", camera_params[i].iCameraBinProfile);
-      else
-         sprintf(szSetting, "%d %s", camera_params[i].iCameraBinProfile, camera_params[i].szCameraBinProfileName);
-      strcat(szModel, szSetting);
-   }
-   strcat(szModel, "\n");
-
    // Radio runtime capabilities
 
-   sprintf(szSetting, "%d %d %d %u\n", (int)radioRuntimeCapabilities.uFlagsRuntimeCapab, radioRuntimeCapabilities.iMaxSupportedMCSDataRate, radioRuntimeCapabilities.iMaxSupportedLegacyDataRate, radioRuntimeCapabilities.uSupportedMCSFlags);
+   sprintf(szSetting, "radio_runtime: %d %d %d %u\n", (int)radioRuntimeCapabilities.uFlagsRuntimeCapab, radioRuntimeCapabilities.iMaxSupportedMCSDataRate, radioRuntimeCapabilities.iMaxSupportedLegacyDataRate, radioRuntimeCapabilities.uSupportedMCSFlags);
    strcat(szModel, szSetting);
    for( int iLink=0; iLink<MODEL_MAX_STORED_QUALITIES_LINKS; iLink++ )
    {
@@ -1693,8 +2125,13 @@ bool Model::saveVersion10(FILE* fd, bool isOnController)
       strcat(szModel, "\n");
    }
 
-   sprintf(szSetting, "%u\n", uControllerBoardType);
+   //-------------------------------------------
+   // End of standard params
+   sprintf(szSetting, "END_ST\n");
    strcat(szModel, szSetting);
+
+   //-------------------------------------------
+   // Start of extra params, might be zero on load
 
    // End writing values to file
    // ---------------------------------------------------
@@ -1733,7 +2170,7 @@ void Model::resetVideoParamsToDefaults()
    video_params.iInsertSPTVideoFramesTimings = 0;
    video_params.lowestAllowedAdaptiveVideoBitrate = DEFAULT_LOWEST_ALLOWED_ADAPTIVE_VIDEO_BITRATE;
    video_params.uMaxAutoKeyframeIntervalMs = DEFAULT_VIDEO_MAX_AUTO_KEYFRAME_INTERVAL;
-   video_params.uVideoExtraFlags = VIDEO_FLAG_RETRANSMISSIONS_FAST | VIDEO_FLAG_ENABLE_FOCUS_MODE_BW;
+   video_params.uVideoExtraFlags = VIDEO_FLAG_ENABLE_FOCUS_MODE_BW | VIDEO_FLAG_ENABLE_FOCUS_MODE_BARS;
    resetVideoLinkProfiles();
 }
 
@@ -1746,8 +2183,9 @@ void Model::resetAdaptiveVideoParams(int iVideoProfile)
      video_link_profiles[i].iAdaptiveAdjustmentStrength = DEFAULT_VIDEO_PARAMS_ADJUSTMENT_STRENGTH;
      video_link_profiles[i].uAdaptiveWeights = 
         0x05 | (0x06 << 4) |
-        (0x07 << 8) | (0x05 << 12) |
-        (0x0A << 16) | (0x0A << 20);
+        (0x06 << 8) | (0x05 << 12) |
+        (0x07 << 16) | (0x09 << 20) |
+        (((u32)5)<<24);
    }
 }
 
@@ -1763,9 +2201,13 @@ void Model::resetVideoLinkProfile(int iProfile)
    if ( (iProfile < 0) || (iProfile >= MAX_VIDEO_LINK_PROFILES) )
       return;
 
-   video_link_profiles[iProfile].uProfileFlags = 1; // 3d noise
-   //video_link_profiles[iProfile].uProfileFlags = 0; // 3d noise
-   video_link_profiles[iProfile].uProfileEncodingFlags = VIDEO_PROFILE_ENCODING_FLAG_ENABLE_RETRANSMISSIONS | VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_LINK | VIDEO_PROFILE_ENCODING_FLAG_RETRANSMISSIONS_DUPLICATION_PERCENT_AUTO;
+   video_link_profiles[iProfile].uProfileFlags = 3; // 3d noise
+   video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_USE_LOWER_DR_FOR_EC_PACKETS;
+   video_link_profiles[iProfile].uProfileFlags &= ~VIDEO_PROFILE_FLAG_MASK_RETRANSMISSIONS_GUARD_MASK;
+   video_link_profiles[iProfile].uProfileFlags |= (VIDEO_PROFILE_FLAG_MASK_RETRANSMISSIONS_GUARD_MASK & (((u32)DEFAULT_VIDEO_END_FRAME_DETECTION_BUFFER_MS)<<8));
+
+   video_link_profiles[iProfile].uProfileEncodingFlags = VIDEO_PROFILE_ENCODING_FLAG_ENABLE_RETRANSMISSIONS | VIDEO_PROFILE_ENCODING_FLAG_RETRANSMISSIONS_DUPLICATION_PERCENT_AUTO;
+   video_link_profiles[iProfile].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_LINK | VIDEO_PROFILE_ENCODING_FLAG_USE_MEDIUM_ADAPTIVE_VIDEO;
    video_link_profiles[iProfile].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME;
    video_link_profiles[iProfile].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_EC_SCHEME_SPREAD_FACTOR_HIGHBIT;
    video_link_profiles[iProfile].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
@@ -1773,7 +2215,12 @@ void Model::resetVideoLinkProfile(int iProfile)
    video_link_profiles[iProfile].h264level = 2; // 4.2
    video_link_profiles[iProfile].h264refresh = 2; // both
    video_link_profiles[iProfile].h264quantization = DEFAULT_VIDEO_H264_QUANTIZATION;
-   video_link_profiles[iProfile].iIPQuantizationDelta = DEFAULT_VIDEO_H264_IPQUANTIZATION_DELTA_HP;
+   video_link_profiles[iProfile].iIPQuantizationDelta = -2;
+
+   video_link_profiles[iProfile].iDefaultFPS = 0;
+   video_link_profiles[iProfile].iDefaultLinkLoad = 0;
+   video_link_profiles[iProfile].uDummyVP1 = 0;
+   video_link_profiles[iProfile].uDummyVP2 = 0;
 
    video_link_profiles[iProfile].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_HP;
    video_link_profiles[iProfile].iBlockECs = DEFAULT_VIDEO_BLOCK_ECS_HP;
@@ -1781,7 +2228,7 @@ void Model::resetVideoLinkProfile(int iProfile)
    video_link_profiles[iProfile].iECPercentage = DEFAULT_VIDEO_EC_RATE_HQ;
    convertECPercentageToData(&(video_link_profiles[iProfile]));
 
-   video_link_profiles[iProfile].keyframe_ms = DEFAULT_VIDEO_KEYFRAME;
+   video_link_profiles[iProfile].iKeyframeMS = DEFAULT_VIDEO_KEYFRAME_AUTO;
 
    resetAdaptiveVideoParams(iProfile);
 
@@ -1796,13 +2243,15 @@ void Model::resetVideoLinkProfile(int iProfile)
    if ( iProfile == VIDEO_PROFILE_HIGH_QUALITY )
    {
       video_link_profiles[iProfile].uProfileFlags &= ~VIDEO_PROFILE_FLAGS_MASK_NOISE;
-      video_link_profiles[iProfile].uProfileFlags |= 1; // 3d noise
+      video_link_profiles[iProfile].uProfileFlags |= 2; // 3d noise
       video_link_profiles[iProfile].uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK;
       video_link_profiles[iProfile].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HQ<<8);
       video_link_profiles[iProfile].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_HQ;
       video_link_profiles[iProfile].iBlockECs = DEFAULT_VIDEO_BLOCK_ECS_HQ;
       video_link_profiles[iProfile].iECPercentage = DEFAULT_VIDEO_EC_RATE_HQ;
       video_link_profiles[iProfile].iIPQuantizationDelta = DEFAULT_VIDEO_H264_IPQUANTIZATION_DELTA_HQ;
+      video_link_profiles[iProfile].iDefaultFPS = DEFAULT_VIDEO_FPS_PROFILE_HQ;
+      video_link_profiles[iProfile].iDefaultLinkLoad = DEFAULT_RADIO_LINK_LOAD_PERCENT_HQ;
 
       video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_USE_HIGHER_DATARATE;
       video_link_profiles[iProfile].uProfileFlags |= (((u32)0x01) << VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK_SHIFT);
@@ -1814,9 +2263,14 @@ void Model::resetVideoLinkProfile(int iProfile)
       video_link_profiles[iProfile].uProfileFlags |= 1; // 3d noise
       video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_USE_HIGHER_DATARATE;
       video_link_profiles[iProfile].uProfileFlags |= (((u32)0x02) << VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK_SHIFT);
+      video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_LOWER_QP_DELTA_ON_LOW_LINK | VIDEO_PROFILE_FLAG_LOWER_QP_DELTA_ON_LOW_LINK_HIGH;
+      video_link_profiles[iProfile].iDefaultFPS = DEFAULT_VIDEO_FPS_PROFILE_HP;
+      video_link_profiles[iProfile].iIPQuantizationDelta = DEFAULT_VIDEO_H264_IPQUANTIZATION_DELTA_HP;
+      video_link_profiles[iProfile].iDefaultLinkLoad = DEFAULT_RADIO_LINK_LOAD_PERCENT_HP;
+      video_link_profiles[iProfile].iKeyframeMS = DEFAULT_VIDEO_KEYFRAME_AUTO_HP;
    }
 
-   if ( (iProfile == VIDEO_PROFILE_HIGH_PERF) || (iProfile == VIDEO_PROFILE_USER) )
+   if ( (iProfile == VIDEO_PROFILE_HIGH_PERF) || (iProfile == VIDEO_PROFILE_USER) || (iProfile == VIDEO_PROFILE_CUST) )
    {
       video_link_profiles[iProfile].uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK;
       video_link_profiles[iProfile].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
@@ -1833,11 +2287,24 @@ void Model::resetVideoLinkProfile(int iProfile)
 
    if ( iProfile == VIDEO_PROFILE_LONG_RANGE )
    {
+      video_link_profiles[iProfile].uProfileFlags &= ~VIDEO_PROFILE_FLAGS_MASK_NOISE;
+      video_link_profiles[iProfile].uProfileFlags |= 1; // 3d noise
       video_link_profiles[iProfile].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_LR;
       video_link_profiles[iProfile].iBlockECs = DEFAULT_VIDEO_BLOCK_ECS_LR;
       video_link_profiles[iProfile].iECPercentage = DEFAULT_VIDEO_EC_RATE_LR;
+      video_link_profiles[iProfile].iDefaultFPS = DEFAULT_VIDEO_FPS_PROFILE_LR;
+      video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_USE_LOWER_DR_FOR_EC_PACKETS | VIDEO_PROFILE_FLAG_USE_LOWER_DR_FOR_RETR_PACKETS;
+      video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_LOWER_QP_DELTA_ON_LOW_LINK;
+
+      video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_RETRANSMISSIONS_AGGRESIVE;
+
+      video_link_profiles[iProfile].iKeyframeMS = DEFAULT_VIDEO_KEYFRAME_AUTO_LR;
    }
 
+   if ( iProfile == VIDEO_PROFILE_USER )
+   {
+      video_link_profiles[iProfile].iDefaultFPS = DEFAULT_VIDEO_FPS_PROFILE_HP;    
+   }
    //-----------------------------------------------------
    // Adaptive video & keyframe in openIPC goke cameras is not supported. (majestic bitrate and keyframe can't be changed)
    
@@ -1875,6 +2342,8 @@ void Model::resetVideoLinkProfile(int iProfile)
          video_link_profiles[iProfile].bitrate_fixed_bps -= 500000;
       log_line("Model: Lowered video bitrate for video profile %d (single core CPU) to %u", iProfile, video_link_profiles[iProfile].bitrate_fixed_bps);
    }
+
+   log_line("Models: Did reset video profile %s to defaults.", str_get_video_profile_name(iProfile));
 }
 
 void Model::copy_video_link_profile(int from, int to)
@@ -1903,17 +2372,24 @@ void Model::generateUID()
    {
       char szBuff[256];
       szBuff[0] = 0;
-      if ( 1 == fscanf(fd, "%s", szBuff) && 4 < strlen(szBuff) )
+      if ( (1 == fscanf(fd, "%s", szBuff)) && (1 < strlen(szBuff)) )
       {
-         //log_line("Serial ID of HW: %s", szBuff);
          uVehicleId += szBuff[strlen(szBuff)-1] + 256 * szBuff[strlen(szBuff)-2];
-         
-         //strcat(vehicle_name, "-");
-         //strcat(vehicle_name, szBuff + (strlen(szBuff)-4));
+         for( int i=0; i<(int)strlen(szBuff); i++ )
+            uVehicleId += (szBuff[i]+1)*i + (szBuff[i]+2)*(1<<i);
       }
+      else
+         log_softerror_and_alarm("Failed to read hardware serial number for generating unique vehicle id.");
       fclose(fd);
    }
-   log_line("Generated unique vehicle ID: %u", uVehicleId);
+   else
+      log_softerror_and_alarm("Failed to get hardware serial number for generating unique vehicle id.");
+
+   struct timespec t;
+   clock_gettime(RUBY_HW_CLOCK_ID, &t);
+   uVehicleId += t.tv_nsec;
+
+   log_line("Generated new unique vehicle ID: %u", uVehicleId);
 }
 
 void Model::populateHWInfo()
@@ -1923,13 +2399,13 @@ void Model::populateHWInfo()
    hardwareInterfacesInfo.i2c_device_count = 0;
    hardwareInterfacesInfo.serial_port_count = 0;
 
-   hardware_enumerate_i2c_busses();
+   hardware_i2c_enumerate_busses();
 
-   hardwareInterfacesInfo.i2c_bus_count = hardware_get_i2c_busses_count();
+   hardwareInterfacesInfo.i2c_bus_count = hardware_i2c_get_busses_count();
 
-   for( int i=0; i<hardware_get_i2c_busses_count(); i++ )
+   for( int i=0; i<hardware_i2c_get_busses_count(); i++ )
    {
-      hw_i2c_bus_info_t* pBus = hardware_get_i2c_bus_info(i);
+      hw_i2c_bus_info_t* pBus = hardware_i2c_get_bus_info(i);
       if ( NULL != pBus && i < MAX_MODEL_I2C_BUSSES )
          hardwareInterfacesInfo.i2c_bus_numbers[i] = pBus->nBusNumber;
    }
@@ -1937,10 +2413,10 @@ void Model::populateHWInfo()
    hardwareInterfacesInfo.i2c_device_count = 0;
    for( int i=1; i<128; i++ )
    {
-      if ( ! hardware_has_i2c_device_id(i) )
+      if ( ! hardware_i2c_has_device_id(i) )
          continue;
       hardwareInterfacesInfo.i2c_devices_address[hardwareInterfacesInfo.i2c_device_count] = i;
-      hardwareInterfacesInfo.i2c_devices_bus[hardwareInterfacesInfo.i2c_device_count] = hardware_get_i2c_device_bus_number(i);
+      hardwareInterfacesInfo.i2c_devices_bus[hardwareInterfacesInfo.i2c_device_count] = hardware_i2c_get_device_bus_number(i);
       hardwareInterfacesInfo.i2c_device_count++;
       if ( hardwareInterfacesInfo.i2c_device_count >= MAX_MODEL_I2C_DEVICES )
          break;
@@ -1951,7 +2427,7 @@ void Model::populateHWInfo()
 
 bool Model::populateVehicleSerialPorts()
 {
-   hardwareInterfacesInfo.serial_port_count = hardware_get_serial_ports_count();
+   hardwareInterfacesInfo.serial_port_count = hardware_serial_get_ports_count();
 
    for( int i=0; i<hardwareInterfacesInfo.serial_port_count; i++ )
    {
@@ -2004,10 +2480,9 @@ void Model::resetRadioLinkDataRatesAndFlags(int iRadioLink)
    radioLinksParams.uplink_datarate_data_bps[iRadioLink] = radioLinksParams.downlink_datarate_data_bps[iRadioLink];
 
    radioLinksParams.uMaxLinkLoadPercent[iRadioLink] = DEFAULT_RADIO_LINK_LOAD_PERCENT;
-   radioLinksParams.uDummyR2[iRadioLink] = 0;
-
    radioLinksParams.uSerialPacketSize[iRadioLink] = DEFAULT_RADIO_SERIAL_AIR_PACKET_SIZE;
-   radioLinksParams.uDummy2[iRadioLink] = 0;
+   radioLinksParams.uDummyR1[iRadioLink] = 0;
+   log_line("Models: Did reste radio link %d to default rates and flags.", iRadioLink+1);
 }
 
 
@@ -2145,8 +2620,6 @@ void Model::populateRadioInterfacesInfoFromHardware()
          radioInterfacesParams.interface_link_id[i] = radioLinksParams.links_count - 1;
       radioInterfacesParams.interface_current_frequency_khz[i] = 0;
       radioInterfacesParams.interface_current_radio_flags[i] = 0;
-      radioInterfacesParams.interface_dummy2[i] = 0;
-
       radioInterfacesParams.interface_radiotype_and_driver[i] = 0;
       radioInterfacesParams.interface_supported_bands[i] = 0;
       radioInterfacesParams.interface_szMAC[i][0] = 0;
@@ -2448,7 +2921,7 @@ void Model::logVehicleRadioInfo()
          log_line("* %sRadio Link %d radio frame flags: %s",
                   szPrefix,i+1, szBuff);
          log_line("  %sRadio Link %d capabilities flags: %s", szPrefix, i+1, szBuff3);
-         log_line("  %sRadio Link %d datarates (video/data downlink/data uplink): %d/%d/%d, max load: %d%%",
+         log_line("  %sRadio Link %d datarates (video / data (downlink/uplink)): %d / (%d/%d), max load: %d%%",
             szPrefix, i+1, radioLinksParams.downlink_datarate_video_bps[i], radioLinksParams.downlink_datarate_data_bps[i], radioLinksParams.uplink_datarate_data_bps[i], radioLinksParams.uMaxLinkLoadPercent[i]);
    }
 
@@ -2486,19 +2959,18 @@ void Model::logVehicleRadioInfo()
             else
                strcat(szCardModel, "user set as: ");
             strcat(szCardModel, str_get_radio_card_model_string(radioInterfacesParams.interface_card_model[i]));
-            log_line("* %sRadio Interface %d: %s, %s, %s on port %s, drv: %s, supported bands: %s, current frequency: %s, assigned to radio link %d, current capabilities: %s, current radio flags: %s, raw_tx_power: %d",
-                szPrefix, i+1, pRadioInfo->szName, radioInterfacesParams.interface_szMAC[i], szCardModel, radioInterfacesParams.interface_szPort[i], str_get_radio_driver_description((radioInterfacesParams.interface_radiotype_and_driver[i]>>8) & 0xFF), szBands, str_format_frequency(pRadioInfo->uCurrentFrequencyKhz), radioInterfacesParams.interface_link_id[i]+1, szBuff, szBuff2,
-                radioInterfacesParams.interface_raw_power[i]);
+            log_line("* %sRadio Interface %d: %s, %s, %s on port %s, drv: %s, bands: %s, current freq: %s, assigned to radio link %d, current capab: %s",
+                szPrefix, i+1, pRadioInfo->szName, radioInterfacesParams.interface_szMAC[i], szCardModel, radioInterfacesParams.interface_szPort[i], str_get_radio_driver_description((radioInterfacesParams.interface_radiotype_and_driver[i]>>8) & 0xFF), szBands, str_format_frequency(pRadioInfo->uCurrentFrequencyKhz), radioInterfacesParams.interface_link_id[i]+1, szBuff);
          }
          else
-            log_line("* %sRadio Interface %d: (no HW match) %s on port %s, drv: %s, supported bands: %s, current frequency: %s, assigned to radio link %d, current capabilities: %s, current radio flags: %s, raw_tx_power: %d",
-               szPrefix, i+1, str_get_radio_card_model_string(radioInterfacesParams.interface_card_model[i]), radioInterfacesParams.interface_szPort[i], str_get_radio_driver_description((radioInterfacesParams.interface_radiotype_and_driver[i]>>8) & 0xFF), szBands, str_format_frequency(radioInterfacesParams.interface_current_frequency_khz[i]), radioInterfacesParams.interface_link_id[i]+1, szBuff, szBuff2,
-               radioInterfacesParams.interface_raw_power[i]);
+            log_line("* %sRadio Interface %d: (no HW match) %s on port %s, drv: %s, bands: %s, current freq: %s, assigned to radio link %d, current capab: %s",
+               szPrefix, i+1, str_get_radio_card_model_string(radioInterfacesParams.interface_card_model[i]), radioInterfacesParams.interface_szPort[i], str_get_radio_driver_description((radioInterfacesParams.interface_radiotype_and_driver[i]>>8) & 0xFF), szBands, str_format_frequency(radioInterfacesParams.interface_current_frequency_khz[i]), radioInterfacesParams.interface_link_id[i]+1, szBuff);
       }
       else
-          log_line("* Radio Interface %d: %s, %s on port %s, %s, supported bands: %s, current frequency: %s, assigned to radio link %d, current capabilities: %s, current radio flags: %s, raw_tx_power: %d",
-               i+1, radioInterfacesParams.interface_szMAC[i], str_get_radio_card_model_string(radioInterfacesParams.interface_card_model[i]), radioInterfacesParams.interface_szPort[i], str_get_radio_driver_description((radioInterfacesParams.interface_radiotype_and_driver[i]>>8) & 0xFF), szBands, str_format_frequency(radioInterfacesParams.interface_current_frequency_khz[i]), radioInterfacesParams.interface_link_id[i]+1, szBuff, szBuff2,
-               radioInterfacesParams.interface_raw_power[i]);
+          log_line("* Radio Interface %d: %s, %s on port %s, %s, bands: %s, current freq: %s, assigned to radio link %d, current capab: %s",
+               i+1, radioInterfacesParams.interface_szMAC[i], str_get_radio_card_model_string(radioInterfacesParams.interface_card_model[i]), radioInterfacesParams.interface_szPort[i], str_get_radio_driver_description((radioInterfacesParams.interface_radiotype_and_driver[i]>>8) & 0xFF), szBands, str_format_frequency(radioInterfacesParams.interface_current_frequency_khz[i]), radioInterfacesParams.interface_link_id[i]+1, szBuff);
+      log_line("* Radio Interface %d: Current radio flags: %s, raw_tx_power: %d",
+         i+1, szBuff2, radioInterfacesParams.interface_raw_power[i]);
    }
 
    log_line("------------------------------------------------------");
@@ -2756,19 +3228,61 @@ bool Model::find_and_validate_camera_settings()
 }
 
 // Returns true if changes where made
-bool Model::validate_fps_and_exposure_settings(camera_profile_parameters_t* pCameraProfile)
+bool Model::validate_fps_and_exposure_settings(camera_profile_parameters_t* pCameraProfile, bool bFullForce)
 {
+   int iValue = pCameraProfile->iShutterSpeed;
+   if ( iValue < 0 )
+      iValue = -iValue;
+   int iNewValue = iValue;
+
    if ( isRunningOnOpenIPCHardware() )
    if ( hardware_board_is_sigmastar(hwCapabilities.uBoardType) )
    {
       if ( video_params.iVideoFPS > 0 )
-      if ( pCameraProfile->shutterspeed >= 1000/video_params.iVideoFPS )
+      if ( iNewValue > 1000/video_params.iVideoFPS - 2 )
       {
-         pCameraProfile->shutterspeed = 1000/video_params.iVideoFPS - 1;
-         return true;
+         iNewValue = 1000/video_params.iVideoFPS - 2;
       }
+      if ( bFullForce )
+      if ( video_params.iVideoFPS > 0 )
+      if ( iNewValue < 1000/video_params.iVideoFPS - 2 )
+      {
+         iNewValue = 1000/video_params.iVideoFPS - 2;
+      }
+
+      if ( iValue == iNewValue )
+         return false;
+
+      if ( pCameraProfile->iShutterSpeed < 0 )
+         pCameraProfile->iShutterSpeed = -iNewValue;
+      else
+         pCameraProfile->iShutterSpeed = iNewValue;
+      return true;
    }
    return false;
+}
+
+// Returns true if a change is made
+bool Model::validate_profiles_max_video_bitrate()
+{
+   bool bUpdated = false;
+   int iCurrentProfile = video_params.iCurrentVideoProfile;
+   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
+   {
+      video_params.iCurrentVideoProfile = i;
+      u32 uMaxVideoBitrate = getMaxVideoBitrateSupportedForRadioLinks(&radioLinksParams, &video_params, &(video_link_profiles[0]));
+      if ( video_link_profiles[i].bitrate_fixed_bps > uMaxVideoBitrate )
+      {
+         log_line("Model: Will decrease video bitrate (%u kbps) for video profile %s to max allowed on current links: %u kbps",
+            video_link_profiles[i].bitrate_fixed_bps/1000,
+            str_get_video_profile_name(i),
+            uMaxVideoBitrate/1000);
+         video_link_profiles[i].bitrate_fixed_bps = uMaxVideoBitrate;
+         bUpdated = true;
+      }
+   }
+   video_params.iCurrentVideoProfile = iCurrentProfile;
+   return bUpdated;
 }
 
 bool Model::validate_settings()
@@ -2777,25 +3291,25 @@ bool Model::validate_settings()
 
    for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
    {
-      video_link_profiles[i].dummyVP1 = 0;
-      video_link_profiles[i].dummyVP2 = 0;
-      video_link_profiles[i].dummyVP3 = 0;
-      video_link_profiles[i].dummyVP6 = 0;
       if ( (video_link_profiles[i].iAdaptiveAdjustmentStrength < 1) || (video_link_profiles[i].iAdaptiveAdjustmentStrength > 10) )
          video_link_profiles[i].iAdaptiveAdjustmentStrength = DEFAULT_VIDEO_PARAMS_ADJUSTMENT_STRENGTH;
    }
-   video_params.dummyV1 = 0;
-
-   for( unsigned int i=0; i<(sizeof(hwCapabilities.dummyhwc)/sizeof(hwCapabilities.dummyhwc[0])); i++ )
-      hwCapabilities.dummyhwc[i] = 0;
-   for( unsigned int i=0; i<(sizeof(hwCapabilities.dummyhwc2)/sizeof(hwCapabilities.dummyhwc2[0])); i++ )
-      hwCapabilities.dummyhwc2[i] = 0;
-
-   if ( rc_params.channelsCount < 2 || rc_params.channelsCount > MAX_RC_CHANNELS )
-      rc_params.channelsCount = 8;
+   video_params.uDummyV1 = 0;
+   if ( (video_params.uMaxAutoKeyframeIntervalMs < 50) || (video_params.uMaxAutoKeyframeIntervalMs > DEFAULT_VIDEO_MAX_AUTO_KEYFRAME_INTERVAL) )
+      video_params.uMaxAutoKeyframeIntervalMs = DEFAULT_VIDEO_MAX_AUTO_KEYFRAME_INTERVAL;
+   if ( (video_params.iH264Slices < 1) || (video_params.iH264Slices > 16) )
+   {
+      video_params.iH264Slices = DEFAULT_VIDEO_H264_SLICES;
+      if ( hardware_board_is_openipc(hardware_getBoardType()) )
+         video_params.iH264Slices = DEFAULT_VIDEO_H264_SLICES_OIPC;
+   }
+   if ( video_params.lowestAllowedAdaptiveVideoBitrate < 250000 )
+      video_params.lowestAllowedAdaptiveVideoBitrate = DEFAULT_LOWEST_ALLOWED_ADAPTIVE_VIDEO_BITRATE;
 
    if ( (telemetry_params.iVideoBitrateHistoryGraphSampleInterval < 10) || (telemetry_params.iVideoBitrateHistoryGraphSampleInterval > 1000) )
       telemetry_params.iVideoBitrateHistoryGraphSampleInterval = 200;
+   if ( (telemetry_params.iUpdateRateHz < 1) || (telemetry_params.iUpdateRateHz > 50) )
+      telemetry_params.iUpdateRateHz = DEFAULT_TELEMETRY_SEND_RATE;
 
    for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
    {
@@ -2896,6 +3410,9 @@ bool Model::validate_settings()
    if ( osd_params.iCurrentOSDScreen < osdLayout1 || osd_params.iCurrentOSDScreen >= osdLayoutLast )
       osd_params.iCurrentOSDScreen = osdLayout1;
 
+   if ( osd_params.ahi_warning_angle < 0 ) osd_params.ahi_warning_angle = 0;
+   if ( osd_params.ahi_warning_angle > 80 ) osd_params.ahi_warning_angle = 80;
+
    for( int i=0; i<MODEL_MAX_OSD_SCREENS; i++ )
    {
       if ( (osd_params.osd_layout_preset[i] < 0) || (osd_params.osd_layout_preset[i] > OSD_PRESET_CUSTOM) )
@@ -2905,10 +3422,6 @@ bool Model::validate_settings()
    int nOSDFlagsIndex = osd_params.iCurrentOSDScreen;
    if ( nOSDFlagsIndex < 0 || nOSDFlagsIndex >= MODEL_MAX_OSD_SCREENS )
       nOSDFlagsIndex = 0;
-   if ( osd_params.show_stats_rc || (osd_params.osd_flags[nOSDFlagsIndex] & OSD_FLAG_SHOW_HID_IN_OSD) )
-      rc_params.dummy1 = true;
-   else
-      rc_params.dummy1 = false;
 
    checkUpdateOSDRadioLinksFlags(&osd_params);
 
@@ -2922,14 +3435,7 @@ bool Model::validate_settings()
    if ( rxtx_sync_type < 0 || rxtx_sync_type >= RXTX_SYNC_TYPE_LAST )
       rxtx_sync_type = RXTX_SYNC_TYPE_BASIC;
 
-   if ( processesPriorities.iNiceRouter < -18 || processesPriorities.iNiceRouter > 5 )
-      processesPriorities.iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-   if ( processesPriorities.iNiceVideo < -18 || processesPriorities.iNiceVideo > 5 )
-      processesPriorities.iNiceVideo = DEFAULT_PRIORITY_PROCESS_VIDEO_TX;
-   if ( processesPriorities.iNiceRC < -16 || processesPriorities.iNiceRC > 0 )
-      processesPriorities.iNiceRC = DEFAULT_PRIORITY_PROCESS_RC;
-   if ( processesPriorities.iNiceTelemetry < -16 || processesPriorities.iNiceTelemetry > 5 )
-      processesPriorities.iNiceTelemetry = DEFAULT_PRIORITY_PROCESS_TELEMETRY;
+   validateProcessesParams();
 
    if ( audio_params.volume < 0 || audio_params.volume > 100 )
       audio_params.volume = 90;
@@ -2986,7 +3492,36 @@ bool Model::validate_settings()
    if ( (hwCapabilities.iMaxTxVideoBlockPackets < 2) || (hwCapabilities.iMaxTxVideoBlockPackets > MAX_TOTAL_PACKETS_IN_BLOCK) )
       hwCapabilities.iMaxTxVideoBlockPackets = MAX_TOTAL_PACKETS_IN_BLOCK;
 
+   if ( (rc_params.receiver_type >= RECEIVER_TYPE_LAST) || (rc_params.receiver_type < 0) )
+      rc_params.receiver_type = RECEIVER_TYPE_BUILDIN;
+   if ( (rc_params.rc_frames_per_second < 2) || (rc_params.rc_frames_per_second > 100) )
+      rc_params.rc_frames_per_second = DEFAULT_RC_FRAMES_PER_SECOND;
+
+   if ( (rc_params.channelsCount < 2) || (rc_params.channelsCount > MAX_RC_CHANNELS) )
+      rc_params.channelsCount = 8;
+
+   if ( (rc_params.rc_failsafe_timeout_ms < 50) || (rc_params.rc_failsafe_timeout_ms > 5000) )
+      rc_params.rc_failsafe_timeout_ms = DEFAULT_RC_FAILSAFE_TIME;
+
+   validate_profiles_max_video_bitrate();
+
    log_line("Model: Validated model settings.");
+   return true;
+}
+
+bool Model::validateProcessesParams()
+{
+   if ( (processesPriorities.iThreadPriorityRouter < 0) || (processesPriorities.iThreadPriorityRouter >= 140) ||
+        (processesPriorities.iThreadPriorityRadioRx < 0) || (processesPriorities.iThreadPriorityRadioRx >= 140) ||
+        (processesPriorities.iThreadPriorityRadioTx < 0) || (processesPriorities.iThreadPriorityRadioTx >= 140) ||
+        (processesPriorities.iThreadPriorityVideoCapture < 0) || (processesPriorities.iThreadPriorityVideoCapture >= 140) ||
+        (processesPriorities.iThreadPriorityRC < 0) || (processesPriorities.iThreadPriorityRC >= 140) ||
+        (processesPriorities.iThreadPriorityTelemetry < 0) || (processesPriorities.iThreadPriorityTelemetry >= 140) ||
+        (processesPriorities.iThreadPriorityOthers < 0) || (processesPriorities.iThreadPriorityOthers >= 140) )
+   {
+      log_line("Model: Invalid processes priorities params. Will reset them.");
+      resetProcessesParams();
+   }
    return true;
 }
 
@@ -3059,6 +3594,10 @@ bool Model::validateRadioSettings()
             }
          }
       }
+
+      if ( (radioLinksParams.uSerialPacketSize[i] < DEFAULT_RADIO_SERIAL_AIR_MIN_PACKET_SIZE) ||
+           (radioLinksParams.uSerialPacketSize[i] > DEFAULT_RADIO_SERIAL_AIR_MAX_PACKET_SIZE) )
+         radioLinksParams.uSerialPacketSize[i] = DEFAULT_RADIO_SERIAL_AIR_PACKET_SIZE;
    }
 
    // Check high capacity flags flags
@@ -3089,11 +3628,8 @@ bool Model::validateRadioSettings()
    {
       for( int i=0; i<radioInterfacesParams.interfaces_count; i++ )
       {
-         radioInterfacesParams.interface_dummy2[i] = 0;
          if ( radioInterfacesParams.interface_link_id[i] == iLink )
-         {
             radioInterfacesParams.interface_current_radio_flags[i] = radioLinksParams.link_radio_flags[iLink];
-         }
       }
    }
 
@@ -3202,8 +3738,20 @@ bool Model::validateRadioSettings()
       logVehicleRadioInfo();
    }
    else
-      log_line("Model VID %u: Finished validating radio settings. No updates done.", uVehicleId);
+      log_line("Model VID %u: Finished validating radio settings. No updates done, all radio params are consistent.", uVehicleId);
    return bAnyUpdate;
+}
+
+
+void Model::check_detect_board_type()
+{
+   if ( hwCapabilities.uBoardType != 0 )
+      return;
+
+   log_line("Model: Detecting HW board type...");
+   if ( hardware_is_vehicle() )
+      hwCapabilities.uBoardType = hardware_getBoardType();
+   log_line("Model: Detected HW board type: %s", str_get_hardware_board_name(hwCapabilities.uBoardType & BOARD_TYPE_MASK));
 }
 
 
@@ -3222,8 +3770,7 @@ void Model::resetToDefaults(bool generateId)
       log_line("Reusing the same unique vehicle ID (%u).", uVehicleId);
 
    hwCapabilities.uBoardType = 0;
-   if ( hardware_is_vehicle() )
-      hwCapabilities.uBoardType = hardware_getBoardType();
+   check_detect_board_type();
    resetHWCapabilities();
 
    if ( generateId )
@@ -3237,8 +3784,14 @@ void Model::resetToDefaults(bool generateId)
    uControllerId = 0;
    uControllerBoardType = 0;
    sw_version = (SYSTEM_SW_VERSION_MAJOR * 256 + SYSTEM_SW_VERSION_MINOR) | (SYSTEM_SW_BUILD_NUMBER<<16);
-   log_line("SW Version: %d.%d (b%d)", (sw_version >> 8) & 0xFF, sw_version & 0xFF, sw_version >> 16);
-   vehicle_type = (MODEL_TYPE_DRONE & MODEL_TYPE_MASK) | ((MODEL_FIRMWARE_TYPE_RUBY << 5) & MODEL_FIRMWARE_MASK);
+   log_line("SW Version: %d.%d (b-%d)", get_sw_version_major(this), get_sw_version_minor(this), get_sw_version_build(this));
+   
+   vehicle_type = ((MODEL_FIRMWARE_TYPE_RUBY << 5) & MODEL_FIRMWARE_MASK);
+   if ( (! hardware_hasCamera()) && isRunningOnRadxaHardware() )
+      vehicle_type |= (MODEL_TYPE_RELAY & MODEL_TYPE_MASK);
+   else
+      vehicle_type |= (MODEL_TYPE_DRONE & MODEL_TYPE_MASK);
+   
    is_spectator = true;
    constructLongName();
 
@@ -3284,36 +3837,9 @@ void Model::resetToDefaults(bool generateId)
 
    rxtx_sync_type = RXTX_SYNC_TYPE_BASIC;
 
-   processesPriorities.uProcessesFlags = PROCESSES_FLAGS_BALANCE_INT_CORES;
-   processesPriorities.iNiceTelemetry = DEFAULT_PRIORITY_PROCESS_TELEMETRY;
-   if ( isRunningOnOpenIPCHardware() )
-      processesPriorities.iNiceTelemetry = DEFAULT_PRIORITY_PROCESS_TELEMETRY_OIPC;
+   resetProcessesParams();
 
-   processesPriorities.iNiceRC = DEFAULT_PRIORITY_PROCESS_RC;
-   processesPriorities.iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER;
-   if ( isRunningOnOpenIPCHardware() )
-      processesPriorities.iNiceRouter = DEFAULT_PRIORITY_PROCESS_ROUTER_OPIC;
-   processesPriorities.ioNiceRouter = DEFAULT_IO_PRIORITY_ROUTER;
-   processesPriorities.iNiceVideo = DEFAULT_PRIORITY_PROCESS_VIDEO_TX;
-   if ( hardware_board_is_openipc(hardware_getBoardType()) )
-      processesPriorities.iNiceVideo = 0;
-   processesPriorities.iNiceOthers = DEFAULT_PRIORITY_PROCESS_OTHERS;
-   processesPriorities.ioNiceVideo = DEFAULT_IO_PRIORITY_VIDEO_TX;
-   processesPriorities.iOverVoltage = DEFAULT_OVERVOLTAGE;
-   processesPriorities.iFreqARM = DEFAULT_ARM_FREQ;
-   processesPriorities.iFreqGPU = DEFAULT_GPU_FREQ;
-
-   if ( isRunningOnOpenIPCHardware() )
-   if ( hardware_board_is_sigmastar(hwCapabilities.uBoardType & BOARD_TYPE_MASK) )
-   {
-      processesPriorities.iFreqARM = DEFAULT_FREQ_OPENIPC_SIGMASTAR;
-      processesPriorities.iFreqGPU = 0;
-   }
-
-   processesPriorities.iThreadPriorityRadioRx = DEFAULT_PRIORITY_VEHICLE_THREAD_RADIO_RX;
-   processesPriorities.iThreadPriorityRadioTx = DEFAULT_PRIORITY_VEHICLE_THREAD_RADIO_TX;
-   processesPriorities.iThreadPriorityRouter = DEFAULT_PRIORITY_VEHICLE_THREAD_ROUTER;
-
+   // Reset radio links must be done before, so that video bitrate reset is computed correctly for each video profile
    resetVideoParamsToDefaults();
    resetCameraToDefaults(-1);
 
@@ -3335,6 +3861,58 @@ void Model::resetToDefaults(bool generateId)
 
    resetFunctionsParamsToDefaults();
    log_line("Reseting vehicle settings to default: complete.");
+}
+
+void Model::resetAllSettingsKeepPairing(bool bResetFreq)
+{
+   log_line("Model: Will reset all settings, keeping pairing. keep frequencies too? %s", bResetFreq?"no":"yes");
+   u32 vid = uVehicleId;
+   u32 ctrlId = uControllerId;
+   u32 uBoardType = hwCapabilities.uBoardType;
+   u32 uSoftwareVer = hwCapabilities.uRubyBaseVersion;
+   u8  temp_vehicle_type = vehicle_type;
+   int cameraType = camera_params[iCurrentCamera].iCameraType;
+   int forcedCameraType = camera_params[iCurrentCamera].iForcedCameraType;
+   char temp_vehicle_name[MAX_VEHICLE_NAME_LENGTH];
+
+   memcpy(temp_vehicle_name, vehicle_name, MAX_VEHICLE_NAME_LENGTH);
+
+   type_vehicle_stats_info stats;
+   memcpy((u8*)&stats, (u8*)&(m_Stats), sizeof(type_vehicle_stats_info));
+
+   type_radio_links_parameters radio_links;
+   type_radio_interfaces_parameters radio_interfaces;
+   type_radio_runtime_capabilities_parameters radio_capab;
+   memcpy(&radio_links, &radioLinksParams, sizeof(type_radio_links_parameters) );
+   memcpy(&radio_interfaces, &radioInterfacesParams, sizeof(type_radio_interfaces_parameters) );
+   memcpy(&radio_capab, &radioRuntimeCapabilities, sizeof(type_radio_runtime_capabilities_parameters) );
+
+   resetToDefaults(false);
+
+   if ( ! bResetFreq )
+   {
+      memcpy(&radioRuntimeCapabilities, &radio_capab, sizeof(type_radio_runtime_capabilities_parameters) );
+
+      radioLinksParams.links_count = radio_links.links_count;
+      radioInterfacesParams.interfaces_count = radio_interfaces.interfaces_count;
+      for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
+      {
+         radioLinksParams.link_frequency_khz[i] = radio_links.link_frequency_khz[i];
+         radioInterfacesParams.interface_current_frequency_khz[i] = radio_interfaces.interface_current_frequency_khz[i];
+      }
+   }
+   memcpy(vehicle_name, temp_vehicle_name, MAX_VEHICLE_NAME_LENGTH);
+
+   uVehicleId = vid;
+   uControllerId = ctrlId;
+   hwCapabilities.uBoardType = uBoardType;
+   hwCapabilities.uRubyBaseVersion = uSoftwareVer;
+   vehicle_type = temp_vehicle_type;
+   camera_params[iCurrentCamera].iCameraType = cameraType;
+   camera_params[iCurrentCamera].iForcedCameraType = forcedCameraType;
+
+   memcpy((u8*)&(m_Stats), (u8*)&stats, sizeof(type_vehicle_stats_info));
+   is_spectator = false;
 }
 
 void Model::resetAudioParams()
@@ -3374,18 +3952,110 @@ void Model::resetHWCapabilities()
    hwCapabilities.uHWFlags |= (((u32)75) << 8);
 }
 
+void Model::resetProcessesParams()
+{
+   log_line("Models: Did reset all processes priorities and settings.");
+   processesPriorities.uProcessesFlags = PROCESSES_FLAGS_BALANCE_INTERRUPTS_CORES |
+      PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS |
+      PROCESSES_FLAGS_ENABLE_AFFINITY_CORES |
+      PROCESSES_FLAGS_ENABLE_AFFINITY_CORES_VIDEO_CAPTURE;
+
+   if ( isRunningOnOpenIPCHardware() )
+      processesPriorities.uProcessesFlags = PROCESSES_FLAGS_BALANCE_INTERRUPTS_CORES | PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS;
+
+   processesPriorities.iOverVoltage = DEFAULT_OVERVOLTAGE;
+   processesPriorities.iFreqARM = DEFAULT_ARM_FREQ;
+   processesPriorities.iFreqGPU = DEFAULT_GPU_FREQ;
+   if ( isRunningOnOpenIPCHardware() )
+   if ( hardware_board_is_sigmastar(hwCapabilities.uBoardType & BOARD_TYPE_MASK) )
+   {
+      processesPriorities.iFreqARM = DEFAULT_FREQ_OPENIPC_SIGMASTAR;
+      processesPriorities.iFreqGPU = 0;
+   }
+
+   processesPriorities.iThreadPriorityRouter = DEFAULT_PRIORITY_VEHICLE_THREAD_ROUTER;
+   processesPriorities.iThreadPriorityRadioRx = DEFAULT_PRIORITY_VEHICLE_THREAD_RADIO_RX;
+   processesPriorities.iThreadPriorityRadioTx = DEFAULT_PRIORITY_VEHICLE_THREAD_RADIO_TX;
+
+   processesPriorities.iThreadPriorityVideoCapture = DEFAULT_PRIORITY_VEHICLE_THREAD_VIDEO_CAPTURE;
+   processesPriorities.iThreadPriorityRC = DEFAULT_PRIORITY_VEHICLE_THREAD_RX_RC;
+   processesPriorities.iThreadPriorityTelemetry = DEFAULT_PRIORITY_VEHICLE_THREAD_TX_TELEM;
+   processesPriorities.iThreadPriorityOthers = DEFAULT_PRIORITY_VEHICLE_OTHERS;
+
+   processesPriorities.ioNiceRouter = DEFAULT_IO_PRIORITY_ROUTER_VEHICLE;
+   processesPriorities.ioNiceVideo = DEFAULT_IO_PRIORITY_VIDEO_TX;
+
+   processesPriorities.iCoreRadioRx = CORE_AFFINITY_RX_RADIO;
+   processesPriorities.iCoreRouter = CORE_AFFINITY_VEHICLE_ROUTER;
+   processesPriorities.iCoreVideoCapture = CORE_AFFINITY_VIDEO_CAPTURE;
+   processesPriorities.iCoreTelemetry = CORE_AFFINITY_TELEMETRY_TX;
+   processesPriorities.iCoreCommands = CORE_AFFINITY_RX_COMMANDS;
+   processesPriorities.iCoreRC = CORE_AFFINITY_RC_RX;
+   processesPriorities.iCoreOthers = CORE_AFFINITY_OTHERS;
+   if ( isRunningOnOpenIPCHardware() )
+   {
+      processesPriorities.iThreadPriorityRouter = DEFAULT_PRIORITY_VEHICLE_THREAD_ROUTER_OIPC;
+      processesPriorities.iThreadPriorityVideoCapture = DEFAULT_PRIORITY_VEHICLE_THREAD_VIDEO_CAPTURE_OIPC;
+      processesPriorities.iThreadPriorityRC = DEFAULT_PRIORITY_VEHICLE_THREAD_RX_RC;
+      processesPriorities.iThreadPriorityTelemetry = DEFAULT_PRIORITY_VEHICLE_THREAD_TX_TELEM_OIPC;
+      processesPriorities.iThreadPriorityOthers = DEFAULT_PRIORITY_VEHICLE_OTHERS;
+
+      processesPriorities.iCoreRadioRx = CORE_AFFINITY_MAJESTIC;
+      processesPriorities.iCoreVideoCapture = CORE_AFFINITY_MAJESTIC;
+
+      processesPriorities.iCoreRouter = CORE_AFFINITY_OTHERS_OIPC;
+      processesPriorities.iCoreTelemetry = CORE_AFFINITY_OTHERS_OIPC;
+      processesPriorities.iCoreCommands = CORE_AFFINITY_OTHERS_OIPC;
+      processesPriorities.iCoreRC = CORE_AFFINITY_OTHERS_OIPC;
+      processesPriorities.iCoreOthers = CORE_AFFINITY_OTHERS_OIPC;
+   }
+}
+
+
+void Model::disableProcessesParams()
+{
+   log_line("Model: Disabled processes params.");
+   processesPriorities.uProcessesFlags = PROCESSES_FLAGS_BALANCE_INTERRUPTS_CORES;
+
+   processesPriorities.iOverVoltage = DEFAULT_OVERVOLTAGE;
+   processesPriorities.iFreqARM = DEFAULT_ARM_FREQ;
+   processesPriorities.iFreqGPU = DEFAULT_GPU_FREQ;
+   if ( isRunningOnOpenIPCHardware() )
+   if ( hardware_board_is_sigmastar(hwCapabilities.uBoardType & BOARD_TYPE_MASK) )
+   {
+      processesPriorities.iFreqARM = DEFAULT_FREQ_OPENIPC_SIGMASTAR;
+      processesPriorities.iFreqGPU = 0;
+   }
+
+   processesPriorities.iThreadPriorityRouter = 100;
+   processesPriorities.iThreadPriorityRadioRx = 90;
+   processesPriorities.iThreadPriorityRadioTx = 100;
+
+   processesPriorities.iThreadPriorityVideoCapture = 0;
+   processesPriorities.iThreadPriorityRC = 0;
+   processesPriorities.iThreadPriorityTelemetry = 0;
+   processesPriorities.iThreadPriorityOthers = 0;
+
+   processesPriorities.ioNiceRouter = DEFAULT_IO_PRIORITY_ROUTER_VEHICLE;
+   processesPriorities.ioNiceVideo = DEFAULT_IO_PRIORITY_VIDEO_TX;
+
+   processesPriorities.iCoreRadioRx = -1;
+   processesPriorities.iCoreRouter = -1;
+   processesPriorities.iCoreVideoCapture = -1;
+   processesPriorities.iCoreTelemetry = -1;
+   processesPriorities.iCoreCommands = -1;
+   processesPriorities.iCoreRC = -1;
+   processesPriorities.iCoreOthers = -1;
+}
+
+
 void Model::resetRadioLinksParams()
 {
    log_line("Model: Reset radio links params...");
    radioInterfacesParams.iAutoVehicleTxPower = 0;
    radioInterfacesParams.iAutoControllerTxPower = 1;
    radioInterfacesParams.uFlagsRadioInterfaces = 0;
-   radioInterfacesParams.iDummyR4 = 0;
-   radioInterfacesParams.iDummyR5 = 0;
-   radioInterfacesParams.iDummyR6 = 0;
-   radioInterfacesParams.iDummyR7 = 0;
-   radioInterfacesParams.iDummyR8 = 0;
-   radioInterfacesParams.iDummyR9 = 0;
+   radioInterfacesParams.iDummyR1 = 0;
    
    radioLinksParams.iSiKPacketSize = DEFAULT_SIK_PACKET_SIZE;
    radioLinksParams.uGlobalRadioLinksFlags = 0;
@@ -3402,10 +4072,8 @@ void Model::resetRadioLinksParams()
    {
       resetRadioLinkDataRatesAndFlags(i);
       radioLinksParams.link_frequency_khz[i] = 0;
+      radioLinksParams.uDummyR1[i] = 0;
    }
-
-   for( unsigned int j=0; j<(sizeof(radioLinksParams.uDummyRadio)/sizeof(radioLinksParams.uDummyRadio[0])); j++ )
-      radioLinksParams.uDummyRadio[j] = 0;
 
    log_line("Model: Did reset radio links params.");
 }
@@ -3609,15 +4277,10 @@ void Model::resetTelemetryParams()
    memset(&telemetry_params, 0, sizeof(telemetry_params));
 
    telemetry_params.fc_telemetry_type = TELEMETRY_TYPE_MSP;
-   
    telemetry_params.iVideoBitrateHistoryGraphSampleInterval = 200;
-   telemetry_params.dummy5 = 0;
-   telemetry_params.dummy6 = 0;
-   telemetry_params.bDummyTL1 = false;
-   telemetry_params.bDummyTL2 = false;
-   telemetry_params.iDummyTL3 = 0;
+   telemetry_params.uDummyT1 = 0;
 
-   telemetry_params.update_rate = DEFAULT_TELEMETRY_SEND_RATE;
+   telemetry_params.iUpdateRateHz = DEFAULT_TELEMETRY_SEND_RATE;
    telemetry_params.vehicle_mavlink_id = DEFAULT_MAVLINK_SYS_ID_VEHICLE;
    telemetry_params.controller_mavlink_id = DEFAULT_MAVLINK_SYS_ID_CONTROLLER;
 
@@ -3627,7 +4290,7 @@ void Model::resetTelemetryParams()
    if ( 0 < hardwareInterfacesInfo.serial_port_count )
    {
       int iPort = 0;
-      if ( isRunningOnOpenIPCHardware() && (hardware_get_serial_ports_count() >= 2) )
+      if ( isRunningOnOpenIPCHardware() && (hardware_serial_get_ports_count() >= 2) )
          iPort = 2;
       setTelemetryTypeAndPort(telemetry_params.fc_telemetry_type, iPort, DEFAULT_FC_TELEMETRY_SERIAL_SPEED);
    }
@@ -3646,7 +4309,6 @@ void Model::resetRCParams()
    rc_params.flags = RC_FLAGS_OUTPUT_ENABLED;
    rc_params.rc_enabled = false;
    rc_params.rc_frames_per_second = DEFAULT_RC_FRAMES_PER_SECOND;
-   rc_params.dummy1 = false;
    rc_params.receiver_type = RECEIVER_TYPE_BUILDIN;
    rc_params.inputType = RC_INPUT_TYPE_NONE;
 
@@ -3670,8 +4332,6 @@ void Model::resetRCParams()
    }
    rc_params.rcChAssignmentThrotleReverse = 0;
    rc_params.iRCTranslationType = RC_TRANSLATION_TYPE_2000;
-   for( unsigned int i=0; i<(sizeof(rc_params.rcDummy)/sizeof(rc_params.rcDummy[0])); i++ )
-      rc_params.rcDummy[i] = 0;
 
    camera_rc_channels = (((u32)0x07)<<24) | (0x03 << 30); // set only relative speed to middle;
 }
@@ -3705,12 +4365,18 @@ void Model::resetCameraToDefaults(int iCameraIndex)
             camera_params[k].profiles[i].saturation = 80;
             camera_params[k].profiles[i].sharpness = 110; // 100 is zero
             camera_params[k].profiles[i].whitebalance = 1; //auto
-            camera_params[k].profiles[i].shutterspeed = 0; //auto
+            camera_params[k].profiles[i].iShutterSpeed = 0; //auto
+            if ( (hardware_board_is_sigmastar(hwCapabilities.uBoardType)) || hardware_board_is_openipc(hwCapabilities.uBoardType) )
+            {
+               camera_params[k].profiles[i].iShutterSpeed = DEFAULT_OIPC_SHUTTERSPEED; //milisec
+               validate_fps_and_exposure_settings(&(camera_params[k].profiles[i]), true);
+            }
             camera_params[k].profiles[i].hue = 40;
             if ( (hardware_getCameraType() == CAMERA_TYPE_VEYE307) || (hardware_getCameraType() == CAMERA_TYPE_VEYE290) )
                camera_params[k].profiles[i].drc = 0;
             if ( hardware_getCameraType() == CAMERA_TYPE_VEYE327 )
                camera_params[k].profiles[i].drc = 0x0C;
+
          }
       }
       // HDMI profile defaults:
@@ -3744,9 +4410,12 @@ void Model::resetCameraProfileToDefaults(camera_profile_parameters_t* pCamParams
    pCamParams->hue = 50;
    pCamParams->sharpness = 110;
    pCamParams->exposure = 3; // sports   2; //backlight
-   pCamParams->shutterspeed = 0; // auto
-   if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
-     pCamParams->shutterspeed = DEFAULT_OIPC_SHUTTERSPEED; //milisec
+   pCamParams->iShutterSpeed = 0; // auto
+   if ( hardware_board_is_sigmastar(hwCapabilities.uBoardType) || hardware_board_is_openipc(hwCapabilities.uBoardType) )
+   {
+      pCamParams->iShutterSpeed = DEFAULT_OIPC_SHUTTERSPEED; //milisec
+      validate_fps_and_exposure_settings(pCamParams, true);
+   }
 
    pCamParams->whitebalance = 1; //auto
    pCamParams->metering = 2; //backlight
@@ -3760,8 +4429,7 @@ void Model::resetCameraProfileToDefaults(camera_profile_parameters_t* pCamParams
    pCamParams->ev = 0; // not set, auto
    pCamParams->iso = 0; // auto
    pCamParams->dayNightMode = 0; // day mode
-   for( int i=0; i<(int)(sizeof(pCamParams->dummyCamP)/sizeof(pCamParams->dummyCamP[0])); i++ )
-      pCamParams->dummyCamP[i] = 0;
+   pCamParams->uDummyCamP = 0;
 }
 
 void Model::resetFunctionsParamsToDefaults()
@@ -3787,8 +4455,8 @@ void Model::resetFunctionsParamsToDefaults()
       functions_params.uChannels25FreqSwitch[i] = 0xFFFFFFFF;
       functions_params.uChannels58FreqSwitch[i] = 0xFFFFFFFF;
    }
-   for( unsigned int j=0; j<(sizeof(functions_params.dummy)/sizeof(functions_params.dummy[0])); j++ )
-      functions_params.dummy[j] = 0;
+   for( unsigned int j=0; j<(sizeof(functions_params.uDummyF)/sizeof(functions_params.uDummyF[0])); j++ )
+      functions_params.uDummyF[j] = 0;
 }
 
 int Model::getRadioInterfaceIndexForRadioLink(int iRadioLink)
@@ -4102,7 +4770,7 @@ bool Model::rotateRadioLinksOrder()
       radioLinksParams.uMaxLinkLoadPercent[iDestIndex] = oldRadioLinksParams.uMaxLinkLoadPercent[iSourceIndex];
 
       radioLinksParams.uSerialPacketSize[iDestIndex] = oldRadioLinksParams.uSerialPacketSize[iSourceIndex];
-      radioLinksParams.uDummy2[iDestIndex] = oldRadioLinksParams.uDummy2[iSourceIndex];
+      radioLinksParams.uDummyR1[iDestIndex] = oldRadioLinksParams.uDummyR1[iSourceIndex];
       radioLinksParams.uplink_datarate_video_bps[iDestIndex] = oldRadioLinksParams.uplink_datarate_video_bps[iSourceIndex];
       radioLinksParams.uplink_datarate_data_bps[iDestIndex] = oldRadioLinksParams.uplink_datarate_data_bps[iSourceIndex];
    }
@@ -4488,8 +5156,8 @@ void Model::log_camera_profiles_differences(camera_profile_parameters_t* pCamPro
       log_line(" * Cam sharpness is different: %u - %u", pCamProfile1->sharpness, pCamProfile2->sharpness);
    if ( pCamProfile1->exposure != pCamProfile2->exposure )
       log_line(" * Cam exposure is different: %u - %u", pCamProfile1->exposure, pCamProfile2->exposure);
-   if ( pCamProfile1->shutterspeed != pCamProfile2->shutterspeed )
-      log_line(" * Cam shutterspeed is different: %u - %u", pCamProfile1->shutterspeed, pCamProfile2->shutterspeed);
+   if ( pCamProfile1->iShutterSpeed != pCamProfile2->iShutterSpeed )
+      log_line(" * Cam shutter speed is different: %d - %d", pCamProfile1->iShutterSpeed, pCamProfile2->iShutterSpeed);
    if ( pCamProfile1->whitebalance != pCamProfile2->whitebalance )
       log_line(" * Cam whitebalance is different: %u - %u", pCamProfile1->whitebalance, pCamProfile2->whitebalance);
    if ( pCamProfile1->metering != pCamProfile2->metering )
@@ -4502,14 +5170,12 @@ void Model::log_camera_profiles_differences(camera_profile_parameters_t* pCamPro
       log_line(" * Cam ev is different: %u - %u", pCamProfile1->ev, pCamProfile2->ev);
    if ( pCamProfile1->iso != pCamProfile2->iso )
       log_line(" * Cam iso is different: %u - %u", pCamProfile1->iso, pCamProfile2->iso);
-   if ( pCamProfile1->shutterspeed != pCamProfile2->shutterspeed )
-      log_line(" * Cam shutterspeed is different: %u - %u", pCamProfile1->shutterspeed, pCamProfile2->shutterspeed);
    if ( pCamProfile1->wdr != pCamProfile2->wdr )
       log_line(" * Cam wdr is different: %u - %u", pCamProfile1->wdr, pCamProfile2->wdr);
    if ( pCamProfile1->dayNightMode != pCamProfile2->dayNightMode )
       log_line(" * Cam dayNightMode is different: %u - %u", pCamProfile1->dayNightMode, pCamProfile2->dayNightMode);
-   if ( pCamProfile1->dummyCamP[0] != pCamProfile2->dummyCamP[0] )
-      log_line(" * Cam dummy[0] is different: %u - %u", pCamProfile1->dummyCamP[0], pCamProfile2->dummyCamP[0]);
+   if ( pCamProfile1->uDummyCamP != pCamProfile2->uDummyCamP )
+      log_line(" * Cam uDummyCamP is different: %u - %u", pCamProfile1->uDummyCamP, pCamProfile2->uDummyCamP);
 
    if ( fabsf(pCamProfile1->analogGain - pCamProfile2->analogGain) > 0.000001 )
       log_line(" * Cam analogGain is different: %f - %f", pCamProfile1->analogGain, pCamProfile2->analogGain);
@@ -4577,15 +5243,15 @@ bool Model::isAllVideoLinksFixedRate()
 
 int Model::getInitialKeyframeIntervalMs(int iVideoProfile)
 {
-   int iKeyframeMs = video_link_profiles[iVideoProfile].keyframe_ms;
+   int iKeyframeMS = video_link_profiles[iVideoProfile].iKeyframeMS;
 
    //if ( ! isVideoLinkFixedOneWay() )
    //if ( video_link_profiles[iVideoProfile].uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME )
-   //   iKeyframeMs = DEFAULT_VIDEO_AUTO_INITIAL_KEYFRAME_INTERVAL;
+   //   iKeyframeMS = DEFAULT_VIDEO_AUTO_INITIAL_KEYFRAME_INTERVAL;
 
-   if ( iKeyframeMs < 0 )
-      iKeyframeMs = -iKeyframeMs;
-   return iKeyframeMs;
+   if ( iKeyframeMS < 0 )
+      iKeyframeMS = -iKeyframeMS;
+   return iKeyframeMS;
 }
 
 int Model::isVideoSettingsMatchingBuiltinVideoProfile(video_parameters_t* pVideoParams, type_video_link_profile* pVideoProfile)
@@ -4622,6 +5288,11 @@ void Model::logVideoSettingsDifferences(video_parameters_t* pNewVideoParams, typ
    video_parameters_t* pCurrentVideoParams = &video_params;
    type_video_link_profile* pCurrentProfile = &video_link_profiles[video_params.iCurrentVideoProfile];
 
+   if ( (NULL == pCurrentVideoParams) || (NULL == pCurrentProfile) )
+   {
+      log_softerror_and_alarm("Model: Invalid current settings for video params or current video profile.");
+      return;
+   }
    if ( bReverseOrder )
    {
       video_parameters_t* pTmpVid = pCurrentVideoParams;
@@ -4747,10 +5418,10 @@ void Model::logVideoSettingsDifferences(video_parameters_t* pNewVideoParams, typ
       iCountDifferencesProfile++;
       log_line("Diff Prof: Video data length: %d -> %d", pCurrentProfile->video_data_length, pNewVideoProfile->video_data_length);
    }
-   if ( pCurrentProfile->keyframe_ms != pNewVideoProfile->keyframe_ms )
+   if ( pCurrentProfile->iKeyframeMS != pNewVideoProfile->iKeyframeMS )
    {
       iCountDifferencesProfile++;
-      log_line("Diff Prof: Keyframe ms: %d -> %d", pCurrentProfile->keyframe_ms, pNewVideoProfile->keyframe_ms);
+      log_line("Diff Prof: Keyframe ms: %d -> %d", pCurrentProfile->iKeyframeMS, pNewVideoProfile->iKeyframeMS);
    }
    if ( pCurrentProfile->bitrate_fixed_bps != pNewVideoProfile->bitrate_fixed_bps )
    {
@@ -4793,13 +5464,17 @@ u32 Model::getMaxVideoBitrateSupportedForRadioLinks(type_radio_links_parameters*
       if ( ! (pRadioLinksParams->link_capabilities_flags[iLink] & RADIO_HW_CAPABILITY_FLAG_HIGH_CAPACITY) )
          continue;
 
+      u32 uMaxLinkLoadPercentage = pRadioLinksParams->uMaxLinkLoadPercent[iLink];
+      if ( (pVideoProfile->iDefaultLinkLoad > 0) && (pVideoProfile->iDefaultLinkLoad <= 90) )
+         uMaxLinkLoadPercentage = pVideoProfile->iDefaultLinkLoad;
+
       u32 uMaxVideoBitrateForLink = 0;
       
       // Fixed bitrate link
       if ( pRadioLinksParams->downlink_datarate_video_bps[iLink] != 0 )
       {
          uMaxVideoBitrateForLink = getRealDataRateFromRadioDataRate(pRadioLinksParams->downlink_datarate_video_bps[iLink], pRadioLinksParams->link_radio_flags[iLink], 1);
-         uMaxVideoBitrateForLink = (uMaxVideoBitrateForLink / 100 ) * pRadioLinksParams->uMaxLinkLoadPercent[iLink];
+         uMaxVideoBitrateForLink = getUsableVideoBitrateFromTotalBitrate(uMaxVideoBitrateForLink, uMaxLinkLoadPercentage);
          if ( uMaxVideoBitrateForLink < uMaxRawVideoBitrate )
             uMaxRawVideoBitrate = uMaxVideoBitrateForLink;
          continue;
@@ -4820,6 +5495,7 @@ u32 Model::getMaxVideoBitrateSupportedForRadioLinks(type_radio_links_parameters*
             for( int k=0; k<iDRBoost; k++ )
                iMaxMCSRate = getLowerLevelDataRate(iMaxMCSRate);
             uMaxVideoBitrateForLink = getRealDataRateFromRadioDataRate(iMaxMCSRate, pRadioLinksParams->link_radio_flags[iLink], 1);
+            uMaxVideoBitrateForLink = getUsableVideoBitrateFromTotalBitrate(uMaxVideoBitrateForLink, uMaxLinkLoadPercentage);
          }
          else
          {
@@ -4832,6 +5508,7 @@ u32 Model::getMaxVideoBitrateSupportedForRadioLinks(type_radio_links_parameters*
                   break;
 
                uMaxVideoBitrateForLink = getRealDataRateFromRadioDataRate(getTestDataRatesMCS()[i], pRadioLinksParams->link_radio_flags[iLink], 1);
+               uMaxVideoBitrateForLink = getUsableVideoBitrateFromTotalBitrate(uMaxVideoBitrateForLink, uMaxLinkLoadPercentage);
             }
          }
       }
@@ -4849,6 +5526,7 @@ u32 Model::getMaxVideoBitrateSupportedForRadioLinks(type_radio_links_parameters*
             for( int k=0; k<iDRBoost; k++ )
                iMaxDataRate = getLowerLevelDataRate(iMaxDataRate);
             uMaxVideoBitrateForLink = getRealDataRateFromRadioDataRate(iMaxDataRate, pRadioLinksParams->link_radio_flags[iLink], 1);
+            uMaxVideoBitrateForLink = getUsableVideoBitrateFromTotalBitrate(uMaxVideoBitrateForLink, uMaxLinkLoadPercentage);
          }
          else
          {
@@ -4860,27 +5538,31 @@ u32 Model::getMaxVideoBitrateSupportedForRadioLinks(type_radio_links_parameters*
                if ( (radioRuntimeCapabilities.fQualitiesLegacy[iLink][i] < 0.6) || (radioRuntimeCapabilities.iMaxTxPowerMwLegacy[iLink][i] <= 0) )
                   break;
                uMaxVideoBitrateForLink = getRealDataRateFromRadioDataRate(getTestDataRatesLegacy()[i], pRadioLinksParams->link_radio_flags[iLink], 1);
+               uMaxVideoBitrateForLink = getUsableVideoBitrateFromTotalBitrate(uMaxVideoBitrateForLink, uMaxLinkLoadPercentage);
             }
          }
       }
 
-      uMaxVideoBitrateForLink = (uMaxVideoBitrateForLink / 100 ) * pRadioLinksParams->uMaxLinkLoadPercent[iLink];
-
       if ( uMaxVideoBitrateForLink < uMaxRawVideoBitrate )
          uMaxRawVideoBitrate = uMaxVideoBitrateForLink;
    }
-
-   uMaxRawVideoBitrate = (uMaxRawVideoBitrate / (100 + pVideoProfile->iECPercentage)) * 100;
-   uMaxRawVideoBitrate = (uMaxRawVideoBitrate / 105) * 100; // room for radio headers
    return uMaxRawVideoBitrate;
 }
 
 u32 Model::getMaxVideoBitrateForRadioDatarate(int iRadioDatarateBPS, int iRadioLinkIndex)
 {
    u32 uRealDatarateBPS = getRealDataRateFromRadioDataRate(iRadioDatarateBPS, radioLinksParams.link_radio_flags[iRadioLinkIndex], 1);
-   
+   u32 uMaxLinkLoadPercentage = (u32)radioLinksParams.uMaxLinkLoadPercent[iRadioLinkIndex];
+   if ( (video_link_profiles[video_params.iCurrentVideoProfile].iDefaultLinkLoad > 0) && (video_link_profiles[video_params.iCurrentVideoProfile].iDefaultLinkLoad <= 90) )
+      uMaxLinkLoadPercentage = video_link_profiles[video_params.iCurrentVideoProfile].iDefaultLinkLoad;
+
+   return getUsableVideoBitrateFromTotalBitrate(uRealDatarateBPS, uMaxLinkLoadPercentage);
+}
+
+u32 Model::getUsableVideoBitrateFromTotalBitrate(u32 uTotalBitrate, u32 uLoadPercent)
+{
    // usable-bandwidth = total-bandwidth * percentage% / 100;
-   u32 uMaxRawVideoBitrate = (uRealDatarateBPS / 100 ) * radioLinksParams.uMaxLinkLoadPercent[iRadioLinkIndex];
+   u32 uMaxRawVideoBitrate = (uTotalBitrate / 100 ) * uLoadPercent;
 
    // video-total = video * (100 + ec%) / 100    ->  video = video-total * 100 / (100 + ec%)
    uMaxRawVideoBitrate = (uMaxRawVideoBitrate / (100 + video_link_profiles[video_params.iCurrentVideoProfile].iECPercentage)) * 100;
@@ -4889,6 +5571,7 @@ u32 Model::getMaxVideoBitrateForRadioDatarate(int iRadioDatarateBPS, int iRadioL
 
    return uMaxRawVideoBitrate;
 }
+
 
 int Model::getRadioDataRateForVideoBitrate(u32 uVideoBitrateBPS, int iRadioLinkIndex)
 {
@@ -4899,22 +5582,29 @@ int Model::getRadioDataRateForVideoBitrate(u32 uVideoBitrateBPS, int iRadioLinkI
    static int s_iLastECChecked = 0;
    static int s_iLastRadioDatarateChecked = 0;
 
-   u32 uBitrateTotalDesired = uVideoBitrateBPS;
+   int iSizePacket = video_link_profiles[video_params.iCurrentVideoProfile].video_data_length;
+
+   // Room for radio headers
+   u32 uBitrateWithHeaders = (uVideoBitrateBPS/iSizePacket) * (iSizePacket + (sizeof(t_packet_header) + sizeof(t_packet_header_video_segment)+18));
+
+   u32 uBitrateWithEC = uBitrateWithHeaders;
+   if ( 0 != video_link_profiles[video_params.iCurrentVideoProfile].iECPercentage )
+      uBitrateWithEC = (uBitrateWithHeaders / 100) * (100 + video_link_profiles[video_params.iCurrentVideoProfile].iECPercentage);
 
    // video = total * maxload% / 100   ->   total = video * 100 / maxload%
    if ( 0 == radioLinksParams.uMaxLinkLoadPercent[iRadioLinkIndex] )
       radioLinksParams.uMaxLinkLoadPercent[iRadioLinkIndex] = DEFAULT_RADIO_LINK_LOAD_PERCENT;
-   uBitrateTotalDesired = (uBitrateTotalDesired / radioLinksParams.uMaxLinkLoadPercent[iRadioLinkIndex]) * 100;
 
-   // videototal = video * (100 + ecpercent) / 100
-   uBitrateTotalDesired = (uBitrateTotalDesired / 100) * (100 + video_link_profiles[video_params.iCurrentVideoProfile].iECPercentage);
+   u32 uMaxLinkLoadPercentage = (u32)radioLinksParams.uMaxLinkLoadPercent[iRadioLinkIndex];
+   if ( (video_link_profiles[video_params.iCurrentVideoProfile].iDefaultLinkLoad > 0) && (video_link_profiles[video_params.iCurrentVideoProfile].iDefaultLinkLoad <= 90) )
+      uMaxLinkLoadPercentage = video_link_profiles[video_params.iCurrentVideoProfile].iDefaultLinkLoad;
 
-   uBitrateTotalDesired = (uBitrateTotalDesired / 100) * 105; // room for radio headers
+   u32 uBitrateTotalRequired = (uBitrateWithEC / uMaxLinkLoadPercentage) * 100;
 
    if ( (uVideoBitrateBPS == s_uLastVideoBitrateChecked) &&
-        (uBitrateTotalDesired == s_uLastTotalBitrateChecked) &&
+        (uBitrateTotalRequired == s_uLastTotalBitrateChecked) &&
         (video_link_profiles[video_params.iCurrentVideoProfile].iECPercentage == s_iLastECChecked) &&
-        (radioLinksParams.uMaxLinkLoadPercent[iRadioLinkIndex] == s_uLastRadioLoadChecked) &&
+        (uMaxLinkLoadPercentage == s_uLastRadioLoadChecked) &&
         (radioLinksParams.link_radio_flags[iRadioLinkIndex] == s_uLastRadioFlagsChecked) )
       return s_iLastRadioDatarateChecked;
 
@@ -4927,7 +5617,7 @@ int Model::getRadioDataRateForVideoBitrate(u32 uVideoBitrateBPS, int iRadioLinkI
       for( int i=0; i<=MAX_MCS_INDEX; i++ )
       {
          u32 uMaxBitRate = getRealDataRateFromMCSRate(i, (radioLinksParams.link_radio_flags[iRadioLinkIndex] & RADIO_FLAG_HT40_VEHICLE)?1:0);
-         if ( uMaxBitRate >= uBitrateTotalDesired )
+         if ( uMaxBitRate >= uBitrateTotalRequired )
          {
             iRadioDataRate = -i - 1;
             break;
@@ -4938,7 +5628,7 @@ int Model::getRadioDataRateForVideoBitrate(u32 uVideoBitrateBPS, int iRadioLinkI
    {
       for( int i=0; i<getDataRatesCount(); i++ )
       {
-         if ( (u32)(getDataRatesBPS()[i]) >= uBitrateTotalDesired )
+         if ( (u32)(getDataRatesBPS()[i]) >= uBitrateTotalRequired )
          {
             iRadioDataRate = getDataRatesBPS()[i];
             break;
@@ -4947,14 +5637,17 @@ int Model::getRadioDataRateForVideoBitrate(u32 uVideoBitrateBPS, int iRadioLinkI
    }
 
    s_uLastVideoBitrateChecked = uVideoBitrateBPS;
-   s_uLastTotalBitrateChecked = uBitrateTotalDesired;
+   s_uLastTotalBitrateChecked = uBitrateTotalRequired;
    s_uLastRadioFlagsChecked = radioLinksParams.link_radio_flags[iRadioLinkIndex];
-   s_uLastRadioLoadChecked = radioLinksParams.uMaxLinkLoadPercent[iRadioLinkIndex];
+   s_uLastRadioLoadChecked = uMaxLinkLoadPercentage;
    s_iLastECChecked = video_link_profiles[video_params.iCurrentVideoProfile].iECPercentage;
    s_iLastRadioDatarateChecked = iRadioDataRate;
-   log_line("Model: Checked: radio datarate for radio link %d for video bitrate %.2f Mbps (total desired bitrate: %.2f Mbps, for %d%% radio load and %d%% EC) is: %s",
-      iRadioLinkIndex+1, uVideoBitrateBPS/1000.0/1000.0, uBitrateTotalDesired/1000.0/1000.0,
-      s_uLastRadioLoadChecked, s_iLastECChecked, str_format_bitrate_inline(iRadioDataRate));
+   log_line("Model: Checked radio datarate for radio link %d (for source video bitrate %.2f Mbps, %d%% EC, %d%% radio load) is: %s (%.2f Mbps with radio headers, %.2f Mbps with EC, %.2f Mbps with load percent)",
+      iRadioLinkIndex+1, uVideoBitrateBPS/1000.0/1000.0,
+      s_iLastECChecked, s_uLastRadioLoadChecked, str_format_bitrate_inline(iRadioDataRate),
+      (float)uBitrateWithHeaders/1000.0/1000.0,
+      (float)uBitrateWithEC/1000.0/1000.0,
+      (float)uBitrateTotalRequired/1000.0/1000.0);
    return iRadioDataRate;
 }
 
@@ -4966,6 +5659,7 @@ void Model::setDefaultVideoBitrate()
    video_link_profiles[VIDEO_PROFILE_HIGH_PERF].bitrate_fixed_bps = DEFAULT_HP_VIDEO_BITRATE;
    video_link_profiles[VIDEO_PROFILE_LONG_RANGE].bitrate_fixed_bps = DEFAULT_HP_VIDEO_BITRATE;
    video_link_profiles[VIDEO_PROFILE_USER].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE;
+   video_link_profiles[VIDEO_PROFILE_CUST].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE;
 
    if ( ((board_type & BOARD_TYPE_MASK) == BOARD_TYPE_PIZERO) ||
         ((board_type & BOARD_TYPE_MASK) == BOARD_TYPE_PIZEROW) ||
@@ -4975,11 +5669,13 @@ void Model::setDefaultVideoBitrate()
       video_link_profiles[VIDEO_PROFILE_HIGH_PERF].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_PI_ZERO;
       video_link_profiles[VIDEO_PROFILE_LONG_RANGE].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_PI_ZERO;
       video_link_profiles[VIDEO_PROFILE_USER].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_PI_ZERO;
+      video_link_profiles[VIDEO_PROFILE_CUST].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_PI_ZERO;
    }
    if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
    {
       video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
       video_link_profiles[VIDEO_PROFILE_USER].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
+      video_link_profiles[VIDEO_PROFILE_CUST].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
    }
 
    // Lower video bitrate on all video profiles if running on a single core CPU
@@ -4997,6 +5693,8 @@ void Model::setDefaultVideoBitrate()
          }
       }
    }
+
+   validate_profiles_max_video_bitrate();
 }
 
 
@@ -5035,10 +5733,14 @@ void Model::getCameraFlags(char* szCameraFlags)
       strcat(szCameraFlags, szBuff);
    }
 
-   if ( pParams->shutterspeed != 0 )
+   if ( pParams->iShutterSpeed > 0 )
    {
       char szBuff[32];
-      sprintf(szBuff, " -ss %d", (int)(1000000l/(long)(pParams->shutterspeed)));
+      szBuff[0] = 0;
+      if ( pParams->iShutterSpeed >= 30 )
+         sprintf(szBuff, " -ss %d", (int)(1000000l/(long)(pParams->iShutterSpeed)));
+      else if ( pParams->iShutterSpeed <= -30 )
+         sprintf(szBuff, " -ss %d", (int)(1000000l/(long)(-pParams->iShutterSpeed)));
       strcat(szCameraFlags, szBuff);
    }
 
@@ -5093,18 +5795,19 @@ void Model::getCameraFlags(char* szCameraFlags)
    }
 }
 
-void Model::getVideoFlags(char* szVideoFlags, int iVideoProfile, u32 uOverwriteVideoBPS, int iOverwriteKeyframeMS)
+// Returns set video bitrate
+u32 Model::getVideoFlags(char* szVideoFlags, int iVideoProfile, u32 uOverwriteVideoBPS, int iOverwriteKeyframeMS)
 {
    if ( NULL == szVideoFlags )
-      return;
+      return 0;
 
    szVideoFlags[0] = 0;
    
    if ( iCameraCount <= 0 )
-      return;
+      return 0;
 
    if ( (iCurrentCamera < 0) || (iCurrentCamera >= iCameraCount) )
-      return;
+      return 0;
 
    camera_profile_parameters_t* pCamParams = &(camera_params[iCurrentCamera].profiles[camera_params[iCurrentCamera].iCurrentProfile]);
 
@@ -5115,6 +5818,9 @@ void Model::getVideoFlags(char* szVideoFlags, int iVideoProfile, u32 uOverwriteV
    else if ( video_link_profiles[iVideoProfile].bitrate_fixed_bps > 0 )
       uBitrate = video_link_profiles[iVideoProfile].bitrate_fixed_bps;
 
+   if ( ! (radioRuntimeCapabilities.uFlagsRuntimeCapab & MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED) )
+      uBitrate = getMaxVideoBitrateForRadioDatarate(9000000, 0);
+
    if ( uBitrate > 6000000 )
       uBitrate = (uBitrate*9)/10;
 
@@ -5122,12 +5828,12 @@ void Model::getVideoFlags(char* szVideoFlags, int iVideoProfile, u32 uOverwriteV
 
    char szKeyFrame[64];
 
-   int iKeyframeMs = getInitialKeyframeIntervalMs(iVideoProfile);
+   int iKeyframeMS = getInitialKeyframeIntervalMs(iVideoProfile);
    if ( iOverwriteKeyframeMS > 0 )
-      iKeyframeMs = iOverwriteKeyframeMS;
+      iKeyframeMS = iOverwriteKeyframeMS;
    else if ( iOverwriteKeyframeMS < 0 )
-      iKeyframeMs = -iOverwriteKeyframeMS;
-   int iKeyframeFramesCount = (video_params.iVideoFPS * iKeyframeMs) / 1000;
+      iKeyframeMS = -iOverwriteKeyframeMS;
+   int iKeyframeFramesCount = (video_params.iVideoFPS * iKeyframeMS) / 1000;
    sprintf(szKeyFrame, "%d", iKeyframeFramesCount);
 
 
@@ -5208,9 +5914,10 @@ void Model::getVideoFlags(char* szVideoFlags, int iVideoProfile, u32 uOverwriteV
 
    if ( pCamParams->uFlags & CAMERA_FLAG_FORCE_MODE_1 )
       strcat(szVideoFlags, " -md 1");
+   return uBitrate;
 }
 
-void Model::populateVehicleTelemetryData_v5(t_packet_header_ruby_telemetry_extended_v5* pPHRTE)
+void Model::populateVehicleTelemetryData_v6(t_packet_header_ruby_telemetry_extended_v6* pPHRTE)
 {
    if ( NULL == pPHRTE )
       return;
@@ -5267,16 +5974,8 @@ void Model::populateFromVehicleTelemetryData_v3(t_packet_header_ruby_telemetry_e
    }
    if ( ver > 0 )
    {
-      u32 uBuild = sw_version >> 16;
-      if ( (ver>>4) < 7 )
-         uBuild = 50;
-      if ( (ver>>4) == 7 )
-      if ( (ver & 0x0F) < 7 )
-         uBuild = 50;
-
-      sw_version = ((ver>>4)) * 256 + ((ver & 0x0F)*10);
-      sw_version |= (uBuild<<16);
-      log_line("populateFromVehicleTelemetryData (version 3): set sw version to: %d.%d (b %d)", (sw_version>>8) & 0xFF, (sw_version & 0xFF)/10, sw_version >> 16);
+      sw_version = ((ver>>4)) * 256 + (ver & 0x0F);
+      log_line("populateFromVehicleTelemetryData (version 3): set sw version to: %d.%d (b-%d)", get_sw_version_major(this), get_sw_version_minor(this), get_sw_version_build(this));
    }
 
    resetRadioLinksParams();
@@ -5306,7 +6005,6 @@ void Model::populateFromVehicleTelemetryData_v3(t_packet_header_ruby_telemetry_e
    radioInterfacesParams.interface_raw_power[0] = DEFAULT_RADIO_TX_POWER;
    if ( radioLinksParams.link_frequency_khz[0] < 1000000 )
       radioInterfacesParams.interface_raw_power[0] = DEFAULT_RADIO_SIK_TX_POWER;
-   radioInterfacesParams.interface_dummy2[0] = 0;
    radioInterfacesParams.interface_supported_bands[0] = getBand(radioLinksParams.link_frequency_khz[0]);
    radioInterfacesParams.interface_card_model[0] = 0;
 
@@ -5337,7 +6035,6 @@ void Model::populateFromVehicleTelemetryData_v3(t_packet_header_ruby_telemetry_e
       radioInterfacesParams.interface_raw_power[iInterfaceIndex] = DEFAULT_RADIO_TX_POWER;
       if ( radioLinksParams.link_frequency_khz[i] < 1000000 )
          radioInterfacesParams.interface_raw_power[iInterfaceIndex] = DEFAULT_RADIO_SIK_TX_POWER;
-      radioInterfacesParams.interface_dummy2[iInterfaceIndex] = 0;
       radioInterfacesParams.interface_supported_bands[iInterfaceIndex] = getBand(radioLinksParams.link_frequency_khz[i]);
       if ( getBand(radioLinksParams.link_frequency_khz[i]) == RADIO_HW_SUPPORTED_BAND_58 )
          radioInterfacesParams.interface_radiotype_and_driver[iInterfaceIndex] = RADIO_TYPE_REALTEK | (RADIO_HW_DRIVER_REALTEK_8812AU<<8);
@@ -5392,16 +6089,8 @@ void Model::populateFromVehicleTelemetryData_v4(t_packet_header_ruby_telemetry_e
    }
    if ( ver > 0 )
    {
-      u32 uBuild = sw_version >> 16;
-      if ( (ver>>4) < 7 )
-         uBuild = 50;
-      if ( (ver>>4) == 7 )
-      if ( (ver & 0x0F) < 7 )
-         uBuild = 50;
-
-      sw_version = ((ver>>4)) * 256 + ((ver & 0x0F)*10);
-      sw_version |= (uBuild<<16);
-      log_line("populateFromVehicleTelemetryData (version 4): set sw version to: %d.%d (b %d)", (sw_version>>8) & 0xFF, (sw_version & 0xFF)/10, sw_version >> 16);
+      sw_version = ((ver>>4)) * 256 + (ver & 0x0F);
+      log_line("populateFromVehicleTelemetryData (version 4): set sw version to: %d.%d (b-%d)", get_sw_version_major(this), get_sw_version_minor(this), get_sw_version_build(this));
    }
 
    resetRadioLinksParams();
@@ -5431,7 +6120,6 @@ void Model::populateFromVehicleTelemetryData_v4(t_packet_header_ruby_telemetry_e
    radioInterfacesParams.interface_raw_power[0] = DEFAULT_RADIO_TX_POWER;
    if ( radioLinksParams.link_frequency_khz[0] < 1000000 )
       radioInterfacesParams.interface_raw_power[0] = DEFAULT_RADIO_SIK_TX_POWER;
-   radioInterfacesParams.interface_dummy2[0] = 0;
    radioInterfacesParams.interface_supported_bands[0] = getBand(radioLinksParams.link_frequency_khz[0]);
    radioInterfacesParams.interface_card_model[0] = 0;
 
@@ -5462,7 +6150,6 @@ void Model::populateFromVehicleTelemetryData_v4(t_packet_header_ruby_telemetry_e
       radioInterfacesParams.interface_raw_power[iInterfaceIndex] = DEFAULT_RADIO_TX_POWER;
       if ( radioLinksParams.link_frequency_khz[i] < 1000000 )
          radioInterfacesParams.interface_raw_power[iInterfaceIndex] = DEFAULT_RADIO_SIK_TX_POWER;
-      radioInterfacesParams.interface_dummy2[iInterfaceIndex] = 0;
       radioInterfacesParams.interface_supported_bands[iInterfaceIndex] = getBand(radioLinksParams.link_frequency_khz[i]);
       if ( getBand(radioLinksParams.link_frequency_khz[i]) == RADIO_HW_SUPPORTED_BAND_58 )
          radioInterfacesParams.interface_radiotype_and_driver[iInterfaceIndex] = RADIO_TYPE_REALTEK | (RADIO_HW_DRIVER_REALTEK_8812AU<<8);
@@ -5494,8 +6181,6 @@ void Model::populateFromVehicleTelemetryData_v4(t_packet_header_ruby_telemetry_e
    log_line("populateFromVehicleTelemetryData (v4) radio info after update:");
    logVehicleRadioInfo();
 }
-
-
 
 void Model::populateFromVehicleTelemetryData_v5(t_packet_header_ruby_telemetry_extended_v5* pPHRTE)
 {
@@ -5510,24 +6195,16 @@ void Model::populateFromVehicleTelemetryData_v5(t_packet_header_ruby_telemetry_e
       telemetry_params.flags &= ~TELEMETRY_FLAGS_SPECTATOR_ENABLE;
 
    u32 ver = pPHRTE->rubyVersion;
-   log_line("populateFromVehicleTelemetryData (version 4): firmware type: %s, sw version from telemetry stream: %d.%d", str_format_firmware_type(getVehicleFirmwareType()), ver>>4, ver & 0x0F);
-   log_line("populateFromVehicleTelemetryData (version 4): radio links: %d", pPHRTE->radio_links_count);
+   log_line("populateFromVehicleTelemetryData (version 5): firmware type: %s, sw version from telemetry stream: %d.%d", str_format_firmware_type(getVehicleFirmwareType()), ver>>4, ver & 0x0F);
+   log_line("populateFromVehicleTelemetryData (version 5): radio links: %d", pPHRTE->radio_links_count);
    for( int i=0; i<pPHRTE->radio_links_count; i++ )
    {
-      log_line("populateFromVehicleTelemetryData (version 4): radio link %d: %u kHz", i+1, pPHRTE->uRadioFrequenciesKhz[i]);
+      log_line("populateFromVehicleTelemetryData (version 5): radio link %d: %u kHz", i+1, pPHRTE->uRadioFrequenciesKhz[i]);
    }
    if ( ver > 0 )
    {
-      u32 uBuild = sw_version >> 16;
-      if ( (ver>>4) < 7 )
-         uBuild = 50;
-      if ( (ver>>4) == 7 )
-      if ( (ver & 0x0F) < 7 )
-         uBuild = 50;
-
-      sw_version = ((ver>>4)) * 256 + ((ver & 0x0F)*10);
-      sw_version |= (uBuild<<16);
-      log_line("populateFromVehicleTelemetryData (version 4): set sw version to: %d.%d (b %d)", (sw_version>>8) & 0xFF, (sw_version & 0xFF)/10, sw_version >> 16);
+      sw_version = ((ver>>4)) * 256 + (ver & 0x0F);
+      log_line("populateFromVehicleTelemetryData (version 5): set sw version to: %d.%d (b-%d)", get_sw_version_major(this), get_sw_version_minor(this), get_sw_version_build(this));
    }
 
    resetRadioLinksParams();
@@ -5557,7 +6234,6 @@ void Model::populateFromVehicleTelemetryData_v5(t_packet_header_ruby_telemetry_e
    radioInterfacesParams.interface_raw_power[0] = DEFAULT_RADIO_TX_POWER;
    if ( radioLinksParams.link_frequency_khz[0] < 1000000 )
       radioInterfacesParams.interface_raw_power[0] = DEFAULT_RADIO_SIK_TX_POWER;
-   radioInterfacesParams.interface_dummy2[0] = 0;
    radioInterfacesParams.interface_supported_bands[0] = getBand(radioLinksParams.link_frequency_khz[0]);
    radioInterfacesParams.interface_card_model[0] = 0;
 
@@ -5588,7 +6264,6 @@ void Model::populateFromVehicleTelemetryData_v5(t_packet_header_ruby_telemetry_e
       radioInterfacesParams.interface_raw_power[iInterfaceIndex] = DEFAULT_RADIO_TX_POWER;
       if ( radioLinksParams.link_frequency_khz[i] < 1000000 )
          radioInterfacesParams.interface_raw_power[iInterfaceIndex] = DEFAULT_RADIO_SIK_TX_POWER;
-      radioInterfacesParams.interface_dummy2[iInterfaceIndex] = 0;
       radioInterfacesParams.interface_supported_bands[iInterfaceIndex] = getBand(radioLinksParams.link_frequency_khz[i]);
       if ( getBand(radioLinksParams.link_frequency_khz[i]) == RADIO_HW_SUPPORTED_BAND_58 )
          radioInterfacesParams.interface_radiotype_and_driver[iInterfaceIndex] = RADIO_TYPE_REALTEK | (RADIO_HW_DRIVER_REALTEK_8812AU<<8);
@@ -5615,12 +6290,125 @@ void Model::populateFromVehicleTelemetryData_v5(t_packet_header_ruby_telemetry_e
    strcpy(szFreq2, str_format_frequency(radioLinksParams.link_frequency_khz[1]));
    strcpy(szFreq3, str_format_frequency(radioLinksParams.link_frequency_khz[2]));
 
-   log_line("populateFromVehicleTelemetryData (version 4): %d radio links: freq1: %s, freq2: %s, freq3: %s; %d radio interfaces.",
+   log_line("populateFromVehicleTelemetryData (version 5): %d radio links: freq1: %s, freq2: %s, freq3: %s; %d radio interfaces.",
        radioLinksParams.links_count, szFreq1, szFreq2, szFreq3, radioInterfacesParams.interfaces_count);
-   log_line("populateFromVehicleTelemetryData (v4) radio info after update:");
+   log_line("populateFromVehicleTelemetryData (v5) radio info after update:");
    logVehicleRadioInfo();
 }
 
+void Model::populateFromVehicleTelemetryData_v6(t_packet_header_ruby_telemetry_extended_v6* pPHRTE)
+{
+   uVehicleId = pPHRTE->uVehicleId;
+   strncpy(vehicle_name, (char*)pPHRTE->vehicle_name, MAX_VEHICLE_NAME_LENGTH-1);
+   vehicle_name[MAX_VEHICLE_NAME_LENGTH-1] = 0;
+   vehicle_type = pPHRTE->vehicle_type;
+
+   if ( pPHRTE->uRubyFlags & FLAG_RUBY_TELEMETRY_ALLOW_SPECTATOR_TELEMETRY )
+      telemetry_params.flags |= TELEMETRY_FLAGS_SPECTATOR_ENABLE;
+   else
+      telemetry_params.flags &= ~TELEMETRY_FLAGS_SPECTATOR_ENABLE;
+
+   u32 ver = pPHRTE->rubyVersion;
+   log_line("populateFromVehicleTelemetryData (version 6): firmware type: %s, sw version from telemetry stream: %d.%d", str_format_firmware_type(getVehicleFirmwareType()), ver>>4, ver & 0x0F);
+   log_line("populateFromVehicleTelemetryData (version 6): radio links: %d", pPHRTE->radio_links_count);
+   for( int i=0; i<pPHRTE->radio_links_count; i++ )
+   {
+      log_line("populateFromVehicleTelemetryData (version 6): radio link %d: %u kHz", i+1, pPHRTE->uRadioFrequenciesKhz[i]);
+   }
+   if ( ver > 0 )
+   {
+      sw_version = ((ver>>4)) * 256 + (ver & 0x0F);
+      log_line("populateFromVehicleTelemetryData (version 6): set sw version to: %d.%d (b-%d)", get_sw_version_major(this), get_sw_version_minor(this), get_sw_version_build(this));
+   }
+
+   resetRadioLinksParams();
+   radioLinksParams.links_count = pPHRTE->radio_links_count;
+   relay_params.isRelayEnabledOnRadioLinkId = -1;
+
+   for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
+   {
+      radioLinksParams.link_frequency_khz[i] = pPHRTE->uRadioFrequenciesKhz[i];
+      if ( pPHRTE->uRelayLinks & (1<<i) )
+      {
+         radioLinksParams.link_capabilities_flags[i] |= RADIO_HW_CAPABILITY_FLAG_USED_FOR_RELAY;
+         relay_params.isRelayEnabledOnRadioLinkId = i;
+         relay_params.uRelayFrequencyKhz = pPHRTE->uRadioFrequenciesKhz[i];
+      } 
+   }
+
+   radioInterfacesParams.interfaces_count = 1;
+   radioInterfacesParams.interface_capabilities_flags[0] = RADIO_HW_CAPABILITY_FLAG_CAN_RX | RADIO_HW_CAPABILITY_FLAG_CAN_TX | RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_DATA;
+   radioInterfacesParams.interface_capabilities_flags[0] |= RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO | RADIO_HW_CAPABILITY_FLAG_HIGH_CAPACITY;
+   if ( radioLinksParams.link_frequency_khz[0] > 1000000 )
+      radioInterfacesParams.interface_capabilities_flags[0] |= RADIO_HW_CAPABILITY_FLAG_HIGH_CAPACITY;
+   radioInterfacesParams.interface_link_id[0] = 0;
+   radioInterfacesParams.interface_current_frequency_khz[0] = radioLinksParams.link_frequency_khz[0];
+   strcpy(radioInterfacesParams.interface_szMAC[0], "XXXXXX");
+   strcpy(radioInterfacesParams.interface_szPort[0], "X");
+   radioInterfacesParams.interface_raw_power[0] = DEFAULT_RADIO_TX_POWER;
+   if ( radioLinksParams.link_frequency_khz[0] < 1000000 )
+      radioInterfacesParams.interface_raw_power[0] = DEFAULT_RADIO_SIK_TX_POWER;
+   radioInterfacesParams.interface_supported_bands[0] = getBand(radioLinksParams.link_frequency_khz[0]);
+   radioInterfacesParams.interface_card_model[0] = 0;
+
+   if ( getBand(radioLinksParams.link_frequency_khz[0]) == RADIO_HW_SUPPORTED_BAND_58 )
+      radioInterfacesParams.interface_radiotype_and_driver[0] = RADIO_TYPE_REALTEK | (RADIO_HW_DRIVER_REALTEK_8812AU<<8);
+   else if ( (getBand(radioLinksParams.link_frequency_khz[0]) == RADIO_HW_SUPPORTED_BAND_23) || 
+       (getBand(radioLinksParams.link_frequency_khz[0]) == RADIO_HW_SUPPORTED_BAND_24) ||
+       (getBand(radioLinksParams.link_frequency_khz[0]) == RADIO_HW_SUPPORTED_BAND_25) )
+      radioInterfacesParams.interface_radiotype_and_driver[0] = RADIO_TYPE_ATHEROS | (RADIO_HW_DRIVER_ATHEROS<<8);
+   else
+      radioInterfacesParams.interface_radiotype_and_driver[0] = RADIO_TYPE_SIK | (RADIO_HW_DRIVER_SERIAL_SIK<<8);
+
+   // Assign radio interfaces to all radio links
+
+   int iInterfaceIndex = radioInterfacesParams.interfaces_count;
+   for( int i=1; i<radioLinksParams.links_count; i++ )
+   {
+      if ( radioLinksParams.link_frequency_khz[i] == 0 )
+         continue;
+
+      radioInterfacesParams.interface_capabilities_flags[iInterfaceIndex] = RADIO_HW_CAPABILITY_FLAG_CAN_RX | RADIO_HW_CAPABILITY_FLAG_CAN_TX | RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO | RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_DATA;
+      if ( radioLinksParams.link_frequency_khz[i] > 1000000 )
+         radioInterfacesParams.interface_capabilities_flags[iInterfaceIndex] |= RADIO_HW_CAPABILITY_FLAG_HIGH_CAPACITY;
+      radioInterfacesParams.interface_link_id[iInterfaceIndex] = i;
+      radioInterfacesParams.interface_current_frequency_khz[iInterfaceIndex] = radioLinksParams.link_frequency_khz[i];
+      strcpy(radioInterfacesParams.interface_szMAC[iInterfaceIndex], "XXXXXX");
+      strcpy(radioInterfacesParams.interface_szPort[iInterfaceIndex], "X");
+      radioInterfacesParams.interface_raw_power[iInterfaceIndex] = DEFAULT_RADIO_TX_POWER;
+      if ( radioLinksParams.link_frequency_khz[i] < 1000000 )
+         radioInterfacesParams.interface_raw_power[iInterfaceIndex] = DEFAULT_RADIO_SIK_TX_POWER;
+      radioInterfacesParams.interface_supported_bands[iInterfaceIndex] = getBand(radioLinksParams.link_frequency_khz[i]);
+      if ( getBand(radioLinksParams.link_frequency_khz[i]) == RADIO_HW_SUPPORTED_BAND_58 )
+         radioInterfacesParams.interface_radiotype_and_driver[iInterfaceIndex] = RADIO_TYPE_REALTEK | (RADIO_HW_DRIVER_REALTEK_8812AU<<8);
+      else if ( (getBand(radioLinksParams.link_frequency_khz[i]) == RADIO_HW_SUPPORTED_BAND_23) || 
+              (getBand(radioLinksParams.link_frequency_khz[i]) == RADIO_HW_SUPPORTED_BAND_24) ||
+              (getBand(radioLinksParams.link_frequency_khz[i]) == RADIO_HW_SUPPORTED_BAND_25) )
+         radioInterfacesParams.interface_radiotype_and_driver[iInterfaceIndex] = RADIO_TYPE_ATHEROS | (RADIO_HW_DRIVER_ATHEROS<<8);
+      else
+         radioInterfacesParams.interface_radiotype_and_driver[iInterfaceIndex] = RADIO_TYPE_SIK | (RADIO_HW_DRIVER_SERIAL_SIK<<8);
+      
+      radioInterfacesParams.interface_card_model[iInterfaceIndex] = 0;
+      radioInterfacesParams.interfaces_count++;
+      iInterfaceIndex++;
+   }
+
+   validateRadioSettings();
+
+   constructLongName();
+
+   char szFreq1[64];
+   char szFreq2[64];
+   char szFreq3[64];
+   strcpy(szFreq1, str_format_frequency(radioLinksParams.link_frequency_khz[0]));
+   strcpy(szFreq2, str_format_frequency(radioLinksParams.link_frequency_khz[1]));
+   strcpy(szFreq3, str_format_frequency(radioLinksParams.link_frequency_khz[2]));
+
+   log_line("populateFromVehicleTelemetryData (version 6): %d radio links: freq1: %s, freq2: %s, freq3: %s; %d radio interfaces.",
+       radioLinksParams.links_count, szFreq1, szFreq2, szFreq3, radioInterfacesParams.interfaces_count);
+   log_line("populateFromVehicleTelemetryData (v6) radio info after update:");
+   logVehicleRadioInfo();
+}
 
 void Model::setTelemetryTypeAndPort(int iTelemetryType, int iSerialPort, int iSerialSpeed)
 {
@@ -5695,7 +6483,8 @@ void Model::convertECPercentageToData(type_video_link_profile* pVideoProfile)
 const char* Model::getShortName()
 {
    if ( 0 == vehicle_name[0] )
-      return "No Name";
+      return str_get_hardware_board_name_short(hwCapabilities.uBoardType);
+      //return "No Name";
    return vehicle_name;
 }
 
@@ -5734,6 +6523,11 @@ void Model::constructLongName()
          default: strcpy(vehicle_long_name, "vehicle "); break;
       }
    }
+
+   if ( ! hasCamera() )
+   if ( ((vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE) ||
+        ((vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_RELAY) )
+      vehicle_long_name[0] = 0;
    strcat(vehicle_long_name, getShortName());
 }
 
@@ -5883,7 +6677,7 @@ void Model::copy_radio_link_params(int iFrom, int iTo)
    radioLinksParams.downlink_datarate_data_bps[iTo] = radioLinksParams.downlink_datarate_data_bps[iFrom];
    radioLinksParams.uSerialPacketSize[iTo] = radioLinksParams.uSerialPacketSize[iFrom];
    radioLinksParams.uMaxLinkLoadPercent[iTo] = radioLinksParams.uMaxLinkLoadPercent[iFrom];
-   radioLinksParams.uDummy2[iTo] = radioLinksParams.uDummy2[iFrom];
+   radioLinksParams.uDummyR1[iTo] = radioLinksParams.uDummyR1[iFrom];
    radioLinksParams.uplink_datarate_video_bps[iTo] = radioLinksParams.uplink_datarate_video_bps[iFrom];
    radioLinksParams.uplink_datarate_data_bps[iTo] = radioLinksParams.uplink_datarate_data_bps[iFrom];
 }
@@ -5907,7 +6701,6 @@ void Model::copy_radio_interface_params(int iFrom, int iTo)
    radioInterfacesParams.interface_capabilities_flags[iTo] = radioInterfacesParams.interface_capabilities_flags[iFrom];
    radioInterfacesParams.interface_current_frequency_khz[iTo] = radioInterfacesParams.interface_current_frequency_khz[iFrom];
    radioInterfacesParams.interface_current_radio_flags[iTo] = radioInterfacesParams.interface_current_radio_flags[iFrom];
-   radioInterfacesParams.interface_dummy2[iTo] = radioInterfacesParams.interface_dummy2[iFrom];
 }
 
 
@@ -5950,8 +6743,8 @@ u32 get_sw_version_minor(Model* pModel)
    u32 uRes = SYSTEM_SW_VERSION_MINOR;
    if ( NULL != pModel )
       uRes = (pModel->sw_version & 0xFF);
-   if ( uRes < 10 )
-      uRes *= 10;
+   if ( uRes >= 10 )
+      uRes /= 10;
    return uRes;
 }
 u32 get_sw_version_build(Model* pModel)
@@ -5965,12 +6758,24 @@ int is_sw_version_atleast(Model* pModel, int iMajor, int iMinor)
 {
    if ( (int)get_sw_version_major(pModel) > iMajor )
       return 1;
-   int iM = (int)get_sw_version_minor(pModel);
-   if ( iM > 10 )
-      iM /= 10;
-   if ( (int)get_sw_version_major(pModel) == iMajor )
-   if ( iM >= iMinor )
+   if ( (int)get_sw_version_major(pModel) < iMajor )
+      return 0;
+
+   if ( (int)get_sw_version_minor(pModel) >= iMinor )
       return 1;
 
    return 0;
+}
+
+int is_sw_version_latest(Model* pModel)
+{
+   if ( NULL == pModel )
+      return 0;
+   if ( (pModel->sw_version >> 16) != SYSTEM_SW_BUILD_NUMBER )
+      return 0;
+   if ( (pModel->sw_version & 0xFF) != SYSTEM_SW_VERSION_MINOR )
+      return 0;
+   if ( ((pModel->sw_version >> 8) & 0xFF) != SYSTEM_SW_VERSION_MAJOR )
+      return 0;
+   return 1;
 }

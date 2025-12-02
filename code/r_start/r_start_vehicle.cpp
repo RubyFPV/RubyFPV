@@ -66,14 +66,13 @@
 #include "../r_vehicle/video_sources.h"
 #include "../r_vehicle/shared_vars.h"
 #include "../r_vehicle/timers.h"
-#include "../utils/utils_vehicle.h"
 #include "../r_vehicle/hw_config_check.h"
 #include "r_start_vehicle.h"
 
 extern bool s_bQuit;
 extern Model modelVehicle;
 
-
+sem_t* g_pSemaphoreRestart = NULL;
 shared_mem_process_stats* s_pProcessStatsRouter = NULL;
 shared_mem_process_stats* s_pProcessStatsTelemetry = NULL;
 shared_mem_process_stats* s_pProcessStatsCommands = NULL;
@@ -86,6 +85,10 @@ u32 s_failCountProcessCommands = 0;
 u32 s_failCountProcessRC = 0;
 
 int s_iRadioSilenceFailsafeTimeoutCounts = 0;
+
+char szFileUpdate[MAX_FILE_PATH_SIZE];
+char szFileReinitRadio[MAX_FILE_PATH_SIZE];
+bool s_bUpdateDetected = false;
 
 void _set_default_sik_params_for_vehicle(Model* pModel)
 {
@@ -130,11 +133,20 @@ bool _check_radio_config_relay(Model* pModel)
       return false;
    bool bMustSave = false;
 
+   if ( pModel->relay_params.uCurrentRelayMode & RELAY_MODE_IS_RELAYED_NODE )
+   {
+      pModel->relay_params.uCurrentRelayMode = 0;
+      bMustSave = true;
+   }
+
    if ( pModel->relay_params.isRelayEnabledOnRadioLinkId >= 0 )
    {
-      log_line("Start sequence: Relaying was active. Switch to relaying the main vehicle on start up.");
-      pModel->relay_params.uCurrentRelayMode = RELAY_MODE_MAIN | RELAY_MODE_IS_RELAY_NODE;
-      bMustSave = true;
+      if ( ! (pModel->relay_params.uCurrentRelayMode & RELAY_MODE_PERMANENT_REMOTE) )
+      {
+         log_line("Start sequence: Relaying was active. Switch to relaying the main vehicle on start up.");
+         pModel->relay_params.uCurrentRelayMode = RELAY_MODE_MAIN | RELAY_MODE_IS_RELAY_NODE;
+         bMustSave = true;
+      }
    }
 
    if ( pModel->relay_params.isRelayEnabledOnRadioLinkId >= 0 )
@@ -344,6 +356,148 @@ void try_open_process_stats()
    }
 }
 
+  
+void _launch_vehicle_processes(bool bWait)
+{
+   hardware_sleep_ms(100);
+   vehicle_launch_tx_telemetry(&modelVehicle);
+   
+   hardware_sleep_ms(100);
+   vehicle_launch_rx_commands(&modelVehicle);
+
+   if ( modelVehicle.rc_params.rc_enabled )
+   {
+      hardware_sleep_ms(100);
+      vehicle_launch_rx_rc(&modelVehicle);
+   }
+
+   hardware_sleep_ms(100);
+
+   vehicle_launch_tx_router(&modelVehicle);
+
+   log_line("Launch sequence: done launching router. Wait at end? %s", bWait?"yes":"no");
+
+   // Wait for all the processes to start (takes time for I2C detection)
+   if ( bWait )
+   {
+      for( int i=0; i<10; i++ )
+         hardware_sleep_ms(500);
+   }
+}
+
+void _restart_procs(bool bStopRouterToo)
+{
+   log_softerror_and_alarm("----------------------------------------------------");
+   log_softerror_and_alarm("Stop and restart processes (stop router too? %s)...", bStopRouterToo?"yes":"no");
+   log_softerror_and_alarm("----------------------------------------------------");
+   
+   vehicle_stop_rx_commands();
+   vehicle_stop_rx_rc();
+   vehicle_stop_tx_telemetry();
+   if ( bStopRouterToo )
+      vehicle_stop_tx_router();
+
+   shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_ROUTER_TX, s_pProcessStatsRouter);
+   s_pProcessStatsRouter = NULL;
+   shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_TELEMETRY_TX, s_pProcessStatsTelemetry);
+   s_pProcessStatsTelemetry = NULL;
+   shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_COMMANDS_RX, s_pProcessStatsCommands);
+   s_pProcessStatsCommands = NULL;
+   shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_RC_RX, s_pProcessStatsRC);
+   s_pProcessStatsRC = NULL;
+
+   bool bHasProcesses = true;
+   int iCounter = 50;
+   char szOutput[4096];
+
+   while ( bHasProcesses && (iCounter > 0) )
+   {
+      hardware_sleep_ms(200);
+      iCounter--;
+      bHasProcesses = false;
+      if ( hw_process_exists("ruby_rt_vehicle") )
+         bHasProcesses = true;
+      if ( hw_process_exists("ruby_tx_telemetry") )
+         bHasProcesses = true;
+
+      szOutput[0] = 0;
+      hw_execute_bash_command("ps -aef | grep ruby | grep rx_com", szOutput);
+      if ( NULL != strstr(szOutput, "ruby_start -rx_com") )
+         bHasProcesses = true;
+
+      szOutput[0] = 0;
+      hw_execute_bash_command("ps -aef | grep ruby | grep rc", szOutput);
+      if ( NULL != strstr(szOutput, "ruby_start -rc") )
+         bHasProcesses = true;
+
+      if ( video_sources_is_caputure_process_running() )
+         bHasProcesses = true;
+   }
+
+
+   hw_execute_bash_command_raw("ps -aef | grep ruby", szOutput);
+   log_line("Processes ps ruby output: [%s]", szOutput);
+
+   hw_execute_bash_command_raw("ps -aef | grep majestic", szOutput);
+   log_line("Processes ps maj output: [%s]", szOutput);
+
+   log_softerror_and_alarm("----------------------------------------------");
+   if ( bHasProcesses )
+      log_softerror_and_alarm("Requested to stop all processes but some are still running.");
+   else
+      log_softerror_and_alarm("Stopped all processes successfully.");
+   log_softerror_and_alarm("----------------------------------------------");
+
+   if ( hw_process_exists("sysupgrade") )
+   {
+      log_softerror_and_alarm("Sysupgrade is in progress. Do not restart Ruby processes.");
+      s_bQuit = true;
+      return;
+   }
+
+   sem_unlink(SEMAPHORE_STOP_VEHICLE_ROUTER);
+   sem_unlink(SEMAPHORE_STOP_VEHICLE_COMMANDS);
+   sem_unlink(SEMAPHORE_STOP_VEHICLE_TELEM_TX);
+   sem_unlink(SEMAPHORE_STOP_VEHICLE_RC_RX);
+
+   if ( NULL != g_pSemaphoreRestart )
+       sem_close(g_pSemaphoreRestart);
+   g_pSemaphoreRestart = NULL;
+   sem_unlink(SEMAPHORE_RESTART_VEHICLE_PROCS);
+
+   g_pSemaphoreRestart = sem_open(SEMAPHORE_RESTART_VEHICLE_PROCS, O_CREAT, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL == g_pSemaphoreRestart) || (SEM_FAILED == g_pSemaphoreRestart) )
+   {
+      log_error_and_alarm("Failed to open semaphore: %s", SEMAPHORE_RESTART_VEHICLE_PROCS);
+      g_pSemaphoreRestart = NULL;
+   } 
+
+   modelVehicle.reloadIfChanged(true);
+
+   hardware_sleep_ms(100);
+   log_softerror_and_alarm("----------------------");
+   log_softerror_and_alarm("Launching processes...");
+   _launch_vehicle_processes(true);
+
+   log_softerror_and_alarm("--------------------------------------------");
+   log_softerror_and_alarm("Restarting processes: Done. Wait a little...");
+   log_softerror_and_alarm("--------------------------------------------");
+
+   for( int i=0; i<5; i++ )
+      hardware_sleep_ms(300);
+
+   s_failCountProcessRouter = 0;
+   s_failCountProcessTelemetry = 0;
+   s_failCountProcessCommands = 0;
+   s_failCountProcessRC = 0;
+   g_TimeNow = get_current_timestamp_ms();
+   g_TimeLastCheckRadioSilenceFailsafe = g_TimeNow;
+
+   log_softerror_and_alarm("-------------------------------");
+   log_softerror_and_alarm("Restarting processes: Finished.");
+   log_softerror_and_alarm("-------------------------------");
+}
+
 // returns true if values changed
 
 bool read_config_file()
@@ -366,32 +520,25 @@ bool read_config_file()
    #endif
    return true;
 }
-  
-void _launch_vehicle_processes()
+
+bool _check_restrict_files()
 {
-   hardware_sleep_ms(100);
-   vehicle_launch_tx_telemetry(&modelVehicle);
-   
-   hardware_sleep_ms(100);
-   vehicle_launch_rx_commands(&modelVehicle);
-
-   if ( modelVehicle.rc_params.rc_enabled )
+   if ( access(szFileUpdate, R_OK) != -1 )
    {
-      hardware_sleep_ms(100);
-      vehicle_launch_rx_rc(&modelVehicle);
+      s_bUpdateDetected = true;
+      return false;
    }
+   if ( access(szFileReinitRadio, R_OK) != -1 )
+      return false;
 
-   hardware_sleep_ms(100);
-
-   vehicle_launch_tx_router(&modelVehicle);
-
-   log_line("Launch sequence: done launching router.");
-
-   // Wait for all the processes to start (takes time for I2C detection)
-   for( int i=0; i<10; i++ )
-      hardware_sleep_ms(500);
+   return true;
 }
 
+void handle_sigint_veh(int sig) 
+{ 
+   log_line("Caught signal to stop: %d\n", sig);
+   s_bQuit = true;
+} 
 
 int r_start_vehicle(int argc, char *argv[])
 {
@@ -403,6 +550,9 @@ int r_start_vehicle(int argc, char *argv[])
    if ( 0 == strcmp(argv[1], "-nowd") )
       noWatchDog = true;
 
+   signal(SIGINT, handle_sigint_veh);
+   signal(SIGTERM, handle_sigint_veh);
+   signal(SIGQUIT, handle_sigint_veh);
 
    char szBuff[2048];
    char szFile[128];
@@ -459,7 +609,7 @@ int r_start_vehicle(int argc, char *argv[])
          (modelVehicle.uDeveloperFlags & DEVELOPER_FLAGS_BIT_LOG_ONLY_ERRORS)?"yes":"no",
           (int)((modelVehicle.uDeveloperFlags >> DEVELOPER_FLAGS_WIFI_GUARD_DELAY_MASK_SHIFT) & 0xFF) );
    log_line("Start sequence: Model has vehicle developer mode flag: %s", (modelVehicle.uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE)?"on":"off");
-
+   log_line("Start sequence: Model processes flags: [%s]", str_format_processes_flags(modelVehicle.processesPriorities.uProcessesFlags));
    log_line("Start sequence: Initial vehicle radio links configuration before any radio checks:");
    modelVehicle.logVehicleRadioInfo();
    g_pCurrentModel = &modelVehicle;
@@ -490,6 +640,18 @@ int r_start_vehicle(int argc, char *argv[])
    if ( read_config_file() )
       bMustSave = true;
 
+   if ( access( "/boot/nodhcp", R_OK ) == -1 )
+   {
+       if ( ! modelVehicle.enableDHCP )
+          bMustSave = true;
+       modelVehicle.enableDHCP = true;
+   }
+   else
+   {
+       if ( modelVehicle.enableDHCP )
+          bMustSave = true;
+       modelVehicle.enableDHCP = false;
+   }    
    uBoardType = hardware_getBoardType();
    if ( (uBoardType & BOARD_TYPE_MASK) != (modelVehicle.hwCapabilities.uBoardType & BOARD_TYPE_MASK) )
    {
@@ -526,16 +688,16 @@ int r_start_vehicle(int argc, char *argv[])
 
    // Detect serial UARTs
 
-   hardware_init_serial_ports();
+   hardware_serial_init_ports();
 
    u32 telemetry_flags = modelVehicle.telemetry_params.flags;
    
    modelVehicle.alarms &= (~ALARM_ID_UNSUPORTED_USB_SERIAL);
 
-   if ( hardware_has_unsupported_serial_ports() )
+   if ( hardware_serial_has_unsupported_ports() )
       modelVehicle.alarms |= ALARM_ID_UNSUPORTED_USB_SERIAL;
    
-   if ( 0 == hardware_get_serial_ports_count() )
+   if ( 0 == hardware_serial_get_ports_count() )
    {
       if ( modelVehicle.telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_NONE )
          bMustSave = true;
@@ -663,8 +825,6 @@ int r_start_vehicle(int argc, char *argv[])
 
    log_line("Start sequence: Setting all the radio cards params (%s)...", (modelVehicle.relay_params.isRelayEnabledOnRadioLinkId >= 0)?"relaying enabled":"no relay links");
 
-   if ( configure_radio_interfaces_for_current_model(&modelVehicle, NULL) )
-      bMustSave = true;
    bMustSave = true;
    log_line("Start sequence: Configured all the radio cards params.");
 
@@ -708,7 +868,7 @@ int r_start_vehicle(int argc, char *argv[])
    #endif
    
    log_line("Launching processes...");
-   _launch_vehicle_processes();
+   _launch_vehicle_processes(true);
 
    log_line("");
    log_line("----------------------------------------------------------");
@@ -731,21 +891,18 @@ int r_start_vehicle(int argc, char *argv[])
    for( int i=0; i<10; i++ )
       hardware_sleep_ms(500);
 
-   u32 maxTimeForProcess = 1;
+   u32 maxTimeForProcessMs = 500;
    char szTime[64];
    char szTime2[64];
    char szTime3[64];
    int counter = 0;
    bool bMustRestart = false;
    int iRestartCount = 0;
-   u32 uTimeToAdjustAffinities = get_current_timestamp_ms() + 6000;
    u32 uTimeLoopLog = g_TimeStart;
 
-   char szFileUpdate[MAX_FILE_PATH_SIZE];
    strcpy(szFileUpdate, FOLDER_RUBY_TEMP);
    strcat(szFileUpdate, FILE_TEMP_UPDATE_IN_PROGRESS);
 
-   char szFileReinitRadio[MAX_FILE_PATH_SIZE];
    strcpy(szFileReinitRadio, FOLDER_RUBY_TEMP);
    strcat(szFileReinitRadio, FILE_TEMP_REINIT_RADIO_IN_PROGRESS);
 
@@ -753,9 +910,17 @@ int r_start_vehicle(int argc, char *argv[])
    strcpy(szFileArmed, FOLDER_RUBY_TEMP);
    strcat(szFileArmed, FILE_TEMP_ARMED);
 
+   g_pSemaphoreRestart = sem_open(SEMAPHORE_RESTART_VEHICLE_PROCS, O_CREAT, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL == g_pSemaphoreRestart) || (SEM_FAILED == g_pSemaphoreRestart) )
+   {
+      log_error_and_alarm("Failed to open semaphore: %s", SEMAPHORE_RESTART_VEHICLE_PROCS);
+      g_pSemaphoreRestart = NULL;
+   } 
+
+   int iSkipCount = 0;
    while ( ! s_bQuit )
    {
-      sleep(maxTimeForProcess);
+      hardware_sleep_ms(maxTimeForProcessMs);
       counter++;
       g_uLoopCounter++;
       g_TimeNow = get_current_timestamp_ms();
@@ -765,28 +930,46 @@ int r_start_vehicle(int argc, char *argv[])
          uTimeLoopLog = g_TimeNow;
          log_line("Main loop alive. Total restarts count: %d", iRestartCount);
       }
-      if ( 0 != uTimeToAdjustAffinities )
-      if ( g_TimeNow > uTimeToAdjustAffinities )
+
+      if ( iSkipCount > 0 )
       {
-         uTimeToAdjustAffinities = 0;
-         log_line("Current vehicle has veye camera: %s, camera type: %d", modelVehicle.isActiveCameraVeye()?"Yes":"No", (int)modelVehicle.getActiveCameraType());
-         vehicle_check_update_processes_affinities(true, modelVehicle.isActiveCameraVeye());
+         iSkipCount--;
+         hardware_sleep_ms(500);
+         continue;
       }
-      if ( access(szFileUpdate, R_OK) != -1 )
+
+      if ( s_bUpdateDetected )
       {
-         while (! s_bQuit )
+         int iCounter = 120;
+         while ( (! s_bQuit) && (iCounter > 0) )
          {
             hardware_sleep_ms(500);
+            iCounter--;
          }
          break;
       }
 
-      if ( g_TimeNow > g_TimeLastCheckRadioSilenceFailsafe + 10000 )
-      if ( g_TimeNow > 10000 )
+      int iSemValue = 0;
+      if ( NULL != g_pSemaphoreRestart )
+      if ( 0 == sem_getvalue(g_pSemaphoreRestart, &iSemValue) )
+      if ( iSemValue > 0 )
+      if ( 0 == sem_trywait(g_pSemaphoreRestart) )
+      {
+         log_line("Semaphore to restart processes is set. Restarting...");
+         _restart_procs(true);
+         iRestartCount++;
+      }
+
+      if ( modelVehicle.uDeveloperFlags & DEVELOPER_FLAGS_BIT_RADIO_SILENCE_FAILSAFE )
+      if ( g_TimeNow > g_TimeLastCheckRadioSilenceFailsafe + 20000 )
+      if ( ! s_bUpdateDetected )
       {
          g_TimeLastCheckRadioSilenceFailsafe = g_TimeNow;
 
          log_line("Vehicle is alive. Total restarts count: %d", iRestartCount);
+
+         modelVehicle.reloadIfChanged(true);
+
          if ( NULL == s_pProcessStatsRouter || NULL == s_pProcessStatsTelemetry || NULL == s_pProcessStatsCommands || ((NULL == s_pProcessStatsRC) && modelVehicle.rc_params.rc_enabled) )
             try_open_process_stats();
          if ( NULL == s_pProcessStatsRouter )
@@ -831,19 +1014,14 @@ int r_start_vehicle(int argc, char *argv[])
       if ( noWatchDog )
          continue;
 
-      modelVehicle.reloadIfChanged(true);
-
       if ( (NULL == s_pProcessStatsRouter) || (NULL == s_pProcessStatsTelemetry) || (NULL == s_pProcessStatsCommands) || ((NULL == s_pProcessStatsRC) && modelVehicle.rc_params.rc_enabled))
          try_open_process_stats();
       
       bMustRestart = false;
 
-      if ( access(szFileReinitRadio, R_OK) != -1 )
-         continue;
-
       if ( NULL != s_pProcessStatsRouter )
       {
-         if ( s_pProcessStatsRouter->lastActiveTime + maxTimeForProcess*1000 < g_TimeNow )
+         if ( (s_pProcessStatsRouter->lastActiveTime + maxTimeForProcessMs*4 < g_TimeNow) && _check_restrict_files() )
             s_failCountProcessRouter++;
          else
             s_failCountProcessRouter = 0;
@@ -866,6 +1044,7 @@ int r_start_vehicle(int argc, char *argv[])
             }
             log_softerror_and_alarm("Router is blocked on substep: %d, %u ms ago", s_pProcessStatsRouter->uLoopSubStep, g_TimeNow - s_pProcessStatsRouter->lastActiveTime);
 
+            modelVehicle.reloadIfChanged(true);
             if ( modelVehicle.hasCamera() )
             if ( modelVehicle.isActiveCameraOpenIPC() )
             {
@@ -878,7 +1057,7 @@ int r_start_vehicle(int argc, char *argv[])
 
       if ( NULL != s_pProcessStatsTelemetry )
       {
-         if ( s_pProcessStatsTelemetry->lastActiveTime + maxTimeForProcess*1000 < g_TimeNow )
+         if ( (s_pProcessStatsTelemetry->lastActiveTime + maxTimeForProcessMs*4 < g_TimeNow) && _check_restrict_files() )
             s_failCountProcessTelemetry++;
          else
             s_failCountProcessTelemetry = 0;
@@ -903,7 +1082,7 @@ int r_start_vehicle(int argc, char *argv[])
       
       if ( NULL != s_pProcessStatsCommands )
       {
-         if ( s_pProcessStatsCommands->lastActiveTime +3*maxTimeForProcess*1000 < g_TimeNow )
+         if ( (s_pProcessStatsCommands->lastActiveTime +3*maxTimeForProcessMs*4 + 4000 < g_TimeNow) && _check_restrict_files() )
             s_failCountProcessCommands++;
          else
             s_failCountProcessCommands = 0;
@@ -929,7 +1108,7 @@ int r_start_vehicle(int argc, char *argv[])
       if ( NULL != s_pProcessStatsRC )
       if ( modelVehicle.rc_params.rc_enabled )
       {
-         if ( s_pProcessStatsRC->lastActiveTime + maxTimeForProcess*1000 < g_TimeNow )
+         if ( (s_pProcessStatsRC->lastActiveTime + maxTimeForProcessMs*4 < g_TimeNow) && _check_restrict_files() )
             s_failCountProcessRC++;
          else
             s_failCountProcessRC = 0;
@@ -953,70 +1132,22 @@ int r_start_vehicle(int argc, char *argv[])
          }
       }
 
-      if ( access(CONFIG_FILE_FULLPATH_RESTART, R_OK) != -1 )
-      {
-         log_line("Flag to force restart is set. Restarting...");
-         for( int i=0; i<10; i++ )
-         {
-            hardware_sleep_ms(300);
-            int iPIDRouter = hw_process_exists("ruby_rt_vehicle");
-            if ( iPIDRouter <= 1 )
-               break;
-         }
-         log_line("Router did quit. Can restart now.");
-         sprintf(szBuff, "rm -rf %s", CONFIG_FILE_FULLPATH_RESTART);
-         hw_execute_bash_command_raw(szBuff, NULL);
-         bMustRestart = true;
-      }
-
       if ( bMustRestart )
+      if ( access(szFileUpdate, R_OK) == -1 )
       {
-         log_error_and_alarm("Stop and restart processes...");
+         _restart_procs(true);
+         iSkipCount = 20;
          iRestartCount++;
-
-         vehicle_stop_tx_router();
-         video_sources_stop_capture();         
-         vehicle_stop_rx_commands();
-         vehicle_stop_tx_telemetry();
-         vehicle_stop_rx_rc();
-
-         shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_ROUTER_TX, s_pProcessStatsRouter);
-         s_pProcessStatsRouter = NULL;
-         shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_TELEMETRY_TX, s_pProcessStatsTelemetry);
-         s_pProcessStatsTelemetry = NULL;
-         shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_COMMANDS_RX, s_pProcessStatsCommands);
-         s_pProcessStatsCommands = NULL;
-         shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_RC_RX, s_pProcessStatsRC);
-         s_pProcessStatsRC = NULL;
-           
-         log_line("----------------------------------------------");
-         log_line("Stopped all processes");
-         log_line("----------------------------------------------");
-
-         if ( hw_process_exists("sysupgrade") )
-         {
-            log_softerror_and_alarm("Sysupgrade is in progress. Do not restart Ruby processes.");
-            s_bQuit = true;
-            break;
-         }
-
-         hardware_sleep_ms(200);
-         log_line("Launching processes...");
-         _launch_vehicle_processes();
-
-         log_line("Restarting processes. Done.");
-
-         uTimeToAdjustAffinities = get_current_timestamp_ms() + 6000;
-         s_failCountProcessRouter = 0;
-         s_failCountProcessTelemetry = 0;
-         s_failCountProcessCommands = 0;
-         s_failCountProcessRC = 0;
          bMustRestart = false;
       }
    }
 
    log_line_watchdog("Received request to quit. Stopping watchdog.");
-    
+
+   if ( NULL != g_pSemaphoreRestart )
+       sem_close(g_pSemaphoreRestart);
+   g_pSemaphoreRestart = NULL;
+
    shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_ROUTER_TX, s_pProcessStatsRouter);
    shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_TELEMETRY_TX, s_pProcessStatsTelemetry);
    shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_COMMANDS_RX, s_pProcessStatsCommands);

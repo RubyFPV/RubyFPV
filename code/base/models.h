@@ -45,12 +45,12 @@ typedef struct
    u8 vstab; // on/off
    u8 ev;    // -10 to 10, 0 default, translated to 1...21, default 11
    u16 iso; // 100 - 800, 0 for off
-   u16 shutterspeed; // in 1/x of a second, 0 for off, min is 30, max is 30000 (1/30 to 1/30000);
-      // For IMX415 OpenIPC is exposure in miliseconds
+   short int iShutterSpeed; // in 1/x of a second, 0 for off, negative for auto, min is 30, max is 30000 (1/30 to 1/30000);
+      // For IMX415 OpenIPC is exposure in miliseconds, negative is auto
    u8 wdr; // used for IMX327 camera for WDR mode
    u8 dayNightMode; // 0 - day mode, 1 - night mode, only for Veye cameras
    u8 hue; // 0...100
-   u8 dummyCamP[1];
+   u32 uDummyCamP;
 } camera_profile_parameters_t;
 
 typedef struct
@@ -76,7 +76,7 @@ typedef struct
    int iRemovePPSVideoFrames;
    int iInsertPPSVideoFrames;
    int iInsertSPTVideoFramesTimings;
-   int dummyV1;
+   int uDummyV1;
    u32 lowestAllowedAdaptiveVideoBitrate;
    u32 uMaxAutoKeyframeIntervalMs; // in milisec
    u32 uVideoExtraFlags; // Check VIDEO_FLAG_* enum
@@ -86,6 +86,7 @@ typedef struct
     // bit 3: retransmissions are started fast/aggresive
     // bit 4: 1 to enable H265, 0 to enable H264
     // bit 5: 1 to enable new adaptive video algorithm, 0 - use default one
+    // bit 6: enable focus mode: bars
 
 } video_parameters_t;
 
@@ -93,57 +94,63 @@ typedef struct
 typedef struct
 {
    u32 uProfileFlags;
-      // VIDEO_PROFILE_FLAGS_* constants
-      // bit 0-1: 3d noise: 0,1, or 2 (auto)
-      // bit 2: use higher level radio data rates
-      // bit 3-4: higher datarate boost
+     // VIDEO_PROFILE_FLAGS_* constants in flags_video.h
+     // byte 0:
+     //   bit 0-1: 3d noise: 0,1, or 2 (auto) VIDEO_PROFILE_FLAGS_MASK_NOISE
+     //   bit 2: use higher level radio data rates
+     //   bit 3-4: higher datarate boost
+     //   bit 5  - use lower DR for EC packets
+     //   bit 6  - use lower DR for retr packets
+     // byte 1:
+     //   bit 0-4 - retransmissions guard time (ms)
+     //   bit 5  - retransmissions: normal (0)/aggresive(1)
+     //   bit 6  - lower QPDelta on low link quality
+     //   bit 7  - high strength on lower QPDelta (see above, bit 6)
 
    u32 uProfileEncodingFlags; // same as radio video packet uProfileEncodingFlags
-   // VIDEO_PROFILE_ENCODING_FLAG_* constants
-   // byte 0:
-   //    bit 0..2  - scramble blocks count
-   //    bit 3     - enables restransmission of missing packets
-   //    bit 4     - enable adaptive video keyframe interval
-   //    bit 5     - enable adaptive video link params
-   //    bit 6     - use controller info too when adjusting video link params
-   //    bit 7     - go lower adaptive video profile when controller link lost
+     // VIDEO_PROFILE_ENCODING_FLAG_* constants in flags_video.h
+     // byte 0:
+     //    bit 0..2  - scramble blocks count
+     //    bit 3     - enables restransmission of missing packets
+     //    bit 4     - enable adaptive video keyframe interval
+     //    bit 5     - enable adaptive video link params
+     //    bit 6     - use controller info too when adjusting video link params
+     //    bit 7     - go lower adaptive video profile when controller link lost
 
-   // byte 1:   - max time to wait for retransmissions (in ms*5)// affects rx buffers size
-   // byte 2:   - retransmission duplication percent (0-100%), 0xFF = auto, bit 0..3 - regular packets duplication, bit 4..7 - retransmitted packets duplication
-   // byte 3:
-   //    bit 0  - use medium adaptive video
-   //    bit 1  - enable video auto quantization
-   //    bit 2  - video auto quantization strength
-   //    bit 3  - one way video link
-   //    bit 4  - video profile should use EC scheme as auto;
-   //    bit 5,6 - EC scheme spreading factor (0...3)
-   //    bit 7  - try to keep constant video bitrate when it fluctuates
+     // byte 1:   - max time to wait for retransmissions (in ms*5)// affects rx buffers size
+     // byte 2:   - retransmission duplication percent (0-100%), 0xFF = auto, bit 0..3 - regular packets duplication, bit 4..7 - retransmitted packets duplication
+     // byte 3:
+     //    bit 0  - use medium adaptive video
+     //    bit 1  - enable video auto quantization
+     //    bit 2  - video auto quantization strength
+     //    bit 3  - one way video link
+     //    bit 4  - video profile should use EC scheme as auto;
+     //    bit 5,6 - EC scheme spreading factor (0...3)
+     //    bit 7  - try to keep constant video bitrate when it fluctuates
 
    int iAdaptiveAdjustmentStrength; // 1..10 (from 10% to 100% strength)
    u32 uAdaptiveWeights;
    //    byte 0: 0...3: RSSI, 4...7: SNR, 0 for disabled
    //    byte 1: 0...3: retransmissions, 4...7 rx lost packets
    //    byte 2: 0...3: EC used, 4..7: max EC used
+   //    byte 3: 0...3: time for metrics to be above level, in order to switch higher. In 100 ms intervals, multiplied with strength too.
 
-   
-   u32 dummyVP6;
    int h264profile; // 0 = baseline, 1 = main, 2 = high
    int h264level; //0 = 4.0, 1 = 4.1, 2 = 4.2
    int h264refresh; // 0 = cyclic, 1 = adaptive, 2 = both, 3 = cyclicrows
    int h264quantization; // 0 - auto, // pozitive - value to use, // negative - value when disabled (auto)
    int iIPQuantizationDelta;
 
-   int dummyVP1;
-   int dummyVP2;
+   int iDefaultFPS; // Default FPS to set, if any (>0), when switching to this video profile
+   int iDefaultLinkLoad; // In percentages, 0...100 (0 - use radio link setting)
    int iBlockDataPackets;
    int iBlockECs;
    int iECPercentage; // In percentages (0...100%)
    int video_data_length;
-   int keyframe_ms;
-   // v 7.7: changed keyframe to miliseconds instead of frames count
-   int dummyVP3;
+   int iKeyframeMS; // positive: fixed, negative: auto
    u32 bitrate_fixed_bps; // in bits/second, 0 for auto
-
+   u32 uDummyVP1;
+   u32 uDummyVP2;
 } type_video_link_profile;
 
 
@@ -205,8 +212,8 @@ typedef struct
    int isRelayEnabledOnRadioLinkId; // negative: disabled, positive: radioLinkId 
    u32 uRelayFrequencyKhz;
    u32 uRelayedVehicleId;
-   u32 uRelayCapabilitiesFlags;
-   u8  uCurrentRelayMode;
+   u32 uRelayCapabilitiesFlags; // see RELAY_CAPABILITY_* in flags.h
+   u8  uCurrentRelayMode; // see RELAY_MODE_* in flags.h
 } type_relay_parameters;
 
 #define RC_TRANSLATION_TYPE_NONE 0
@@ -218,7 +225,6 @@ typedef struct
    bool rc_enabled;
    int rc_frames_per_second;
    int rc_failsafe_timeout_ms;
-   bool dummy1;
    int receiver_type;
    int inputType; // RC input type on the controller: 0 none, 1 usb, 2 ibus/sbus, see config_rc.h enum
    int inputSerialPort;
@@ -255,7 +261,6 @@ typedef struct
           // bit 0: output to FC enabled
    u32 rcChAssignmentThrotleReverse;
    int iRCTranslationType;
-   u32 rcDummy[8];
 } rc_parameters_t;
 
 
@@ -268,27 +273,14 @@ typedef struct
 typedef struct
 {
    int fc_telemetry_type; // 0 = None, 1 = MAVLink, 2 == LTM, 3 == MSP
-
    int iVideoBitrateHistoryGraphSampleInterval;
-   u32 dummy2;
-
-   int dummy5;
-   u32 dummy6;
-
-   bool bDummyTL1;
-   bool bDummyTL2;
-   int iDummyTL3;
-   int dummy3;
-   u32 dummy4;
-
-   int update_rate; // times per second
+   u32 uDummyT1;
+   int iUpdateRateHz; // times per second
    int vehicle_mavlink_id;
    int controller_mavlink_id;
    u32 flags; // see flags.h for TELEMETRY_FLAGS_[ID] values
               // rx only, request data streams, spectator, send full mavlink/ltm packets to controller etc
               // usb uarts present (0,1,2)
-
-   int dummy;
 } telemetry_parameters_t;
 
 typedef struct
@@ -385,7 +377,7 @@ typedef struct
    u32 uChannels25FreqSwitch[3];
    u32 uChannels58FreqSwitch[3];
 
-   u32 dummy[12];
+   u32 uDummyF[8];
 
 } type_functions_parameters;
 
@@ -405,12 +397,7 @@ typedef struct
       //  bit 2: tx pit mode enable: arm/disarm
       //  bit 3: tx pit mode enable: temperature
    
-   int iDummyR4;
-   int iDummyR5;
-   int iDummyR6;
-   int iDummyR7;
-   int iDummyR8;
-   int iDummyR9;
+   int iDummyR1;
 
    int  interfaces_count;
    int  interface_card_model[MAX_RADIO_INTERFACES]; // 0 or positive - autodetected, negative - user set
@@ -423,15 +410,18 @@ typedef struct
    u32  interface_capabilities_flags[MAX_RADIO_INTERFACES]; // what the card is used for: video/data/relay/tx/rx
    u32  interface_current_frequency_khz[MAX_RADIO_INTERFACES]; // current frequency for this card
    u32  interface_current_radio_flags[MAX_RADIO_INTERFACES]; // radio flags: legacy/MCS datarate type, frame type, STBC, LDP, MCS etc
-   
-   int  interface_dummy2[MAX_RADIO_INTERFACES];
-
 } type_radio_interfaces_parameters;
 
 
 typedef struct
 {
    int links_count;
+   int iSiKPacketSize;
+   u32 uGlobalRadioLinksFlags; // See MODEL_RADIOLINKS_FLAGS_... in base/flags.h
+   // bit 0 - none, 1 - disable uplinks
+   // bit 1 - bypass sockets buffers
+   // bit 2 - has negotiated links;
+
    u32 link_frequency_khz[MAX_RADIO_INTERFACES];
    u32 link_capabilities_flags[MAX_RADIO_INTERFACES]; // data/video/both? rxtx/rx only/tx only
    u32 link_radio_flags[MAX_RADIO_INTERFACES]; // radio flags: legacy/MCS datarate type, frame type, STBC, LDP, MCS, SIK flags, etc
@@ -439,26 +429,18 @@ typedef struct
    int downlink_datarate_data_bps[MAX_RADIO_INTERFACES]; // 0: auto, -100: lowest, positive: bps, negative (-1 or less): MCS rate
 
    u8  uSerialPacketSize[MAX_RADIO_INTERFACES]; // packet size over air for serial radio links
-   u32 uDummy2[MAX_RADIO_INTERFACES];
+   u32 uDummyR1[MAX_RADIO_INTERFACES];
    int uplink_datarate_video_bps[MAX_RADIO_INTERFACES]; // 0: auto, -100: lowest, positive: bps, negative (-1 or less): MCS rate
    int uplink_datarate_data_bps[MAX_RADIO_INTERFACES]; // 0: auto, -100: lowest, positive: bps, negative (-1 or less): MCS rate
-
    u8  uMaxLinkLoadPercent[MAX_RADIO_INTERFACES];
-   u8  uDummyR2[MAX_RADIO_INTERFACES];
-   int iSiKPacketSize;
-   u32 uGlobalRadioLinksFlags; // See MODEL_RADIOLINKS_FLAGS_... in base/flags.h
-   // bit 0 - none, 1 - disable uplinks
-   // bit 1 - bypass sockets buffers
-   // bit 2 - has negotiated links;
-   
-   u32 uDummyRadio[7];
+
 } type_radio_links_parameters;
 
 #define MODEL_MAX_STORED_QUALITIES_LINKS 3
 #define MODEL_MAX_STORED_QUALITIES_VALUES 9
 typedef struct
 {
-   u8 uFlagsRuntimeCapab;
+   u8 uFlagsRuntimeCapab; // see flags.h MODEL_RUNTIME_*
    // bit 0: computed
    // bit 1: dirty
 
@@ -491,26 +473,33 @@ typedef struct
    u32 uDummy;
 } type_logging_parameters;
 
-#define PROCESSES_FLAGS_BALANCE_INT_CORES ((u32)(((u32)0x01)<<1))
-
 typedef struct
 {
-   int iNiceRC;
-   int iNiceRouter; // negative value; 0 for disabled/auto
-   int ioNiceRouter;
-   int iNiceTelemetry;
-   int iNiceVideo; // negative value; 0 - disabled/auto
-   int ioNiceVideo; // 0 or negative - disabled;
-   int iNiceOthers;
+   u32 uProcessesFlags; // see enum in flags.h
    int iOverVoltage; // 0 or negative - disabled, negative - default value
    int iFreqARM; // 0 or negative - disabled; in Mhz
    int iFreqGPU;
       // Pi: 0 or negative - disabled; in Mhz
       // OIPC: 0 or negative - default; positive: boosted
-   int iThreadPriorityRouter; // 0 - disabled, 1...99, higher number - higher priority
-   int iThreadPriorityRadioRx; // 0 - disabled, 1...99, higher number - higher priority
-   int iThreadPriorityRadioTx; // 0 - disabled, 1...99, higher number - higher priority
-   u32 uProcessesFlags;
+
+   int iThreadPriorityRouter; // 0,1 - disabled, 2...100: rt, 101-139: nice, lower number - higher priority
+   int iThreadPriorityRadioRx;
+   int iThreadPriorityRadioTx;
+   int iThreadPriorityVideoCapture;
+   int iThreadPriorityRC;
+   int iThreadPriorityTelemetry;
+   int iThreadPriorityOthers;
+   
+   int ioNiceRouter; // 0 or negative - disabled;
+   int ioNiceVideo; // 0 or negative - disabled;
+
+   int iCoreRadioRx; // -1 for disabled
+   int iCoreRouter;
+   int iCoreVideoCapture;
+   int iCoreTelemetry;
+   int iCoreCommands;
+   int iCoreRC;
+   int iCoreOthers;
 } type_processes_priorities;
 
 
@@ -525,8 +514,8 @@ typedef struct
    // byte 1: threshold temp (C)
    
    u32 uRubyBaseVersion;
-   int dummyhwc[1];
-   u32 dummyhwc2[3];
+   u32 uDummyHW1;
+   u32 uDummyHW2;
 } type_hardware_capabilities;
 
 class Model
@@ -636,9 +625,13 @@ class Model
       void populateRadioInterfacesInfoFromHardware();
       void populateDefaultRadioLinksInfoFromRadioInterfaces();
       bool check_update_radio_links();
+      void check_detect_board_type();
       void resetToDefaults(bool generateId);
+      void resetAllSettingsKeepPairing(bool bResetFreq);
       void resetAudioParams();
       void resetHWCapabilities();
+      void resetProcessesParams();
+      void disableProcessesParams();
       void resetRadioLinksParams();
       void resetRadioCapabilitiesRuntime(type_radio_runtime_capabilities_parameters* pRTInfo);
       void resetOSDFlags(int iScreen = -1);
@@ -660,9 +653,11 @@ class Model
       int logVehicleRadioLinkDifferences(const char* szPrefix, type_radio_links_parameters* pData1, type_radio_links_parameters* pData2);
       
       bool find_and_validate_camera_settings();
-      bool validate_fps_and_exposure_settings(camera_profile_parameters_t* pCameraProfile);
+      bool validate_fps_and_exposure_settings(camera_profile_parameters_t* pCameraProfile, bool bFullForce);
+      bool validate_profiles_max_video_bitrate();
       bool validate_settings();
       bool validateRadioSettings();
+      bool validateProcessesParams();
 
       int getRadioInterfaceIndexForRadioLink(int iRadioLink);
       bool canSwapEnabledHighCapacityRadioInterfaces();
@@ -704,15 +699,17 @@ class Model
       u32 getMaxVideoBitrateSupportedForCurrentRadioLinks();
       u32 getMaxVideoBitrateSupportedForRadioLinks(type_radio_links_parameters* pRadioLinksParams, video_parameters_t* pVideoParams, type_video_link_profile* pVideoProfiles);
       u32 getMaxVideoBitrateForRadioDatarate(int iRadioDatarateBPS, int iRadioLinkIndex);
+      u32 getUsableVideoBitrateFromTotalBitrate(u32 uTotalBitrate, u32 uLoadPercent);
       int getRadioDataRateForVideoBitrate(u32 uVideoBitrateBPS, int iRadioLinkIndex);
       void setDefaultVideoBitrate();
       
       void getCameraFlags(char* szCameraFlags);
-      void getVideoFlags(char* szVideoFlags, int iVideoProfile, u32 uOverwriteVideoBPS, int iOverwriteKeyframeMS);
-      void populateVehicleTelemetryData_v5(t_packet_header_ruby_telemetry_extended_v5* pPHRTE);
+      u32 getVideoFlags(char* szVideoFlags, int iVideoProfile, u32 uOverwriteVideoBPS, int iOverwriteKeyframeMS);
+      void populateVehicleTelemetryData_v6(t_packet_header_ruby_telemetry_extended_v6* pPHRTE);
       void populateFromVehicleTelemetryData_v3(t_packet_header_ruby_telemetry_extended_v3* pPHRTE);
       void populateFromVehicleTelemetryData_v4(t_packet_header_ruby_telemetry_extended_v4* pPHRTE);
       void populateFromVehicleTelemetryData_v5(t_packet_header_ruby_telemetry_extended_v5* pPHRTE);
+      void populateFromVehicleTelemetryData_v6(t_packet_header_ruby_telemetry_extended_v6* pPHRTE);
       void setTelemetryTypeAndPort(int iTelemetryType, int iSerialPort, int iSerialSpeed);
       void syncModelSerialPortsToHardwareSerialPorts();
 
@@ -742,7 +739,8 @@ class Model
 
       void generateUID();
       bool loadVersion10(FILE* fd); // from 7.6
-      bool saveVersion10(FILE* fd, bool isOnController); // from 7.6
+      bool loadVersion11(FILE* fd); // from 11.5
+      bool saveVersion11(FILE* fd, bool isOnController); // from 11.5
 };
 
 const char* model_getShortFlightMode(u8 mode);
@@ -755,3 +753,4 @@ u32 get_sw_version_major(Model* pModel);
 u32 get_sw_version_minor(Model* pModel);
 u32 get_sw_version_build(Model* pModel);
 int is_sw_version_atleast(Model* pModel, int iMajor, int iMinor);
+int is_sw_version_latest(Model* pModel);

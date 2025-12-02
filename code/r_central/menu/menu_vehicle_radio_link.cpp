@@ -40,13 +40,14 @@
 #include "../../common/models_connect_frequencies.h"
 #include "../launchers_controller.h"
 #include "../link_watch.h"
+#include "../osd/osd_common.h"
 #include "../../radio/radiolink.h"
 #include "../../base/tx_powers.h"
 
 const char* s_szMenuRadio_SingleCard2 = "Note: You can not change the usage and capabilities of the radio link as there is a single radio link on your vehicle.";
 
 MenuVehicleRadioLink::MenuVehicleRadioLink(int iRadioLink)
-:Menu(MENU_ID_VEHICLE_RADIO_LINK, "Vehicle Radio Link Parameters", NULL)
+:Menu(MENU_ID_VEHICLE_RADIO_LINK, L("Vehicle Radio Link Parameters"), NULL)
 {
    m_Width = 0.46;
    m_xPos = menu_get_XStartPos(m_Width);
@@ -76,7 +77,7 @@ MenuVehicleRadioLink::MenuVehicleRadioLink(int iRadioLink)
 
    char szBuff[256];
 
-   sprintf(szBuff, "Vehicle Radio Link %d Parameters", m_iVehicleRadioLink+1);
+   sprintf(szBuff, L("Vehicle Radio Link %d Parameters"), m_iVehicleRadioLink+1);
    setTitle(szBuff);
 
    m_iVehicleRadioInterface = g_pCurrentModel->getRadioInterfaceIndexForRadioLink(m_iVehicleRadioLink);
@@ -115,6 +116,9 @@ void MenuVehicleRadioLink::onShow()
    invalidate();
    log_line("Showed radio link menu for radio link %d", m_iVehicleRadioLink+1);
    addMenuItems();
+
+   if ( !(g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS) )
+      addMessageWithTitleAndIcon(0, L("Radio Not Calibrated"), L("You have not run the radio link wizard to compute the actual capabilities of your radio hardware. It's recommended you run the Radio Wizard firt before manually changing radio settings."), g_idIconRadio);
 }
 
 void MenuVehicleRadioLink::addMenuItems()
@@ -247,11 +251,10 @@ void MenuVehicleRadioLink::addMenuItemFrequencies()
 
 void MenuVehicleRadioLink::addMenuItemsCapabilities()
 {
-   ControllerSettings* pCS = get_ControllerSettings();
    m_IndexMaxLoad = -1;
-   if ( pCS->iDeveloperMode )
+   //if ( g_pControllerSettings->iDeveloperMode )
    {
-      m_pItemsSelect[7] = new MenuItemSelect("Max link load", "Selects maximum data load on this radio link.");
+      m_pItemsSelect[7] = new MenuItemSelect(L("Max Link Load"), L("Selects maximum data load on this radio link. Higher values increases the video bitrate capacity but decreases the radio link quality/resilience."));
       m_pItemsSelect[7]->addSelection("10%");
       m_pItemsSelect[7]->addSelection("20%");
       m_pItemsSelect[7]->addSelection("30%");
@@ -263,7 +266,7 @@ void MenuVehicleRadioLink::addMenuItemsCapabilities()
       m_pItemsSelect[7]->addSelection("90%");
       m_pItemsSelect[7]->setIsEditable();
       m_IndexMaxLoad = addMenuItem(m_pItemsSelect[7]);
-      m_pMenuItems[m_IndexMaxLoad]->setTextColor(get_Color_Dev());
+      //m_pMenuItems[m_IndexMaxLoad]->setTextColor(get_Color_Dev());
    }
 
    if ( 1 == g_pCurrentModel->radioInterfacesParams.interfaces_count )
@@ -343,7 +346,7 @@ void MenuVehicleRadioLink::addMenuItemsCapabilities()
 void MenuVehicleRadioLink::addMenuItemsDataRates()
 {
    char szBuff[128];
-
+   char szText[128];
    addSection(L("Radio Modulations"));
 
    if ( ! is_vehicle_radio_link_used(g_pCurrentModel, &g_SM_RadioStats, m_iVehicleRadioLink) )
@@ -375,7 +378,17 @@ void MenuVehicleRadioLink::addMenuItemsDataRates()
       for( int i=0; i<=MAX_MCS_INDEX; i++ )
       {
          str_getDataRateDescription(-1-i, 0, szBuff);
-         m_pItemsSelect[3]->addSelection(szBuff);
+         if ( (!(g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS)) ||
+              (m_iVehicleRadioLink != 0) )
+            snprintf(szText, sizeof(szText)/sizeof(szText[0]), "%s", szBuff);
+         else
+         {
+            if ( i < MODEL_MAX_STORED_QUALITIES_VALUES )
+               snprintf(szText, sizeof(szText)/sizeof(szText[0]), "%s Q: %.1f%%", szBuff, g_pCurrentModel->radioRuntimeCapabilities.fQualitiesMCS[m_iVehicleRadioLink][i]*100.0);
+            else
+               snprintf(szText, sizeof(szText)/sizeof(szText[0]), "%s Q: N/A", szBuff);
+         }
+         m_pItemsSelect[3]->addSelection(szText);
          if ( g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[m_iVehicleRadioLink] == (-1-i) )
              iSelectedIndex = i+1;
       }
@@ -385,7 +398,17 @@ void MenuVehicleRadioLink::addMenuItemsDataRates()
       for( int i=0; i<getDataRatesCount(); i++ )
       {
          str_getDataRateDescription(getDataRatesBPS()[i], 0, szBuff);
-         m_pItemsSelect[3]->addSelection(szBuff);
+         if ( (!(g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS)) ||
+              (m_iVehicleRadioLink != 0) )
+            snprintf(szText, sizeof(szText)/sizeof(szText[0]), "%s", szBuff);
+         else
+         {
+            if ( i < MODEL_MAX_STORED_QUALITIES_VALUES )
+               snprintf(szText, sizeof(szText)/sizeof(szText[0]), "%s Q: %.1f%%", szBuff, g_pCurrentModel->radioRuntimeCapabilities.fQualitiesLegacy[m_iVehicleRadioLink][i]*100.0);
+            else
+               snprintf(szText, sizeof(szText)/sizeof(szText[0]), "%s Q: N/A", szBuff);
+         }
+         m_pItemsSelect[3]->addSelection(szText);
          if ( g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[m_iVehicleRadioLink] == getDataRatesBPS()[i] )
             iSelectedIndex = i+1;
       }
@@ -653,14 +676,6 @@ void MenuVehicleRadioLink::sendRadioLinkCapabilities(int iRadioLink)
 
 void MenuVehicleRadioLink::sendRadioLinkConfig(int iRadioLink)
 {
-   if ( (get_sw_version_major(g_pCurrentModel) < 9) ||
-        ((get_sw_version_major(g_pCurrentModel) == 9) && (get_sw_version_minor(g_pCurrentModel) <= 20)) )
-   {
-      addMessageWithTitle(0, "Can't update radio links", "You need to update your vehicle to version 9.2 or newer");
-      addMenuItems();
-      return;
-   }
-
    type_radio_links_parameters newRadioLinkParams;
    memcpy((u8*)&newRadioLinkParams, (u8*)&(g_pCurrentModel->radioLinksParams), sizeof(type_radio_links_parameters));
    
@@ -1150,13 +1165,6 @@ void MenuVehicleRadioLink::onSelectItem()
          addMenuItems();
       }
 
-      if ( (get_sw_version_major(g_pCurrentModel) < 9) ||
-           ((get_sw_version_major(g_pCurrentModel) == 9) && (get_sw_version_minor(g_pCurrentModel) <= 20)) )
-      {
-         addMessageWithTitle(0, "Can't update radio links", "You need to update your vehicle to version 9.2 or newer");
-         addMenuItems();
-         return;
-      }
       sendNewRadioLinkFrequency(m_iVehicleRadioLink, freq);
       return;
    }

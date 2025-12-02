@@ -26,6 +26,8 @@ class MenuVehicleVideo: public Menu
       int m_IndexBidirectional;
       int m_IndexVideoBitrate;
       int m_IndexVideoProfile;
+      int m_IndexSaveVideoProfile;
+      int m_IndexCompareProfiles;
       int m_IndexVideoCodec;
       int m_IndexExpert;
       int m_IndexVideoLinkMode;
@@ -44,4 +46,5 @@ class MenuVehicleVideo: public Menu
 
       bool m_bShowCompact;
       bool m_bShowCustomFPS;
+      bool m_bShowProfileSelectorInline;
 };

@@ -23,6 +23,7 @@ class ProcessorTxAudio
       int stopLocalRecording();
       
       int tryReadAudioInputStream();
+      int getPendingAudioPackets();
       void sendAudioPackets();
 
    protected:

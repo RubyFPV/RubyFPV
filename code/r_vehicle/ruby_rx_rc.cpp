@@ -11,9 +11,9 @@
         * Redistributions in binary form (partially or complete) must reproduce
         the above copyright notice, this list of conditions and the following disclaimer
         in the documentation and/or other materials provided with the distribution.
-         * Copyright info and developer info must be preserved as is in the user
+        * Copyright info and developer info must be preserved as is in the user
         interface, additions could be made to that info.
-       * Neither the name of the organization nor the
+        * Neither the name of the organization nor the
         names of its contributors may be used to endorse or promote products
         derived from this software without specific prior written permission.
         * Military use is not permitted.
@@ -32,6 +32,7 @@
 
 #include "../base/base.h"
 #include "../base/hardware.h"
+#include "../base/hardware_procs.h"
 #ifdef HW_PLATFORM_RASPBERRY
 #include "../base/hardware_procs.h"
 #endif
@@ -129,6 +130,14 @@ void on_failsafe_cleared()
    s_pPHDownstreamInfoRC->is_failsafe = 0;
 }
 
+void handle_sigint_rc(int sig) 
+{ 
+   log_line("--------------------------");
+   log_line("Caught signal to stop: %d", sig);
+   log_line("--------------------------");
+   g_bQuit = true;
+}
+
 int r_start_rx_rc(int argc, char *argv[])
 {
    log_init("RX_RC");
@@ -137,6 +146,9 @@ int r_start_rx_rc(int argc, char *argv[])
    if ( strcmp(argv[argc-1], "-debug") == 0 )
       log_enable_stdout();
 
+   signal(SIGINT, handle_sigint_rc);
+   signal(SIGTERM, handle_sigint_rc);
+   signal(SIGQUIT, handle_sigint_rc);
    
    s_fIPC_FromRouter = ruby_open_ipc_channel_read_endpoint(IPC_CHANNEL_TYPE_ROUTER_TO_RC);
    if ( s_fIPC_FromRouter < 0 )
@@ -155,19 +167,20 @@ int r_start_rx_rc(int argc, char *argv[])
       return -1;
    } 
    
-   s_pSemaphoreStop = sem_open(SEMAPHORE_STOP_RX_RC, O_CREAT, S_IWUSR | S_IRUSR, 0);
-   if ( NULL == s_pSemaphoreStop )
-      log_error_and_alarm("Failed to open semaphore: %s", SEMAPHORE_STOP_RX_RC);
+   s_pSemaphoreStop = sem_open(SEMAPHORE_STOP_VEHICLE_RC_RX, O_CREAT, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL == s_pSemaphoreStop) || (SEM_FAILED == s_pSemaphoreStop) )
+      log_error_and_alarm("Failed to open semaphore: %s", SEMAPHORE_STOP_VEHICLE_RC_RX);
    else
-      log_line("Opened semaphore for signaling stop.");
+      log_line("Opened semaphore for watching for stop signal.");
 
    if ( sModelVehicle.uDeveloperFlags & DEVELOPER_FLAGS_BIT_LOG_ONLY_ERRORS )
       log_only_errors();
 
-   #ifdef HW_PLATFORM_RASPBERRY
-   hw_set_priority_current_proc(sModelVehicle.processesPriorities.iNiceRC);   
-   #endif
-   
+   if ( sModelVehicle.processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS )
+      hw_set_priority_current_proc(sModelVehicle.processesPriorities.iThreadPriorityRC);
+   if ( sModelVehicle.processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_AFFINITY_CORES )
+      hw_set_current_thread_affinity("rc_rx", sModelVehicle.processesPriorities.iCoreRC, sModelVehicle.processesPriorities.iCoreRC);
+  
    s_pPHDownstreamInfoRC = shared_mem_rc_downstream_info_open_write();
    if ( NULL == s_pPHDownstreamInfoRC )
       log_softerror_and_alarm("Failed to open RC Download info shared memory for write.");
@@ -219,13 +232,9 @@ int r_start_rx_rc(int argc, char *argv[])
       if ( iSleepIntervalMS < 50 )
          iSleepIntervalMS += 10;
 
-      int val = 0;
-      if ( NULL != s_pSemaphoreStop )
-      if ( 0 == sem_getvalue(s_pSemaphoreStop, &val) )
-      if ( 0 < val )
-      if ( EAGAIN != sem_trywait(s_pSemaphoreStop) )
+      if ( is_semaphore_signaled_clear(s_pSemaphoreStop, SEMAPHORE_STOP_VEHICLE_RC_RX) )
       {
-         log_line("Semaphore to stop is set.");
+         log_line("Semaphore to stop is set. Quit now.");
          g_bQuit = true;
          break;
       }
@@ -299,19 +308,23 @@ int r_start_rx_rc(int argc, char *argv[])
          if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_RUBY )
          if ( pPH->packet_type == PACKET_TYPE_RUBY_PAIRING_REQUEST )
          {
+            u32 uResendCount = 0;
+            if ( pPH->total_length >= sizeof(t_packet_header) + sizeof(u32) )
+               memcpy(&uResendCount, &(s_BufferRCFromRouter[sizeof(t_packet_header)]), sizeof(u32));
+
             if ( pPH->total_length >= sizeof(t_packet_header) + 2*sizeof(u32) )
                memcpy(&sModelVehicle.uDeveloperFlags, &(s_BufferRCFromRouter[sizeof(t_packet_header) + sizeof(u32)]), sizeof(u32));
 
             if ( pPH->total_length >= sizeof(t_packet_header) + 3*sizeof(u32) )
                memcpy(&sModelVehicle.uControllerBoardType, &(s_BufferRCFromRouter[sizeof(t_packet_header) + 2*sizeof(u32)]), sizeof(u32));
 
+            log_line("Pairing request: Currently stored controller ID: %u / %u", g_uControllerId, sModelVehicle.uControllerId);
+            log_line("Received pairing request from router (received resend count: %u). From CID %u to VID %u (%s). Developer mode: %s. Updating local model.",
+               uResendCount, pPH->vehicle_id_src, pPH->vehicle_id_dest, (pPH->vehicle_id_dest == sModelVehicle.uVehicleId)?"self":"not self", (g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE)?"on":"off");
+
             g_uControllerId = pPH->vehicle_id_src;
-            log_line("Received pairing request from router. CID: %u, VID: %u. Developer mode: %s. Updating local model.",
-               pPH->vehicle_id_src, pPH->vehicle_id_dest, (sModelVehicle.uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE)?"on":"off");
+
             sModelVehicle.uControllerId = pPH->vehicle_id_src;
-            if ( sModelVehicle.relay_params.isRelayEnabledOnRadioLinkId >= 0 )
-            if ( sModelVehicle.relay_params.uRelayedVehicleId != 0 )
-               sModelVehicle.relay_params.uCurrentRelayMode = RELAY_MODE_MAIN | RELAY_MODE_IS_RELAY_NODE;
          }
 
          if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_LOCAL_CONTROL )
@@ -410,6 +423,7 @@ int r_start_rx_rc(int argc, char *argv[])
  
    if ( NULL != s_pSemaphoreStop )
       sem_close(s_pSemaphoreStop);
+   sem_unlink(SEMAPHORE_STOP_VEHICLE_RC_RX);
 
    log_line("Stopped.Exit");
    log_line("-----------------------");

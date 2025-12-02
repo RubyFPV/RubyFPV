@@ -273,7 +273,7 @@ void MenuVehicles::Render()
    float fFavoriteHeight = 1.2*g_pRenderEngine->textHeight(g_idFontMenu);
    float fFavoriteWidth = fFavoriteHeight / g_pRenderEngine->getAspectRatio();
 
-   bool bBlendingEnabled = g_pRenderEngine->isRectBlendingEnabled();
+   bool bAlphaEnabled = g_pRenderEngine->isAlphaEnabled();
 
    int iCountVehicles = getControllerModelsCount();
    if ( m_bShowSpectator )
@@ -302,7 +302,7 @@ void MenuVehicles::Render()
             g_pRenderEngine->drawIcon(xFav, y0-dy, fFavoriteWidth, fFavoriteHeight, g_idIconFavorite);
       }
    }
-   g_pRenderEngine->setRectBlendingEnabled(bBlendingEnabled);
+   g_pRenderEngine->setAlphaEnabled(bAlphaEnabled);
    RenderEnd(yTop);
 }
 

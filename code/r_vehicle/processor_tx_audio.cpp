@@ -421,6 +421,13 @@ void ProcessorTxAudio::_sendAudioPacket(u8* pBuffer, int iLength, u32 uAudioPack
    send_packet_to_radio_interfaces(packet, PH.total_length, -1);
 }
 
+int ProcessorTxAudio::getPendingAudioPackets()
+{
+   if ( (NULL == g_pCurrentModel) || (! g_pCurrentModel->isAudioCapableAndEnabled()) )
+      return 0;
+   return m_pBuffers->getUnsendPacketsCount();
+}
+
 void ProcessorTxAudio::sendAudioPackets()
 {
    if ( (NULL == g_pCurrentModel) || (! g_pCurrentModel->isAudioCapableAndEnabled()) )

@@ -35,6 +35,7 @@
 #include "../base/ruby_ipc.h"
 #include "../base/radio_utils.h"
 #include "../base/hardware_camera.h"
+#include "../base/hardware_procs.h"
 #include "../radio/radiopackets2.h"
 #include "../radio/radio_rx.h"
 #include "../radio/radio_tx.h"
@@ -110,8 +111,11 @@ void _test_link_end_and_notify()
    }
    if ( (iCountDiff > 0) || s_bTestLinkCurrentTestSucceeded )
    {
+      bool bUpdated = g_pCurrentModel->validate_profiles_max_video_bitrate();
       u32 uMaxVideoBitrate = g_pCurrentModel->getMaxVideoBitrateSupportedForCurrentRadioLinks();
       if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps > uMaxVideoBitrate )
+         bUpdated = true;
+      if ( bUpdated )
       {
          log_line("[TestLink-%d] Must adjust current video profile bitrate (%.2f Mbps) to max allowed on current links: %.1f Mbps",
             s_iTestLinkCurrentRunCount,
@@ -120,6 +124,8 @@ void _test_link_end_and_notify()
          type_video_link_profile oldVideoLinkProfiles[MAX_VIDEO_LINK_PROFILES];
          memcpy(&(oldVideoLinkProfiles[0]), &(g_pCurrentModel->video_link_profiles[0]), MAX_VIDEO_LINK_PROFILES*sizeof(type_video_link_profile));
          g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps = uMaxVideoBitrate;
+         if ( g_pCurrentModel->validate_profiles_max_video_bitrate() )
+            log_line("[TestLink-%d] Video bitrate was adjusted again to match max allowed on links");
          video_sources_on_changed_video_params(&(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].iCurrentProfile]), &(g_pCurrentModel->video_params), &oldVideoLinkProfiles[0]);
          log_line("[TestLink-%d] Done adjusting current video profile bitrate (%.1f Mbps) to max allowed on current links: %.1f Mbps",
             s_iTestLinkCurrentRunCount,
@@ -136,6 +142,7 @@ void _test_link_end_and_notify()
       s_uOriginalVideoBitrate = 0;
    }
 
+   log_line("[TestLink-%d] Notify other components to reload model (end test)", s_iTestLinkCurrentRunCount);
    t_packet_header PH;
    radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_LOCAL_CONTROL_MODEL_CHANGED, STREAM_ID_DATA);
    PH.vehicle_id_src = PACKET_COMPONENT_RUBY | (MODEL_CHANGED_RADIO_LINK_PARAMS<<8) | (((u32)s_iTestLinkIndex)<<16);
@@ -294,6 +301,7 @@ void _test_link_reopen_interfaces()
 static void * _thread_test_link_worker_apply(void *argument)
 {
    log_line("[TestLink-%d] Started worker thread to update radio interfaces for vehicle radio link %d.", s_iTestLinkCurrentRunCount, s_iTestLinkIndex+1);
+   hw_log_current_thread_attributes("test link apply");
    char szPrefix[32];
    sprintf(szPrefix, "[TestLink-%d]", s_iTestLinkCurrentRunCount);
    g_pCurrentModel->logVehicleRadioLinkDifferences(szPrefix, &s_RadioLinksParamsOriginal, &s_RadioLinksParamsToTest);
@@ -309,6 +317,7 @@ static void * _thread_test_link_worker_apply(void *argument)
 static void * _thread_test_link_worker_revert(void *argument)
 {
    log_line("[TestLink-%d] Started worker thread to revert radio interfaces for vehicle radio link %d.", s_iTestLinkCurrentRunCount, s_iTestLinkIndex+1);
+   hw_log_current_thread_attributes("test link revert");
    char szPrefix[32];
    sprintf(szPrefix, "[TestLink-%d]", s_iTestLinkCurrentRunCount);   
    g_pCurrentModel->logVehicleRadioLinkDifferences(szPrefix, &s_RadioLinksParamsToTest, &s_RadioLinksParamsOriginal);

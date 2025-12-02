@@ -1,5 +1,6 @@
 #pragma once
 #include "../base/base.h"
+#include <pcap.h>
 #ifdef __cplusplus
 extern "C" {
 #endif 

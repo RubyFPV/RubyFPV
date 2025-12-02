@@ -1851,11 +1851,33 @@ void _render_osd_left_right()
    }
 
    if ( s_bDebugOSDShowAll || (pActiveModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_RADIO_LINKS) || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_VEHICLE_RADIO_LINKS) )
-      for( int iRadioLink=0; iRadioLink<g_SM_RadioStats.countLocalRadioLinks; iRadioLink++ )
+   {
+      for( int iVehicleRadioLink=g_pCurrentModel->radioLinksParams.links_count-1; iVehicleRadioLink >= 0; iVehicleRadioLink-- )
       {
-         y += osd_show_local_radio_link_new(1.0 - osd_getMarginX() - osd_getVerticalBarWidth() ,y, iRadioLink, false);
+         if ( g_pCurrentModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLink] & RADIO_HW_CAPABILITY_FLAG_DISABLED )
+            continue;
+         if ( (g_pCurrentModel->relay_params.uRelayedVehicleId == 0) || (g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId != iVehicleRadioLink) )
+            continue;
+         y += osd_show_relay_radio_link_new(1.0 - osd_getMarginX() - osd_getVerticalBarWidth() ,y, iVehicleRadioLink, false);
          y += 2.0*vSpacing;
       }
+
+      for( int iVehicleRadioLink=g_pCurrentModel->radioLinksParams.links_count-1; iVehicleRadioLink >= 0; iVehicleRadioLink-- )
+      {
+         if ( g_pCurrentModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLink] & RADIO_HW_CAPABILITY_FLAG_DISABLED )
+            continue;
+         if ( (g_pCurrentModel->relay_params.uRelayedVehicleId != 0) && (g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId == iVehicleRadioLink) )
+            continue;
+         for( int iLocalRadioLink=0; iLocalRadioLink < g_SM_RadioStats.countLocalRadioLinks; iLocalRadioLink++ )
+         {
+            if ( g_SM_RadioStats.radio_links[iLocalRadioLink].matchingVehicleRadioLinkId == iVehicleRadioLink )
+            {
+               y += osd_show_local_radio_link_new(1.0 - osd_getMarginX() - osd_getVerticalBarWidth() ,y, iLocalRadioLink, false);
+               y += 2.0*vSpacing;
+            }
+         }
+      }
+   }
 
    if ( s_bDebugOSDShowAll || (pActiveModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_VIDEO_MODE) )
    {
@@ -1887,7 +1909,12 @@ void _render_osd_left_right()
       if ( link_has_received_videostream(uVehicleIdVideo) && (NULL != pVDS) )
       {
          if ( pActiveModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_VIDEO_MODE )
-            sprintf(szBuff, "%d fps", pVDS->iCurrentVideoFPS); 
+         {
+            if ( (pVDS->iCurrentVideoFPS - pActiveModel->video_params.iVideoFPS > 3) || (pVDS->iCurrentVideoFPS - pActiveModel->video_params.iVideoFPS < -3) )
+               sprintf(szBuff, "*%d fps", pVDS->iCurrentVideoFPS);
+            else
+               sprintf(szBuff, "%d fps", pVDS->iCurrentVideoFPS);
+         }
       }
       else
          sprintf(szBuff, "[waiting]");
@@ -2210,6 +2237,18 @@ void osd_render_elements()
       {
          if ( g_pCurrentModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLink] & RADIO_HW_CAPABILITY_FLAG_DISABLED )
             continue;
+         if ( (g_pCurrentModel->relay_params.uRelayedVehicleId == 0) || (g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId != iVehicleRadioLink) )
+            continue;
+         x -= osd_show_relay_radio_link_new(x,osd_getMarginY() + 0.5*osd_getSpacingV(), iVehicleRadioLink, true);
+         x -= osd_getSpacingH();
+      }
+
+      for( int iVehicleRadioLink=g_pCurrentModel->radioLinksParams.links_count-1; iVehicleRadioLink >= 0; iVehicleRadioLink-- )
+      {
+         if ( g_pCurrentModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLink] & RADIO_HW_CAPABILITY_FLAG_DISABLED )
+            continue;
+         if ( (g_pCurrentModel->relay_params.uRelayedVehicleId !=  0) && (g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId == iVehicleRadioLink) )
+            continue;
          for( int iLocalRadioLink=0; iLocalRadioLink < g_SM_RadioStats.countLocalRadioLinks; iLocalRadioLink++ )
          {
             if ( g_SM_RadioStats.radio_links[iLocalRadioLink].matchingVehicleRadioLinkId == iVehicleRadioLink )
@@ -2250,7 +2289,10 @@ void osd_render_elements()
          strcpy(szBuff, "N/A");
       else if ( link_has_received_videostream(uVehicleIdVideo) )
       {
-         sprintf(szBuff, "%s %d fps", getOptionVideoResolutionName(pVDS->iCurrentVideoWidth, pVDS->iCurrentVideoHeight), pVDS->iCurrentVideoFPS);
+         if ( (pVDS->iCurrentVideoFPS - pActiveModel->video_params.iVideoFPS > 3) || (pVDS->iCurrentVideoFPS - pActiveModel->video_params.iVideoFPS < -3) )
+            sprintf(szBuff, "%s *%d fps", getOptionVideoResolutionName(pVDS->iCurrentVideoWidth, pVDS->iCurrentVideoHeight), pVDS->iCurrentVideoFPS);
+         else
+            sprintf(szBuff, "%s %d fps", getOptionVideoResolutionName(pVDS->iCurrentVideoWidth, pVDS->iCurrentVideoHeight), pVDS->iCurrentVideoFPS);
       }
       else
          sprintf(szBuff, "[waiting]");
@@ -2888,7 +2930,7 @@ void osd_render_all()
       if ( pModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MSP )
       if ( pModel->osd_params.osd_flags3[osd_get_current_layout_index()] & OSD_FLAG3_RENDER_MSP_OSD )
       if ( pModel->osd_params.osd_layout_preset[osd_get_current_layout_index()] != OSD_PRESET_NONE )
-      if ( ! g_bDebugStats )
+      if ( 0 == g_pControllerSettings->iEnableDebugStats )
          _osd_render_msp(pModel);
       osd_render_elements();
    }
@@ -2898,7 +2940,7 @@ void osd_render_all()
    set_Color_OSDOutline( p->iColorOSDOutline[0], p->iColorOSDOutline[1], p->iColorOSDOutline[2], ((float)p->iColorOSDOutline[3])/100.0);
    osd_set_colors();
 
-   if ( ! g_bDebugStats )
+   if ( 0 == g_pControllerSettings->iEnableDebugStats )
    {
       if ( pModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_LAYOUT_ENABLED )
          osd_render_instruments();
@@ -2908,7 +2950,7 @@ void osd_render_all()
    }
    g_pRenderEngine->drawBackgroundBoundingBoxes(false);
 
-   if ( ! g_bDebugStats )
+   if ( 0 == g_pControllerSettings->iEnableDebugStats )
    {
       if ( pModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_LAYOUT_ENABLED )
          osd_render_stats();
@@ -2916,8 +2958,12 @@ void osd_render_all()
       osd_render_warnings();
    }
 
-   if ( g_bDebugStats )
+   if ( g_pControllerSettings->iEnableDebugStats )
       osd_render_debug_stats();
+
+   ControllerSettings* pCS = get_ControllerSettings();
+   if ( pCS->iDbgPingGraphs )
+      osd_reder_debug_ping_stats();
 
    if ( pModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_LAYOUT_ENABLED )
    if ( (NULL != p) && (p->iShowProcessesMonitor) )

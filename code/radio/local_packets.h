@@ -9,12 +9,12 @@
 
 #define PACKET_TYPE_LOCAL_CONTROL_PAUSE_VIDEO 151
 #define PACKET_TYPE_LOCAL_CONTROL_RESUME_VIDEO 152
-//#define DEPRECATED 153
+#define PACKET_TYPE_LOCAL_CONTROL_PREFERENCES_UPDATED 153
 #define PACKET_TYPE_LOCAL_CONTROL_MODEL_CHANGED 154  // vehicle_id_src is the component id that triggered the change (first byte) and the type of change (second byte)
 #define PACKET_TYPE_LOCAL_CONTROL_PAUSE_RESUME_AUDIO 155 // vehicle_id_dest: 1: pause, 0: resume
 #define PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED 157  // vehicle_id_src is the component id that triggered the change
 #define PACKET_TYPE_TEST_ADAPTIVE_VIDEO 158 // vehicle_id_src: 0/1 to enable/disable test
-#define PACKET_TYPE_LOCAL_CONTROL_REBOOT 160  // vehicle_id_src is the component id that triggered the change
+#define PACKET_TYPE_LOCAL_CONTROL_REBOOT 160  // vehicle_id_src is the component id that triggered the change, vehicle_id_dest: 0/1 save model
 #define PACKET_TYPE_LOCAL_CONTROL_UPDATE_STARTED 161
 #define PACKET_TYPE_LOCAL_CONTROL_UPDATE_STOPED 162
 #define PACKET_TYPE_LOCAL_CONTROL_UPDATE_FINISHED 163
@@ -22,7 +22,9 @@
 // u8: 0 - stop, 1 - start, 2 - processing recording, 0xff status message
 // 1 byte: warning, 0..N: status message, if present
 
-#define PACKET_TYPE_LOCAL_CONTROL_UPDATED_VIDEO_LINK_OVERWRITES 170 // sent by vehicle to other components locally to tell them the updated video link overwrites (a shared_mem_video_link_overwrites structure after header)
+#define PACKET_TYPE_LOCAL_CONTROL_LONG_TASK 169 // when router has a long blocking task to do. vehicle_id_src: 1 started task, 0 finished task
+
+//#define deprecated in 11.6 PACKET_TYPE_LOCAL_CONTROL_UPDATED_VIDEO_LINK_OVERWRITES 170 // sent by vehicle to other components locally to tell them the updated video link overwrites (a shared_mem_video_link_overwrites structure after header)
 
 #define PACKET_TYPE_LOCAL_CONTROL_RELAY_MODE_SWITCHED 171 // vehicle_id_src is the new relay mode
 
@@ -62,7 +64,7 @@
 
 #define PACEKT_TYPE_LOCAL_CONTROLLER_ADAPTIVE_VIDEO_PAUSE 208 // vehicle_id_src: source vehicle; vehicle_id_dest: timeout to pause adaptive video (int milisec) or zero to resume or 0xFFFFFFFF to reset adaptive state
 
-#define PACKET_TYPE_LOCAL_CONTROL_VEHICLE_VIDEO_PROFILE_SWITCHED 216 // vehicle_id_dest contains the new video profile used right now
+//#define deprecated in 11.6 PACKET_TYPE_LOCAL_CONTROL_VEHICLE_VIDEO_PROFILE_SWITCHED 216 // vehicle_id_dest contains the new video profile used right now
 #define PACKET_TYPE_LOCAL_CONTROL_VEHICLE_ROUTER_READY 220
 #define PACKET_TYPE_LOCAL_CONTROL_VEHICLE_SET_SIK_RADIO_SERIAL_SPEED 221 // vehicle_id_src is the index of the radio interface, vehicle_id_dest is the baudrate to use to connect to radio (old baud rate)
 #define PACKET_TYPE_LOCAL_CONTROL_VEHICLE_SEND_MODEL_SETTINGS 222

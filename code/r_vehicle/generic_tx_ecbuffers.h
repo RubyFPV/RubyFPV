@@ -25,6 +25,7 @@ class GenericTxECBuffers
 
       void init(int iMaxBlocks, bool bEnableCRC, u32 uDataPackets, u32 uECPackets, int iPacketLength);
       int addData(u8* pData, int iDataLength);
+      int getUnsendPacketsCount();
       type_generic_tx_ec_packet* getMarkFirstUnsendPacket(u32* puBlockIndex, int* piBufferIndex, int* piPacketIndex);
       u8* getPacket(u32 uBlockIndex, u32 uPacketIndex, int* piOutputSize);
       void markPacketAsSent(int iBufferIndex, u32 uPacketIndex);

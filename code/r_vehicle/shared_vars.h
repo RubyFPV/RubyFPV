@@ -12,10 +12,6 @@
 #include "processor_tx_video.h"
 #include "video_tx_buffers.h"
 
-// Define this to get profile logs about receiving and processing rx packets times
-#define PROFILE_RX 1
-#define PROFILE_RX_MAX_TIME 10
-
 #define ROUTER_STATE_RUNNING 1
 #define ROUTER_STATE_NEEDS_RESTART_VIDEO_CAPTURE (1<<1)
 
@@ -62,7 +58,6 @@ extern t_packet_queue g_QueueRadioPacketsOut;
 extern VideoTxPacketsBuffer* g_pVideoTxBuffers;
 extern ProcessorTxVideo* g_pProcessorTxVideo;
 extern ProcessorTxAudio* g_pProcessorTxAudio;
-extern int g_iDefaultRouterThreadPriority;
 
 extern bool g_bRadioReinitialized;
 extern shared_mem_radio_stats g_SM_RadioStats;
@@ -101,4 +96,6 @@ extern int g_iDebugShowKeyFramesAfterRelaySwitch;
 extern int g_iGetSiKConfigAsyncResult;
 extern int g_iGetSiKConfigAsyncRadioInterfaceIndex;
 extern u8 g_uGetSiKConfigAsyncVehicleLinkIndex;
+
+extern bool g_bLongTaskStarted;
 

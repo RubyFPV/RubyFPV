@@ -584,16 +584,16 @@ void MenuVehicleSimpleSetup::renderSearch()
    float fHeight = (m_RenderYPos + m_RenderHeight - m_RenderFooterHeight - m_sfMenuPaddingY) - yPos;
 
    float fAlpha = g_pRenderEngine->setGlobalAlfa(0.9);
-   bool bBlending = g_pRenderEngine->isRectBlendingEnabled();
-   g_pRenderEngine->enableRectBlending();
+   bool bAlpha = g_pRenderEngine->isAlphaEnabled();
+   g_pRenderEngine->enableAlpha();
    g_pRenderEngine->setColors(get_Color_MenuBg());
    //g_pRenderEngine->setStroke(get_Color_MenuText());
    g_pRenderEngine->setStroke(0,0,0,0);
    g_pRenderEngine->drawRoundRect(xPos - g_pRenderEngine->getPixelWidth(), yPos - g_pRenderEngine->getPixelHeight(), fWidth + 2.0 * g_pRenderEngine->getPixelWidth(), fHeight + 2.0*g_pRenderEngine->getPixelHeight(), 0.01*Menu::getMenuPaddingY());
-   if ( bBlending )
-      g_pRenderEngine->enableRectBlending();
+   if ( bAlpha )
+      g_pRenderEngine->enableAlpha();
    else
-      g_pRenderEngine->disableRectBlending();
+      g_pRenderEngine->disableAlpha();
    g_pRenderEngine->setGlobalAlfa(fAlpha);
 
    yPos += fHeight*0.3;
@@ -900,6 +900,12 @@ void MenuVehicleSimpleSetup::sendOSDToVehicle()
    memcpy(&params, &(g_pCurrentModel->osd_params), sizeof(osd_parameters_t));
    int iScreenIndex = g_pCurrentModel->osd_params.iCurrentOSDScreen;
 
+   log_line("MenuVehicleSimpleSetup: Sending OSD info, has mavlink telem? %s", (m_pItemsSelect[0]->getSelectedIndex() == 1)?"yes":"no");
+   if ( 1 == m_pItemsSelect[0]->getSelectedIndex() )
+      params.uFlags |= OSD_BIT_FLAGS_SHOW_FLIGHT_END_STATS;
+   else
+      params.uFlags &= ~OSD_BIT_FLAGS_SHOW_FLIGHT_END_STATS;
+
    params.osd_layout_preset[iScreenIndex] = m_pItemsSelect[2]->getSelectedIndex();
 
    if ( params.osd_layout_preset[iScreenIndex] < OSD_PRESET_DEFAULT )
@@ -1047,11 +1053,6 @@ void MenuVehicleSimpleSetup::onSelectItem()
 
    if ( (-1 != m_iIndexVideo) && (m_iIndexVideo == m_SelectedIndex) )
    {
-      if ( get_sw_version_build(g_pCurrentModel) < 289 )
-      {
-         addMessage(L("Video Settings have changed. You need to update your vehicle first."));
-         return;
-      }
       MenuVehicleVideo* pMenuVid = new MenuVehicleVideo();
       add_menu_to_stack(pMenuVid);
       return;
@@ -1178,13 +1179,6 @@ void MenuVehicleSimpleSetup::onSelectItem()
             char szBuff[256];
             sprintf(szBuff, "Not all radio interfaces on your controller support %s frequency. Some radio interfaces on the controller will not be used to communicate with this vehicle.", str_format_frequency(freq));
             add_menu_to_stack(new MenuConfirmation(L("Confirmation"), szBuff, 0, true));
-         }
-
-         if ( (get_sw_version_major(g_pCurrentModel) < 9) ||
-              ((get_sw_version_major(g_pCurrentModel) == 9) && (get_sw_version_minor(g_pCurrentModel) <= 20)) )
-         {
-            addMessageWithTitle(0, L("Can't update radio links"), L("You need to update your vehicle to version 9.2 or newer"));
-            return;
          }
 
          sendNewRadioLinkFrequency(i, freq);

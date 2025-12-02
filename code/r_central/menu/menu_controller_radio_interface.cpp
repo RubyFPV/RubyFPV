@@ -223,6 +223,7 @@ void MenuControllerRadioInterface::showProgressInfo()
    popups_add_topmost(m_pPopupProgress);
 
    g_pRenderEngine->startFrame();
+   render_background_and_paddings(false);
    popups_render();
    popups_render_topmost();
    g_pRenderEngine->endFrame();

@@ -31,6 +31,7 @@ class MenuControllerDev: public Menu
       int m_IndexCPULoad;
       int m_IndexFreezeOSD;
       int m_IndexStreamerMode;
+      int m_IndexWaitFullFrame;
       int m_IndexResetDev;
       int m_IndexExit;
 };

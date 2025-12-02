@@ -63,9 +63,79 @@ u32 s_StreamsTxPacketIndex[MAX_RADIO_STREAMS];
 u16 s_StreamsLastTxTime[MAX_RADIO_STREAMS];
 int s_LastSetAtherosCardsDatarates[MAX_RADIO_INTERFACES];
 int s_iLastComputedTxPowerMwPerRadioInterface[MAX_RADIO_INTERFACES];
-int s_iLastRawTxPowerPerRadioInterface[MAX_RADIO_INTERFACES];
 
 bool s_bFirstTimeLogTxAssignment = true;
+
+static pthread_t s_pThreadSetTxPower;
+static volatile bool s_bThreadSetTxPowerRunning = false;
+static pthread_mutex_t s_MutexSetRadioTxPower = PTHREAD_MUTEX_INITIALIZER;
+static sem_t* s_pSemaphoreSetTxPowerWrite = NULL;
+static sem_t* s_pSemaphoreSetTxPowerRead = NULL;
+static volatile int s_iLastRawTxPowerPerRadioInterface[MAX_RADIO_INTERFACES];
+
+
+void* _thread_set_tx_power_async(void *argument)
+{
+   sched_yield();
+   hw_log_current_thread_attributes("set tx power");
+
+   int iTmpRawTxPowerPerRadioInterface[MAX_RADIO_INTERFACES];
+   int iLastRawTxPowerPerRadioInterface[MAX_RADIO_INTERFACES];
+   for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
+      iLastRawTxPowerPerRadioInterface[i] = 0;
+
+   while ( s_bThreadSetTxPowerRunning )
+   {
+      int iRes = sem_wait(s_pSemaphoreSetTxPowerRead);
+
+      if ( 0 != iRes )
+      {
+         if ( ! s_bThreadSetTxPowerRunning )
+            break;
+         if ( errno != ETIMEDOUT )
+            log_softerror_and_alarm("Failed to wait tx pwoer semaphore, %d, %d, %s", iRes, errno, strerror(errno));
+         continue;
+      }
+      pthread_mutex_lock(&s_MutexSetRadioTxPower);
+      if ( ! s_bThreadSetTxPowerRunning )
+      {
+         pthread_mutex_unlock(&s_MutexSetRadioTxPower);
+         break;
+      }
+      memcpy((u8*)(&iTmpRawTxPowerPerRadioInterface[0]), (u8*)(&s_iLastRawTxPowerPerRadioInterface[0]), MAX_RADIO_INTERFACES*sizeof(int));
+      pthread_mutex_unlock(&s_MutexSetRadioTxPower);
+
+      for( int iInterface=0; iInterface<MAX_RADIO_INTERFACES; iInterface++ )
+      {
+         if ( 0 == iTmpRawTxPowerPerRadioInterface[iInterface] )
+            continue;
+
+         int iRawPower = iTmpRawTxPowerPerRadioInterface[iInterface];
+         if ( iRawPower < 0 )
+            iRawPower = -iRawPower;
+         if ( iRawPower == iLastRawTxPowerPerRadioInterface[iInterface] )
+            continue;
+
+         iLastRawTxPowerPerRadioInterface[iInterface] = iRawPower;
+         log_line("[ThreadTxPower] Set radio interface %d raw tx power to %d", iInterface, iRawPower);
+
+         radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(iInterface);
+         if ( (NULL == pRadioHWInfo) || (! pRadioHWInfo->isConfigurable) )
+            continue;
+
+         if ( hardware_radio_driver_is_rtl8812au_card(pRadioHWInfo->iRadioDriver) )
+            hardware_radio_set_txpower_raw_rtl8812au(iInterface, iRawPower);
+         if ( hardware_radio_driver_is_rtl8812eu_card(pRadioHWInfo->iRadioDriver) )
+            hardware_radio_set_txpower_raw_rtl8812eu(iInterface, iRawPower);
+         if ( hardware_radio_driver_is_rtl8733bu_card(pRadioHWInfo->iRadioDriver) )
+            hardware_radio_set_txpower_raw_rtl8733bu(iInterface, iRawPower);
+         if ( hardware_radio_driver_is_atheros_card(pRadioHWInfo->iRadioDriver) )
+            hardware_radio_set_txpower_raw_atheros(iInterface, iRawPower);
+      }
+   }
+   log_line("[ThreadTxPower] Thread ended.");
+   return NULL;
+}
 
 void packet_utils_init()
 {
@@ -80,6 +150,86 @@ void packet_utils_init()
       s_iLastRawTxPowerPerRadioInterface[i] = 0;
       s_iLastComputedTxPowerMwPerRadioInterface[i] = 0;
    }
+
+   s_pSemaphoreSetTxPowerWrite = sem_open(SEMAPHORE_SET_RADIO_TX_POWER, O_CREAT | O_RDWR, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL == s_pSemaphoreSetTxPowerWrite) || (SEM_FAILED == s_pSemaphoreSetTxPowerWrite) )
+   {
+      log_error_and_alarm("Failed to create write semaphore: %s, try alternative.", SEMAPHORE_SET_RADIO_TX_POWER);
+      s_pSemaphoreSetTxPowerWrite = sem_open(SEMAPHORE_SET_RADIO_TX_POWER, O_CREAT, S_IWUSR | S_IRUSR, 0); 
+      if ( (NULL == s_pSemaphoreSetTxPowerWrite) || (SEM_FAILED == s_pSemaphoreSetTxPowerWrite) )
+      {
+         log_error_and_alarm("Failed to create write semaphore: %s", SEMAPHORE_SET_RADIO_TX_POWER);
+         s_pSemaphoreSetTxPowerWrite = NULL;
+         return;
+      }
+   }
+   if ( (NULL != s_pSemaphoreSetTxPowerWrite) && (SEM_FAILED != s_pSemaphoreSetTxPowerWrite) )
+      log_line("Opened semaphore for signaling set radio tx power: (%s)", SEMAPHORE_SET_RADIO_TX_POWER);
+
+   s_pSemaphoreSetTxPowerRead = sem_open(SEMAPHORE_SET_RADIO_TX_POWER, O_RDWR);
+   if ( (NULL == s_pSemaphoreSetTxPowerRead) || (SEM_FAILED == s_pSemaphoreSetTxPowerRead) )
+   {
+      log_error_and_alarm("Failed to create read semaphore: %s, try alternative.", SEMAPHORE_SET_RADIO_TX_POWER);
+      s_pSemaphoreSetTxPowerRead = sem_open(SEMAPHORE_SET_RADIO_TX_POWER, O_CREAT, S_IWUSR | S_IRUSR, 0); 
+      if ( (NULL == s_pSemaphoreSetTxPowerRead) || (SEM_FAILED == s_pSemaphoreSetTxPowerRead) )
+      {
+         log_error_and_alarm("Failed to create read semaphore: %s", SEMAPHORE_SET_RADIO_TX_POWER);
+         s_pSemaphoreSetTxPowerRead = NULL;
+         return;
+      }
+   }
+   if ( (NULL != s_pSemaphoreSetTxPowerRead) && (SEM_FAILED != s_pSemaphoreSetTxPowerRead) )
+      log_line("Opened semaphore for checking set radio tx power: (%s)", SEMAPHORE_SET_RADIO_TX_POWER);
+
+   int iSemVal = 0;
+   if ( 0 == sem_getvalue(s_pSemaphoreSetTxPowerRead, &iSemVal) )
+      log_line("Semaphore set radio tx power initial value: %d", iSemVal);
+   else
+      log_softerror_and_alarm("Failed to get semaphore set radio tx power initial value.");
+
+   pthread_attr_t attr;
+   int iPrio = g_pControllerSettings->iThreadPriorityOthers;
+   if ( ! g_pControllerSettings->iPrioritiesAdjustment )
+      iPrio = -1;
+
+   if ( (iPrio > 1) && (iPrio < 100) )
+      hw_init_worker_thread_attrs(&attr, CORE_AFFINITY_OTHERS, -1, SCHED_FIFO, iPrio, "set tx power");
+   else
+      hw_init_worker_thread_attrs(&attr, CORE_AFFINITY_OTHERS, -1, SCHED_OTHER, 0, "set tx power");
+   if ( 0 != pthread_create(&s_pThreadSetTxPower, &attr, &_thread_set_tx_power_async, NULL) )
+   {
+      s_bThreadSetTxPowerRunning = false;
+      log_softerror_and_alarm("Failed to create thread to set tx power.");
+   }
+   else
+   {
+      s_bThreadSetTxPowerRunning = true;
+      log_line("Started thread to set tx power");
+   }
+   pthread_attr_destroy(&attr);
+}
+
+void packet_utils_uninit()
+{
+   if ( s_bThreadSetTxPowerRunning )
+   {
+      pthread_mutex_lock(&s_MutexSetRadioTxPower);
+      s_bThreadSetTxPowerRunning = false;
+      pthread_mutex_unlock(&s_MutexSetRadioTxPower);
+
+      if ( (NULL != s_pSemaphoreSetTxPowerWrite) && (0 != sem_post(s_pSemaphoreSetTxPowerWrite)) )
+         log_softerror_and_alarm("Failed to signal semaphore for quiting radio tx power.");
+
+      hardware_sleep_ms(50);
+   }
+
+   if ( NULL != s_pSemaphoreSetTxPowerWrite )
+      sem_close(s_pSemaphoreSetTxPowerWrite);
+   if ( NULL != s_pSemaphoreSetTxPowerRead )
+      sem_close(s_pSemaphoreSetTxPowerRead);
+   s_pSemaphoreSetTxPowerWrite = NULL;
+   s_pSemaphoreSetTxPowerRead = NULL;
+   sem_unlink(SEMAPHORE_SET_RADIO_TX_POWER);
 }
 
 void _computeBestTXCardsForEachLocalRadioLink(int* pIndexCardsForRadioLinks)
@@ -134,7 +284,6 @@ void _computeBestTXCardsForEachLocalRadioLink(int* pIndexCardsForRadioLinks)
          s_iLastComputedTxPowerMwPerRadioInterface[iRadioInterfaceIndex] = tx_power_compute_uplink_power_for_model_link(g_pCurrentModel, iVehicleRadioLinkId, iRadioInterfaceIndex, iCardModel);
       if ( isNegociatingRadioLink() )
          s_iLastComputedTxPowerMwPerRadioInterface[iRadioInterfaceIndex] = DEFAULT_TX_POWER_MW_NEGOCIATE_RADIO * 4;
-      //log_line("DBG computed tx power for card %d (%s) %s, radio link %d: %d mW", iRadioInterfaceIndex+1, str_get_radio_card_model_string(iCardModel), pRadioHWInfo->szName, iVehicleRadioLinkId+1, s_iLastComputedTxPowerMwPerRadioInterface[iRadioInterfaceIndex]);
    }
 
    int iCountRadioLinks = g_SM_RadioStats.countLocalRadioLinks;
@@ -271,35 +420,6 @@ void _computeBestTXCardsForEachLocalRadioLink(int* pIndexCardsForRadioLinks)
    s_bFirstTimeLogTxAssignment = false;
 }
 
-
-static pthread_t s_pThreadSetTxPower;
-static volatile bool s_bThreadSetTxPowerRunning = false;
-static int s_iThreadSetTxPowerInterfaceIndex = -1;
-static int s_iThreadSetTxPowerRawValue = 0;
-
-void* _thread_set_tx_power_async(void *argument)
-{
-   sched_yield();
-   s_bThreadSetTxPowerRunning = true;
-   log_line("[ThreadTxPower] Start: Set radio interface %d raw tx power to %d", s_iThreadSetTxPowerInterfaceIndex+1, s_iThreadSetTxPowerRawValue);
-   radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(s_iThreadSetTxPowerInterfaceIndex);
-   if ( ! pRadioHWInfo->isConfigurable )
-      return NULL;
-   if ( hardware_radio_driver_is_rtl8812au_card(pRadioHWInfo->iRadioDriver) )
-      hardware_radio_set_txpower_raw_rtl8812au(s_iThreadSetTxPowerInterfaceIndex, s_iThreadSetTxPowerRawValue);
-   if ( hardware_radio_driver_is_rtl8812eu_card(pRadioHWInfo->iRadioDriver) )
-      hardware_radio_set_txpower_raw_rtl8812eu(s_iThreadSetTxPowerInterfaceIndex, s_iThreadSetTxPowerRawValue);
-   if ( hardware_radio_driver_is_rtl8733bu_card(pRadioHWInfo->iRadioDriver) )
-      hardware_radio_set_txpower_raw_rtl8733bu(s_iThreadSetTxPowerInterfaceIndex, s_iThreadSetTxPowerRawValue);
-   if ( hardware_radio_driver_is_atheros_card(pRadioHWInfo->iRadioDriver) )
-      hardware_radio_set_txpower_raw_atheros(s_iThreadSetTxPowerInterfaceIndex, s_iThreadSetTxPowerRawValue);
-
-   log_line("[ThreadTxPower] End: Done setting radio interface %d raw tx power to %d", s_iThreadSetTxPowerInterfaceIndex+1, s_iThreadSetTxPowerRawValue);
-   s_bThreadSetTxPowerRunning = false;
-   return NULL;
-}
-
-
 // Return used datarate
 int _compute_packet_uplink_datarate_radioflags_tx_power(int iVehicleRadioLink, int iRadioInterfaceIndex, u8* pPacketData)
 {
@@ -398,23 +518,12 @@ int _compute_packet_uplink_datarate_radioflags_tx_power(int iVehicleRadioLink, i
    if ( iRadioInterfaceRawTxPowerToUse == s_iLastRawTxPowerPerRadioInterface[iRadioInterfaceIndex] )
       return iDataRateTx;
 
-   if ( s_bThreadSetTxPowerRunning )
-      return iDataRateTx;
-
-   s_bThreadSetTxPowerRunning = true;
+   pthread_mutex_lock(&s_MutexSetRadioTxPower);
    s_iLastRawTxPowerPerRadioInterface[iRadioInterfaceIndex] = iRadioInterfaceRawTxPowerToUse;
-   s_iThreadSetTxPowerInterfaceIndex = iRadioInterfaceIndex;
-   s_iThreadSetTxPowerRawValue = iRadioInterfaceRawTxPowerToUse;
+   pthread_mutex_unlock(&s_MutexSetRadioTxPower);
+   if ( 0 != sem_post(s_pSemaphoreSetTxPowerWrite) )
+      log_softerror_and_alarm("Failed to signal semaphore for updating radio tx power.");
 
-   pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "set tx power");
-   if ( 0 != pthread_create(&s_pThreadSetTxPower, &attr, &_thread_set_tx_power_async, NULL) )
-   {
-      pthread_attr_destroy(&attr);
-      s_bThreadSetTxPowerRunning = false;
-      return iDataRateTx;
-   }
-   pthread_attr_destroy(&attr);
    return iDataRateTx;
 }
 
@@ -516,13 +625,17 @@ bool _send_packet_to_wifi_radio_interface(int iLocalRadioLinkId, int iRadioInter
 
    bool bShouldDuplicate = false;
 
-   if ( (pPH->packet_type == PACKET_TYPE_VIDEO_REQ_MULTIPLE_PACKETS) ||
-        (pPH->packet_type == PACKET_TYPE_VIDEO_ADAPTIVE_VIDEO_PARAMS) )
+   if ( pPH->packet_type == PACKET_TYPE_VIDEO_ADAPTIVE_VIDEO_PARAMS )
+      bShouldDuplicate = true;
+   if ( pPH->packet_type == PACKET_TYPE_VIDEO_REQ_MULTIPLE_PACKETS )
    {
       Model* pModel = findModelWithId(pPH->vehicle_id_dest, 7);
       if ( NULL == pModel )
          pModel = g_pCurrentModel;
-      if ( (NULL != pModel) && (pModel->video_params.uVideoExtraFlags & VIDEO_FLAG_RETRANSMISSIONS_FAST) )
+      if ( (NULL != pModel) && (pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].uProfileFlags & VIDEO_PROFILE_FLAG_RETRANSMISSIONS_AGGRESIVE) )
+         bShouldDuplicate = true;
+      u8 uFlags = pPacketData[sizeof(t_packet_header) + sizeof(u32) + sizeof(u8)];
+      if ( uFlags & 0x01 )
          bShouldDuplicate = true;
    }
 

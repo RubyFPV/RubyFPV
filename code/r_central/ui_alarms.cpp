@@ -527,7 +527,7 @@ void alarms_add_from_vehicle(u32 uVehicleId, u32 uAlarms, u32 uFlags1, u32 uFlag
             p->addLine(szAlarmText2);
          if ( 0 != szAlarmText3[0] )
             p->addLine(szAlarmText3);
-         popups_add_topmost(p);
+         popups_add(p);
 
          if ( (uAlarms & ALARM_ID_VEHICLE_VIDEO_TX_OVERLOAD) || (uAlarms & ALARM_ID_VEHICLE_VIDEO_DATA_OVERLOAD) )
             g_pPopupVideoOverloadAlarm = p;
@@ -806,24 +806,18 @@ void alarms_add_from_local(u32 uAlarms, u32 uFlags1, u32 uFlags2)
       if ( ! bShow )
          return;
 
-      static u32 s_TimeLastCPUOverloadAlarmController = 0;
-
-      if ( g_TimeNow < s_TimeLastCPUOverloadAlarmController + 7000 )
+      u32 timeAvg = uFlags1 & 0xFFFF;
+      u32 timeMax = uFlags1 >> 16;
+      if ( timeMax > 0 )
       {
-         u32 timeAvg = uFlags1 & 0xFFFF;
-         u32 timeMax = uFlags1 >> 16;
-         if ( timeMax > 0 )
-         {
-            sprintf(szAlarmText, "Your controller had a CPU spike of %u miliseconds in it's loop processing.", timeMax );
-            sprintf(szAlarmText2, "If this is recurent, increase your CPU overclocking speed or reduce your data processing load (video bitrate).");
-         }
-         if ( timeAvg > 0 )
-         {
-            sprintf(szAlarmText, "Your controller had an CPU overload of %u miliseconds in it's loop processing.", timeAvg );
-            sprintf(szAlarmText2, "Increase your CPU overclocking speed or reduce your data processing load (video bitrate).");
-         }
+         sprintf(szAlarmText, "Your controller had a CPU spike of %u miliseconds in it's loop processing.", timeMax );
+         sprintf(szAlarmText2, "If this is recurent, increase your CPU overclocking speed or reduce your data processing load (video bitrate).");
       }
-      s_TimeLastCPUOverloadAlarmController = g_TimeNow;
+      if ( timeAvg > 0 )
+      {
+         sprintf(szAlarmText, "Your controller had an CPU overload of %u miliseconds in it's loop processing.", timeAvg );
+         sprintf(szAlarmText2, "Increase your CPU overclocking speed or reduce your data processing load (video bitrate).");
+      }
    }
 
    if ( uAlarms & ALARM_ID_CONTROLLER_CPU_LOOP_OVERLOAD_RECORDING )
@@ -932,19 +926,13 @@ void alarms_add_from_local(u32 uAlarms, u32 uFlags1, u32 uFlags2)
             }
             bool bHasCamera = false;
             log_line("Vehicle has %d cameras.", pModel->iCameraCount);
-            if ( (pModel->sw_version >>16) < 79 ) // 7.7
-            {
-               bHasCamera = true;
-               log_line("Vehicle (VID %u) has software older than 7.7. Assume camera present.");
-            }
-            else if ( pModel->iCameraCount > 0 )
+            if ( pModel->iCameraCount > 0 )
             {
                bHasCamera = true;
                log_line("Vehicle has %d cameras.", pModel->iCameraCount);
             }
 
             if ( -1 != iIndexRuntime )
-            if ( (pModel->sw_version >>16) > 79 ) // 7.7
             if ( g_VehiclesRuntimeInfo[iIndexRuntime].bGotRubyTelemetryInfo )
             {
                if ( !( g_VehiclesRuntimeInfo[iIndexRuntime].headerRubyTelemetryExtended.uRubyFlags & FLAG_RUBY_TELEMETRY_VEHICLE_HAS_CAMERA) )
@@ -978,7 +966,7 @@ void alarms_add_from_local(u32 uAlarms, u32 uFlags1, u32 uFlags2)
             p->addLine(szAlarmText2);
          if ( 0 != szAlarmText3[0] )
             p->addLine(szAlarmText3);
-         popups_add_topmost(p);
+         popups_add(p);
       }
    }
 }

@@ -66,7 +66,10 @@ MenuControllerJoystick::MenuControllerJoystick(int joystickIndex)
    m_pItemsRange[0]->setSufix("%");
    m_IndexCenterBand = addMenuItem(m_pItemsRange[0]);
 
+   m_IndexCalibrate = -1;
+   #if defined (HW_PLATFORM_RASPBERRY )
    m_IndexCalibrate = addMenuItem(new MenuItem("Calibrate", "Starts a calibration of the center position and travel ranges for all sticks, pots and joysticks."));
+   #endif
 
    m_pJoystick = controllerInterfacesGetAt(m_JoystickIndex);
    hardware_open_joystick( m_pJoystick->currentHardwareIndex );
@@ -209,6 +212,9 @@ void MenuControllerJoystick::Render()
    y += MENU_ITEM_SPACING*height_text;
 
    m_topTextHeight = 0;
+   #if defined (HW_PLATFORM_RADXA)
+   m_topTextHeight += 1.2*g_pRenderEngine->drawMessageLines(m_xPos+m_sfMenuPaddingX, y+m_topTextHeight, "This device is calibrated. You can use this input device.", MENU_TEXTLINE_SPACING, getUsableWidth(), g_idFontMenu);
+   #else
    if ( m_bCalibrationComplete )
        m_topTextHeight += 1.2*g_pRenderEngine->drawMessageLines(m_xPos+m_sfMenuPaddingX, y+m_topTextHeight, "Calibration Complete. You can now use this input device.", MENU_TEXTLINE_SPACING, getUsableWidth(), g_idFontMenu);
    else if ( m_bCalibrationCanceled )
@@ -223,7 +229,7 @@ void MenuControllerJoystick::Render()
        m_topTextHeight += 1.2*g_pRenderEngine->drawMessageLines(m_xPos+m_sfMenuPaddingX, y+m_topTextHeight, "[Calibrating Axes]: Move all the sticks, pots and joysticks as far as they can move on all directions, toggle all buttons in all positions if they have multiple positions;  then press the [Menu/Ok] key when done. Press [Cancel/Back] key to cancel the calibration.", MENU_TEXTLINE_SPACING, getUsableWidth(), g_idFontMenuSmall);
    else if ( (NULL != m_pJoystick) && (! m_pJoystick->bCalibrated) )
        m_topTextHeight += 1.2*g_pRenderEngine->drawMessageLines(m_xPos+m_sfMenuPaddingX, y+m_topTextHeight, "This input device is not calibrated! Calibrate it before you can use it.", MENU_TEXTLINE_SPACING, getUsableWidth(), g_idFontMenu);
-
+   #endif
    y += (1.7+2.0)*height_text;
    
    if ( NULL == m_pJoystick )
@@ -385,7 +391,7 @@ void MenuControllerJoystick::onSelectItem()
    if ( m_IndexBack == m_SelectedIndex )
       menu_stack_pop(0);   
 
-   if ( m_IndexCalibrate == m_SelectedIndex )
+   if ( (-1 != m_IndexCalibrate) && (m_IndexCalibrate == m_SelectedIndex) )
    {
       m_pMenuItems[0]->setEnabled(false);
       m_pMenuItems[1]->setEnabled(false);
@@ -423,7 +429,7 @@ void MenuControllerJoystick::onSelectItem()
    }
 
    if ( NULL != m_pJoystick )
-   if ( m_IndexCenterBand == m_SelectedIndex && ! m_pMenuItems[m_IndexCenterBand]->isEditing() )
+   if ( (m_IndexCenterBand == m_SelectedIndex) && (! m_pMenuItems[m_IndexCenterBand]->isEditing()) )
    {
       for( int i=0; i<m_pJoystick->countAxes; i++ )
          m_pJoystick->axesCenterZone[i] = m_pItemsRange[0]->getCurrentValue()*10.0;

@@ -77,13 +77,99 @@ u32 s_CountProcessTelemetryFailures = 0;
 u32 s_CountTelemetryLostCount = 0;
 
 bool s_bLinkWatchIsRCOutputEnabled = false;
-
 bool s_bLinkWatchShownSwitchVehicleMenu = false;
+
+
+bool s_bLinkWatchThreadRunning = false;
+bool s_bLinkWatchMarkedRestartNeeded = false;
+bool s_bLinkWatchPermanentProcessesError = false;
+
+void* _thread_link_watch(void *argument)
+{
+   log_line("Started link watch thread...");
+   s_bLinkWatchMarkedRestartNeeded = false;
+   s_bLinkWatchThreadRunning = true;
+   if ( g_pControllerSettings->iPrioritiesAdjustment )
+      hw_set_current_thread_raw_priority("link_watch", g_pControllerSettings->iThreadPriorityOthers);
+   hw_log_current_thread_attributes("link_watch");
+
+   char szOutput[4096];
+   u32 uTimeLastCheck = 0;
+
+   while ( (! g_bQuit) && (! s_bLinkWatchPermanentProcessesError) )
+   {
+      u32 uTime = get_current_timestamp_ms();
+      if ( (uTime < uTimeLastCheck + 5000) || s_bLinkWatchMarkedRestartNeeded )
+      {
+         hardware_sleep_ms(500);
+         continue;
+      }
+      uTimeLastCheck = uTime;
+      s_bLinkWatchMarkedRestartNeeded = false;
+
+      szOutput[0] = 0;
+      hw_execute_bash_command_silent("dmesg | grep \"USB disconnect\"", szOutput);
+      if ( NULL == strstr(szOutput, "USB disconnect") )
+      {
+        hw_execute_bash_command_silent("dmesg -C", NULL);
+        continue;
+      }
+      
+      log_line("USB disconnect detected. Check radio interfaces...");
+      int iCurrentRadioInterfacesCount = hardware_get_radio_interfaces_count();
+      int iCurrentRadioInterfacesIEEECount = 0;
+      for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
+      {
+         if ( hardware_radio_index_is_wifi_radio(i) )
+            iCurrentRadioInterfacesIEEECount++;
+      }
+      log_line("Cached radio config has %d interfaces, of which %d are wifi/IEEEE", iCurrentRadioInterfacesCount, iCurrentRadioInterfacesIEEECount);
+      int iNewRadioInterfacesIEEECount = hardware_radio_get_class_net_adapters_count();
+      log_line("Hardware radio IEEE interfaces detected: %d", iNewRadioInterfacesIEEECount);
+      if ( iNewRadioInterfacesIEEECount != iCurrentRadioInterfacesIEEECount )
+      {
+         log_error_and_alarm("Radio interfaces count has changed. One or more radio interfaces broke.");
+         if ( menu_has_menu(MENU_ID_NEGOCIATE_RADIO) || link_is_reconfiguring_radiolink() )
+         {
+            log_softerror_and_alarm("Test link params or negociate radio link is in progress. Postpone the restart.");
+         }
+         else
+         {
+            s_bLinkWatchMarkedRestartNeeded = true;
+            hw_execute_bash_command_silent("dmesg -C", NULL);
+         }
+      }
+      else
+         hw_execute_bash_command_silent("dmesg -C", NULL);
+   }
+
+   log_line("Finished link watch thread.");
+   s_bLinkWatchThreadRunning = false;
+   return NULL;
+}
 
 void link_watch_init()
 {
-   log_line("Link watch init.");
+   log_line("Link watch init...");
    s_CountTelemetryLostCount = 0;
+
+   pthread_t pth;
+   pthread_attr_t attr;
+   hw_init_worker_thread_attrs(&attr, (g_pControllerSettings->iCoresAdjustment?CORE_AFFINITY_OTHERS:-1), -1, SCHED_OTHER, 0, "link_watch");
+   pthread_create(&pth, &attr, &_thread_link_watch, NULL);
+   pthread_attr_destroy(&attr);
+
+   log_line("Link watch init complete.");
+}
+
+void link_watch_uninit()
+{
+   log_line("Link watch uninit...");
+   while ( s_bLinkWatchThreadRunning )
+   {
+      hardware_sleep_ms(50);
+   }
+   log_line("Link watch uninit complete.");
 }
 
 void link_watch_reset()
@@ -276,20 +362,29 @@ void link_watch_loop_popup_looking()
 
 void link_watch_loop_unexpected_vehicles()
 {
+   // First time ever pairing was not done, then ignore this.
+   if ( ! g_bFirstModelPairingDone )
+      return;
+
    // If we just paired, wait for router ready
    if ( g_bSearching || (!g_bIsRouterReady) || (NULL == g_pCurrentModel) )
       return;
 
    if ( g_bSwitchingFavoriteVehicle )
       return;
-     
+   if ( g_uTimeLastRelaySettingsChanged != 0 )
+   {
+      if ( g_TimeNow < g_uTimeLastRelaySettingsChanged + 2000 )
+         return;
+      else if ( 0 != g_uTimeLastRelaySettingsChanged )
+      {
+         g_uTimeLastRelaySettingsChanged = 0;
+         reset_vehicle_runtime_info(&g_UnexpectedVehicleRuntimeInfo);
+         return;
+      }
+   } 
    // Did not received any info from no unexpected vehicles? Then do nothing.
    if ( ! g_UnexpectedVehicleRuntimeInfo.bGotRubyTelemetryInfo )
-      return;
-
-   // First time ever pairing was not done, then ignore this.
-
-   if( ! g_bFirstModelPairingDone )
       return;
 
    Model* pModelTemp = NULL;
@@ -570,7 +665,7 @@ void link_watch_loop_telemetry()
       if ( g_VehiclesRuntimeInfo[i].bGotRubyTelemetryInfo || g_VehiclesRuntimeInfo[i].bGotFCTelemetry )
       {
          u32 uMaxLostTime = TIMEOUT_TELEMETRY_LOST;
-         if (  g_VehiclesRuntimeInfo[i].pModel->telemetry_params.update_rate > 10 )
+         if (  g_VehiclesRuntimeInfo[i].pModel->telemetry_params.iUpdateRateHz > 10 )
             uMaxLostTime = TIMEOUT_TELEMETRY_LOST/2;
          if ( link_is_reconfiguring_radiolink() )
             uMaxLostTime += 2000;
@@ -662,7 +757,7 @@ void link_watch_loop_telemetry()
       if ( g_VehiclesRuntimeInfo[i].bGotRubyTelemetryInfo )
       {
          u32 uMaxLostTime = TIMEOUT_TELEMETRY_LOST;
-         if ( (NULL != g_VehiclesRuntimeInfo[i].pModel) && (g_VehiclesRuntimeInfo[i].pModel->telemetry_params.update_rate > 10) )
+         if ( (NULL != g_VehiclesRuntimeInfo[i].pModel) && (g_VehiclesRuntimeInfo[i].pModel->telemetry_params.iUpdateRateHz > 10) )
             uMaxLostTime = TIMEOUT_TELEMETRY_LOST/2;
          if ( link_is_reconfiguring_radiolink() )
             uMaxLostTime += 2000;
@@ -731,8 +826,6 @@ int link_watch_loop_processes()
 
    char szOutput[4096];
 
-   static bool s_bLinkWatchPermanentProcessesError = false;
-
    if ( ! s_bLinkWatchPermanentProcessesError )
    if ( g_TimeNow > s_TimeLastProcessesCheck + 1000 )
    {
@@ -765,50 +858,7 @@ int link_watch_loop_processes()
             bNeedsRestart = true;
          }
 
-         static int s_iCheckUSBCount = 0;
-         s_iCheckUSBCount++;
-         bool bUSBDisconnected = false;
-
-         // To fix make faster or execute in bg
-         if ( ((s_iCheckUSBCount % 4) == 0) || bNeedsRestart )
-         {
-            szOutput[0] = 0;
-            hw_execute_bash_command_silent("dmesg | grep \"USB disconnect\"", szOutput);
-            if ( NULL != strstr(szOutput, "USB disconnect") )
-            {
-               log_line("USB disconnect detected. Check radio iterfaces...");
-               bUSBDisconnected = true;
-               int iCurrentRadioInterfacesCount = hardware_get_radio_interfaces_count();
-               int iCurrentRadioInterfacesIEEECount = 0;
-               for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
-               {
-                  if ( hardware_radio_index_is_wifi_radio(i) )
-                     iCurrentRadioInterfacesIEEECount++;
-               }
-               log_line("Cached radio config has %d interfaces, of which %d are wifi/IEEEE", iCurrentRadioInterfacesCount, iCurrentRadioInterfacesIEEECount);
-               int iNewRadioInterfacesIEEECount = hardware_radio_get_class_net_adapters_count();
-               log_line("Hardware radio IEEE interfaces detected: %d", iNewRadioInterfacesIEEECount);
-               if ( iNewRadioInterfacesIEEECount != iCurrentRadioInterfacesIEEECount )
-               {
-                  log_error_and_alarm("Radio interfaces count has changed. One or more radio interfaces broke.");
-                  if ( menu_has_menu(MENU_ID_NEGOCIATE_RADIO) || link_is_reconfiguring_radiolink() )
-                  {
-                     log_softerror_and_alarm("Test link params or negociate radio link is in progress. Postpone the restart.");
-                  }
-                  else
-                  {
-                     bNeedsRestart = true;
-                     hw_execute_bash_command_silent("dmesg -C", NULL);
-                  }
-               }
-               else
-                  hw_execute_bash_command_silent("dmesg -C", NULL);
-            }
-            else
-               hw_execute_bash_command_silent("dmesg -C", NULL);
-         }
-
-         if ( bNeedsRestart )
+         if ( bNeedsRestart || s_bLinkWatchMarkedRestartNeeded )
          {
             log_line("Will restart processes.");
             menu_discard_all();
@@ -900,7 +950,7 @@ int link_watch_loop_processes()
             */
 
             if ( (iNewRadioInterfacesIEEECount != iCurrentRadioInterfacesIEEECount) ||
-                 (iNewRadioInterfacesCount != iCurrentRadioInterfacesCount) || bUSBDisconnected )
+                 (iNewRadioInterfacesCount != iCurrentRadioInterfacesCount) || s_bLinkWatchMarkedRestartNeeded )
             {
                if ( (iNewRadioInterfacesIEEECount != iCurrentRadioInterfacesIEEECount) ||
                     (iNewRadioInterfacesCount != iCurrentRadioInterfacesCount) )
@@ -969,6 +1019,7 @@ int link_watch_loop_processes()
                log_line("No more supported radio interfaces present. Just show the error to the user.");
                s_bLinkWatchPermanentProcessesError = true;
             }
+            s_bLinkWatchMarkedRestartNeeded = false;
             return 1;
          }
       }

@@ -29,6 +29,9 @@
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 
 #include <errno.h>
 #include <fcntl.h>
@@ -48,6 +51,8 @@
 #include <linux/random.h>
 #include <inttypes.h>
 #include <semaphore.h>
+#include <pthread.h>
+#include <sched.h>
 
 #include "../base/base.h"
 #include "../base/config.h"
@@ -57,7 +62,6 @@
 #include "../base/hdmi.h"
 #include "../renderer/drm_core.h"
 #include <ctype.h>
-#include <pthread.h>
 #include <sys/ioctl.h>
 
 #ifndef HW_PLATFORM_RADXA
@@ -89,14 +93,48 @@ int g_iFileDetectedSlices = 1;
 int g_iCustomWidth = 0;
 int g_iCustomHeight = 0;
 int g_iCustomRefresh = 0;
+u32 g_uCPUAffinityMask = 0;
+int g_iRawPriority = -1;
 
 #define PIPE_BUFFER_SIZE 200000
 u8 g_uPipeBuffer[PIPE_BUFFER_SIZE];
 int g_iPipeBufferWritePos = 0;
 int g_iPipeBufferReadPos = 0;
 
-
 sem_t* s_pSemaphoreSMData = NULL;
+
+void _signal_play_file_will_finish()
+{
+   if ( ! g_bExitOnEnd )
+      return;
+
+   sem_t* ps = sem_open(SEMAPHORE_VIDEO_FILE_PLAYBACK_WILL_FINISH, O_CREAT, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL != ps) && (SEM_FAILED != ps) )
+   {
+      log_line("Signaling semaphore that playback will finish (%s)", SEMAPHORE_VIDEO_FILE_PLAYBACK_WILL_FINISH);
+      sem_post(ps);
+      sem_close(ps);
+   }
+   else
+      log_softerror_and_alarm("Failed to open and signal semaphore %s", SEMAPHORE_VIDEO_FILE_PLAYBACK_WILL_FINISH);
+   hardware_sleep_ms(100);
+}
+
+void _signal_play_file_finished()
+{
+   if ( ! g_bExitOnEnd )
+      return;
+
+   sem_t* ps = sem_open(SEMAPHORE_VIDEO_FILE_PLAYBACK_FINISHED, O_CREAT, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL != ps) && (SEM_FAILED != ps) )
+   {
+      log_line("Signaling semaphore that playback finished (%s)", SEMAPHORE_VIDEO_FILE_PLAYBACK_FINISHED);
+      sem_post(ps);
+      sem_close(ps);
+   }
+   else
+      log_softerror_and_alarm("Failed to open and signal semaphore %s", SEMAPHORE_VIDEO_FILE_PLAYBACK_FINISHED);
+}
 
 void _do_player_mode()
 {
@@ -106,6 +144,8 @@ void _do_player_mode()
    if ( hdmi_enum_modes() < 0 )
    {
       log_error_and_alarm("Failed to enumerate HDMI modes. Exit player.");
+      _signal_play_file_will_finish();
+      _signal_play_file_finished();
       return;
    }
    int iHDMIIndex = hdmi_load_current_mode();
@@ -113,56 +153,37 @@ void _do_player_mode()
       iHDMIIndex = hdmi_get_best_resolution_index_for(DEFAULT_RADXA_DISPLAY_WIDTH, DEFAULT_RADXA_DISPLAY_HEIGHT, DEFAULT_RADXA_DISPLAY_REFRESH);
    log_line("HDMI mode to use: %d (%d x %d @ %d)", iHDMIIndex, hdmi_get_current_resolution_width(), hdmi_get_current_resolution_height(), hdmi_get_current_resolution_refresh() );
 
-   hw_increase_current_thread_priority("RubyPlayer", 10);
-
-   RenderEngine* pRenderEngine = NULL;
-   if ( g_bInitUILayerToo || g_bPlayingIntro )
+   if ( g_bInitUILayerToo )
    {
-      log_line("Init display UI layer too.");
+      log_line("Init display UI layer too...");
       ruby_drm_core_init(0, DRM_FORMAT_ARGB8888,  hdmi_get_current_resolution_width(), hdmi_get_current_resolution_height(), hdmi_get_current_resolution_refresh());
       //ruby_drm_swap_mainback_buffers();
       ruby_drm_core_set_plane_properties_and_buffer(ruby_drm_core_get_main_draw_buffer_id());
 
-      if ( ! g_bPlayingIntro )
-      {
-         pRenderEngine = render_init_engine();
-
-         pRenderEngine->startFrame();
-         pRenderEngine->setFill(250,0,0,0.5);
-         pRenderEngine->setStroke(0,0,0,0);
-         pRenderEngine->drawRect(0.0, 0.0, 0.01, 0.01);
-         pRenderEngine->endFrame();
-      }
+      log_line("Done init display UI layer too.");
    }
 
-   log_line("Init display video layer.");
+   log_line("Init display video layer...");
    ruby_drm_core_init(1, DRM_FORMAT_NV12, hdmi_get_current_resolution_width(), hdmi_get_current_resolution_height(), hdmi_get_current_resolution_refresh());
+   log_line("Done init display video layer.");
 
-   if ( g_bPlayingIntro )
-   {
-      for( int i=0; i<26; i++ )
-         hardware_sleep_ms(100);
-   }
-
-   if ( mpp_init(g_bUseH265Decoder, pCS->iVideoMPPBuffersSize) != 0 )
+   if ( mpp_init(g_bUseH265Decoder, pCS->iVideoMPPBuffersSize, g_uCPUAffinityMask, g_iRawPriority) != 0 )
    {
       log_softerror_and_alarm("Failed to init MPP. Exit player.");
+      _signal_play_file_will_finish();
       ruby_drm_core_uninit();
+      _signal_play_file_finished();
       return;
-   }
-
-   if ( g_bPlayingIntro )
-   {
-      for( int i=0; i<10; i++ )
-         hardware_sleep_ms(50);
    }
 
    FILE* fp = fopen(g_szPlayFileName,"rb");
    if ( NULL == fp )
    {
       log_error_and_alarm("Failed to open input file [%s]. Exit.", g_szPlayFileName);
-      ruby_drm_core_uninit();
+      _signal_play_file_will_finish();
       mpp_uninit();
+      ruby_drm_core_uninit();
+      _signal_play_file_finished();
       return;
    }
 
@@ -258,29 +279,18 @@ void _do_player_mode()
    }
    fclose(fp);
    log_line("Playback of file finished. End of file (%s). Exit on end: %s", g_szPlayFileName, g_bExitOnEnd?"yes":"no");
+   _signal_play_file_will_finish();
 
-   if ( g_bExitOnEnd )
-   {
-      log_line("Exit on End.");
-      char szFile[MAX_FILE_PATH_SIZE];
-      strcpy(szFile, FOLDER_RUBY_TEMP);
-      strcat(szFile, FILE_TEMP_INTRO_PLAYING);
-      char szComm[256];
-      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s", szFile);
-      hw_execute_bash_command(szComm, NULL);
-   }
    mpp_mark_end_of_stream();
    mpp_uninit();
-
-   if ( g_bInitUILayerToo )
-      render_free_engine();
-   if ( ! g_bPlayingIntro )
-      ruby_drm_core_uninit();
+   ruby_drm_core_uninit();
+   _signal_play_file_finished();
 }
 
 void* _thread_consume_pipe_buffer(void *param)
 {
    log_line("[Thread] Created consume pipe thread.");
+   hw_log_current_thread_attributes("MPP player consume pipe");
 
    FILE* fpTmp = NULL;
    //fpTmp = fopen("rec2.h264", "wb");
@@ -325,6 +335,14 @@ void* _thread_consume_pipe_buffer(void *param)
 
 void _do_stream_mode_pipe()
 {
+   int readfd = open(FIFO_RUBY_STATION_VIDEO_STREAM_DISPLAY, O_RDONLY);// | O_NONBLOCK);
+   if( -1 == readfd )
+   {
+      log_error_and_alarm("Failed to open video stream fifo.");
+      return;
+   }
+   log_line("Opened input video stream fifo (%s)", FIFO_RUBY_STATION_VIDEO_STREAM_DISPLAY);
+
    ControllerSettings* pCS = get_ControllerSettings();
 
    if ( hdmi_enum_modes() < 0 )
@@ -339,9 +357,7 @@ void _do_stream_mode_pipe()
    log_line("HDMI mode to use: %d (%d x %d @ %d)", iHDMIIndex, hdmi_get_current_resolution_width(), hdmi_get_current_resolution_height(), hdmi_get_current_resolution_refresh() );
    ruby_drm_core_init(1, DRM_FORMAT_NV12, hdmi_get_current_resolution_width(), hdmi_get_current_resolution_height(), hdmi_get_current_resolution_refresh());
 
-   hw_increase_current_thread_priority("RubyPlayer", 10);
-
-   if ( mpp_init(g_bUseH265Decoder, pCS->iVideoMPPBuffersSize) != 0 )
+   if ( mpp_init(g_bUseH265Decoder, pCS->iVideoMPPBuffersSize, g_uCPUAffinityMask, g_iRawPriority) != 0 )
    {
       ruby_drm_core_uninit();
       return;
@@ -350,16 +366,6 @@ void _do_stream_mode_pipe()
    //pthread_create(&pDecodeThread, NULL, _thread_consume_pipe_buffer, NULL);
    //log_line("Created thread to consume pipe input buffer");
 
-   int readfd = open(FIFO_RUBY_STATION_VIDEO_STREAM_DISPLAY, O_RDONLY);// | O_NONBLOCK);
-   if( -1 == readfd )
-   {
-      log_error_and_alarm("Failed to open video stream fifo.");
-      mpp_uninit();
-      ruby_drm_core_uninit();
-      return;
-   }
-
-   log_line("Opened input video stream fifo (%s)", FIFO_RUBY_STATION_VIDEO_STREAM_DISPLAY);
    mpp_enable_vsync(pCS->iHDMIVSync?true:false);
    mpp_start_decoding_thread();
 
@@ -371,7 +377,7 @@ void _do_stream_mode_pipe()
    int iTotalRead = 0;
    bool bAnyInputEver = false;
    u32 uTimeStartReceivingStream = 0;
-   //fd_set readset;
+   fd_set readset;
 
    /*
    while ( !g_bQuit )
@@ -460,6 +466,26 @@ void _do_stream_mode_pipe()
    while ( !g_bQuit )
    {
       g_pSMProcessStats->lastActiveTime = get_current_timestamp_ms();
+
+      FD_ZERO(&readset);
+      FD_SET(readfd, &readset);
+
+      struct timeval timeInput;
+      timeInput.tv_sec = 0;
+      timeInput.tv_usec = 50*1000; // 50 miliseconds timeout
+
+      u32 uTimeStart = get_current_timestamp_ms();
+
+      int iSelectResult = select(readfd+1, &readset, NULL, NULL, &timeInput);
+
+      if ( g_bQuit )
+      {
+         log_softerror_and_alarm("Stop reading pipe as quit flag is set.");
+         break;
+      }
+      if ( iSelectResult <= 0 )
+         continue;
+
       nRead = read(readfd, g_uPipeBuffer, PIPE_BUFFER_SIZE); 
       if ( (nRead < 0) || g_bQuit )
       {
@@ -472,6 +498,8 @@ void _do_stream_mode_pipe()
       }
       if ( nRead == 0 )
       {
+         if ( g_bQuit )
+            break;
          if ( ! bAnyInputEver )
             hardware_sleep_micros(2*1000);
          else
@@ -479,7 +507,8 @@ void _do_stream_mode_pipe()
          continue;
       }
       g_pSMProcessStats->lastIPCIncomingTime = get_current_timestamp_ms();
-
+      if ( g_bQuit )
+         break;
       if ( ! bAnyInputEver )
       {
          log_line("Start receiving video stream data through pipe (%d bytes)", nRead);
@@ -507,14 +536,19 @@ void _do_stream_mode_pipe()
          if ( get_current_timestamp_ms() > uTimeStartReceivingStream + 5000 )
          {
             sem_t* ps = sem_open(SEMAPHORE_VIDEO_STREAMER_OVERLOAD, O_CREAT, S_IWUSR | S_IRUSR, 0);
-            sem_post(ps);
-            sem_close(ps);
+            if ( (NULL != ps) && (SEM_FAILED != ps) )
+            {
+               sem_post(ps);
+               sem_close(ps);
+            }
+            else
+               log_softerror_and_alarm("Failed to open and signal semaphore %s", SEMAPHORE_VIDEO_STREAMER_OVERLOAD);
          }
       }
    }
 
    if ( g_bQuit )
-      log_line("Ending video stream play due to quit signal.");
+      log_line("Ending video streamer pipe stream mode due to quit signal.");
 
    close(readfd);
 
@@ -563,9 +597,7 @@ void _do_stream_mode_sm()
    log_line("HDMI mode to use: %d (%d x %d @ %d)", iHDMIIndex, hdmi_get_current_resolution_width(), hdmi_get_current_resolution_height(), hdmi_get_current_resolution_refresh() );
    ruby_drm_core_init(1, DRM_FORMAT_NV12, hdmi_get_current_resolution_width(), hdmi_get_current_resolution_height(), hdmi_get_current_resolution_refresh());
 
-   hw_increase_current_thread_priority("RubyPlayer", 10);
-
-   if ( mpp_init(g_bUseH265Decoder, pCS->iVideoMPPBuffersSize) != 0 )
+   if ( mpp_init(g_bUseH265Decoder, pCS->iVideoMPPBuffersSize, g_uCPUAffinityMask, g_iRawPriority) != 0 )
    {
       if ( NULL != s_pSemaphoreSMData )
            sem_close(s_pSemaphoreSMData);
@@ -641,15 +673,12 @@ void _do_stream_mode_sm()
             ts.tv_nsec += 1000LL*(long long)10000; // 10 milisec
             int iResSem = sem_timedwait(s_pSemaphoreSMData, &ts);
             if ( 0 != iResSem )
-               continue;
-            if ( 0 == sem_getvalue(s_pSemaphoreSMData, &iSemVal) )
             {
-               if ( iSemVal > 0 )
-               {
-                  for( int i=0; i<iSemVal; i++ )
-                     sem_trywait(s_pSemaphoreSMData);
-               }
+               if ( errno != ETIMEDOUT )
+                  log_softerror_and_alarm("Failed to timewait on semaphore. Error: %d, %s", errno, strerror(errno));
+               continue;
             }
+            is_semaphore_signaled_clear_logok(s_pSemaphoreSMData, SEMAPHORE_SM_VIDEO_DATA_AVAILABLE, 0);
 
             uWritePos1 = *pTmp1;
             uWritePos2 = *pTmp2;
@@ -721,8 +750,13 @@ void _do_stream_mode_sm()
          if ( get_current_timestamp_ms() > uTimeStartReceivingStream + 5000 )
          {
             sem_t* ps = sem_open(SEMAPHORE_VIDEO_STREAMER_OVERLOAD, O_CREAT, S_IWUSR | S_IRUSR, 0);
-            sem_post(ps);
-            sem_close(ps);
+            if ( (NULL != ps) && (SEM_FAILED != ps) )
+            {
+               sem_post(ps);
+               sem_close(ps);
+            }
+            else
+               log_softerror_and_alarm("Failed to open and signal semaphore %s", SEMAPHORE_VIDEO_STREAMER_OVERLOAD);
          }
       }
    }
@@ -744,7 +778,6 @@ void _do_stream_mode_sm()
    ruby_drm_core_uninit();
 }
 
-
 void _do_stream_mode_udp()
 {
    ControllerSettings* pCS = get_ControllerSettings();
@@ -761,7 +794,7 @@ void _do_stream_mode_udp()
    log_line("HDMI mode to use: %d (%d x %d @ %d)", iHDMIIndex, hdmi_get_current_resolution_width(), hdmi_get_current_resolution_height(), hdmi_get_current_resolution_refresh() );
    ruby_drm_core_init(1, DRM_FORMAT_NV12, hdmi_get_current_resolution_width(), hdmi_get_current_resolution_height(), hdmi_get_current_resolution_refresh());
 
-   if ( mpp_init(g_bUseH265Decoder, pCS->iVideoMPPBuffersSize) != 0 )
+   if ( mpp_init(g_bUseH265Decoder, pCS->iVideoMPPBuffersSize, g_uCPUAffinityMask, g_iRawPriority) != 0 )
    {
       ruby_drm_core_uninit();
       return;
@@ -902,17 +935,9 @@ int main(int argc, char *argv[])
 {
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
-      printf("%d.%d (b%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR/10, SYSTEM_SW_BUILD_NUMBER);
+      printf("%d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       return 0;
    }
- 
-   signal(SIGINT, handle_sigint);
-   signal(SIGTERM, handle_sigint);
-   signal(SIGQUIT, handle_sigint);
-
-  
-   log_init("RubyPlayer");
-
 
    if ( argc < 2 )
    {
@@ -921,22 +946,18 @@ int main(int argc, char *argv[])
       printf("-u Play the live video stream from UDP socket\n");
       printf("-sm Play the live video stream from sharedmem\n");
       printf("-h265 use H265 decoder\n");
-      printf("-f [filename] [fps] Play H264 file\n");
-      printf("-m [wxh@r] Sets a custom video mode\n");
+      printf("-af [aff] cpu affinity\n");
+      printf("-rawp [prio] raw priority\n");
+      printf("-file [filename] play a file\n");
+      printf("-fps [fps]\n");
+      printf("-endexit exit on end\n");
+      printf("-m [wxh@r] sets a custom video mode\n");
       printf("-b playing intro\n");
       printf("-i init UI layer too when playing stream or files\n");
       printf("-d debug output to stdout\n\n");
       return 0;
    }
 
-   load_ControllerSettings();
-
-   g_pSMProcessStats = shared_mem_process_stats_open_write(SHARED_MEM_WATCHDOG_MPP_PLAYER);
-   if ( NULL == g_pSMProcessStats )
-      log_softerror_and_alarm("Failed to open shared mem for process watchdog for writing: %s", SHARED_MEM_WATCHDOG_MPP_PLAYER);
-   else
-      log_line("Opened shared mem for process watchdog for writing (%s).", SHARED_MEM_WATCHDOG_MPP_PLAYER);
-  
    g_szPlayFileName[0] = 0;
    int iParam = 0;
 
@@ -954,12 +975,36 @@ int main(int argc, char *argv[])
          g_bPlayingIntro = true;
       if ( 0 == strcmp(argv[iParam], "-h265") )
          g_bUseH265Decoder = true;
+      if ( 0 == strcmp(argv[iParam], "-endexit") )
+         g_bExitOnEnd = true;
+
+      if ( 0 == strcmp(argv[iParam], "-rawp") )
+      {
+         g_iRawPriority = atoi(argv[iParam+1]);
+         iParam++;
+      }
+
+      if ( 0 == strcmp(argv[iParam], "-af") )
+      {
+         g_uCPUAffinityMask = (uint32_t) atoi(argv[iParam+1]);
+         iParam++;
+      }
+
       if ( 0 == strcmp(argv[iParam], "-d") )
       {
          g_bDebug = true;
          log_enable_stdout();
       }
-      if ( 0 == strcmp(argv[iParam], "-f") )
+
+      if ( 0 == strcmp(argv[iParam], "-fps") )
+      {
+         g_iFileFPS = atoi(argv[iParam+1]);
+         if ( (g_iFileFPS < 10) || (g_iFileFPS > 240) )
+            g_iFileFPS = 30;
+         iParam++;
+      }
+
+      if ( 0 == strcmp(argv[iParam], "-file") )
       {
          g_bPlayFile = true;
          iParam++;
@@ -967,15 +1012,6 @@ int main(int argc, char *argv[])
          if ( NULL != strstr(g_szPlayFileName, ".h265") )
             g_bUseH265Decoder = true;
          iParam++;
-         if ( iParam < argc )
-            g_iFileFPS = atoi(argv[iParam]);
-         if ( (g_iFileFPS < 10) || (g_iFileFPS > 240) )
-            g_iFileFPS = 30;
-         iParam++;
-         if ( iParam < argc )
-         if ( 0 == strcmp(argv[iParam], "-endexit") )
-            g_bExitOnEnd = true;
-
          continue;
       }
       if ( 0 == strcmp(argv[iParam], "-m") )
@@ -1003,6 +1039,79 @@ int main(int argc, char *argv[])
    while (iParam < argc);
 
    if ( g_bPlayFile )
+      log_init("RubyPlayerF");
+   else if ( g_bPlayStreamPipe )
+      log_init("RubyPlayerP");
+   else if ( g_bPlayStreamUDP )
+      log_init("RubyPlayerU");
+   else if ( g_bPlayStreamSM )
+      log_init("RubyPlayerS");
+   else
+      log_init("RubyPlayer");
+
+   load_ControllerSettings();
+
+   log_line("Raw priority param: %d, CPU affinity mask param: %d", g_iRawPriority, g_uCPUAffinityMask);
+
+   pthread_t this_thread = pthread_self();
+   struct sched_param params;
+   int policy = 0;
+   int ret = 0;
+   ret = pthread_getschedparam(this_thread, &policy, &params);
+   if ( ret != 0 )
+      log_softerror_and_alarm("Failed to get initial schedule param");
+   else
+      log_line("Initial thread policy/priority: %d/%d", policy, params.sched_priority);
+
+
+   if ( (g_iRawPriority > 1) && (g_iRawPriority < 100) )
+   {
+      params.sched_priority = 100 - g_iRawPriority;
+      ret = pthread_setschedparam(this_thread, SCHED_FIFO, &params);
+      if ( ret != 0 )
+         log_softerror_and_alarm("Failed to set thread schedule class, error: %d, %s", errno, strerror(errno));
+      else
+         log_line("Did set new thread priority.");
+   }
+
+   if ( g_uCPUAffinityMask > 0 )
+   {
+      cpu_set_t cpuSet;
+      CPU_ZERO(&cpuSet);
+      for( int i=0; i<8; i++ )
+      {
+         if ( g_uCPUAffinityMask & (0x01<<i) )
+            CPU_SET(i, &cpuSet);
+      }
+      pid_t pid = getpid();
+      if ( 0 != sched_setaffinity(pid, sizeof(cpuSet), &cpuSet) )
+         log_line("Failed to set affinities for the entire process, error: %d (%s)", errno, strerror(errno)); 
+      else
+         log_line("Did set affinities for the entire process, to mask: %d", g_uCPUAffinityMask);
+
+      if ( 0 != pthread_setaffinity_np(this_thread, sizeof(cpuSet), &cpuSet) )
+         log_line("Failed to set cpu affinity for main thread, error: %d, (%s)", errno, strerror(errno));
+      else
+         log_line("Did set cpu affinity for main thread to mask: %u", g_uCPUAffinityMask);
+   }
+
+   signal(SIGINT, handle_sigint);
+   signal(SIGTERM, handle_sigint);
+   signal(SIGQUIT, handle_sigint);
+
+   ret = pthread_getschedparam(this_thread, &policy, &params);
+   if ( ret != 0 )
+      log_softerror_and_alarm("Failed to get new schedule param");
+   else
+      log_line("New thread policy/priority: %d/%d", policy, params.sched_priority);
+
+   g_pSMProcessStats = shared_mem_process_stats_open_write(SHARED_MEM_WATCHDOG_MPP_PLAYER);
+   if ( NULL == g_pSMProcessStats )
+      log_softerror_and_alarm("Failed to open shared mem for process watchdog for writing: %s", SHARED_MEM_WATCHDOG_MPP_PLAYER);
+   else
+      log_line("Opened shared mem for process watchdog for writing (%s).", SHARED_MEM_WATCHDOG_MPP_PLAYER);
+ 
+   if ( g_bPlayFile )
       log_line("Running mode: play file: [%s] [%d FPS] [exit on end: %s] [playing intro: %s]", g_szPlayFileName, g_iFileFPS, g_bExitOnEnd?"yes":"no", g_bPlayingIntro?"yes":"no");
    if ( g_bPlayStreamPipe )
       log_line("Running mode: stream from pipe");
@@ -1028,7 +1137,9 @@ int main(int argc, char *argv[])
    else if ( g_bPlayStreamSM )
       _do_stream_mode_sm();
 
+   log_line("Cleaning up on exit...");
    shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_MPP_PLAYER, g_pSMProcessStats);
+   log_line("Will exit now");
    return 0;
 }
 

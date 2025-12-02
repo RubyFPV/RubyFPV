@@ -59,7 +59,7 @@ u32 s_uLastReceivedSoftwareTotalSize = 0;
 u32 s_uCurrentReceivedSoftwareSize = 0;
 bool s_bSoftwareUpdateStoppedVideoPipeline = false;
 bool s_bUpdateAppliedRebooting = false;
-
+bool s_bUpdateSucceeded = false;
 char s_szUpdateArchiveFile[MAX_FILE_PATH_SIZE];
 
 u8** s_pSWPackets = NULL;
@@ -85,7 +85,7 @@ void _sw_update_close_remove_temp_files()
    {
       char szComm[512];
       sprintf(szComm, "rm -rf %s", s_szUpdateArchiveFile);
-      hw_execute_bash_command_silent(szComm, NULL);
+      hw_execute_bash_command(szComm, NULL);
       s_szUpdateArchiveFile[0] = 0;
    }
 
@@ -117,7 +117,7 @@ void _sw_update_close_remove_temp_files()
    hw_execute_bash_command(szComm, NULL);
 
    sprintf(szComm, "rm -rf %s%s", FOLDER_RUBY_TEMP, FILE_TEMP_UPDATE_IN_PROGRESS_APPLY);
-   hw_execute_bash_command_silent(szComm, NULL);
+   hw_execute_bash_command(szComm, NULL);
 
    s_bProcessUploadInProgress = false;
    if ( s_bSoftwareUpdateStoppedVideoPipeline )
@@ -126,6 +126,11 @@ void _sw_update_close_remove_temp_files()
       sendControlMessage(PACKET_TYPE_LOCAL_CONTROL_RESUME_VIDEO, 0);
       s_bSoftwareUpdateStoppedVideoPipeline = false;
    }
+}
+
+bool process_sw_did_finish_successfully()
+{
+   return s_bUpdateSucceeded;
 }
 
 void process_sw_upload_init()
@@ -172,6 +177,7 @@ static void * _thread_process_archive(void *argument)
 {
    s_bThreadProcessArchiveFinished = false;
    log_line("[ProcessUploadThArch] Started archive thread...");
+   hw_log_current_thread_attributes("process archive");
    hw_execute_bash_command_raw(s_szProcessUploadArchiveCommand, NULL);
    log_line("[ProcessUploadThArch] Finished archive thread.");
    s_bThreadProcessArchiveFinished = true;
@@ -182,6 +188,7 @@ static void * _thread_process_upload(void *argument)
 {
    log_line("[ProcessUploadTh] Started update thread...");
    s_bProcessUploadInProgress = true;
+   hw_log_current_thread_attributes("process upload");
    
    char szFile[MAX_FILE_PATH_SIZE];
    char szComm[512];
@@ -226,18 +233,21 @@ static void * _thread_process_upload(void *argument)
    hw_execute_ruby_process_wait(NULL, "ruby_tx_telemetry", "-ver", szOutput, 1);
    log_line("ruby_tx_telemetry: [%s]", szOutput);
    
-   sprintf(szComm, "chmod 777 %s", FOLDER_BINARIES);
+   sprintf(szComm, "chmod 777 %sruby* 2>/dev/null", FOLDER_BINARIES);
    hw_execute_bash_command(szComm, NULL);
-   sprintf(szComm, "chmod 777 %s*", FOLDER_BINARIES);
+   sprintf(szComm, "chmod 777 %sonyx* 2>/dev/null", FOLDER_BINARIES);
+   hw_execute_bash_command(szComm, NULL);
+
+   sprintf(szComm, "mkdir -p %s", FOLDER_RUBY_TEMP);
    hw_execute_bash_command(szComm, NULL);
 
    #ifdef HW_PLATFORM_RASPBERRY
    log_line("Running on Raspberry hardware");
-   sprintf(szComm, "nice -n 19 ionice -c 3 tar -C %s -zxf %s 2>&1 1>/dev/null", FOLDER_BINARIES, s_szUpdateArchiveFile);
+   sprintf(szComm, "nice -n 19 ionice -c 3 tar -C %s -zxf %s 2>&1 1>/dev/null", FOLDER_RUBY_TEMP, s_szUpdateArchiveFile);
    #endif
    #ifdef HW_PLATFORM_OPENIPC_CAMERA
    log_line("Running on OpenIPC hardware");
-   sprintf(szComm, "tar -C %s -xf %s 2>&1 1>/dev/null", FOLDER_BINARIES, s_szUpdateArchiveFile);
+   sprintf(szComm, "tar -C %s -xf %s 2>&1 1>/dev/null", FOLDER_RUBY_TEMP, s_szUpdateArchiveFile);
    #endif
    
    hardware_sleep_ms(500);
@@ -249,10 +259,10 @@ static void * _thread_process_upload(void *argument)
    {
       s_bThreadProcessArchiveFinished = true;
       log_softerror_and_alarm("[ProcessUploadTh] Failed to create thread archive processing.");
-      log_line("Extracting binaries to location: %s", FOLDER_BINARIES);   
+      log_line("Extracting binaries to location: %s", FOLDER_RUBY_TEMP);   
       hw_execute_bash_command_raw(szComm, NULL);
       //system(szComm);
-      log_line("Done extracting to location: %s", FOLDER_BINARIES);
+      log_line("Done extracting to location: %s", FOLDER_RUBY_TEMP);
       log_line("Done extracting archive.");
    }
    else
@@ -268,7 +278,20 @@ static void * _thread_process_upload(void *argument)
 
    _process_upload_send_status_to_controller(OTA_UPDATE_STATUS_UPDATING, 40);
 
-   sprintf(szComm, "chmod 777 %sruby*", FOLDER_BINARIES);
+   sprintf(szComm, "cp -rf %sruby_* %s", FOLDER_RUBY_TEMP, FOLDER_BINARIES);
+   hw_execute_bash_command(szComm, NULL);
+
+   #if defined(HW_PLATFORM_OPENIPC_CAMERA)
+   hw_execute_bash_command("rm -rf /usr/sbin/ruby_update_* 2>/dev/null", NULL);
+   hw_execute_bash_command("rm -rf /usr/sbin/ruby_alive 2>/dev/null", NULL);
+   hw_execute_bash_command("rm -rf /usr/sbin/majestic 2>/dev/null", NULL);
+   #else
+   hw_execute_bash_command("rm -rf ruby_update_* 2>/dev/null", NULL);
+   #endif
+
+   sprintf(szComm, "chmod 777 %sruby* 2>/dev/null", FOLDER_BINARIES);
+   hw_execute_bash_command(szComm, NULL);
+   sprintf(szComm, "chmod 777 %sonyx* 2>/dev/null", FOLDER_BINARIES);
    hw_execute_bash_command(szComm, NULL);
    hardware_sleep_ms(50);
 
@@ -281,8 +304,6 @@ static void * _thread_process_upload(void *argument)
    log_line("ruby_tx_telemetry: [%s]", szOutput);
    hw_execute_ruby_process_wait(NULL, "ruby_update", "-ver", szOutput, 1);
    log_line("ruby_update: [%s]", szOutput);
-   hw_execute_ruby_process_wait(NULL, "ruby_update_vehicle", "-ver", szOutput, 1);
-   log_line("ruby_update_vehicle: [%s]", szOutput);
 
    #ifdef HW_PLATFORM_RASPBERRY
    if ( access( "ruby_capture_raspi", R_OK ) != -1 )
@@ -299,11 +320,11 @@ static void * _thread_process_upload(void *argument)
    #endif
 
    #ifdef HW_PLATFORM_OPENIPC_CAMERA
-   strcpy(szFile, FOLDER_BINARIES);
+   strcpy(szFile, FOLDER_RUBY_TEMP);
    strcat(szFile, "majestic");
    if ( access(szFile, R_OK) != -1 )
    {
-      sprintf(szComm, "mv -f %smajestic /usr/bin/majestic", FOLDER_BINARIES);
+      sprintf(szComm, "mv -f %smajestic /usr/bin/majestic", FOLDER_RUBY_TEMP);
       hw_execute_bash_command(szComm, NULL);
       hw_execute_bash_command("chmod 777 /usr/bin/majestic", NULL);
    }
@@ -315,56 +336,39 @@ static void * _thread_process_upload(void *argument)
 
    _process_upload_send_status_to_controller(OTA_UPDATE_STATUS_POST_UPDATING, 10);
 
-   strcpy(szFile, FOLDER_BINARIES);
-   strcat(szFile, "ruby_update_vehicle");
-
-   if ( access( szFile, R_OK ) != -1 )
-      log_line("ruby_update_vehicle is present.");
-   else
-   {
-      log_line("ruby_update_vehicle is NOT present.");
-      sprintf(szComm, "cp -rf %sruby_update %sruby_update_vehicle", FOLDER_BINARIES, FOLDER_BINARIES);
-      hw_execute_bash_command_raw(szComm, NULL);
-      sprintf(szComm, "chmod 777 %sruby_update*", FOLDER_BINARIES);
-      hw_execute_bash_command_raw(szComm, NULL);
-      hardware_sleep_ms(100);
-
-      strcpy(szFile, FOLDER_BINARIES);
-      strcat(szFile, "ruby_update_vehicle");
-      if ( access( szFile, R_OK ) != -1 )
-         log_line("ruby_update_vehicle is present now.");
-      else
-         log_line("ruby_update_vehicle is NOT present yet.");
-   }
-
-   strcpy(szFile, FOLDER_BINARIES);
+   char szUpdateBinariesFolder[MAX_FILE_PATH_SIZE];
+   #if defined (HW_PLATFORM_OPENIPC_CAMERA)
+   strcpy(szUpdateBinariesFolder, FOLDER_RUBY_TEMP);
+   #else
+   strcpy(szUpdateBinariesFolder, FOLDER_BINARIES);
+   #endif
+   strcpy(szFile, szUpdateBinariesFolder);
    strcat(szFile, "ruby_update");
+
    if ( access( szFile, R_OK ) != -1 )
       log_line("ruby_update is present.");
    else
       log_line("ruby_update is NOT present.");
      
-   strcpy(szFile, FOLDER_BINARIES);
-   strcat(szFile, "ruby_update_worker");
+   #if defined (HW_PLATFORM_OPENIPC_CAMERA)
    if ( access( szFile, R_OK ) != -1 )
-      log_line("ruby_update_worker is present.");
-   else
-      log_line("ruby_update_worker is NOT present.");
-     
-   strcpy(szFile, FOLDER_BINARIES);
-   strcat(szFile, "ruby_update_vehicle");
+   {
+      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "%s -pre", szFile);
+      hw_execute_bash_command_timeout(szComm, NULL, 20000);
+   }
+   #else
    if ( access( szFile, R_OK ) != -1 )
-      hw_execute_ruby_process_wait(NULL, "ruby_update_vehicle", "-pre", NULL, 1);
-
+      hw_execute_ruby_process_wait(NULL, "ruby_update", "-pre", NULL, 1);
+   #endif
 
    #if defined (HW_PLATFORM_OPENIPC_CAMERA)
    hw_execute_bash_command("rm -rf /etc/init.d/S*majestic", NULL);
    #endif
 
    // Copy log file to last update
-   #if defined(HW_PLATFORM_OPENIPC_CAMERA)
-   hw_execute_bash_command("cp -rf /tmp/logs/log_system.txt /root/ruby/last_update_log.txt", NULL);
-   #endif
+   //#if defined(HW_PLATFORM_OPENIPC_CAMERA)
+   //hw_execute_bash_command("cp -rf /tmp/logs/log_system.txt /root/ruby/last_update_log.txt", NULL);
+   //#endif
    #if defined(HW_PLATFORM_RASPBERRY)
    hw_execute_bash_command("cp -rf /home/pi/ruby/logs/log_system.txt /home/pi/ruby/logs/last_update_log.txt", NULL);
    #endif
@@ -376,15 +380,13 @@ static void * _thread_process_upload(void *argument)
 
    log_line("Give time for power leds to signal end of update...");
 
-   _process_upload_send_status_to_controller(OTA_UPDATE_STATUS_COMPLETED, 50);
+   _process_upload_send_status_to_controller(OTA_UPDATE_STATUS_COMPLETED, 40);
    for( int i=0; i<10; i++ )
       hardware_sleep_ms(100);
 
    log_line("Cleanup and reboot");
    
    _sw_update_close_remove_temp_files();
-
-   _process_upload_send_status_to_controller(OTA_UPDATE_STATUS_COMPLETED, 50);
 
 
    // Begin Check and update drivers
@@ -422,12 +424,16 @@ static void * _thread_process_upload(void *argument)
    #endif
    */
    
-   // Drivers are installed after reboot, by the presence of ruby_update_vehicle
+   // Drivers are installed after reboot
    //hardware_install_drivers(0);
    // End check and update drivers
 
+   s_bSoftwareUpdateStoppedVideoPipeline = false;
+
+   _process_upload_send_status_to_controller(OTA_UPDATE_STATUS_REBOOT, 20);
    s_bProcessUploadInProgress = false;
-   signalReboot();
+   s_bUpdateSucceeded = true;
+   signalReboot(false);
    return NULL;
 }
 
@@ -440,6 +446,12 @@ void process_sw_upload_new(u32 command_param, u8* pBuffer, int length)
       _sw_update_close_remove_temp_files();
       sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED, 0, 0);
       return;             
+   }
+
+   if ( process_sw_did_finish_successfully() )
+   {
+      log_line("Ignored upload message after update finished.");
+      return;
    }
 
    command_packet_sw_package* params = (command_packet_sw_package*)(pBuffer + sizeof(t_packet_header)+sizeof(t_packet_header_command));
@@ -671,12 +683,17 @@ void process_sw_upload_new(u32 command_param, u8* pBuffer, int length)
 
 bool process_sw_upload_is_started()
 {
-   return s_bSoftwareUpdateStoppedVideoPipeline;
+   return (s_bSoftwareUpdateStoppedVideoPipeline && (!s_bUpdateAppliedRebooting));
+}
+
+bool process_sw_upload_is_rebooting()
+{
+   return s_bUpdateAppliedRebooting;
 }
 
 void process_sw_upload_check_timeout(u32 uTimeNow)
 {
-   if ( (! s_bSoftwareUpdateStoppedVideoPipeline) || s_bProcessUploadInProgress )
+   if ( (! s_bSoftwareUpdateStoppedVideoPipeline) || s_bProcessUploadInProgress || s_bUpdateAppliedRebooting )
       return;
 
    if ( uTimeNow > s_uLastTimeReceivedAnySoftwareBlock + 5000 )

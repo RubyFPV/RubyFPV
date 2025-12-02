@@ -377,23 +377,31 @@ void radio_links_open_rxtx_radio_interfaces()
       if ( g_pCurrentModel->radioLinksParams.link_capabilities_flags[nVehicleRadioLinkId] & RADIO_HW_CAPABILITY_FLAG_USED_FOR_RELAY )
          continue;
 
-      // To fix may2025
-      /*
+     
       if ( (pRadioHWInfo->iRadioType == RADIO_TYPE_ATHEROS) ||
            (pRadioHWInfo->iRadioType == RADIO_TYPE_RALINK) )
       {
          int nRateTx = DEFAULT_RADIO_DATARATE_LOWEST;
          if ( NULL != g_pCurrentModel )
          {
-            nRateTx = compute_packet_uplink_datarate(nVehicleRadioLinkId, i, &(g_pCurrentModel->radioLinksParams), NULL);
+            nRateTx = g_pCurrentModel->radioLinksParams.uplink_datarate_data_bps[nVehicleRadioLinkId];
+
+            if ( (0 == nRateTx) || (-100 == nRateTx) )
+            {
+               if ( g_pCurrentModel->radioLinksParams.link_radio_flags[nVehicleRadioLinkId] & RADIO_FLAGS_USE_MCS_DATARATES )
+                  nRateTx = -1;
+               else
+                  nRateTx = DEFAULT_RADIO_DATARATE_LOWEST;
+            }
+
             log_line("Current model uplink radio datarate for vehicle radio link %d (%s): %d, %u, uplink rate type: %d",
-               nVehicleRadioLinkId+1, pRadioHWInfo->szName, nRateTx, getRealDataRateFromRadioDataRate(nRateTx, 0),
+               nVehicleRadioLinkId+1, pRadioHWInfo->szName, nRateTx, getRealDataRateFromRadioDataRate(nRateTx, g_pCurrentModel->radioLinksParams.link_radio_flags[nVehicleRadioLinkId], 0),
                g_pCurrentModel->radioLinksParams.uplink_datarate_data_bps[nVehicleRadioLinkId]);
          }
          Preferences* pP = get_Preferences();
          radio_utils_set_datarate_atheros(NULL, i, nRateTx, pP->iDebugWiFiChangeDelay);
       }
-      */
+
       u32 cardFlags = controllerGetCardFlags(pRadioHWInfo->szMAC);
 
       if ( cardFlags & RADIO_HW_CAPABILITY_FLAG_CAN_RX )
@@ -588,10 +596,7 @@ bool radio_links_apply_settings(Model* pModel, int iRadioLink, type_radio_links_
          memcpy((u8*)g_pSM_RadioStats, (u8*)&g_SM_RadioStats, sizeof(shared_mem_radio_stats));
    }
 
-   // To fix may2025
-   /*
    // Apply data rates
-
    // If uplink data rate for an Atheros card has changed, update it.
       
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
@@ -605,11 +610,23 @@ bool radio_links_apply_settings(Model* pModel, int iRadioLink, type_radio_links_
            (pRadioHWInfo->iRadioType != RADIO_TYPE_RALINK) )
          continue;
 
-      int nRateTx = compute_packet_uplink_datarate(iRadioLink, i, pRadioLinkParamsNew, NULL);
-      update_atheros_card_datarate(pModel, i, nRateTx, g_pProcessStats);
-      g_TimeNow = get_current_timestamp_ms();
+      int nRateTx = DEFAULT_RADIO_DATARATE_LOWEST;
+      if ( NULL != pModel )
+      {
+         nRateTx = pModel->radioLinksParams.uplink_datarate_data_bps[iRadioLink];
+         if ( (0 == nRateTx) || (-100 == nRateTx) )
+         {
+            if ( pModel->radioLinksParams.link_radio_flags[iRadioLink] & RADIO_FLAGS_USE_MCS_DATARATES )
+               nRateTx = -1;
+            else
+               nRateTx = DEFAULT_RADIO_DATARATE_LOWEST;
+         }
+
+         update_atheros_card_datarate(pModel, i, nRateTx, g_pProcessStats);
+         g_TimeNow = get_current_timestamp_ms();
+      }
    }
-   */
+
    // Radio flags are applied on the fly, when sending each radio packet
    
    return true;

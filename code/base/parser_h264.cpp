@@ -191,19 +191,6 @@ void ParserH264::_parseDetectedStartOfNALUnit(u32 uTimeNow)
    m_uTimeLastNALStart = uTimeNow;
    m_uSizeCurrentFrame = 0;
 
-   /*
-   log_line("DBG start NAL %d (prev %d)", m_uCurrentNALUType, m_uLastNALUType);
-   static int iDbgKF = 0;
-   static u32 uTimeLastKF = 0;
-   if ( m_uCurrentNALUType == 5 )
-   {
-      log_line("DBG KF every %d frames, every %u ms", iDbgKF, uTimeNow - uTimeLastKF);
-      iDbgKF = 0;
-      uTimeLastKF = uTimeNow;
-   }
-   iDbgKF++;
-   */
-
    // Begin: compute slices based on Iframe
    if ( m_uCurrentNALUType == m_uLastNALUType )
       m_iConsecutiveSlicesForCurrentNALU++;

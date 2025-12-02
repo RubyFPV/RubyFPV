@@ -34,8 +34,8 @@
 #include "../base/config.h"
 #include "../base/hardware.h"
 #include "../base/hardware_i2c.h"
-#include "../base/hardware_cam_maj.h"
 #include "../base/hardware_procs.h"
+#include "../base/hardware_cam_maj.h"
 #include "../base/radio_utils.h"
 #include <math.h>
 #include <semaphore.h>
@@ -55,12 +55,26 @@ void vehicle_launch_tx_telemetry(Model* pModel)
       log_error_and_alarm("Invalid model (NULL) on launching TX telemetry. Can't start TX telemetry.");
       return;
    }
-   hw_execute_ruby_process(NULL, "ruby_tx_telemetry", NULL, NULL);
+
+   char szPrefix[64];
+   szPrefix[0] = 0;
+   if ( pModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS )
+   if ( pModel->processesPriorities.iThreadPriorityTelemetry > 100 )
+      sprintf(szPrefix, "nice -n %d", pModel->processesPriorities.iThreadPriorityTelemetry - 120);
+   hw_execute_ruby_process(szPrefix, "ruby_tx_telemetry", NULL, NULL);
 }
 
 void vehicle_stop_tx_telemetry()
 {
-   hw_stop_process("ruby_tx_telemetry");
+   sem_t* pSem = sem_open(SEMAPHORE_STOP_VEHICLE_TELEM_TX, O_CREAT, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL == pSem) || (SEM_FAILED == pSem) )
+      log_softerror_and_alarm("Failed to open semaphore to signal stop of tx_telemetry: %s", SEMAPHORE_STOP_VEHICLE_TELEM_TX);
+   else
+   {
+      sem_post(pSem);
+      sem_close(pSem);
+      log_line("Signaled semaphore to stop tx_telemetry");
+   }
 }
 
 void vehicle_launch_rx_rc(Model* pModel)
@@ -72,21 +86,33 @@ void vehicle_launch_rx_rc(Model* pModel)
    }
    char szPrefix[64];
    szPrefix[0] = 0;
-   #ifdef HW_CAPABILITY_IONICE
-   sprintf(szPrefix, "ionice -c 1 -n %d nice -n %d", DEFAULT_IO_PRIORITY_RC, pModel->processesPriorities.iNiceRC);
-   #else
-   sprintf(szPrefix, "nice -n %d", pModel->processesPriorities.iNiceRC);
-   #endif
+
+   if ( pModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS )
+   {
+      if ( pModel->processesPriorities.iThreadPriorityRC > 100 )
+         sprintf(szPrefix, "nice -n %d", pModel->processesPriorities.iThreadPriorityRC - 120);
+      #ifdef HW_CAPABILITY_IONICE
+      if ( DEFAULT_IO_PRIORITY_RC > 0 )
+      {
+         sprintf(szPrefix, "ionice -c 1 -n %d", DEFAULT_IO_PRIORITY_RC );
+         if ( pModel->processesPriorities.iThreadPriorityRC > 100 )
+            sprintf(szPrefix, "ionice -c 1 -n %d nice -n %d", DEFAULT_IO_PRIORITY_RC, pModel->processesPriorities.iThreadPriorityRC - 120);
+      }
+      #endif
+   }
    hw_execute_ruby_process(szPrefix, "ruby_start", "-rc", NULL);
 }
 
 void vehicle_stop_rx_rc()
 {
-   sem_t* s = sem_open(SEMAPHORE_STOP_RX_RC, 0, S_IWUSR | S_IRUSR, 0);
-   if ( SEM_FAILED != s )
+   sem_t* pSem = sem_open(SEMAPHORE_STOP_VEHICLE_RC_RX, O_CREAT, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL == pSem) || (SEM_FAILED == pSem) )
+      log_softerror_and_alarm("Failed to open semaphore to signal stop of rc_rx: %s", SEMAPHORE_STOP_VEHICLE_RC_RX);
+   else
    {
-      sem_post(s);
-      sem_close(s);
+      sem_post(pSem);
+      sem_close(pSem);
+      log_line("Signaled semaphore to stop rx_rc");
    }
 }
 
@@ -99,33 +125,22 @@ void vehicle_launch_rx_commands(Model* pModel)
    }
    char szPrefix[64];
    szPrefix[0] = 0;
+   if ( pModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS )
+   if ( pModel->processesPriorities.iThreadPriorityOthers > 100 )
+      sprintf(szPrefix, "nice -n %d", pModel->processesPriorities.iThreadPriorityOthers - 120);
    hw_execute_ruby_process(szPrefix, "ruby_start", "-rx_commands", NULL);
 }
 
 void vehicle_stop_rx_commands()
 {
-   char szComm[256];
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "touch %s%s", FOLDER_RUBY_TEMP, FILE_TEMP_STOP);
-   hw_execute_bash_command(szComm, NULL);
-
-   char szFile[MAX_FILE_PATH_SIZE];
-   strcpy(szFile, FOLDER_RUBY_TEMP);
-   strcat(szFile, "cmdstop.txt");
-   int iCounter = 0;
-   while ( true )
+   sem_t* pSem = sem_open(SEMAPHORE_STOP_VEHICLE_COMMANDS, O_CREAT, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL == pSem) || (SEM_FAILED == pSem) )
+      log_softerror_and_alarm("Failed to open semaphore to signal stop of rx_commands: %s", SEMAPHORE_STOP_VEHICLE_COMMANDS);
+   else
    {
-      iCounter++;
-      hardware_sleep_ms(200);
-      if ( access(szFile, R_OK) == -1 )
-      {
-         log_line("Stopped rx_commands process.");
-         break;
-      }
-      if ( iCounter > 20 )
-      {
-         log_line("Failed to stop rx_commands process.");
-         break;
-      }
+      sem_post(pSem);
+      sem_close(pSem);
+      log_line("Signaled semaphore to stop rx_commands");
    }
 }
 
@@ -141,28 +156,35 @@ void vehicle_launch_tx_router(Model* pModel)
 
    char szPrefix[64];
    szPrefix[0] = 0;
-   #ifdef HW_CAPABILITY_IONICE
-   if ( pModel->processesPriorities.ioNiceRouter > 0 )
-   {
-      if ( pModel->processesPriorities.iNiceRouter != 0 )
-         sprintf(szPrefix, "ionice -c 1 -n %d nice -n %d", pModel->processesPriorities.ioNiceRouter, pModel->processesPriorities.iNiceRouter );
-      else
-         sprintf(szPrefix, "ionice -c 1 -n %d", pModel->processesPriorities.ioNiceRouter );
-   }
-   else
-   #endif
-   if ( pModel->processesPriorities.iNiceRouter != 0 )
-      sprintf(szPrefix, "nice -n %d", pModel->processesPriorities.iNiceRouter);
 
+   if ( pModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS )
+   {
+      if ( pModel->processesPriorities.iThreadPriorityRouter > 100 )
+         sprintf(szPrefix, "nice -n %d", pModel->processesPriorities.iThreadPriorityRouter - 120);
+      #ifdef HW_CAPABILITY_IONICE
+      if ( pModel->processesPriorities.ioNiceRouter > 0 )
+      {
+         sprintf(szPrefix, "ionice -c 1 -n %d", pModel->processesPriorities.ioNiceRouter );
+         if ( pModel->processesPriorities.iThreadPriorityRouter > 100 )
+            sprintf(szPrefix, "ionice -c 1 -n %d nice -n %d", pModel->processesPriorities.ioNiceRouter, pModel->processesPriorities.iThreadPriorityRouter - 120);
+      }
+      #endif
+   }
+   
    hw_execute_ruby_process(szPrefix, "ruby_rt_vehicle", NULL, NULL);
 }
 
 void vehicle_stop_tx_router()
 {
-   char szRouter[64];
-   strcpy(szRouter, "ruby_rt_vehicle");
-
-   hw_stop_process(szRouter);
+   sem_t* pSem = sem_open(SEMAPHORE_STOP_VEHICLE_ROUTER, O_CREAT, S_IWUSR | S_IRUSR, 0);
+   if ( (NULL == pSem) || (SEM_FAILED == pSem) )
+      log_softerror_and_alarm("Failed to open semaphore to signal stop of router: %s", SEMAPHORE_STOP_VEHICLE_ROUTER);
+   else
+   {
+      sem_post(pSem);
+      sem_close(pSem);
+      log_line("Signaled semaphore to stop router");
+   }
 }
 
 #if defined (HW_PLATFORM_RASPBERRY) || defined(HW_PLATFORM_RADXA)
@@ -176,6 +198,7 @@ static void * _thread_audio_capture(void *argument)
       s_bAudioCaptureIsStarted = false;
       return NULL;
    }
+   hw_log_current_thread_attributes("audio capture");
 
    char szCommFlag[256];
    char szCommCapture[256];
@@ -199,12 +222,11 @@ static void * _thread_audio_capture(void *argument)
    strcpy(szRate, "44100");
 
    szPriority[0] = 0;
-   #ifdef HW_CAPABILITY_IONICE
-   if ( pModel->processesPriorities.ioNiceVideo > 0 )
-      sprintf(szPriority, "ionice -c 1 -n %d nice -n %d", pModel->processesPriorities.ioNiceVideo, pModel->processesPriorities.iNiceVideo );
-   else
-   #endif
-      sprintf(szPriority, "nice -n %d", pModel->processesPriorities.iNiceVideo );
+   if ( pModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS )
+   {
+      if ( (pModel->processesPriorities.iThreadPriorityOthers > 100) && (pModel->processesPriorities.iThreadPriorityOthers < 140) )
+         sprintf(szPriority, "nice -n %d", pModel->processesPriorities.iThreadPriorityOthers -  120);
+   }
 
    sprintf(szCommCapture, "%s arecord --device=hw:1,0 --file-type wav --format S16_LE --rate %s -c 1 -d %d -q >> %s",
       szPriority, szRate, iIntervalSec, FIFO_RUBY_AUDIO1);
@@ -288,133 +310,4 @@ void vehicle_stop_audio_capture(Model* pModel)
    #if defined (HW_PLATFORM_OPENIPC_CAMERA)
    hardware_camera_maj_enable_audio(false, 0, 0);
    #endif
-}
-
-static bool s_bThreadBgAffinitiesStarted = false;
-static int s_iCPUCoresCount = -1;
-static bool s_bAdjustAffinitiesIsVeyeCamera = false;
-static bool s_bLaunchedAffinitiesInThread = false;
-
-static void * _thread_adjust_affinities_vehicle(void *argument)
-{
-   s_bThreadBgAffinitiesStarted = true;
-   if ( s_bLaunchedAffinitiesInThread )
-      sched_yield();
-   bool bVeYe = false;
-   if ( NULL != argument )
-   {
-      bool* pB = (bool*)argument;
-      bVeYe = *pB;
-   }
-
-   log_line("Started background thread to adjust processes affinities (arg: %p, veye: %d (%d))...", argument, (int)bVeYe, (int)s_bAdjustAffinitiesIsVeyeCamera);
-   int iSelfPID = getpid();
-   int iSelfId = 0;
-   #if defined(HW_PLATFORM_RADXA) || defined(HW_PLATFORM_OPENIPC_CAMERA)
-   iSelfId = gettid();
-   #endif
-
-   log_line("[BGThread] Background thread id: %d, PID: %d", iSelfId, iSelfPID);
-   if ( ! s_bLaunchedAffinitiesInThread )
-      iSelfId = 0;
-   if ( s_iCPUCoresCount < 1 )
-   {
-      s_iCPUCoresCount = 1;
-      char szOutput[128];
-      hw_execute_bash_command_raw("nproc --all", szOutput);
-      if ( 1 != sscanf(szOutput, "%d", &s_iCPUCoresCount) )
-      {
-         log_softerror_and_alarm("Failed to get CPU cores count. No affinity adjustments for processes to be done.");
-         s_bThreadBgAffinitiesStarted = false;
-         s_iCPUCoresCount = 1;
-         return NULL;    
-      }
-   }
-
-   if ( s_iCPUCoresCount < 2 || s_iCPUCoresCount > 32 )
-   {
-      log_line("Single core CPU (%d), no affinity adjustments for processes to be done.", s_iCPUCoresCount);
-      s_bThreadBgAffinitiesStarted = false;
-      return NULL;
-   }
-
-   log_line("%d CPU cores, doing affinity adjustments for processes...", s_iCPUCoresCount);
-   if ( s_iCPUCoresCount > 2 )
-   {
-      hw_set_proc_affinity("ruby_rt_vehicle", iSelfId, 1,1);
-      hw_set_proc_affinity("ruby_tx_telemetry", iSelfId, 2,2);
-      // To fix
-      //hw_set_proc_affinity("ruby_rx_rc", iSelfId, 2,2);
-
-      //#if defined (HW_PLATFORM_OPENIPC_CAMERA)
-      //hw_set_proc_affinity("majestic", iSelfId, 3, s_iCPUCoresCount);
-      //#endif
-
-      #ifdef HW_PLATFORM_RASPBERRY
-      if ( bVeYe )
-         hw_set_proc_affinity(VIDEO_RECORDER_COMMAND_VEYE_SHORT_NAME, iSelfId, 3, s_iCPUCoresCount);
-      else
-         hw_set_proc_affinity(VIDEO_RECORDER_COMMAND, iSelfId, 3, s_iCPUCoresCount);
-      #endif
-   }
-   else
-   {
-      hw_set_proc_affinity("ruby_rt_vehicle", iSelfId, 1,1);
-      //#if defined (HW_PLATFORM_OPENIPC_CAMERA)
-      //hw_set_proc_affinity("majestic", iSelfId, 2, s_iCPUCoresCount);
-      //#endif
-      #ifdef HW_PLATFORM_RASPBERRY
-      if ( bVeYe )
-         hw_set_proc_affinity(VIDEO_RECORDER_COMMAND_VEYE_SHORT_NAME, iSelfId, 2, s_iCPUCoresCount);
-      else
-         hw_set_proc_affinity(VIDEO_RECORDER_COMMAND, iSelfId, 2, s_iCPUCoresCount);
-      #endif
-   }
-
-   log_line("Background thread to adjust processes affinities completed.");
-   s_bThreadBgAffinitiesStarted = false;
-   return NULL;
-}
-
-
-void vehicle_check_update_processes_affinities(bool bUseThread, bool bVeYe)
-{
-   #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-   log_line("Adjusting process affinities for OpenIPC hardware. Use thread: %s", (bUseThread?"Yes":"No"));
-   s_bAdjustAffinitiesIsVeyeCamera = false;
-   #endif
-  
-   #if defined (HW_PLATFORM_RASPBERRY)
-   s_bAdjustAffinitiesIsVeyeCamera = bVeYe;
-   log_line("Adjust processes affinities. Use thread: %s, veye camera: %s",
-      (bUseThread?"Yes":"No"), (s_bAdjustAffinitiesIsVeyeCamera?"Yes":"No"));
-   #endif
-
-   if ( s_bThreadBgAffinitiesStarted )
-   {
-      log_line("A background thread to adjust processes affinities is already running. Do nothing.");
-      return;
-   }
-   s_bLaunchedAffinitiesInThread = bUseThread;
-   if ( ! bUseThread )
-   {
-      _thread_adjust_affinities_vehicle(&s_bAdjustAffinitiesIsVeyeCamera);
-      log_line("Adjusted processes affinities");
-      return;
-   }
-   
-   s_bThreadBgAffinitiesStarted = true;
-   pthread_t pThreadBgAffinities;
-   pthread_attr_t attr;
-   hw_init_worker_thread_attrs(&attr, "set vehicle procs affinities");
-
-   if ( 0 != pthread_create(&pThreadBgAffinities, &attr, &_thread_adjust_affinities_vehicle, &s_bAdjustAffinitiesIsVeyeCamera) )
-   {
-      log_error_and_alarm("Failed to create thread for adjusting processes affinities.");
-      pthread_attr_destroy(&attr);
-      s_bThreadBgAffinitiesStarted = false;
-      return;
-   }
-   pthread_attr_destroy(&attr);
-   log_line("Created thread for adjusting processes affinities (veye: %s)", (s_bAdjustAffinitiesIsVeyeCamera?"Yes":"No"));
 }

@@ -227,6 +227,27 @@ int GenericTxECBuffers::addData(u8* pData, int iDataLength)
    return iCountFilledPackets;
 }
 
+int GenericTxECBuffers::getUnsendPacketsCount()
+{
+   if ( (NULL == m_pBlocks) || ((m_iTopBufferIndex == m_iBottomBufferIndexFirstUnsend) && ((u32)m_iBottomPacketIndexFirstUnsend == m_uCurrentBlockPacketIndex)) )
+      return 0;
+
+   int iCount = m_pBlocks[m_iBottomBufferIndexFirstUnsend].iFilledPackets - m_iBottomPacketIndexFirstUnsend;
+   if ( iCount < 0 )
+      iCount = 0;
+
+   if ( m_iBottomBufferIndexFirstUnsend == m_iTopBufferIndex )
+      return iCount;
+   int iBlock = (m_iBottomBufferIndexFirstUnsend + 1) % m_iMaxBlocks;
+   do
+   {
+      iCount += m_pBlocks[iBlock].iFilledPackets;
+      iBlock = (iBlock + 1) % m_iMaxBlocks;
+   } while ( iBlock != m_iTopBufferIndex );
+   
+   return iCount;
+}
+
 type_generic_tx_ec_packet* GenericTxECBuffers::getMarkFirstUnsendPacket(u32* puBlockIndex, int* piBufferIndex, int* piPacketIndex)
 {
    if ( (NULL == m_pBlocks) || ((m_iTopBufferIndex == m_iBottomBufferIndexFirstUnsend) && ((u32)m_iBottomPacketIndexFirstUnsend == m_uCurrentBlockPacketIndex)) )

@@ -83,19 +83,18 @@ typedef struct
 
 void hardware_i2c_reset_enumerated_flag();
 void hardware_i2c_log_devices();
-void hardware_enumerate_i2c_busses();
-void hardware_recheck_i2c_cameras();
-int hardware_get_i2c_busses_count();
-int hardware_get_i2c_found_count_known_devices();
-int hardware_get_i2c_found_count_configurable_devices();
-hw_i2c_bus_info_t* hardware_get_i2c_bus_info(int busIndex);
-int hardware_has_i2c_device_id(u8 deviceAddress);
-int hardware_get_i2c_device_bus_number(u8 deviceAddress);
+void hardware_i2c_enumerate_busses();
+int hardware_i2c_get_busses_count();
+int hardware_i2c_get_found_count_known_devices();
+int hardware_i2c_get_found_count_configurable_devices();
+hw_i2c_bus_info_t* hardware_i2c_get_bus_info(int busIndex);
+int hardware_i2c_has_device_id(u8 deviceAddress);
+int hardware_i2c_get_device_bus_number(u8 deviceAddress);
 int hardware_is_known_i2c_device(u8 deviceAddress);
-void hardware_get_i2c_device_name(u8 deviceAddress, char* szOutput);
+void hardware_i2c_get_device_name(u8 deviceAddress, char* szOutput);
 
 int hardware_i2c_HasPicoExtender(); // to deprecate
-int hardware_get_pico_extender_version(); // to deprecate
+int hardware_i2c_get_pico_extender_version(); // to deprecate
 
 
 int hardware_i2c_save_device_settings();

@@ -40,6 +40,7 @@
 #include "../../base/utils.h"
 #include "../pairing.h"
 #include "../link_watch.h"
+#include "../process_router_messages.h"
 
 
 
@@ -59,19 +60,18 @@ void MenuControllerDev::addItems()
 {
    int iTmp = getSelectedMenuItemIndex();
    Preferences* pP = get_Preferences();
-   ControllerSettings* pCS = get_ControllerSettings();
    float fSliderWidth = 0.14 * m_sfScaleFactor;
 
    removeAllItems();
 
    m_IndexMPPBuffers = -1;
-   if ( (NULL == pCS) || (NULL == pP) )
+   if ( (NULL == g_pControllerSettings) || (NULL == pP) )
       return;
 
    addMenuItem(new MenuItemSection("Radio Links"));
 
    char szTitle[128];
-   if ( pCS->iRadioTxUsesPPCAP )
+   if ( g_pControllerSettings->iRadioTxUsesPPCAP )
       strcpy(szTitle, "Controller Radio Tx Type (now PPCAP)");
    else
       strcpy(szTitle, "Controller Radio Tx Type (now socket)");
@@ -80,7 +80,7 @@ void MenuControllerDev::addItems()
    m_pItemsSelect[9]->addSelection("PPCAP");
    m_pItemsSelect[9]->setIsEditable();
    m_pItemsSelect[9]->setSelectedIndex(0);
-   if ( pCS->iRadioTxUsesPPCAP )
+   if ( g_pControllerSettings->iRadioTxUsesPPCAP )
       m_pItemsSelect[9]->setSelectedIndex(1);
 
    m_IndexPCAPRadioTx = addMenuItem(m_pItemsSelect[9]);
@@ -89,7 +89,7 @@ void MenuControllerDev::addItems()
    m_pItemsSelect[6]->addSelection("No");
    m_pItemsSelect[6]->addSelection("Yes");
    m_pItemsSelect[6]->setIsEditable();
-   m_pItemsSelect[6]->setSelectedIndex(pCS->iRadioBypassSocketBuffers);
+   m_pItemsSelect[6]->setSelectedIndex(g_pControllerSettings->iRadioBypassSocketBuffers);
    m_IndexBypassSocketBuffers = addMenuItem(m_pItemsSelect[6]);
 
    m_pItemsSlider[2] = new MenuItemSlider("Max Radio Packet Size", "Maximum size in bytes that can be set for a radio packet in the user interface.", 100,1500,1250, fSliderWidth);
@@ -99,7 +99,7 @@ void MenuControllerDev::addItems()
 
 
    m_pItemsSlider[7] = new MenuItemSlider("Ping/Clock Sync Frequency", "How often is the clock sync done with the vehicle.", 1,50,10, fSliderWidth);
-   m_pItemsSlider[7]->setCurrentValue(pCS->nPingClockSyncFrequency);
+   m_pItemsSlider[7]->setCurrentValue(g_pControllerSettings->nPingClockSyncFrequency);
    m_IndexPingClockSpeed = addMenuItem(m_pItemsSlider[7]);
 
    m_pItemsSlider[8] = new MenuItemSlider("Radio Reconfiguration Delay (ms)", "When 2.4/5.8Ghz radio interfaces need to be reconfigured, allow a delay for reconfiguration. Important for Atheros chipset cards mostly (in miliseconds).", 1,100,10, fSliderWidth);
@@ -107,7 +107,7 @@ void MenuControllerDev::addItems()
    m_IndexWiFiChangeDelay = addMenuItem(m_pItemsSlider[8]);
 
    m_pItemsSlider[9] = new MenuItemSlider("Radio Rx Loop Check Max Time (ms)", "The threshold for generating an alarm when radio Rx loop takes too much time (in miliseconds).", 1,100,10, fSliderWidth);
-   m_pItemsSlider[9]->setCurrentValue(pCS->iDevRxLoopTimeout);
+   m_pItemsSlider[9]->setCurrentValue(g_pControllerSettings->iDevRxLoopTimeout);
    m_IndexRxLoopTimeout = addMenuItem(m_pItemsSlider[9]);
 
    m_IndexDebugRTStatsGraphs = addMenuItem(new MenuItem("Show real time stats graphs", "Show live monitor of Rx links and video stats"));
@@ -124,7 +124,7 @@ void MenuControllerDev::addItems()
    m_pItemsSelect[3]->addSelection("20");
    m_pItemsSelect[3]->addSelection("25");
    m_pItemsSelect[3]->setIsEditable();
-   m_pItemsSelect[3]->setSelection( (pCS->iRenderFPS-10)/5 );
+   m_pItemsSelect[3]->setSelection( (g_pControllerSettings->iRenderFPS-10)/5 );
    m_IndexRenderOSDFSP = addMenuItem(m_pItemsSelect[3]);
 
    m_pItemsSelect[13] = new MenuItemSelect("Show UI/OSD CPU Usage", "Shows the CPU resources used by the UI and OSD interface.");
@@ -138,7 +138,7 @@ void MenuControllerDev::addItems()
    m_pItemsSelect[14]->addSelection("No");
    m_pItemsSelect[14]->addSelection("Yes");
    m_pItemsSelect[14]->setIsEditable();
-   m_pItemsSelect[14]->setSelectedIndex(pCS->iFreezeOSD);
+   m_pItemsSelect[14]->setSelectedIndex(g_pControllerSettings->iFreezeOSD);
    m_IndexFreezeOSD = addMenuItem(m_pItemsSelect[14]);
 
    addMenuItem(new MenuItemSection("Other Settings"));
@@ -148,16 +148,23 @@ void MenuControllerDev::addItems()
    m_pItemsSelect[1]->addSelection("Pipes");
    m_pItemsSelect[1]->addSelection("UDP");
    m_pItemsSelect[1]->setIsEditable();
-   m_pItemsSelect[1]->setSelectedIndex(pCS->iStreamerOutputMode);
+   m_pItemsSelect[1]->setSelectedIndex(g_pControllerSettings->iStreamerOutputMode);
    m_IndexStreamerMode = addMenuItem(m_pItemsSelect[1]);
 
    m_IndexMPPBuffers = -1;
    if ( hardware_board_is_radxa(hardware_getBoardType()) )
    {
       m_pItemsSlider[0] = new MenuItemSlider("Video Buffers Size", "Sets a relative size for the video buffers used by live video stream player.", 5,100,30, fSliderWidth);
-      m_pItemsSlider[0]->setCurrentValue(pCS->iVideoMPPBuffersSize);
+      m_pItemsSlider[0]->setCurrentValue(g_pControllerSettings->iVideoMPPBuffersSize);
       m_IndexMPPBuffers = addMenuItem(m_pItemsSlider[0]);
    }
+
+   m_pItemsSelect[4] = new MenuItemSelect("Wait full video frames for output", "Waits to receive a full video frame before outputing it.");
+   m_pItemsSelect[4]->addSelection("No");
+   m_pItemsSelect[4]->addSelection("Yes");
+   m_pItemsSelect[4]->setIsEditable();
+   m_pItemsSelect[4]->setSelectedIndex(g_pControllerSettings->iWaitFullFrameForOutput);
+   m_IndexWaitFullFrame = addMenuItem(m_pItemsSelect[4]);
 
    m_IndexResetDev = addMenuItem(new MenuItem("Reset Developer Settings", "Resets all the developer settings to the factory default values."));
    m_IndexExit = addMenuItem(new MenuItem("Exit to shell", "Closes Ruby and exits to linux shell."));
@@ -195,11 +202,10 @@ void MenuControllerDev::onReturnFromChild(int iChildMenuId, int returnValue)
 
    if ( (2 == iChildMenuId/1000) && (1 == returnValue) )
    {
-      ControllerSettings* pCS = get_ControllerSettings();
-      pCS->iDisableRetransmissionsAfterControllerLinkLostMiliseconds = DEFAULT_CONTROLLER_LINK_MILISECONDS_TIMEOUT_TO_DISABLE_RETRANSMISSIONS;
-      pCS->nRetryRetransmissionAfterTimeoutMS = DEFAULT_VIDEO_RETRANS_MINIMUM_RETRY_INTERVAL;
-      pCS->nRequestRetransmissionsOnVideoSilenceMs = DEFAULT_VIDEO_RETRANS_REQUEST_ON_VIDEO_SILENCE_MS;
-      pCS->iRadioTxUsesPPCAP = DEFAULT_USE_PPCAP_FOR_TX;
+      g_pControllerSettings->iDisableRetransmissionsAfterControllerLinkLostMiliseconds = DEFAULT_CONTROLLER_LINK_MILISECONDS_TIMEOUT_TO_DISABLE_RETRANSMISSIONS;
+      g_pControllerSettings->nRetryRetransmissionAfterTimeoutMS = DEFAULT_VIDEO_RETRANS_MINIMUM_RETRY_INTERVAL;
+      g_pControllerSettings->nRequestRetransmissionsOnVideoSilenceMs = DEFAULT_VIDEO_RETRANS_REQUEST_ON_VIDEO_SILENCE_MS;
+      g_pControllerSettings->iRadioTxUsesPPCAP = DEFAULT_USE_PPCAP_FOR_TX;
       save_ControllerSettings();
       save_Preferences();
       valuesToUI();
@@ -219,14 +225,13 @@ void MenuControllerDev::onReturnFromChild(int iChildMenuId, int returnValue)
 void MenuControllerDev::onSelectItem()
 {
    Preferences* pP = get_Preferences();
-   ControllerSettings* pCS = get_ControllerSettings();
    bool bUpdatedController = false;
 
    Menu::onSelectItem();
    if ( (-1 == m_SelectedIndex) || (m_pMenuItems[m_SelectedIndex]->isEditing()) )
       return;
 
-   if ( (NULL == pP) || (NULL == pCS) )
+   if ( (NULL == pP) || (NULL == g_pControllerSettings) )
       return;
 
    if ( m_IndexMaxPacketSize == m_SelectedIndex )
@@ -239,21 +244,21 @@ void MenuControllerDev::onSelectItem()
    if ( m_IndexPCAPRadioTx == m_SelectedIndex )
    {
       if ( 0 == m_pItemsSelect[9]->getSelectedIndex() )
-         pCS->iRadioTxUsesPPCAP = 0;
+         g_pControllerSettings->iRadioTxUsesPPCAP = 0;
       else
-         pCS->iRadioTxUsesPPCAP = 1;
+         g_pControllerSettings->iRadioTxUsesPPCAP = 1;
       bUpdatedController = true;
    }
 
    if ( m_IndexBypassSocketBuffers == m_SelectedIndex )
    {
-      pCS->iRadioBypassSocketBuffers = m_pItemsSelect[6]->getSelectedIndex();
+      g_pControllerSettings->iRadioBypassSocketBuffers = m_pItemsSelect[6]->getSelectedIndex();
       bUpdatedController = true;
    }
 
    if ( m_IndexPingClockSpeed == m_SelectedIndex )
    {
-      pCS->nPingClockSyncFrequency = m_pItemsSlider[7]->getCurrentValue();
+      g_pControllerSettings->nPingClockSyncFrequency = m_pItemsSlider[7]->getCurrentValue();
       bUpdatedController = true;
    }
 
@@ -265,7 +270,7 @@ void MenuControllerDev::onSelectItem()
 
    if ( m_IndexRxLoopTimeout == m_SelectedIndex )
    {
-      pCS->iDevRxLoopTimeout = m_pItemsSlider[9]->getCurrentValue();
+      g_pControllerSettings->iDevRxLoopTimeout = m_pItemsSlider[9]->getCurrentValue();
       
       if ( NULL != g_pCurrentModel )
       if ( ! g_pCurrentModel->is_spectator )
@@ -276,7 +281,7 @@ void MenuControllerDev::onSelectItem()
 
    if ( m_IndexRenderOSDFSP == m_SelectedIndex )
    {
-      pCS->iRenderFPS = 10 + m_pItemsSelect[3]->getSelectedIndex()*5;
+      g_pControllerSettings->iRenderFPS = 10 + m_pItemsSelect[3]->getSelectedIndex()*5;
       save_ControllerSettings();
       valuesToUI();
       return;
@@ -292,7 +297,7 @@ void MenuControllerDev::onSelectItem()
 
    if ( (-1 != m_IndexMPPBuffers) && (m_IndexMPPBuffers == m_SelectedIndex) )
    {
-      pCS->iVideoMPPBuffersSize = m_pItemsSlider[0]->getCurrentValue();
+      g_pControllerSettings->iVideoMPPBuffersSize = m_pItemsSlider[0]->getCurrentValue();
       save_ControllerSettings();
 
       // Force a restart of video streamer
@@ -305,7 +310,7 @@ void MenuControllerDev::onSelectItem()
 
    if ( m_IndexFreezeOSD == m_SelectedIndex )
    {
-      pCS->iFreezeOSD = m_pItemsSelect[14]->getSelectedIndex();
+      g_pControllerSettings->iFreezeOSD = m_pItemsSelect[14]->getSelectedIndex();
       save_ControllerSettings();
       valuesToUI();
       return;
@@ -320,8 +325,8 @@ void MenuControllerDev::onSelectItem()
    }
    if ( m_IndexStreamerMode == m_SelectedIndex )
    {
-      pCS->iStreamerOutputMode = m_pItemsSelect[1]->getSelectedIndex();
-      log_line("Streamer output mode was changed to: %d", pCS->iStreamerOutputMode);
+      g_pControllerSettings->iStreamerOutputMode = m_pItemsSelect[1]->getSelectedIndex();
+      log_line("Streamer output mode was changed to: %d", g_pControllerSettings->iStreamerOutputMode);
       save_ControllerSettings();
       pairing_stop();
       ruby_signal_alive();
@@ -329,6 +334,12 @@ void MenuControllerDev::onSelectItem()
       return;
    }
   
+   if ( m_IndexWaitFullFrame == m_SelectedIndex )
+   {
+      g_pControllerSettings->iWaitFullFrameForOutput = m_pItemsSelect[4]->getSelectedIndex();
+      bUpdatedController = true;
+   }
+
    if ( bUpdatedController )
    {
       save_ControllerSettings();
@@ -339,7 +350,9 @@ void MenuControllerDev::onSelectItem()
 
    if ( m_IndexDebugRTStatsGraphs == m_SelectedIndex )
    {
-      g_bDebugStats = true;
+      g_pControllerSettings->iEnableDebugStats = 1;
+      save_ControllerSettings();
+      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, 0xFF);
       menu_discard_all();
       return;
    }

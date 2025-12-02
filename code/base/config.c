@@ -45,17 +45,9 @@ void getSystemVersionString(char* p, u32 swversion)
    u32 val = swversion;
    u32 major = (val >> 8) & 0xFF;
    u32 minor = val & 0xFF;
+   if ( minor >= 10 )
+      minor /= 10;
    sprintf(p, "%u.%u", major, minor);
-   int len = strlen(p);
-
-   if ( len > 2 )
-   {
-      if ( p[len-1] == '0' && p[len-2] != '.' )
-         p[len-1] = 0;
-   }
-
-   if ( minor > 10 && ((minor % 10) != 0) )
-      sprintf(p, "%u.%u.%u", major, minor/10, minor%10);
 }
 
 int config_file_get_value(const char* szPropName)

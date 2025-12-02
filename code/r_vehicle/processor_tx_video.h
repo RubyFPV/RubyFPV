@@ -52,4 +52,5 @@ class ProcessorTxVideo
 bool process_data_tx_video_command(int iRadioInterface, u8* pPacketBuffer);
 bool process_data_tx_video_loop();
 void process_data_tx_video_on_new_data(u8* pData, int iDataSize);
+void process_data_tx_video_on_data_sent(int iDataSize);
 

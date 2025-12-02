@@ -27,6 +27,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // Video deocode demo using OpenMAX IL though the ilcient helper library
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <fcntl.h>
+#include <sched.h>
+#include <pthread.h>
 
 #include "bcm_host.h"
 #include "ilclient.h"
@@ -56,7 +61,7 @@ int g_iInputFile = -1;
 
 uint32_t g_uCurrentParseTag = 0x11111111;
 //uint32_t g_uPrevParseTag = 0x11111111;
-int g_iDetectedSlices = 4;
+int g_iDetectedSlices = 1;
 int g_iTempSlices = 1;
 unsigned char g_uPrevNALType = 0;
 
@@ -64,6 +69,8 @@ unsigned char g_uFrameBuffer[200000];
 int g_iFrameBufferLength = 0;
 unsigned char g_uFileBuffer[200000];
 int g_iFileBufferAvailableBytes = 0;
+uint32_t g_uCPUAffinity = 0;
+int g_iRawPriority = -1;
 
 void _onVSync(DISPMANX_UPDATE_HANDLE_T u, void* arg)
 {
@@ -81,6 +88,38 @@ void _onVSync(DISPMANX_UPDATE_HANDLE_T u, void* arg)
       s_iFPSSearchTagsFound = 0;
    }
 */
+}
+
+void _signal_willfinish_semaphore()
+{
+   if ( g_iExitOnEnd )
+   {
+      sem_t* ps = sem_open("RUBY_SEM_VIDEO_PLAY_WILL_FINISH", O_CREAT, S_IWUSR | S_IRUSR, 0);
+      if ( (NULL != ps) && (SEM_FAILED != ps) )
+      {
+         log_line("Signaling semaphore that playback will finish (%s)", "RUBY_SEM_VIDEO_PLAY_WILL_FINISH");
+         sem_post(ps);
+         sem_close(ps);
+      }
+      else
+         log_softerror_and_alarm("Failed to open and signal semaphore %s", "RUBY_SEM_VIDEO_PLAY_WILL_FINISH");
+   }
+}
+
+void _signal_exit_semaphore()
+{
+   if ( g_iExitOnEnd )
+   {
+      sem_t* ps = sem_open("RUBY_SEM_VIDEO_PLAY_FINISHED", O_CREAT, S_IWUSR | S_IRUSR, 0);
+      if ( (NULL != ps) && (SEM_FAILED != ps) )
+      {
+         log_line("Signaling semaphore that playback finished (%s)", "RUBY_SEM_VIDEO_PLAY_FINISHED");
+         sem_post(ps);
+         sem_close(ps);
+      }
+      else
+         log_softerror_and_alarm("Failed to open and signal semaphore %s", "RUBY_SEM_VIDEO_PLAY_FINISHED");
+   }
 }
 
 void _onFrameLoop()
@@ -201,15 +240,23 @@ int _fillBuffer(unsigned char* pBuffer, int iMaxLength)
    }
 
    int iBytes = _read_next_frame_to_buffer();
+   static int iZeroReadsCounter = 0;
+   if ( iBytes <= 0 )
+     iZeroReadsCounter++;
+   else
+     iZeroReadsCounter = 0;
+
+   if ( g_iExitOnEnd && (iZeroReadsCounter > 2) )
+      return -1;
 
    if ( iBytes <= 0 )
       return iBytes;
    if ( g_bQuit )
       return -1;
 
-   //unsigned char uNALType = g_uFrameBuffer[4] & 0x1F;
-   unsigned char uNALType = g_uFrameBuffer[0] & 0x1F;
-   
+   unsigned char uNALType = g_uFrameBuffer[4] & 0x1F;
+   //unsigned char uNALType = g_uFrameBuffer[0] & 0x1F;
+
    if ( (g_uPrevNALType == 5) && (uNALType != 5) )
       g_iDetectedSlices = g_iTempSlices;
 
@@ -232,12 +279,16 @@ int _fillBuffer(unsigned char* pBuffer, int iMaxLength)
    if ( (uNALType != 7) && (uNALType != 8) )
    {
       u32 uTimeNow = get_current_timestamp_ms();
-
-      long int miliSecs = (1000/g_iFPS);
-      miliSecs = miliSecs - (uTimeNow - s_uTimeLastFrame);
+      u32 uMilisPerFrame = (1000/(u32)g_iFPS);
+      if ( s_uTimeLastFrame != 0 )
+      if ( uTimeNow > s_uTimeLastFrame )
+      if ( (uTimeNow - s_uTimeLastFrame) < uMilisPerFrame )
+      {
+         u32 uMiliToSleep = uMilisPerFrame - (uTimeNow - s_uTimeLastFrame);
+         hardware_sleep_ms(uMiliToSleep);
+         uTimeNow = get_current_timestamp_ms();
+      }
       s_uTimeLastFrame = uTimeNow;
-      if ( miliSecs > 0 )
-         hardware_sleep_ms(miliSecs);
    }
    return iBytes;
 }
@@ -256,19 +307,26 @@ static int video_decode()
    memset(tunnel, 0, sizeof(tunnel));
    
    if((client = ilclient_init()) == NULL)
+   {
+      _signal_willfinish_semaphore();
+      _signal_exit_semaphore();
       return -3;
-
+   }
    if(OMX_Init() != OMX_ErrorNone)
    {
       ilclient_destroy(client);
+      _signal_willfinish_semaphore();
+      _signal_exit_semaphore();
       return -4;
    }
 
    g_iInputFile = open(szFileName, O_RDONLY);
    if( -1 == g_iInputFile )
    {
-       log_error_and_alarm("Failed to open input file: (%s)", szFileName);
-       return EXIT_FAILURE;
+      log_error_and_alarm("Failed to open input file: (%s)", szFileName);
+      _signal_willfinish_semaphore();
+      _signal_exit_semaphore();
+      return EXIT_FAILURE;
    }
 
    log_line("Opened input file: [%s], fd=%d", szFileName, g_iInputFile);
@@ -279,6 +337,8 @@ static int video_decode()
       log_softerror_and_alarm("Failed to create video decode component.");
       ilclient_destroy(client);
       status = -14;
+      _signal_willfinish_semaphore();
+      _signal_exit_semaphore();
       return -14;
    }
    list[0] = video_decode;
@@ -290,6 +350,8 @@ static int video_decode()
       log_softerror_and_alarm("Failed to create video renderer component.");
       ilclient_destroy(client);
       status = -14;
+      _signal_willfinish_semaphore();
+      _signal_exit_semaphore();
       return -14;
    }
    list[1] = video_render;
@@ -303,6 +365,8 @@ static int video_decode()
          log_softerror_and_alarm("Failed to create video clock component.");
          ilclient_destroy(client);
          status = -14;
+         _signal_willfinish_semaphore();
+         _signal_exit_semaphore();
          return -14;
       }
       list[2] = clock;
@@ -380,11 +444,12 @@ static int video_decode()
          int iFilledBytes = 0;
          while ( (iFilledBytes <= 0) && (! g_bQuit) )
          {
-            iFilledBytes += _fillBuffer(pOMXBuffer->pBuffer + iFilledBytes, pOMXBuffer->nAllocLen - iFilledBytes);
-            if ( iFilledBytes < 0 )
+            int iRead = _fillBuffer(pOMXBuffer->pBuffer + iFilledBytes, pOMXBuffer->nAllocLen - iFilledBytes);
+            if ( iRead < 0 )
                break;
+            iFilledBytes += iRead;
             if ( (0 == iFilledBytes) && (! g_bQuit) )
-               hardware_sleep_ms(20);
+               hardware_sleep_ms(10);
          }
          if ( (iFilledBytes <= 0) || g_bQuit )
          {
@@ -432,10 +497,8 @@ static int video_decode()
       }
 
       log_line("Quiting...");
-
-      if ( g_iExitOnEnd )
-         system("rm -rf tmp/intro_playing");
-
+      _signal_willfinish_semaphore();
+      hardware_sleep_ms(100);
       if ( NULL != pOMXBuffer )
       {
          pOMXBuffer->nFilledLen = 0;
@@ -479,6 +542,9 @@ static int video_decode()
    ilclient_destroy(client);
 
    log_line("Done rendering cleanup step 3/3");
+
+   _signal_exit_semaphore();
+
    return status;
 }
 
@@ -492,38 +558,95 @@ int main(int argc, char **argv)
 {
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
-      printf("%d.%d (b%d)", 10,3,263);
+      printf("%d.%d (b%d)", 11,5,11504);
       return 0;
    }
 
    if ( argc < 3 )
       return 0;
 
-   log_init("RubyVideoPlayer");
+   for( int i=1; i<argc; i++ )
+   {
+      if ( 0 == strcmp(argv[i], "-rawp") )
+         g_iRawPriority = atoi(argv[i+1]);
+
+      if ( 0 == strcmp(argv[i], "-af") )
+         g_uCPUAffinity = (uint32_t) atoi(argv[i+1]);
+
+      if ( 0 == strcmp(argv[i], "-endexit") )
+         g_iExitOnEnd = 1;
+
+      if ( 0 == strcmp(argv[i], "-fps") )
+      {
+         g_iFPS = atoi(argv[i+1]);
+         if ( (g_iFPS < 10) || (g_iFPS > 240) )
+            g_iFPS = 30;
+      }
+      if ( 0 == strcmp(argv[i], "-file") )
+         strcpy(szFileName, argv[i+1]);
+   }
+
+   log_init("RubyVideoPlayerF");
+   log_line("Raw priority param: %d, CPU affinity mask param: %d", g_iRawPriority, g_uCPUAffinity);
+   log_line("FPS param: %d, exitonend: %d, file param: [%s]", g_iFPS, g_iExitOnEnd, szFileName);
+
+   pthread_t this_thread = pthread_self();
+   struct sched_param params;
+   int policy = 0;
+   int ret = 0;
+   ret = pthread_getschedparam(this_thread, &policy, &params);
+   if ( ret != 0 )
+      log_softerror_and_alarm("Failed to get initial schedule param");
+   else
+      log_line("Initial thread policy/priority: %d/%d", policy, params.sched_priority);
+
+
+   if ( (g_iRawPriority > 1) && (g_iRawPriority < 100) )
+   {
+      params.sched_priority = 100 - g_iRawPriority;
+      ret = pthread_setschedparam(this_thread, SCHED_FIFO, &params);
+      if ( ret != 0 )
+         log_softerror_and_alarm("Failed to set thread schedule class, error: %d, %s", errno, strerror(errno));
+      else
+         log_line("Did set new thread priority.");
+   }
+
+   if ( g_uCPUAffinity > 0 )
+   {
+      cpu_set_t cpuSet;
+      CPU_ZERO(&cpuSet);
+      int iCore = -1;
+      for( int i=0; i<8; i++ )
+      {
+         if ( g_uCPUAffinity & (0x01<<i) )
+         {
+            CPU_SET(i, &cpuSet);
+            iCore = i;
+         }
+      }
+      pid_t pid = getpid();
+      if ( 0 != sched_setaffinity(pid, sizeof(cpuSet), &cpuSet) )
+         log_line("Failed to set affinities for the entire process, error: %d (%s)", errno, strerror(errno)); 
+      else
+         log_line("Did set affinities for the entire process, to %d", g_uCPUAffinity);
+
+      if ( 0 != pthread_setaffinity_np(this_thread, sizeof(cpuSet), &cpuSet) )
+         log_line("Failed to set cpu affinity for main thread, error: %d, (%s)", errno, strerror(errno));
+      else
+         log_line("Did set cpu affinity for main thread to mask: %u, core: %d", g_uCPUAffinity, iCore);
+   }
 
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
 
-   int iParamToParse = argc-1;
-
-   g_iExitOnEnd = 0;
-   if ( argc > 3 )
-   if ( 0 == strcmp(argv[iParamToParse], "-endexit") )
-   {
-      g_iExitOnEnd = 1;
-      iParamToParse--;
-   }
-
-   g_iFPS = atoi(argv[iParamToParse]);
-   if ( (g_iFPS < 10) || (g_iFPS > 240) )
-      g_iFPS = 30;
-   iParamToParse--;
-   strcpy(szFileName, argv[iParamToParse]);
-
    bcm_host_init();
 
-   log_line("FPS param: %d, Exit on End param: %d", g_iFPS, g_iExitOnEnd);
+   ret = pthread_getschedparam(this_thread, &policy, &params);
+   if ( ret != 0 )
+      log_softerror_and_alarm("Failed to get new schedule param");
+   else
+      log_line("New thread policy/priority: %d/%d", policy, params.sched_priority);
 
    //DISPMANX_DISPLAY_HANDLE_T display = vc_dispmanx_display_open(0);
    //vc_dispmanx_vsync_callback(display, _onVSync, NULL); 

@@ -86,7 +86,7 @@ void radio_close_interfaces_for_read();
 void radio_close_interface_for_read(int interfaceIndex);
 void radio_close_interface_for_write(int interfaceIndex);
 
-u8* radio_process_wlan_data_in(int interfaceNumber, int* outPacketLength, u32 uTimeNow);
+u8* radio_process_wlan_data_in(int interfaceNumber, int* piOutPacketLength, int* piOutRxDatarate, u32 uTimeNow);
 int radio_get_last_read_error_code();
 
 // returns 0 for failure, total length of packet for success
