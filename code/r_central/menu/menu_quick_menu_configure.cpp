@@ -179,29 +179,29 @@ void MenuQuickMenuConfigure::valuesToUI()
    else
       m_pItemsSelect[0]->setSelectedIndex(2);
 
-   m_pItemsSelect[8]->setEnabled(true);
-   m_pItemsSelect[8]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::CycleOSDScreen)?1:0);
-
    m_pItemsSelect[1]->setEnabled(true);
-   m_pItemsSelect[1]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::CycleOSDSize)?1:0);
+   m_pItemsSelect[1]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::CycleOSDScreen)?1:0);
 
    m_pItemsSelect[2]->setEnabled(true);
-   m_pItemsSelect[2]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::TakePicture)?1:0);
+   m_pItemsSelect[2]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::CycleOSDSize)?1:0);
 
    m_pItemsSelect[3]->setEnabled(true);
-   m_pItemsSelect[3]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::VideoRecording)?1:0);
+   m_pItemsSelect[3]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::TakePicture)?1:0);
 
    m_pItemsSelect[4]->setEnabled(true);
-   m_pItemsSelect[4]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::ToggleOSDOff)?1:0);
+   m_pItemsSelect[4]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::VideoRecording)?1:0);
 
    m_pItemsSelect[5]->setEnabled(true);
-   m_pItemsSelect[5]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::ToggleStatsOff)?1:0);
+   m_pItemsSelect[5]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::ToggleOSDOff)?1:0);
 
    m_pItemsSelect[6]->setEnabled(true);
-   m_pItemsSelect[6]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::ToggleAllOff)?1:0);
+   m_pItemsSelect[6]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::ToggleStatsOff)?1:0);
 
    m_pItemsSelect[7]->setEnabled(true);
-   m_pItemsSelect[7]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::RelaySwitch)?1:0);
+   m_pItemsSelect[7]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::ToggleAllOff)?1:0);
+
+   m_pItemsSelect[8]->setEnabled(true);
+   m_pItemsSelect[8]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::RelaySwitch)?1:0);
 
    m_pItemsSelect[9]->setEnabled(true);
    m_pItemsSelect[9]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::SwitchCameraProfile)?1:0);
