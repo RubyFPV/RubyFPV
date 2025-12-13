@@ -130,6 +130,7 @@ typedef struct
    int iShowProcessesMonitor;
    int iShowCPULoad;
    u32 uEnabledAlarms;
+   u32 uEnabledQuickMenu;
    int iShowOnlyPresentTxPowerCards;
    int iShowTxBoosters;
    int iMenuStyle; // 0: clasic, 1: sticky left
@@ -157,4 +158,4 @@ void setPreferencesDoNotShowAgain(int iUniqueId, int iDoNotShowAgain);
 void removePreferencesDoNotShowAgain(int iUniqueId);
 #ifdef __cplusplus
 }  
-#endif 
+#endif
