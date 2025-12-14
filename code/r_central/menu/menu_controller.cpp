@@ -46,6 +46,7 @@
 #include "menu_controller_recording.h"
 #include "menu_controller_dev.h"
 #include "menu_preferences_buttons.h"
+#include "menu_quick_menu_settings.h"
 #include "menu_preferences_ui.h"
 #include "menu_preferences.h"
 #include "menu_controller_radio.h"
@@ -122,6 +123,10 @@ void MenuController::addItems()
    //m_pMenuItems[m_IndexEncryption]->setEnabled(false);
 
    m_IndexButtons = addMenuItem(new MenuItem(L("Buttons"), L("Change buttons actions.")));
+
+   m_IndexQuickMenu = addMenuItem(new MenuItem(L("Quick Menu Settings"), L("Configure which actions are enabled in the Quick menu.")));
+   //m_pMenuItems[m_IndexQuickMenu]->showArrow();
+
    m_IndexPreferences = -1;
    //m_IndexPreferences = addMenuItem(new MenuItem("Preferences", "Change preferences about messages."));
    m_IndexPreferencesUI = addMenuItem(new MenuItem(L("User Interface"), L("Change user interface preferences: language, fonts, colors, sizes, display units.")));
@@ -274,6 +279,12 @@ void MenuController::onSelectItem()
    if ( m_IndexButtons == m_SelectedIndex )
    {
       add_menu_to_stack(new MenuButtons()); 
+      return;
+   }
+
+   if ( m_IndexQuickMenu == m_SelectedIndex )
+   {
+      add_menu_to_stack(new MenuQuickMenuSettings());
       return;
    }
 

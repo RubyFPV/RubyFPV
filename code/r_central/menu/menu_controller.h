@@ -18,7 +18,7 @@ class MenuController: public Menu
       MenuItemSlider* m_pItemsSlider[10];
 
       int m_IndexCPU, m_IndexPorts;
-      int m_IndexButtons, m_IndexPreferences, m_IndexPreferencesUI, m_IndexPlugins, m_IndexReboot;
+      int m_IndexButtons, m_IndexQuickMenu, m_IndexPreferences, m_IndexPreferencesUI, m_IndexPlugins, m_IndexReboot;
       int m_IndexUpdate;
       //int m_IndexShowCPUInfo, m_IndexShowVoltage;
       int m_IndexNetwork, m_IndexEncryption, m_IndexRadio;
