@@ -50,7 +50,7 @@
 #include "../link_watch.h"
 #include <ctype.h>
 
-
+int MenuQuickMenu::iPrevSelectedItem = 0;
 
 MenuQuickMenu::MenuQuickMenu(void)
 :Menu(MENU_ID_QUICK_MENU, L("Quick Menu"), NULL)
@@ -58,11 +58,7 @@ MenuQuickMenu::MenuQuickMenu(void)
 {
    m_Width = 0.164;
    m_xPos = menu_get_XStartPos(m_Width);
-   m_yPos = 0.40;
-   //m_bFullWidthSelection = true;
-
-   //if ( 1 == Menu::getRenderMode() )
-   //   addExtraHeightAtStart(0.2);
+   m_yPos = 0.30;
 }
 
 MenuQuickMenu::~MenuQuickMenu()
@@ -72,49 +68,115 @@ MenuQuickMenu::~MenuQuickMenu()
 
 void MenuQuickMenu::onShow()
 {
-   int iPrevSelectedItem = m_SelectedIndex;
-   log_line("MenuQuickMenu: onShow...");
+   //log_line("MenuQuickMenu: onShow...");
    
    addItems();
    Menu::onShow();
 
-   if ( iPrevSelectedItem >= 0 )
+   if ( MenuQuickMenu::iPrevSelectedItem >= 0 )
    {
-      m_SelectedIndex = iPrevSelectedItem;
+      m_SelectedIndex = MenuQuickMenu::iPrevSelectedItem;
       onFocusedItemChanged();
    }
-   log_line("Entered root menu.");
+   //log_line("Entered root menu.");
 }
 
 void MenuQuickMenu::addItems()
 {
    removeAllItems();
-   //m_iIndexSpectator = -1;
 
    Preferences* pP = get_Preferences();
    
    //m_iIndexController =
-   addMenuItem(new MenuItem(L("Take Picture")));
-   addMenuItem(new MenuItem(L("Video Recording")));
-   addMenuItem(new MenuItem(L("Toggle OSD Off")));
+   //addMenuItem(new MenuItem(L("Take Picture")));
+   //addMenuItem(new MenuItem(L("Video Recording")));
+   //addMenuItem(new MenuItem(L("Toggle OSD Off")));
 
-      /*
-   m_pItemsSelect[c]->addSelection(L("None"));
-   m_pItemsSelect[c]->addSelection(L("Cycle OSD screen"));
-   m_pItemsSelect[c]->addSelection(L("Cycle OSD size"));
-   m_pItemsSelect[c]->addSelection(L("Take Picture"));
-   m_pItemsSelect[c]->addSelection(L("Video Recording"));
-   m_pItemsSelect[c]->addSelection(L("Toggle OSD Off"));
-   m_pItemsSelect[c]->addSelection(L("Toggle Stats Off"));
-   m_pItemsSelect[c]->addSelection(L("Toggle All Off"));
-   m_pItemsSelect[c]->addSelection(L("Relay Switch"));
-   m_pItemsSelect[c]->addSelection(L("Switch Camera Profile"));
-   m_pItemsSelect[c]->addSelection(L("RC Output On/Off"));
-   m_pItemsSelect[c]->addSelection(L("Rotary Encoder Function"));
-   m_pItemsSelect[c]->addSelection(L("Freeze OSD"));
-   m_pItemsSelect[c]->addSelection(L("Cycle Favorite Vehicles"));
-   m_pItemsSelect[c]->addSelection(L("PIT Mode"));
-      */
+   m_pItemAction.clear();
+
+   if(pP->uEnabledQuickMenu & MenuQuickMenu::CycleOSDScreen)
+   {
+      int m_index = addMenuItem(new MenuItem(L("Cycle OSD screen")));
+      m_pItemAction[m_index] = MenuQuickMenu::CycleOSDScreen;
+   }
+
+   if(pP->uEnabledQuickMenu & MenuQuickMenu::CycleOSDSize)
+   {
+      int m_index = addMenuItem(new MenuItem(L("Cycle OSD size")));
+      m_pItemAction[m_index] = MenuQuickMenu::CycleOSDSize;
+   }
+
+   if(pP->uEnabledQuickMenu & MenuQuickMenu::TakePicture)
+   {
+      int m_index = addMenuItem(new MenuItem(L("Take Picture")));
+      m_pItemAction[m_index] = MenuQuickMenu::TakePicture;
+   }
+
+   if(pP->uEnabledQuickMenu & MenuQuickMenu::VideoRecording)
+   {
+      int m_index = addMenuItem(new MenuItem(L("Video Recording")));
+      m_pItemAction[m_index] = MenuQuickMenu::VideoRecording;
+   }
+
+   if(pP->uEnabledQuickMenu & MenuQuickMenu::ToggleOSDOff)
+   {
+      int m_index = addMenuItem(new MenuItem(L("Toggle OSD Off")));
+      m_pItemAction[m_index] = MenuQuickMenu::ToggleOSDOff;
+   }
+
+   if(pP->uEnabledQuickMenu & MenuQuickMenu::ToggleStatsOff)
+   {
+      int m_index = addMenuItem(new MenuItem(L("Toggle Stats Off")));
+      m_pItemAction[m_index] = MenuQuickMenu::ToggleStatsOff;
+   }
+
+   if(pP->uEnabledQuickMenu & MenuQuickMenu::ToggleAllOff)
+   {
+      int m_index = addMenuItem(new MenuItem(L("Toggle All Off")));
+      m_pItemAction[m_index] = MenuQuickMenu::ToggleAllOff;
+   }
+
+   if(pP->uEnabledQuickMenu & MenuQuickMenu::RelaySwitch)
+   {
+      int m_index = addMenuItem(new MenuItem(L("Relay Switch")));
+      m_pItemAction[m_index] = MenuQuickMenu::RelaySwitch;
+   }
+
+   if(pP->uEnabledQuickMenu & MenuQuickMenu::SwitchCameraProfile)
+   {
+      int m_index = addMenuItem(new MenuItem(L("Switch Camera Profile")));
+      m_pItemAction[m_index] = MenuQuickMenu::SwitchCameraProfile;
+   }
+
+   if(pP->uEnabledQuickMenu & MenuQuickMenu::RCOutputOnOff)
+   {
+      int m_index = addMenuItem(new MenuItem(L("RC Output On/Off")));
+      m_pItemAction[m_index] = MenuQuickMenu::RCOutputOnOff;
+   }
+
+   if(pP->uEnabledQuickMenu & MenuQuickMenu::RotaryEncoderFunction)
+   {
+      int m_index = addMenuItem(new MenuItem(L("Rotary Encoder Function")));
+      m_pItemAction[m_index] = MenuQuickMenu::RotaryEncoderFunction;
+   }
+
+   if(pP->uEnabledQuickMenu & MenuQuickMenu::FreezeOSD)
+   {
+      int m_index = addMenuItem(new MenuItem(L("Freeze OSD")));
+      m_pItemAction[m_index] = MenuQuickMenu::FreezeOSD;
+   }
+
+   if(pP->uEnabledQuickMenu & MenuQuickMenu::CycleFavoriteVehicles)
+   {
+      int m_index = addMenuItem(new MenuItem(L("Cycle Favorite Vehicles")));
+      m_pItemAction[m_index] = MenuQuickMenu::CycleFavoriteVehicles;
+   }
+
+   if(pP->uEnabledQuickMenu & MenuQuickMenu::PITMode)
+   {
+      int m_index = addMenuItem(new MenuItem(L("PIT Mode")));
+      m_pItemAction[m_index] = MenuQuickMenu::PITMode;
+   }
 
    
    // m_pMenuItems[m_ItemsCount-1]->setExtraHeight(m_sfMenuPaddingY);
@@ -179,10 +241,56 @@ void MenuQuickMenu::Render()
 void MenuQuickMenu::onSelectItem()
 {
    Menu::onSelectItem();
-   if ( (-1 == m_SelectedIndex) || (m_pMenuItems[m_SelectedIndex]->isEditing()) )
-      return;
+   if (-1 == m_SelectedIndex)
+     return;
+
+   MenuQuickMenu::iPrevSelectedItem = m_SelectedIndex;
+
+   t_quick_menu_actions  action = m_pItemAction[m_SelectedIndex];
+
+   switch(action)
+   {
+      case None:
+         break;
+      case CycleOSDScreen:
+         break;
+      case CycleOSDSize:
+         break;
+      case TakePicture:
+         warnings_add(0, "QuickMenu TakePicture");
+         break;
+      case VideoRecording:
+         warnings_add(0, "QuickMenu VideoRecording");
+         break;
+      case ToggleOSDOff:
+         break;
+      case ToggleStatsOff:
+         break;
+      case ToggleAllOff:
+         break;
+      case RelaySwitch:
+         break;
+      case SwitchCameraProfile:
+         break;
+      case RCOutputOnOff:
+         break;
+      case RotaryEncoderFunction:
+         break;
+      case FreezeOSD:
+         break;
+      case CycleFavoriteVehicles:
+         break;
+      case PITMode:
+         warnings_add(0, "QuickMenu PITMode");
+         break;
+
+   }
+
+
+
 
    // if ( m_iIndexController == m_SelectedIndex )
    //    add_menu_to_stack(new MenuController());
 
+   menu_discard_all();
 }

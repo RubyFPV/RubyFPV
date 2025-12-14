@@ -1,6 +1,6 @@
 #pragma once
 #include "menu_objects.h"
-
+#include <map>
 
 class MenuQuickMenu: public Menu
 {
@@ -22,6 +22,7 @@ class MenuQuickMenu: public Menu
             CycleFavoriteVehicles = 4096,
             PITMode = 8192
       } t_quick_menu_actions;
+      static int iPrevSelectedItem;
 
    public:
       MenuQuickMenu();
@@ -32,6 +33,8 @@ class MenuQuickMenu: public Menu
 
 
    private:
+      std::map<int,t_quick_menu_actions>    m_pItemAction;
+
       void addItems();
 
 };

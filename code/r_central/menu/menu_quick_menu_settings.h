@@ -14,7 +14,6 @@ class MenuQuickMenuSettings: public Menu
 
    private:
       MenuItemSelect* m_pItemsSelect[15];
-      MenuItemSlider* m_pItemsSlider[10];
 
       int m_IndexAllQuickMenu;
       int m_IndexCycleOSDScreen;

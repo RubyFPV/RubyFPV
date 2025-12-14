@@ -627,7 +627,10 @@ void menu_loop_parse_input_events()
    {
       log_line("[Menu] (loop %d) Pressed [QuickMenu] Key", menu_get_loop_counter()%1000);
       load_Preferences();
-      add_menu_to_stack(new MenuQuickMenu());
+      Preferences* pP = get_Preferences();
+      if (pP->uEnabledQuickMenu != 0)
+         add_menu_to_stack(new MenuQuickMenu());
+      return;
    }
 
    if ( keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_BACK )

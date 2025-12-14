@@ -357,16 +357,7 @@ void MenuQuickMenuSettings::onSelectItem()
    else
       pP->uEnabledQuickMenu |= action;
 
-
-   /*
-   if ( m_IndexAlarmControllerLink == m_SelectedIndex )
-   {
-      if ( 0 == m_pItemsSelect[5]->getSelectedIndex() )
-         pP->uEnabledQuickMenu &= ~(ALARM_ID_LINK_TO_CONTROLLER_LOST | ALARM_ID_VEHICLE_VIDEO_TX_OVERLOAD);
-      else
-         pP->uEnabledQuickMenu |= (ALARM_ID_LINK_TO_CONTROLLER_LOST | ALARM_ID_LINK_TO_CONTROLLER_RECOVERED);
-   }
-      */
+   MenuQuickMenu::iPrevSelectedItem = 0; //reset the quick menu previously selected item
 
    save_Preferences();
    valuesToUI();
