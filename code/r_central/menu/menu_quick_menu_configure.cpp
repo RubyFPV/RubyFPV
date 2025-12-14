@@ -296,65 +296,75 @@ void MenuQuickMenuConfigure::onSelectItem()
    MenuQuickMenu::t_quick_menu_actions action = MenuQuickMenu::None;
    int selectionState = 0;
 
-   switch ( m_SelectedIndex )
+   if ( m_IndexCycleOSDScreen == m_SelectedIndex )
    {
-      m_IndexCycleOSDScreen:
-         action = MenuQuickMenu::CycleOSDScreen;
-         selectionState = m_pItemsSelect[1]->getSelectedIndex();
-         break;
-      m_IndexCycleOSDSize:
-         action = MenuQuickMenu::CycleOSDSize;
-         selectionState = m_pItemsSelect[2]->getSelectedIndex();
-         break;
-      m_IndexTakePicture:
-         action = MenuQuickMenu::TakePicture;
-         selectionState = m_pItemsSelect[3]->getSelectedIndex();
-         break;
-      m_IndexVideoRecording:
-         action = MenuQuickMenu::VideoRecording;
-         selectionState = m_pItemsSelect[4]->getSelectedIndex();
-         break;
-      m_IndexToggleOSDOff:
-         action = MenuQuickMenu::ToggleOSDOff;
-         selectionState = m_pItemsSelect[5]->getSelectedIndex();
-         break;
-      m_IndexToggleStatsOff:
-         action = MenuQuickMenu::ToggleStatsOff;
-         selectionState = m_pItemsSelect[6]->getSelectedIndex();
-         break;
-      m_IndexToggleAllOff:
-         action = MenuQuickMenu::ToggleAllOff;
-         selectionState = m_pItemsSelect[7]->getSelectedIndex();
-         break;
-      m_IndexRelaySwitch:
-         action = MenuQuickMenu::RelaySwitch;
-         selectionState = m_pItemsSelect[8]->getSelectedIndex();
-         break;
-      m_IndexSwitchCameraProfile:
-         action = MenuQuickMenu::SwitchCameraProfile;
-         selectionState = m_pItemsSelect[9]->getSelectedIndex();
-         break;
-      m_IndexRCOutputOnOff:
-         action = MenuQuickMenu::RCOutputOnOff;
-         selectionState = m_pItemsSelect[10]->getSelectedIndex();
-         break;
-      m_IndexRotaryEncoderFunction:
-         action = MenuQuickMenu::RotaryEncoderFunction;
-         selectionState = m_pItemsSelect[11]->getSelectedIndex();
-         break;
-      m_IndexFreezeOSD:
-         action = MenuQuickMenu::FreezeOSD;
-         selectionState = m_pItemsSelect[12]->getSelectedIndex();
-         break;
-      m_IndexCycleFavoriteVehicles:
-         action = MenuQuickMenu::CycleFavoriteVehicles;
-         selectionState = m_pItemsSelect[13]->getSelectedIndex();
-         break;
-      m_IndexPITMode:
-         action = MenuQuickMenu::PITMode;
-         selectionState = m_pItemsSelect[14]->getSelectedIndex();
-         break;
-      default: break;
+      action = MenuQuickMenu::CycleOSDScreen;
+      selectionState = m_pItemsSelect[1]->getSelectedIndex();
+   }
+   if ( m_IndexCycleOSDSize == m_SelectedIndex )
+   {
+      action = MenuQuickMenu::CycleOSDSize;
+      selectionState = m_pItemsSelect[2]->getSelectedIndex();
+   }
+   if ( m_IndexTakePicture == m_SelectedIndex )
+   {
+      action = MenuQuickMenu::TakePicture;
+      selectionState = m_pItemsSelect[3]->getSelectedIndex();
+   }
+   if ( m_IndexVideoRecording == m_SelectedIndex )
+   {
+      action = MenuQuickMenu::VideoRecording;
+      selectionState = m_pItemsSelect[4]->getSelectedIndex();
+   }
+   if ( m_IndexToggleOSDOff == m_SelectedIndex )
+   {
+      action = MenuQuickMenu::ToggleOSDOff;
+      selectionState = m_pItemsSelect[5]->getSelectedIndex();
+   }
+   if ( m_IndexToggleStatsOff == m_SelectedIndex )
+   {
+      action = MenuQuickMenu::ToggleStatsOff;
+      selectionState = m_pItemsSelect[6]->getSelectedIndex();
+   }
+   if ( m_IndexToggleAllOff == m_SelectedIndex )
+   {
+      action = MenuQuickMenu::ToggleAllOff;
+      selectionState = m_pItemsSelect[7]->getSelectedIndex();
+   }
+   if ( m_IndexRelaySwitch == m_SelectedIndex )
+   {
+      action = MenuQuickMenu::RelaySwitch;
+      selectionState = m_pItemsSelect[8]->getSelectedIndex();
+   }
+   if ( m_IndexSwitchCameraProfile == m_SelectedIndex )
+   {
+      action = MenuQuickMenu::SwitchCameraProfile;
+      selectionState = m_pItemsSelect[9]->getSelectedIndex();
+   }
+   if ( m_IndexRCOutputOnOff == m_SelectedIndex )
+   {
+      action = MenuQuickMenu::RCOutputOnOff;
+      selectionState = m_pItemsSelect[10]->getSelectedIndex();
+   }
+   if ( m_IndexRotaryEncoderFunction == m_SelectedIndex )
+   {
+      action = MenuQuickMenu::RotaryEncoderFunction;
+      selectionState = m_pItemsSelect[11]->getSelectedIndex();
+   }
+   if ( m_IndexFreezeOSD == m_SelectedIndex )
+   {
+      action = MenuQuickMenu::FreezeOSD;
+      selectionState = m_pItemsSelect[12]->getSelectedIndex();
+   }
+   if ( m_IndexCycleFavoriteVehicles == m_SelectedIndex )
+   {
+      action = MenuQuickMenu::CycleFavoriteVehicles;
+      selectionState = m_pItemsSelect[13]->getSelectedIndex();
+   }
+   if ( m_IndexPITMode == m_SelectedIndex )
+   {
+      action = MenuQuickMenu::PITMode;
+      selectionState = m_pItemsSelect[14]->getSelectedIndex();
    }
 
    if ( 0 == selectionState )
