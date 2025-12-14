@@ -36,6 +36,7 @@
 #include "menu_item_select.h"
 #include "menu_item_section.h"
 #include "menu_color_picker.h"
+#include "menu_quick_menu_settings.h"
 #include "../osd/osd_common.h"
 #include "../popup_log.h"
 #include "../fonts.h"
@@ -83,6 +84,7 @@ void MenuPreferencesUI::addItems()
    m_IndexLogWindow = -1;
    m_IndexMonitor = -1;
    m_IndexLanguage = -1;
+   m_IndexQuickMenu = -1;
 
    m_IndexInvertColors = -1;
    m_IndexColorPickerOSD = -1;
@@ -125,6 +127,9 @@ void MenuPreferencesUI::addItems()
       m_pItemsSelect[0]->setIsEditable();
       m_IndexScaleMenu = addMenuItem(m_pItemsSelect[0]);
       
+      m_IndexQuickMenu = addMenuItem( new MenuItem(L("Quick Menu Settings")) );
+      m_pMenuItems[m_IndexQuickMenu]->showArrow();
+
    }
 
    if ( m_bShowOnlyOSD )
@@ -688,5 +693,12 @@ void MenuPreferencesUI::onSelectItem()
       menu_refresh_all_menus();
       return;
    }
+
+   if ( (-1 != m_IndexQuickMenu) && (m_IndexQuickMenu == m_SelectedIndex) )
+   {
+      add_menu_to_stack(new MenuQuickMenuSettings());
+      return;
+   }
+
    save_Preferences();
 }

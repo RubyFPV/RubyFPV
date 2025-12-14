@@ -21,6 +21,7 @@ class MenuPreferencesUI: public Menu
       MenuItemSlider* m_pItemsSlider[10];
       int m_IndexScaleMenu, m_IndexMenuStacked;
       int m_IndexMenusCompact;
+      int m_IndexQuickMenu;
       int m_IndexOSDSize, m_IndexOSDFlip;
       int m_IndexInvertColors;
       int m_IndexColorPickerOSD;
