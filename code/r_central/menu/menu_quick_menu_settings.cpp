@@ -40,13 +40,13 @@
 #include <semaphore.h>
 
 MenuQuickMenuSettings::MenuQuickMenuSettings(void)
-:Menu(MENU_ID_SYSTEM_ALARMS, L("Configure Quick Menu"), NULL)
+:Menu(MENU_ID_QUICK_MENU_SETTINGS, L("Quick Menu Settings"), NULL)
 {
    m_Width = 0.42;
    m_yPos = 0.28;
    m_xPos = menu_get_XStartPos(m_Width);
 
-   m_pItemsSelect[0] = new MenuItemSelect(L("Quick Menu"), L("Turn quick menu on or off."));
+   m_pItemsSelect[0] = new MenuItemSelect(L("Quick Menu"), L("Enable,  Disable or Customize which quick-actions are displayed in the Quick Menu. Customization can start from all disabled and activate a few, or all enabled and deactivate a few"));
    m_pItemsSelect[0]->addSelection(L("Disabled"));
    m_pItemsSelect[0]->addSelection(L("Enabled"));
    m_pItemsSelect[0]->addSelection(L("Custom"));
@@ -160,7 +160,7 @@ MenuQuickMenuSettings::MenuQuickMenuSettings(void)
    Preferences* pP = get_Preferences();
 
    m_bMenuQuickMenuSettingsIsOnCustomOption = true;
-   if ( (pP->uEnabledAlarms == 0xFFFFFFFF) || (pP->uEnabledAlarms == 0) )
+   if ( (pP->uEnabledQuickMenu == 0xFFFFFFFF) || (pP->uEnabledQuickMenu == 0) )
       m_bMenuQuickMenuSettingsIsOnCustomOption = false;
 
 }
@@ -224,21 +224,6 @@ void MenuQuickMenuSettings::valuesToUI()
 
    if ( 0 == m_pItemsSelect[0]->getSelectedIndex() )
    {
-      m_pItemsSelect[1]->setEnabled(false);
-      m_pItemsSelect[2]->setEnabled(false);
-      m_pItemsSelect[3]->setEnabled(false);
-      m_pItemsSelect[4]->setEnabled(false);
-      m_pItemsSelect[5]->setEnabled(false);
-      m_pItemsSelect[6]->setEnabled(false);
-      m_pItemsSelect[7]->setEnabled(false);
-      m_pItemsSelect[8]->setEnabled(false);
-      m_pItemsSelect[9]->setEnabled(false);
-      m_pItemsSelect[10]->setEnabled(false);
-      m_pItemsSelect[11]->setEnabled(false);
-      m_pItemsSelect[12]->setEnabled(false);
-      m_pItemsSelect[13]->setEnabled(false);
-      m_pItemsSelect[14]->setEnabled(false);
-
       m_pItemsSelect[1]->setSelectedIndex(0);
       m_pItemsSelect[2]->setSelectedIndex(0);
       m_pItemsSelect[3]->setSelectedIndex(0);
