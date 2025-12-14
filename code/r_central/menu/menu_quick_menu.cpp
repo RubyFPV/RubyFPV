@@ -51,24 +51,23 @@
 #include <ctype.h>
 
 
-const char* s_textRoot[] = { "Welcome to", SYSTEM_NAME, NULL };
-
 
 MenuQuickMenu::MenuQuickMenu(void)
-:Menu(MENU_ID_ROOT, SYSTEM_NAME, NULL)
+:Menu(MENU_ID_QUICK_MENU, L("Quick Menu"), NULL)
+
 {
    m_Width = 0.164;
    m_xPos = menu_get_XStartPos(m_Width);
-   m_yPos = 0.42;
+   m_yPos = 0.40;
    //m_bFullWidthSelection = true;
 
-   if ( 1 == Menu::getRenderMode() )
-      addExtraHeightAtStart(0.2);
+   //if ( 1 == Menu::getRenderMode() )
+   //   addExtraHeightAtStart(0.2);
 }
 
 MenuQuickMenu::~MenuQuickMenu()
 {
-   log_line("Menu Closed.");
+   log_line("Quick Menu Closed.");
 }
 
 void MenuQuickMenu::onShow()
@@ -76,7 +75,6 @@ void MenuQuickMenu::onShow()
    int iPrevSelectedItem = m_SelectedIndex;
    log_line("MenuQuickMenu: onShow...");
    
-   load_Preferences();
    addItems();
    Menu::onShow();
 
@@ -91,37 +89,43 @@ void MenuQuickMenu::onShow()
 void MenuQuickMenu::addItems()
 {
    removeAllItems();
-   m_iIndexSpectator = -1;
+   //m_iIndexSpectator = -1;
 
    Preferences* pP = get_Preferences();
    
-   if ( pP->iShowCompactMenus )
-      m_iIndexSimpleSetup = addMenuItem(new MenuItem(L("Quick vehicle setup"), L("Quickly change the most common vehicle settings.")));
-   else
-      m_iIndexSimpleSetup = addMenuItem(new MenuItem(L("Vehicle Settings"), L("Change current vehicle settings.")));
-   m_iIndexMyVehicles = addMenuItem(new MenuItem(L("My vehicles"), L("Manage my vehicles.")));
-   m_iIndexSearch = addMenuItem(new MenuItem(L("Search"), L("Search for vehicles.")));
-   addSeparator();
-   //m_iIndexSpectator = addMenuItem(new MenuItem("Spectator Vehicles", "See the list of vehicles you recently connected to as a spectator."));
+   //m_iIndexController =
+   addMenuItem(new MenuItem(L("Take Picture")));
+   addMenuItem(new MenuItem(L("Video Recording")));
+   addMenuItem(new MenuItem(L("Toggle OSD Off")));
 
-   if ( pP->iShowCompactMenus )
-      m_iIndexVehicle = addMenuItem(new MenuItem(L("Vehicle settings"), L("Change vehicle settings.")));
-   else
-      m_iIndexVehicle = -1;
-   m_iIndexController = addMenuItem(new MenuItem(L("Controller settings"), L("Change controller settings and user interface preferences.")));
-   m_iIndexSystem = addMenuItem(new MenuItem(L("System"), L("Configure system options, shows detailed information about the system.")));
-   addSeparator();
-   m_iIndexMedia = addMenuItem(new MenuItem(L("Media & Storage"), L("Manage saved logs, screenshots and videos.")));
+      /*
+   m_pItemsSelect[c]->addSelection(L("None"));
+   m_pItemsSelect[c]->addSelection(L("Cycle OSD screen"));
+   m_pItemsSelect[c]->addSelection(L("Cycle OSD size"));
+   m_pItemsSelect[c]->addSelection(L("Take Picture"));
+   m_pItemsSelect[c]->addSelection(L("Video Recording"));
+   m_pItemsSelect[c]->addSelection(L("Toggle OSD Off"));
+   m_pItemsSelect[c]->addSelection(L("Toggle Stats Off"));
+   m_pItemsSelect[c]->addSelection(L("Toggle All Off"));
+   m_pItemsSelect[c]->addSelection(L("Relay Switch"));
+   m_pItemsSelect[c]->addSelection(L("Switch Camera Profile"));
+   m_pItemsSelect[c]->addSelection(L("RC Output On/Off"));
+   m_pItemsSelect[c]->addSelection(L("Rotary Encoder Function"));
+   m_pItemsSelect[c]->addSelection(L("Freeze OSD"));
+   m_pItemsSelect[c]->addSelection(L("Cycle Favorite Vehicles"));
+   m_pItemsSelect[c]->addSelection(L("PIT Mode"));
+      */
+
    
-   m_pMenuItems[m_ItemsCount-1]->setExtraHeight(m_sfMenuPaddingY);
-   char szBuff[256];
-   char szBuff2[64];
-   getSystemVersionString(szBuff2, (SYSTEM_SW_VERSION_MAJOR<<8) | SYSTEM_SW_VERSION_MINOR);
-   sprintf(szBuff, "Version %s (b-%d)", szBuff2, SYSTEM_SW_BUILD_NUMBER);
-
-   addMenuItem(new MenuItemText(szBuff, true, 0.01 * Menu::getScaleFactor()));
-   sprintf(szBuff, "Running on: %s", str_get_hardware_board_name_short(hardware_getBoardType()));
-   addMenuItem(new MenuItemText(szBuff, true, 0.01 * Menu::getScaleFactor()));
+   // m_pMenuItems[m_ItemsCount-1]->setExtraHeight(m_sfMenuPaddingY);
+   // char szBuff[256];
+   // char szBuff2[64];
+   // getSystemVersionString(szBuff2, (SYSTEM_SW_VERSION_MAJOR<<8) | SYSTEM_SW_VERSION_MINOR);
+   // sprintf(szBuff, "Version %s (b-%d)", szBuff2, SYSTEM_SW_BUILD_NUMBER);
+   //
+   // addMenuItem(new MenuItemText(szBuff, true, 0.01 * Menu::getScaleFactor()));
+   // sprintf(szBuff, "Running on: %s", str_get_hardware_board_name_short(hardware_getBoardType()));
+   // addMenuItem(new MenuItemText(szBuff, true, 0.01 * Menu::getScaleFactor()));
 }
 
 
@@ -129,38 +133,47 @@ void MenuQuickMenu::addItems()
 void MenuQuickMenu::Render()
 {
    RenderPrepare();
+   float yEnd = RenderFrameAndTitle();
+   float y = yEnd;
 
-   if ( Menu::getRenderMode() != 1 )
-      m_RenderHeight -= 1.14 * g_pRenderEngine->textHeight(g_idFontMenu);
+   for( int i=0; i<m_ItemsCount; i++ )
+      y += RenderItem(i,y);
 
-   float yTop = RenderFrameAndTitle();
-   float y = yTop;
+   RenderEnd(yEnd);
 
-   if ( Menu::getRenderMode() != 1 )
-      m_RenderHeight += 1.14 * g_pRenderEngine->textHeight(g_idFontMenu);
-   
-   bool bTmp1 = m_bEnableScrolling;
-   bool bTmp2 = m_bHasScrolling;
-   m_bEnableScrolling = false;
-   m_bHasScrolling = false;
-
-   int iItem = 0;
-   float yTopItems = m_RenderYPos - 0.02*m_sfMenuPaddingY - 1.2*g_pRenderEngine->textHeight(g_idFontMenu) - 1.5*m_sfMenuPaddingY;
-   yTopItems += RenderItem(iItem, yTopItems);
-   iItem++;
-   //yTopItems += RenderItem(iItem, yTopItems);
-   //iItem++;
- 
-   m_bEnableScrolling = bTmp1;
-   m_bHasScrolling = bTmp2;
-
-   for(; iItem<m_ItemsCount; iItem++ )
-   {
-      if ( iItem == m_ItemsCount-2 )
-         y += 0.5*m_sfMenuPaddingY;
-      y += RenderItem(iItem,y);
-   }
-   RenderEnd(yTop);
+//    RenderPrepare();
+//
+//    if ( Menu::getRenderMode() != 1 )
+//       m_RenderHeight -= 1.14 * g_pRenderEngine->textHeight(g_idFontMenu);
+//
+//    float yTop = RenderFrameAndTitle();
+//    float y = yTop;
+//
+//    if ( Menu::getRenderMode() != 1 )
+//       m_RenderHeight += 1.14 * g_pRenderEngine->textHeight(g_idFontMenu);
+//
+//    bool bTmp1 = m_bEnableScrolling;
+//    bool bTmp2 = m_bHasScrolling;
+//    m_bEnableScrolling = false;
+//    m_bHasScrolling = false;
+//
+//    int iItem = 0;
+//    float yTopItems = m_RenderYPos - 0.02*m_sfMenuPaddingY - 1.2*g_pRenderEngine->textHeight(g_idFontMenu) - 1.5*m_sfMenuPaddingY;
+//    yTopItems += RenderItem(iItem, yTopItems);
+//    iItem++;
+//    //yTopItems += RenderItem(iItem, yTopItems);
+//    //iItem++;
+//
+//    m_bEnableScrolling = bTmp1;
+//    m_bHasScrolling = bTmp2;
+//
+//    for(; iItem<m_ItemsCount; iItem++ )
+//    {
+//       if ( iItem == m_ItemsCount-2 )
+//          y += 0.5*m_sfMenuPaddingY;
+//       y += RenderItem(iItem,y);
+//    }
+//    RenderEnd(yTop);
 }
 
 void MenuQuickMenu::onSelectItem()
@@ -169,59 +182,7 @@ void MenuQuickMenu::onSelectItem()
    if ( (-1 == m_SelectedIndex) || (m_pMenuItems[m_SelectedIndex]->isEditing()) )
       return;
 
-   if ( m_iIndexSimpleSetup == m_SelectedIndex )
-   {
-      if ( (NULL == g_pCurrentModel) || (0 == g_uActiveControllerModelVID) ||
-        (g_bFirstModelPairingDone && (0 == getControllerModelsCount()) && (0 == getControllerModelsSpectatorCount())) )
-      {
-         addMessage2(0, L("Not paired with any vehicle"), L("Search for vehicles to find one and connect to."));
-         return;
-      }
+   // if ( m_iIndexController == m_SelectedIndex )
+   //    add_menu_to_stack(new MenuController());
 
-      if ( (!pairing_isStarted()) || (NULL == g_pCurrentModel) || (!link_is_vehicle_online_now(g_pCurrentModel->uVehicleId)) )
-      {
-         addMessage2(0, "Not connected to a vehicle.", "Can't change settings when not connected to the vehicle. Connect to a vehicle first.");
-         return;
-      }
-
-      Preferences* pP = get_Preferences();
-      if ( pP->iShowCompactMenus )
-         add_menu_to_stack(new MenuVehicleSimpleSetup());
-      else
-         add_menu_to_stack(new MenuVehicle());
-      return;
-   }
-
-   if ( (-1 != m_iIndexVehicle) && (m_iIndexVehicle == m_SelectedIndex) )
-   {
-      if ( (NULL == g_pCurrentModel) || (0 == g_uActiveControllerModelVID) ||
-        (g_bFirstModelPairingDone && (0 == getControllerModelsCount()) && (0 == getControllerModelsSpectatorCount())) )
-      {
-         addMessage2(0, L("Not paired with any vehicle"), L("Search for vehicles to find one and connect to."));
-         return;
-      }
-      add_menu_to_stack(new MenuVehicle());
-      return;
-   }
-
-   if ( m_iIndexMyVehicles == m_SelectedIndex )
-         add_menu_to_stack(new MenuVehicles());
-
-   if ( (-1 != m_iIndexSpectator) && (m_iIndexSpectator == m_SelectedIndex) )
-         add_menu_to_stack(new MenuSpectator());
-
-   if ( m_iIndexSearch == m_SelectedIndex )
-         add_menu_to_stack(new MenuSearch());
-
-   //if ( 4 == m_SelectedIndex )
-   //   add_menu_to_stack(new MenuRadioConfig()); 
-
-   if ( m_iIndexController == m_SelectedIndex )
-      add_menu_to_stack(new MenuController()); 
-
-   if ( m_iIndexMedia == m_SelectedIndex )
-      add_menu_to_stack(new MenuStorage());
-
-   if ( m_iIndexSystem == m_SelectedIndex )
-      add_menu_to_stack(new MenuSystem());
 }

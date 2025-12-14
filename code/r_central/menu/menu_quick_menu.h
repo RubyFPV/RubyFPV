@@ -34,9 +34,4 @@ class MenuQuickMenu: public Menu
    private:
       void addItems();
 
-      int m_iIndexSimpleSetup;
-      int m_iIndexVehicle, m_iIndexMyVehicles;
-      int m_iIndexSpectator, m_iIndexSearch;
-      int m_iIndexController, m_iIndexMedia;
-      int m_iIndexSystem;
 };
