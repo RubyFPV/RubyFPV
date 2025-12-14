@@ -30,8 +30,8 @@ _CPPFLAGS := $(_CPPFLAGS) -DRUBY_BUILD_HW_PLATFORM_RADXA
 
 _CPPFLAGS_NOSDL := $(_CPPFLAGS)
 _LDFLAGS_NOSDL := $(_LDFLAGS)
-_CPPFLAGS := $(_CPPFLAGS) -I/usr/include/SDL -D_GNU_SOURCE=1 -D_REENTRANT
-_LDFLAGS := $(_LDFLAGS) -L/usr/lib/arm-linux-gnueabihf -lSDL
+_CPPFLAGS := $(_CPPFLAGS) -I/usr/include/SDL2 -D_GNU_SOURCE=1 -D_REENTRANT
+_LDFLAGS := $(_LDFLAGS) -L/usr/lib/arm-linux-gnueabihf -lSDL2
 
 CENTRAL_RENDER_CODE := $(FOLDER_CENTRAL_RENDERER)/render_engine.o $(FOLDER_CENTRAL_RENDERER)/render_engine_cairo.o $(FOLDER_CENTRAL_RENDERER)/render_engine_ui.o $(FOLDER_CENTRAL_RENDERER)/drm_core.o
 MODULE_LOC := $(FOLDER_COMMON)/strings_loc.o $(FOLDER_COMMON)/strings_table.o 
@@ -201,7 +201,7 @@ CENTRAL_MENU_ALL3 := $(FOLDER_CENTRAL_MENU)/menu_vehicle_management.o $(FOLDER_C
 CENTRAL_MENU_ALL4 := $(FOLDER_CENTRAL_MENU)/menu_vehicle_data_link.o $(FOLDER_CENTRAL_MENU)/menu_controller_network.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_osd_plugins.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_instruments_general.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_osd_elements.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_osd_plugin.o $(FOLDER_CENTRAL_MENU)/menu_controller_plugins.o $(FOLDER_CENTRAL_MENU)/menu_controller_encryption.o $(FOLDER_CENTRAL_MENU)/menu_search_connect.o $(FOLDER_CENTRAL_MENU)/menu_system_hardware.o $(FOLDER_CENTRAL_MENU)/menu_confirmation_hdmi.o $(FOLDER_CENTRAL_MENU)/menu_controller_recording.o $(FOLDER_CENTRAL_MENU)/menu_info_booster.o $(FOLDER_CENTRAL_MENU)/menu_info_procs.o $(FOLDER_CENTRAL_MENU)/menu_controller_radio_interface.o $(FOLDER_CENTRAL_MENU)/menu_negociate_radio.o $(FOLDER_CENTRAL_MENU)/menu_about.o
 CENTRAL_MENU_ALL5 := $(FOLDER_CENTRAL_MENU)/menu_system_dev_stats.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_radio_link.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_radio_interface.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_management_plugins.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_peripherals.o $(FOLDER_CENTRAL_MENU)/menu_confirmation_delete_logs.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_radio.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_cpu_oipc.o $(FOLDER_CENTRAL_MENU)/menu_confirmation_vehicle_board.o
 CENTRAL_MENU_ALL6 := $(FOLDER_CENTRAL_MENU)/menu_controller_radio.o $(FOLDER_CENTRAL_MENU)/menu_confirmation_video_rate.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_simplesetup.o $(FOLDER_CENTRAL_MENU)/menu_confirmation_sdcard_update.o $(FOLDER_CENTRAL_MENU)/menu_controller_update.o $(FOLDER_CENTRAL_MENU)/menu_controller_update_net.o
-CENTRAL_MENU_ALL7 := $(FOLDER_CENTRAL_MENU)/menu_quick_menu.o $(FOLDER_CENTRAL_MENU)/menu_quick_menu_configure.o
+CENTRAL_MENU_ALL7 := $(FOLDER_CENTRAL_MENU)/menu_quick_menu.o $(FOLDER_CENTRAL_MENU)/menu_quick_menu_settings.o
 CENTRAL_MENU_RC := $(FOLDER_CENTRAL_MENU)/menu_vehicle_rc.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_rc_failsafe.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_rc_channels.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_rc_expo.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_rc_camera.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_rc_input.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_functions.o
 CENTRAL_MENU_RADIO := $(FOLDER_CENTRAL_MENU)/menu_controller_radio_interface_sik.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_radio_link_sik.o $(FOLDER_CENTRAL_MENU)/menu_diagnose_radio_link.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_radio_link_elrs.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_radio_pit.o $(FOLDER_CENTRAL_MENU)/menu_vehicle_radio_rt_capab.o
 CENTRAL_POPUP_ALL := $(FOLDER_CENTRAL)/popup.o $(FOLDER_CENTRAL)/popup_log.o $(FOLDER_CENTRAL)/popup_commands.o $(FOLDER_CENTRAL)/popup_camera_params.o $(FOLDER_CENTRAL)/popup_radio_int.o
