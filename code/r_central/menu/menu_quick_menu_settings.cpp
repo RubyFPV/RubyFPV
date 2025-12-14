@@ -33,13 +33,13 @@
 #include "menu.h"
 #include "menu_objects.h"
 #include "menu_quick_menu.h"
-#include "menu_quick_menu_configure.h"
+#include "menu_quick_menu_settings.h"
 
 #include <time.h>
 #include <sys/resource.h>
 #include <semaphore.h>
 
-MenuQuickMenuConfigure::MenuQuickMenuConfigure(void)
+MenuQuickMenuSettings::MenuQuickMenuSettings(void)
 :Menu(MENU_ID_SYSTEM_ALARMS, L("Configure Quick Menu"), NULL)
 {
    m_Width = 0.42;
@@ -159,18 +159,18 @@ MenuQuickMenuConfigure::MenuQuickMenuConfigure(void)
 
    Preferences* pP = get_Preferences();
 
-   m_bMenuQuickMenuConfigureIsOnCustomOption = true;
+   m_bMenuQuickMenuSettingsIsOnCustomOption = true;
    if ( (pP->uEnabledAlarms == 0xFFFFFFFF) || (pP->uEnabledAlarms == 0) )
-      m_bMenuQuickMenuConfigureIsOnCustomOption = false;
+      m_bMenuQuickMenuSettingsIsOnCustomOption = false;
 
 }
 
-void MenuQuickMenuConfigure::valuesToUI()
+void MenuQuickMenuSettings::valuesToUI()
 {
    
    Preferences* pP = get_Preferences();
 
-   if ( m_bMenuQuickMenuConfigureIsOnCustomOption )
+   if ( m_bMenuQuickMenuSettingsIsOnCustomOption )
       m_pItemsSelect[0]->setSelectedIndex(2);
    else if ( 0 == pP->uEnabledQuickMenu )
       m_pItemsSelect[0]->setSelectedIndex(0);
@@ -256,13 +256,13 @@ void MenuQuickMenuConfigure::valuesToUI()
    }
 }
 
-void MenuQuickMenuConfigure::onShow()
+void MenuQuickMenuSettings::onShow()
 {
    Menu::onShow();
 }
 
 
-void MenuQuickMenuConfigure::Render()
+void MenuQuickMenuSettings::Render()
 {
    RenderPrepare();
    float yEnd = RenderFrameAndTitle();
@@ -274,7 +274,7 @@ void MenuQuickMenuConfigure::Render()
    RenderEnd(yEnd);
 }
 
-void MenuQuickMenuConfigure::onSelectItem()
+void MenuQuickMenuSettings::onSelectItem()
 {
    Menu::onSelectItem();
    if ( (-1 == m_SelectedIndex) || (m_pMenuItems[m_SelectedIndex]->isEditing()) )
@@ -284,13 +284,13 @@ void MenuQuickMenuConfigure::onSelectItem()
 
    if ( m_IndexAllQuickMenu == m_SelectedIndex )
    {
-      m_bMenuQuickMenuConfigureIsOnCustomOption = false;
+      m_bMenuQuickMenuSettingsIsOnCustomOption = false;
       if ( 0 == m_pItemsSelect[0]->getSelectedIndex() )
          pP->uEnabledQuickMenu = 0;
       else if ( 1 == m_pItemsSelect[0]->getSelectedIndex() )
          pP->uEnabledQuickMenu = 0xFFFFFFFF;
       else
-        m_bMenuQuickMenuConfigureIsOnCustomOption = true;
+        m_bMenuQuickMenuSettingsIsOnCustomOption = true;
    }
 
    MenuQuickMenu::t_quick_menu_actions action = MenuQuickMenu::None;

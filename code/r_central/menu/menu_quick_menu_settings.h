@@ -3,10 +3,10 @@
 #include "menu_item_select.h"
 #include "menu_item_slider.h"
 
-class MenuQuickMenuConfigure: public Menu
+class MenuQuickMenuSettings: public Menu
 {
    public:
-      MenuQuickMenuConfigure();
+      MenuQuickMenuSettings();
       virtual void onShow(); 
       virtual void Render();
       virtual void valuesToUI();
@@ -32,5 +32,5 @@ class MenuQuickMenuConfigure: public Menu
       int m_IndexCycleFavoriteVehicles;
       int m_IndexPITMode;
 
-      bool m_bMenuQuickMenuConfigureIsOnCustomOption;
+      bool m_bMenuQuickMenuSettingsIsOnCustomOption;
 };
