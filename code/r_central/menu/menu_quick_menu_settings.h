@@ -20,7 +20,7 @@ class MenuQuickMenuSettings: public Menu
       int m_IndexCycleOSDSize;
       int m_IndexTakePicture;
       int m_IndexVideoRecording;
-      int m_IndexToggleOSDOff;
+      int m_IndexToggleOSD;
       int m_IndexToggleStatsOff;
       int m_IndexToggleAllOff;
       int m_IndexRelaySwitch;

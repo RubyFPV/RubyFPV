@@ -101,7 +101,7 @@ MenuQuickMenuSettings::MenuQuickMenuSettings(void)
    m_pItemsSelect[5]->addSelection(L("Disabled"));
    m_pItemsSelect[5]->addSelection(L("Enabled"));
    m_pItemsSelect[5]->setUseMultiViewLayout();
-   m_IndexToggleOSDOff = addMenuItem( m_pItemsSelect[5]);
+   m_IndexToggleOSD = addMenuItem( m_pItemsSelect[5]);
 
    m_pItemsSelect[6] = new MenuItemSelect(L("Toggle Stats Off"), L("Toggle Stats Off."));
    m_pItemsSelect[6]->addSelection(L("Disabled"));
@@ -127,11 +127,13 @@ MenuQuickMenuSettings::MenuQuickMenuSettings(void)
    m_pItemsSelect[9]->setUseMultiViewLayout();
    m_IndexSwitchCameraProfile = addMenuItem( m_pItemsSelect[9]);
 
+    #ifdef FEATURE_ENABLE_RC
    m_pItemsSelect[10] = new MenuItemSelect(L("RC Output On/Off"), L("RC Output On/Off."));
    m_pItemsSelect[10]->addSelection(L("Disabled"));
    m_pItemsSelect[10]->addSelection(L("Enabled"));
    m_pItemsSelect[10]->setUseMultiViewLayout();
    m_IndexRCOutputOnOff = addMenuItem( m_pItemsSelect[10]);
+   #endif
 
    m_pItemsSelect[11] = new MenuItemSelect(L("Rotary Encoder Function"), L("Rotary Encoder Function."));
    m_pItemsSelect[11]->addSelection(L("Disabled"));
@@ -192,7 +194,7 @@ void MenuQuickMenuSettings::valuesToUI()
    m_pItemsSelect[4]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::VideoRecording)?1:0);
 
    m_pItemsSelect[5]->setEnabled(true);
-   m_pItemsSelect[5]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::ToggleOSDOff)?1:0);
+   m_pItemsSelect[5]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::ToggleOSD)?1:0);
 
    m_pItemsSelect[6]->setEnabled(true);
    m_pItemsSelect[6]->setSelectedIndex((pP->uEnabledQuickMenu & MenuQuickMenu::ToggleStatsOff)?1:0);
@@ -301,9 +303,9 @@ void MenuQuickMenuSettings::onSelectItem()
       action = MenuQuickMenu::VideoRecording;
       selectionState = m_pItemsSelect[4]->getSelectedIndex();
    }
-   if ( m_IndexToggleOSDOff == m_SelectedIndex )
+   if ( m_IndexToggleOSD == m_SelectedIndex )
    {
-      action = MenuQuickMenu::ToggleOSDOff;
+      action = MenuQuickMenu::ToggleOSD;
       selectionState = m_pItemsSelect[5]->getSelectedIndex();
    }
    if ( m_IndexToggleStatsOff == m_SelectedIndex )

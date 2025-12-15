@@ -11,7 +11,7 @@ class MenuQuickMenu: public Menu
             CycleOSDSize = 2,
             TakePicture = 4,
             VideoRecording = 8,
-            ToggleOSDOff = 16,
+            ToggleOSD = 16,
             ToggleStatsOff = 32,
             ToggleAllOff = 64,
             RelaySwitch = 128,
@@ -35,6 +35,9 @@ class MenuQuickMenu: public Menu
    private:
       std::map<int,t_quick_menu_actions>    m_pItemAction;
 
-      void addItems();
+      void  addItems();
+      void  executeQuickActionToggleRCEnabled();
+      void  executeQuickActionCameraProfileSwitch();
+      void  executeQuickActionOSDSize();
 
 };
