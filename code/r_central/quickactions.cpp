@@ -427,3 +427,74 @@ void executeQuickActionSwitchPITMode()
    //handle_commands_send_single_oneway_command_to_vehicle(g_pCurrentModel->uVehicleId, 2, COMMAND_ID_SET_PIT_AUTO_TX_POWERS_FLAGS, uCommandParam, NULL, 0, 0);
    handle_commands_send_to_vehicle(COMMAND_ID_SET_PIT_AUTO_TX_POWERS_FLAGS, uCommandParam, NULL, 0);
 }
+
+
+
+void executeQuickActionToggleRCEnabled()
+{
+   if ( (NULL != g_pCurrentModel) && g_pCurrentModel->is_spectator )
+   {
+      warnings_add(0, "Can't enable RC while in spectator mode.");
+      return;
+   }
+   if ( ! quickActionCheckVehicle("enable/disable the RC link output") )
+      return;
+
+   rc_parameters_t params;
+   memcpy(&params, &g_pCurrentModel->rc_params, sizeof(rc_parameters_t));
+
+   if ( params.flags & RC_FLAGS_OUTPUT_ENABLED )
+      params.flags &= (~RC_FLAGS_OUTPUT_ENABLED);
+   else
+      params.flags |= RC_FLAGS_OUTPUT_ENABLED;
+   handle_commands_abandon_command();
+   handle_commands_send_to_vehicle(COMMAND_ID_SET_RC_PARAMS, 0, (u8*)&params, sizeof(rc_parameters_t));
+}
+
+
+void executeQuickActionCameraProfileSwitch()
+{
+   if ( g_pCurrentModel->is_spectator )
+   {
+      warnings_add(0, "Can't switch camera profile for spectator vehicles.");
+      return;
+   }
+   if ( handle_commands_is_command_in_progress() )
+   {
+      return;
+   }
+
+   int iProfileOrg = g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].iCurrentProfile;
+   int iProfile = iProfileOrg;
+   camera_profile_parameters_t* pProfile1 = &(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iProfile]);
+   iProfile++;
+   if ( iProfile >= MODEL_CAMERA_PROFILES-1 )
+      iProfile = 0;
+
+   camera_profile_parameters_t* pProfile2 = &(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iProfile]);
+
+   //char szBuff[64];
+   //sprintf(szBuff, "Switching to camera profile %s", model_getCameraProfileName(iProfile));
+   //warnings_add(g_pCurrentModel->uVehicleId, szBuff);
+
+   g_pCurrentModel->log_camera_profiles_differences(pProfile1, pProfile2, iProfileOrg, iProfile);
+
+   handle_commands_send_to_vehicle(COMMAND_ID_SET_CAMERA_PROFILE, iProfile, NULL, 0);
+   return;
+}
+
+
+void executeQuickActionOSDSize()
+{
+   if ( ! quickActionCheckVehicle("change OSD size") )
+      return;
+
+   Preferences* pP = get_Preferences();
+   pP->iScaleOSD++;
+   if ( pP->iScaleOSD > 3 )
+      pP->iScaleOSD = -1;
+   save_Preferences();
+   osd_apply_preferences();
+   return;
+}
+

@@ -36,8 +36,5 @@ class MenuQuickMenu: public Menu
       std::map<int,t_quick_menu_actions>    m_pItemAction;
 
       void  addItems();
-      void  executeQuickActionToggleRCEnabled();
-      void  executeQuickActionCameraProfileSwitch();
-      void  executeQuickActionOSDSize();
 
 };
