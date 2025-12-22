@@ -338,10 +338,9 @@ void menu_stack_pop_no_delete(int returnValue)
 
 void _menu_check_rotary_encoders_buttons( bool* pbSelect, bool* pbCancel, bool* pbRotatedCW, bool* pbRotatedCCW, bool* pbRotatedFastCW, bool* pbRotatedFastCCW, bool* pbSelect2, bool* pbCancel2, bool* pbRotatedCW2, bool* pbRotatedCCW2, bool* pbRotatedFastCW2, bool* pbRotatedFastCCW2)
 {
-   ControllerSettings* pCS = get_ControllerSettings();
    ControllerInterfacesSettings* pCI = get_ControllerInterfacesSettings();
 
-   if ( NULL == pCS || NULL == pCI )
+   if ( (NULL == g_pControllerSettings) || (NULL == pCI) )
       return;
 
    if ( (ruby_get_start_sequence_step() != START_SEQ_COMPLETED) && (ruby_get_start_sequence_step() != START_SEQ_FAILED) )
@@ -401,7 +400,7 @@ void _menu_check_rotary_encoders_buttons( bool* pbSelect, bool* pbCancel, bool* 
       if ( ! events.uHasSecondaryRotaryEncoder )
       if ( s_iCountRotaryEncoderCancelCount > 7 )
       {
-         pCS->nRotaryEncoderFunction = 1;
+         g_pControllerSettings->nRotaryEncoderFunction = 1;
          save_ControllerSettings();
          s_iCountRotaryEncoderCancelCount = 0;
       }
@@ -475,11 +474,9 @@ void _menu_check_rotary_encoders_buttons( bool* pbSelect, bool* pbCancel, bool* 
 }
 
 
-void menu_loop()
+void menu_loop(bool bNoKeys)
 {
    s_uMenuLoopCounter++;
-
-   ControllerSettings* pCS = get_ControllerSettings();
 
    for( int i=0; i<g_iMenuStackTopIndex; i++ )
    {
@@ -519,19 +516,19 @@ void menu_loop()
    s_bRotaryRotated = bRotaryRotatedCW | bRotaryRotatedCCW | bRotaryRotatedFastCW | bRotaryRotatedFastCCW;
    //bool bRotary2Rotated = bRotary2RotatedCW | bRotary2RotatedCCW | bRotary2RotatedFastCW | bRotary2RotatedFastCCW;
 
-   if ( pCS->nRotaryEncoderSpeed == 1 )
+   if ( g_pControllerSettings->nRotaryEncoderSpeed == 1 )
    {
       bRotaryRotatedFastCW = false;
       bRotaryRotatedFastCCW = false;
    }
 
-   if ( pCS->nRotaryEncoderSpeed2 == 1 )
+   if ( g_pControllerSettings->nRotaryEncoderSpeed2 == 1 )
    {
       bRotary2RotatedFastCW = false;
       bRotary2RotatedFastCCW = false;
    }
 
-   if ( (NULL != pCS) && (pCS->nRotaryEncoderFunction == 2) && (s_StartSequence == START_SEQ_COMPLETED) )
+   if ( (NULL != g_pControllerSettings) && (g_pControllerSettings->nRotaryEncoderFunction == 2) && (s_StartSequence == START_SEQ_COMPLETED) )
    {
       if ( (bRotarySelect || bRotaryRotatedCW || bRotaryRotatedCCW) && (!popups_has_popup(g_pPopupCameraParams)) )
       {
@@ -545,7 +542,7 @@ void menu_loop()
          g_pPopupCameraParams->handleRotaryEvents(bRotaryRotatedCW, bRotaryRotatedCCW, bRotaryRotatedFastCW, bRotaryRotatedFastCCW, bRotarySelect, bRotaryCancel);
    }
 
-   if ( (NULL != pCS) && (pCS->nRotaryEncoderFunction2 == 2) && (s_StartSequence == START_SEQ_COMPLETED) )
+   if ( (NULL != g_pControllerSettings) && (g_pControllerSettings->nRotaryEncoderFunction2 == 2) && (s_StartSequence == START_SEQ_COMPLETED) )
    {
       if ( (bRotary2Select || bRotary2RotatedCW || bRotary2RotatedCCW) && (!popups_has_popup(g_pPopupCameraParams)) )
       {
@@ -559,7 +556,7 @@ void menu_loop()
          g_pPopupCameraParams->handleRotaryEvents(bRotary2RotatedCW, bRotary2RotatedCCW, bRotary2RotatedFastCW, bRotary2RotatedFastCCW, bRotary2Select, bRotary2Cancel);
    }
 
-   if ( (NULL == pCS) || (pCS->nRotaryEncoderFunction != 1) )
+   if ( (NULL == g_pControllerSettings) || (g_pControllerSettings->nRotaryEncoderFunction != 1) )
    {
       bRotarySelect = false;
       bRotaryCancel = false;
@@ -575,7 +572,7 @@ void menu_loop()
       keyboard_add_triggered_gpio_input_events();
    }
 
-   if ( (NULL == pCS) || (pCS->nRotaryEncoderFunction2 != 1) )
+   if ( (NULL == g_pControllerSettings) || (g_pControllerSettings->nRotaryEncoderFunction2 != 1) )
    {
       bRotary2Select = false;
       bRotary2Cancel = false;
@@ -590,13 +587,14 @@ void menu_loop()
       keyboard_add_triggered_gpio_input_events();
    }
 
-   if ( (NULL != pCS) && (pCS->nRotaryEncoderFunction == 1) && (pCS->nRotaryEncoderFunction2 == 1) )
+   if ( (NULL != g_pControllerSettings) && (g_pControllerSettings->nRotaryEncoderFunction == 1) && (g_pControllerSettings->nRotaryEncoderFunction2 == 1) )
    {
       hardware_override_keys((bRotarySelect || bRotary2Select)?1:0, (bRotaryCancel || bRotary2Cancel)?1:0, (bRotaryRotatedCCW || bRotary2RotatedCCW)?1:0, (bRotaryRotatedCW || bRotary2RotatedCW)?1:0, 0, 0,0,0);
       keyboard_add_triggered_gpio_input_events();
    }
 
-   menu_loop_parse_input_events();
+   if ( ! bNoKeys )
+      menu_loop_parse_input_events();
 }
 
 void menu_loop_parse_input_events()
@@ -777,10 +775,9 @@ void menu_render()
    if ( s_fMenuGlobalAlpha < 0.01 )
       return;
    float fOrigAlpha = g_pRenderEngine->getGlobalAlfa();
+   bool bAlphaEnabled = g_pRenderEngine->isAlphaBlendingEnabled();
    Preferences* pP = get_Preferences();
    
-   //g_pRenderEngine->disableAlpha();
-
    // If menus are stacked, render only last 3 menus
 
    int iMenuToRender = g_iMenuStackTopIndex-3;
@@ -874,7 +871,7 @@ void menu_render()
       iMenuToRender++;
    }
    g_pRenderEngine->setGlobalAlfa(fOrigAlpha);
-   g_pRenderEngine->enableAlpha();
+   g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
 }
 
 bool menu_is_menu_on_top(Menu* pMenu)

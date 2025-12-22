@@ -193,6 +193,11 @@ MenuControllerPeripherals::MenuControllerPeripherals(void)
       addI2CDevices();
 }
 
+void MenuControllerPeripherals::addItems()
+{
+
+}
+
 void MenuControllerPeripherals::valuesToUI()
 {
    ControllerInterfacesSettings* pCI = get_ControllerInterfacesSettings();

@@ -138,6 +138,9 @@ u32 _vehicle_launch_video_capture_csi(Model* pModel, u32 uOverwriteInitialBitrat
    log_line("[VideoSourceCSI] Last dynamic set keyframe ms: %d", video_sources_get_last_set_keyframe());
    log_line("[VideoSourceCSI] Overwrite initial video bitrate: %.2f Mbps", (float)uOverwriteInitialBitrate/1000.0/1000.0);
    log_line("[VideoSourceCSI] Overwrite initial keyframe: %d ms", iOverwriteInitialKFMs);
+   log_line("[VideoSourceCSI] Current video profile (%s) target video bitrate: %.2f Mbps",
+      str_get_video_profile_name(g_pCurrentModel->video_params.iCurrentVideoProfile),
+      (float)(g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS)/1000.0/1000.0);
 
    char szFile[MAX_FILE_PATH_SIZE];
    char szBuff[256];
@@ -314,9 +317,9 @@ static void * _thread_watchdog_video_capture(void *ignored_argument)
               
             static int s_iCheckVideoOutputBitrateCounter = 0;
             if ( relay_current_vehicle_must_send_own_video_feeds() &&
-                (g_pProcessorTxVideo->getCurrentVideoBitrateAverageLastMs(2000) < 100000) )
+                (g_pProcessorTxVideo->getCurrentVideoBitrateAverageLastMs(2000) < 50000) )
             {
-               log_softerror_and_alarm("[VideoCaptureCSITh] Current output video bitrate is less than 100 kbps!");
+               log_softerror_and_alarm("[VideoCaptureCSITh] Current output video bitrate is less than 50 kbps!");
                s_iCheckVideoOutputBitrateCounter++;
                if ( s_iCheckVideoOutputBitrateCounter >= 3 )
                {
@@ -589,8 +592,8 @@ u32 video_source_csi_start_program(u32 uOverwriteInitialBitrate, int iOverwriteI
    //s_uLastSetCSIVideoBitrateBPS = DEFAULT_VIDEO_BITRATE;
    //if ( 0 != video_sources_get_last_set_video_bitrate() )
    //   s_uLastSetCSIVideoBitrateBPS = video_sources_get_last_set_video_bitrate();
-   //else if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps > 0 )
-   //   s_uLastSetCSIVideoBitrateBPS = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps;
+   //else if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS > 0 )
+   //   s_uLastSetCSIVideoBitrateBPS = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS;
    s_uLastSetCSIVideoBitrateBPS = uSetVideoBitrate;
 
    u32 uDeltaMs = 500;

@@ -57,12 +57,16 @@ typedef struct
    u32 alarmFlags;
    u32 alarmTime;
    u32 uLoopCounter;
+   u32 uLoopCounter1;
    u32 uLoopCounter2;
    u32 uLoopCounter3;
    u32 uLoopCounter4;
+   u32 uLoopCounter5;
    u32 uLoopSubStep;
    u32 uLoopTimer1;
    u32 uLoopTimer2;
+   u32 uLoopTimer3;
+   u32 uLoopTimer4;
    u32 uTotalLoopTime;
    u32 uAverageLoopTimeMs;
    u32 uMaxLoopTimeMs;

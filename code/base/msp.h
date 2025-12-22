@@ -1,5 +1,7 @@
 #pragma once
 
+#include "base.h"
+#include "../radio/radiopackets2.h"
 
 #define MSP_STATE_WAIT_HEADER1 0
 #define MSP_STATE_WAIT_HEADER2 1
@@ -43,3 +45,34 @@ typedef enum {
     MSP_HD_OPTION_30_16,
     MSP_HD_OPTION_60_22
 } msp_osd_hd_options;
+
+
+typedef struct
+{
+   t_packet_header_telemetry_msp headerTelemetryMSP;
+
+   u8  uMSPRawCommand[256]; // Max size is one byte long
+   int iMSPRawCommandFilledBytes;
+   int iMSPState;
+   int iMSPDirection;
+   u8  uMSPCommandPayload[256]; // Max size is one byte long
+   int iMSPCommandPayloadSize;
+   int iMSPParsedCommandPayloadBytes;
+   u8  uMSPChecksum;
+   u8  uMSPCommand;
+   u8  uMSPPreviousCommand;
+   u8  uMSPDisplayPortCommand;
+   u8  uMSPDisplayPortPreviousCommand;
+   u32 uLastMSPCommandReceivedTime;
+
+   u16 uScreenChars[MAX_MSP_CHARS_BUFFER]; // Max 64x24
+   u16 uScreenCharsTmp[MAX_MSP_CHARS_BUFFER]; // Max 64x24
+   int iMaxDrawX;
+   int iMaxDrawY;
+   int iCountDrawnStrings;
+   int iLastDrawFrameNumber;
+   bool bEmptyBuffer;
+} ALIGN_STRUCT_SPEC_INFO type_msp_parse_state;
+
+void parse_msp_reset_state(type_msp_parse_state* pMSPState);
+void parse_msp_incoming_data(type_msp_parse_state* pMSPState, u8* pData, int iDataLength, bool bAllowScreenUpdate);

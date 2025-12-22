@@ -27,7 +27,7 @@ int video_source_get_last_set_ipqdelta();
 void video_sources_set_keyframe(int iKeyframeMs);
 int video_sources_get_last_set_keyframe();
 
-void video_sources_set_temporary_image_saturation_off(bool bTurnOff);
+void video_sources_set_temporary_bw_mode(bool bTurnOn);
 
 // Returns true if full restart is needed
 bool video_sources_periodic_health_checks();

@@ -363,6 +363,7 @@ int get_vehicle_radio_link_current_tx_power_mw(Model* pModel, int iRadioLinkInde
    for( int i=0; i<pModel->radioInterfacesParams.interfaces_count; i++ )
    {
       if ( ! hardware_radio_type_is_ieee(pModel->radioInterfacesParams.interface_radiotype_and_driver[i] & 0xFF) )
+         continue;
       if ( pModel->radioInterfacesParams.interface_link_id[i] != iRadioLinkIndex )
          continue;
 

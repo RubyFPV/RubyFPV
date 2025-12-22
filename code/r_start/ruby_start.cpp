@@ -1244,7 +1244,7 @@ void _step_load_init_devices()
    printf("Ruby: Finding external I2C devices add-ons...\n");
    fflush(stdout);
    hardware_i2c_reset_enumerated_flag();
-   hardware_i2c_enumerate_busses();
+   hardware_i2c_enumerate_busses(1);
    // Load existing settings first
    hardware_i2c_load_device_settings();
    hardware_i2c_log_devices();

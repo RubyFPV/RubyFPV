@@ -212,7 +212,7 @@ static void * _thread_process_upload(void *argument)
 
    _process_upload_send_status_to_controller(OTA_UPDATE_STATUS_START_PROCESSING, 5);
    
-   #if defined(HW_PLATFORM_RASPBERRY)
+   #if defined(HW_PLATFORM_RASPBERRY) || defined(HW_PLATFORM_RADXA)
    log_line("Save received update archive for backup...");
    sprintf(szComm, "rm -rf %slast_update_received.tar 2>&1", FOLDER_UPDATES);
    hw_execute_bash_command(szComm, NULL);
@@ -241,8 +241,8 @@ static void * _thread_process_upload(void *argument)
    sprintf(szComm, "mkdir -p %s", FOLDER_RUBY_TEMP);
    hw_execute_bash_command(szComm, NULL);
 
-   #ifdef HW_PLATFORM_RASPBERRY
-   log_line("Running on Raspberry hardware");
+   #if defined (HW_PLATFORM_RASPBERRY) || defined (HW_PLATFORM_RADXA)
+   log_line("Running on Raspberry/Radxa hardware");
    sprintf(szComm, "nice -n 19 ionice -c 3 tar -C %s -zxf %s 2>&1 1>/dev/null", FOLDER_RUBY_TEMP, s_szUpdateArchiveFile);
    #endif
    #ifdef HW_PLATFORM_OPENIPC_CAMERA
@@ -278,8 +278,30 @@ static void * _thread_process_upload(void *argument)
 
    _process_upload_send_status_to_controller(OTA_UPDATE_STATUS_UPDATING, 40);
 
-   sprintf(szComm, "cp -rf %sruby_* %s", FOLDER_RUBY_TEMP, FOLDER_BINARIES);
+   bool bIsOnyx = false;
+   strcpy(szFile, FOLDER_RUBY_TEMP);
+   strcat(szFile, "onyxfpv_start");
+   if ( access( szFile, R_OK ) != -1 )
+      bIsOnyx = true;
+
+   if ( bIsOnyx )
+   {
+      sprintf(szComm, "rm -rf %sruby_* 2>/dev/null", FOLDER_BINARIES);
+      hw_execute_bash_command(szComm, NULL);
+   }
+
+   if ( bIsOnyx )
+      sprintf(szComm, "cp -rf %sonyxfpv_* %s", FOLDER_RUBY_TEMP, FOLDER_BINARIES);
+   else
+      sprintf(szComm, "cp -rf %sruby_* %s", FOLDER_RUBY_TEMP, FOLDER_BINARIES);
    hw_execute_bash_command(szComm, NULL);
+
+   if ( bIsOnyx )
+      sprintf(szComm, "chmod 777 %sonyx* 2>/dev/null", FOLDER_BINARIES);
+   else
+      sprintf(szComm, "chmod 777 %sruby* 2>/dev/null", FOLDER_BINARIES);
+   hw_execute_bash_command(szComm, NULL);
+   hardware_sleep_ms(50);
 
    #if defined(HW_PLATFORM_OPENIPC_CAMERA)
    hw_execute_bash_command("rm -rf /usr/sbin/ruby_update_* 2>/dev/null", NULL);
@@ -289,37 +311,69 @@ static void * _thread_process_upload(void *argument)
    hw_execute_bash_command("rm -rf ruby_update_* 2>/dev/null", NULL);
    #endif
 
-   sprintf(szComm, "chmod 777 %sruby* 2>/dev/null", FOLDER_BINARIES);
-   hw_execute_bash_command(szComm, NULL);
-   sprintf(szComm, "chmod 777 %sonyx* 2>/dev/null", FOLDER_BINARIES);
-   hw_execute_bash_command(szComm, NULL);
-   hardware_sleep_ms(50);
-
    log_line("Binaries versions after update:");
-   hw_execute_ruby_process_wait(NULL, "ruby_start", "-ver", szOutput, 1);
-   log_line("ruby_start: [%s]", szOutput);
-   hw_execute_ruby_process_wait(NULL, "ruby_rt_vehicle", "-ver", szOutput, 1);
-   log_line("ruby_rt_vehicle: [%s]", szOutput);
-   hw_execute_ruby_process_wait(NULL, "ruby_tx_telemetry", "-ver", szOutput, 1);
-   log_line("ruby_tx_telemetry: [%s]", szOutput);
-   hw_execute_ruby_process_wait(NULL, "ruby_update", "-ver", szOutput, 1);
-   log_line("ruby_update: [%s]", szOutput);
+   if ( bIsOnyx )
+   {
+      hw_execute_ruby_process_wait(NULL, "onyxfpv_start", "-ver", szOutput, 1);
+      log_line("onyxfpv_start: [%s]", szOutput);
+      hw_execute_ruby_process_wait(NULL, "onyxfpv_router_v", "-ver", szOutput, 1);
+      log_line("onyxfpv_router_v: [%s]", szOutput);
+      hw_execute_ruby_process_wait(NULL, "onyxfpv_tx_telemetry", "-ver", szOutput, 1);
+      log_line("onyxfpv_tx_telemetry: [%s]", szOutput);
+      hw_execute_ruby_process_wait(NULL, "onyxfpv_update", "-ver", szOutput, 1);
+      log_line("onyxfpv_update: [%s]", szOutput);
+   }
+   else
+   {
+      hw_execute_ruby_process_wait(NULL, "ruby_start", "-ver", szOutput, 1);
+      log_line("ruby_start: [%s]", szOutput);
+      hw_execute_ruby_process_wait(NULL, "ruby_rt_vehicle", "-ver", szOutput, 1);
+      log_line("ruby_rt_vehicle: [%s]", szOutput);
+      hw_execute_ruby_process_wait(NULL, "ruby_tx_telemetry", "-ver", szOutput, 1);
+      log_line("ruby_tx_telemetry: [%s]", szOutput);
+      hw_execute_ruby_process_wait(NULL, "ruby_update", "-ver", szOutput, 1);
+      log_line("ruby_update: [%s]", szOutput);
+   }
 
    #ifdef HW_PLATFORM_RASPBERRY
    if ( access( "ruby_capture_raspi", R_OK ) != -1 )
       hw_execute_bash_command("cp -rf ruby_capture_raspi /opt/vc/bin/raspivid", NULL);
+   if ( access( "onyxfpv_capture_raspi", R_OK ) != -1 )
+      hw_execute_bash_command("cp -rf onyxfpv_capture_raspi /opt/vc/bin/raspivid", NULL);
 
    strcpy(szFile, FOLDER_BINARIES);
-   strcat(szFile, "ruby_config.txt");
+   if ( bIsOnyx )
+      strcat(szFile, "onyxfpv_config.txt");
+   else
+      strcat(szFile, "ruby_config.txt");
+
    if ( access( szFile, R_OK ) != -1 )
    {
       hardware_mount_boot();
       hardware_sleep_ms(200);
-      hw_execute_bash_command("mv ruby_config.txt /boot/config.txt", NULL);
+      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "mv %s /boot/config.txt", szFile);
+      hw_execute_bash_command(szComm, NULL);
+   }
+   #endif
+
+   #if defined (HW_PLATFORM_RASPBERRY) || defined(HW_PLATFORM_RADXA)
+   if ( bIsOnyx )
+   {
+      hw_execute_bash_command("chmod 777 /root/.profile 2>/dev/null", NULL);
+      hw_execute_bash_command("sed -i -e 's/ruby/onyxfpv/g' /root/.profile", NULL);
+      hw_execute_bash_command("chmod 777 /root/.profile 2>/dev/null", NULL);
    }
    #endif
 
    #ifdef HW_PLATFORM_OPENIPC_CAMERA
+   if ( bIsOnyx )
+   {
+      hw_execute_bash_command("chmod 777 /etc/init.d/S73ruby 2>/dev/null", NULL);
+      hw_execute_bash_command("sed -i -e 's/ruby/onyxfpv/g' /etc/init.d/S73ruby", NULL);
+      hw_execute_bash_command("sed -i -e 's/Ruby/OnyxFPV/g' /etc/init.d/S73ruby", NULL);
+      hw_execute_bash_command("mv -f /etc/init.d/S73ruby /etc/init.d/S73onyxfpv", NULL);
+      hw_execute_bash_command("chmod 777 /etc/init.d/S73onyxfpv 2>/dev/null", NULL);
+   }
    strcpy(szFile, FOLDER_RUBY_TEMP);
    strcat(szFile, "majestic");
    if ( access(szFile, R_OK) != -1 )
@@ -343,12 +397,15 @@ static void * _thread_process_upload(void *argument)
    strcpy(szUpdateBinariesFolder, FOLDER_BINARIES);
    #endif
    strcpy(szFile, szUpdateBinariesFolder);
-   strcat(szFile, "ruby_update");
+   if ( bIsOnyx )
+      strcat(szFile, "onyxfpv_update");
+   else
+      strcat(szFile, "ruby_update");
 
    if ( access( szFile, R_OK ) != -1 )
-      log_line("ruby_update is present.");
+      log_line("Update binary is present [%s]", szFile);
    else
-      log_line("ruby_update is NOT present.");
+      log_line("Update binary is NOT present [%s]", szFile);
      
    #if defined (HW_PLATFORM_OPENIPC_CAMERA)
    if ( access( szFile, R_OK ) != -1 )
@@ -358,7 +415,12 @@ static void * _thread_process_upload(void *argument)
    }
    #else
    if ( access( szFile, R_OK ) != -1 )
-      hw_execute_ruby_process_wait(NULL, "ruby_update", "-pre", NULL, 1);
+   {
+      if ( bIsOnyx )
+         hw_execute_ruby_process_wait(NULL, "onyxfpv_update", "-pre", NULL, 1);
+      else
+         hw_execute_ruby_process_wait(NULL, "ruby_update", "-pre", NULL, 1);
+   }
    #endif
 
    #if defined (HW_PLATFORM_OPENIPC_CAMERA)
@@ -370,7 +432,10 @@ static void * _thread_process_upload(void *argument)
    //hw_execute_bash_command("cp -rf /tmp/logs/log_system.txt /root/ruby/last_update_log.txt", NULL);
    //#endif
    #if defined(HW_PLATFORM_RASPBERRY)
-   hw_execute_bash_command("cp -rf /home/pi/ruby/logs/log_system.txt /home/pi/ruby/logs/last_update_log.txt", NULL);
+   if ( bIsOnyx )
+      hw_execute_bash_command("cp -rf /home/pi/onyx/logs/log_system.txt /home/pi/onyx/logs/last_update_log.txt", NULL);
+   else
+      hw_execute_bash_command("cp -rf /home/pi/ruby/logs/log_system.txt /home/pi/ruby/logs/last_update_log.txt", NULL);
    #endif
    log_line("Done updating. Cleaning up and reboot");
    s_bUpdateAppliedRebooting = true;

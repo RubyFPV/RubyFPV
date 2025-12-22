@@ -50,9 +50,10 @@ extern bool s_bDebugOSDShowAll;
 
 void render_osd_layout_lean()
 {
-   if ( (! g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry) || NULL == g_pCurrentModel )
+   if ( (! g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry) || (NULL == g_pCurrentModel) )
       return;
    
+   Model* pActiveModel = osd_get_current_data_source_vehicle_model();
    Preferences* pP = get_Preferences();
 
    char szBuff[64];
@@ -86,6 +87,7 @@ void render_osd_layout_lean()
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry )
       sprintf(szBuff, "THROTTLE %% %d", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.throttle);
 
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_THROTTLE) )
       osd_show_value_centered(xCell+xCellWidth/2, yLine2, szBuff, g_idFontOSD);
 
@@ -94,6 +96,7 @@ void render_osd_layout_lean()
    strcpy(szBuff, "AMPS (A) 0");
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry )
       sprintf(szBuff, "AMPS (A) %.1f", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.current/1000.0);
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_BATTERY) )
       osd_show_value_centered(xCell+xCellWidth/2, yLine2, szBuff, g_idFontOSD);
 
@@ -113,6 +116,7 @@ void render_osd_layout_lean()
    strcpy(szBuff, "BATT (V) 0");
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry )
       sprintf(szBuff, "BATT (V) %.2f", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.voltage/1000.0);
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_BATTERY) )
       osd_show_value_centered(xCell+xCellWidth/2, yLine2, szBuff, g_idFontOSD);
 
@@ -122,6 +126,7 @@ void render_osd_layout_lean()
    strcpy(szBuff, "BAT USED (mAh) 0");
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry )
       sprintf(szBuff, "BAT USED (mAh) %u", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.mah);
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_BATTERY) )
       osd_show_value_centered(xCell+xCellWidth/2, yLine2, szBuff, g_idFontOSD);
 
@@ -157,6 +162,7 @@ void render_osd_layout_lean()
          strcat(szBuff, szTmp);
       }
    }
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_FLIGHT_MODE) ||
           (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_TIME) )
       osd_show_value_centered(xCell+xCellWidth/2, yLine2, szBuff, g_idFontOSD);
@@ -273,6 +279,7 @@ void render_osd_layout_lean()
       }
    }
 
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || bShowAnySpeed )
    {
       osd_show_value_centered(xCell+xCellWidth/2,yBig, szBuff, g_idFontOSDBig);
@@ -302,125 +309,132 @@ void render_osd_layout_lean()
 
    xCell += xCellWidth;
 
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_DISTANCE) )
    {
-   strcpy(szBuff, "0");
-   bool bKm = false;
-   sprintf(szBuff, "%u", (unsigned int)_osd_convertMeters(g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.distance/100.0));
-   if ( _osd_convertMeters(g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.distance/100.0) >= 1000 )
-   {
-      sprintf(szBuff, "%.1f", _osd_convertKm(g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.distance/100.0/1000.0));
-      bKm = true;
-   }
-   osd_show_value_centered(xCell+xCellWidth/2, yBig, szBuff, g_idFontOSDBig);
-
-   if ( pP->iUnits == prefUnitsImperial || pP->iUnits == prefUnitsFeets )
-   {
-   if ( bKm )
-      osd_show_value_centered(xCell+xCellWidth/2, yText, "DISTANCE (mi)", g_idFontOSDSmall);
-   else
-      osd_show_value_centered(xCell+xCellWidth/2, yText, "DISTANCE (ft)", g_idFontOSDSmall);
-   }
-   else
-   {
-   if ( bKm )
-      osd_show_value_centered(xCell+xCellWidth/2, yText, "DISTANCE (km)", g_idFontOSDSmall);
-   else
-      osd_show_value_centered(xCell+xCellWidth/2, yText, "DISTANCE (m)", g_idFontOSDSmall);
-   }
-   }
-
-   xCell += xCellWidth;
-
-   if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_ALTITUDE) )
-   {
-   strcpy(szBuff, "0");
-   if ( NULL != g_pCurrentModel )
-   if ( (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_GENERIC ||
-        (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE || 
-        (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
-        (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
-   {
-      float alt = g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.altitude_abs/100.0f-1000.0;
-      if ( NULL != g_pCurrentModel && g_pCurrentModel->osd_params.altitude_relative && 0 != g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.altitude)
-         alt = g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.altitude/100.0f-1000.0;
-      alt = _osd_convertHeightMeters(alt);
-      if ( fabs(alt) < 10.0 )
+      strcpy(szBuff, "0");
+      bool bKm = false;
+      sprintf(szBuff, "%u", (unsigned int)_osd_convertMeters(g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.distance/100.0));
+      if ( _osd_convertMeters(g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.distance/100.0) >= 1000 )
       {
-         if ( fabs(alt) < 0.1 )
-            alt = 0.0;
-         sprintf(szBuff, "%.1f", alt);
+         sprintf(szBuff, "%.1f", _osd_convertKm(g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.distance/100.0/1000.0));
+         bKm = true;
+      }
+      osd_show_value_centered(xCell+xCellWidth/2, yBig, szBuff, g_idFontOSDBig);
+
+      if ( pP->iUnits == prefUnitsImperial || pP->iUnits == prefUnitsFeets )
+      {
+      if ( bKm )
+         osd_show_value_centered(xCell+xCellWidth/2, yText, "DISTANCE (mi)", g_idFontOSDSmall);
+      else
+         osd_show_value_centered(xCell+xCellWidth/2, yText, "DISTANCE (ft)", g_idFontOSDSmall);
       }
       else
-         sprintf(szBuff, "%d", (int)alt);
-      if ( (! g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bFCTelemetrySourcePresent) || (alt < -500.0) )
-         sprintf(szBuff, "0");
-
-      osd_show_value_centered(xCell+xCellWidth/2, yBig, szBuff,  g_idFontOSDBig);
-      if ( (pP->iUnitsHeight == prefUnitsImperial) || (pP->iUnitsHeight == prefUnitsFeets) )
-         osd_show_value_centered(xCell+xCellWidth/2, yText, "ALTITUDE (ft)", g_idFontOSDSmall);
+      {
+      if ( bKm )
+         osd_show_value_centered(xCell+xCellWidth/2, yText, "DISTANCE (km)", g_idFontOSDSmall);
       else
-         osd_show_value_centered(xCell+xCellWidth/2, yText, "ALTITUDE (m)", g_idFontOSDSmall);
-   }
+         osd_show_value_centered(xCell+xCellWidth/2, yText, "DISTANCE (m)", g_idFontOSDSmall);
+      }
    }
 
    xCell += xCellWidth;
 
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_ALTITUDE) )
    {
-   strcpy(szBuff, "0");
-   if ( NULL != g_pCurrentModel )
-   if ( (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_GENERIC ||
-        (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE || 
-        (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
-        (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
+      strcpy(szBuff, "0");
+      if ( NULL != g_pCurrentModel )
+      if ( (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_GENERIC ||
+           (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE || 
+           (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
+           (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
+      {
+         float alt = g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.altitude_abs/100.0f-1000.0;
+         if ( NULL != g_pCurrentModel && g_pCurrentModel->osd_params.altitude_relative && 0 != g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.altitude)
+            alt = g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.altitude/100.0f-1000.0;
+         alt = _osd_convertHeightMeters(alt);
+         if ( fabs(alt) < 10.0 )
+         {
+            if ( fabs(alt) < 0.1 )
+               alt = 0.0;
+            sprintf(szBuff, "%.1f", alt);
+         }
+         else
+            sprintf(szBuff, "%d", (int)alt);
+         if ( (! g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bFCTelemetrySourcePresent) || (alt < -500.0) )
+            sprintf(szBuff, "0");
+
+         osd_show_value_centered(xCell+xCellWidth/2, yBig, szBuff,  g_idFontOSDBig);
+         if ( (pP->iUnitsHeight == prefUnitsImperial) || (pP->iUnitsHeight == prefUnitsFeets) )
+            osd_show_value_centered(xCell+xCellWidth/2, yText, "ALTITUDE (ft)", g_idFontOSDSmall);
+         else
+            osd_show_value_centered(xCell+xCellWidth/2, yText, "ALTITUDE (m)", g_idFontOSDSmall);
+      }
+   }
+
+   xCell += xCellWidth;
+
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
+   if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_ALTITUDE) )
    {
+      strcpy(szBuff, "0");
+      if ( NULL != g_pCurrentModel )
+      if ( (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_GENERIC ||
+           (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE || 
+           (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
+           (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
+      {
+         if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bFCTelemetrySourcePresent )
+            sprintf(szBuff, "%.1f", _osd_convertMeters(g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.vspeed/100.0f-1000.0));
+
+         osd_show_value_centered(xCell+xCellWidth/2, yBig, szBuff, g_idFontOSDBig);
+         if ( pP->iUnits == prefUnitsImperial || pP->iUnits == prefUnitsFeets )
+            osd_show_value_centered(xCell+xCellWidth/2, yText, "VERT SPEED (ft/s)", g_idFontOSDSmall);
+         else
+            osd_show_value_centered(xCell+xCellWidth/2, yText, "VERT SPEED (m/s)", g_idFontOSDSmall);
+      }
+   }
+
+   xCell += xCellWidth;
+
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
+   if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_HOME) )
+   {
+      strcpy(szBuff, "0");
       if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bFCTelemetrySourcePresent )
-         sprintf(szBuff, "%.1f", _osd_convertMeters(g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.vspeed/100.0f-1000.0));
+        sprintf(szBuff, "%d", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.heading);
+
+      osd_show_value_centered(xCell+xCellWidth/2, yBig, szBuff, g_idFontOSDBig);
+      osd_show_value_centered(xCell+xCellWidth/2, yText, "HEADING", g_idFontOSDSmall);
+   }
+
+   xCell += xCellWidth;
+
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
+   if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_TOTAL_DISTANCE) )
+   {
+      strcpy(szBuff, "0");
+      snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%d", (int)_osd_convertMeters(g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.total_distance/100));
 
       osd_show_value_centered(xCell+xCellWidth/2, yBig, szBuff, g_idFontOSDBig);
       if ( pP->iUnits == prefUnitsImperial || pP->iUnits == prefUnitsFeets )
-         osd_show_value_centered(xCell+xCellWidth/2, yText, "VERT SPEED (ft/s)", g_idFontOSDSmall);
+         osd_show_value_centered(xCell+xCellWidth/2, yText, "TOTAL DIST (ft)", g_idFontOSDSmall);
       else
-         osd_show_value_centered(xCell+xCellWidth/2, yText, "VERT SPEED (m/s)", g_idFontOSDSmall);
-   }
-   }
-
-   xCell += xCellWidth;
-
-   if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_HOME) )
-   {
-   strcpy(szBuff, "0");
-   if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bFCTelemetrySourcePresent )
-     sprintf(szBuff, "%d", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.heading);
-
-   osd_show_value_centered(xCell+xCellWidth/2, yBig, szBuff, g_idFontOSDBig);
-   osd_show_value_centered(xCell+xCellWidth/2, yText, "HEADING", g_idFontOSDSmall);
+         osd_show_value_centered(xCell+xCellWidth/2, yText, "TOTAL DIST (m)", g_idFontOSDSmall);
    }
 
-   xCell += xCellWidth;
-
-   if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_TOTAL_DISTANCE) )
-   {
-   strcpy(szBuff, "0");
-   snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%d", (int)_osd_convertMeters(g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.total_distance/100));
-
-   osd_show_value_centered(xCell+xCellWidth/2, yBig, szBuff, g_idFontOSDBig);
-   if ( pP->iUnits == prefUnitsImperial || pP->iUnits == prefUnitsFeets )
-      osd_show_value_centered(xCell+xCellWidth/2, yText, "TOTAL DIST (ft)", g_idFontOSDSmall);
-   else
-      osd_show_value_centered(xCell+xCellWidth/2, yText, "TOTAL DIST (m)", g_idFontOSDSmall);
-   }
-
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_HOME ) )
       osd_show_home(0.5-height_text_text, yBig, true, 1.0);   
 }
 
 void render_osd_layout_lean_extended()
 {
-   if ( ( ! g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry) || NULL == g_pCurrentModel )
+   if ( ( ! g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry) || (NULL == g_pCurrentModel) )
       return;
    
+   Model* pActiveModel = osd_get_current_data_source_vehicle_model();
    Preferences* pP = get_Preferences();
 
    char szBuff[64];
@@ -464,6 +478,7 @@ void render_osd_layout_lean_extended()
    strcpy(szBuff,"0");
    if ( bShowBothSpeeds )
       strcpy(szBuff,"0/0");
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bFCTelemetrySourcePresent )
    {
       if ( bShowBothSpeeds )
@@ -510,6 +525,7 @@ void render_osd_layout_lean_extended()
       }
    }
 
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || bShowAnySpeed )
    {
       osd_show_value_centered(xCell+xCellWidth/2, yLine1, szBuff, fontLine1);
@@ -540,6 +556,7 @@ void render_osd_layout_lean_extended()
          xCell += height_text;
    }
 
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_DISTANCE) )
    {
       strcpy(szBuff, "0");
@@ -569,6 +586,7 @@ void render_osd_layout_lean_extended()
       xCell += xCellWidth;
    }
 
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_ALTITUDE) )
    {
       strcpy(szBuff, "0");
@@ -602,6 +620,7 @@ void render_osd_layout_lean_extended()
       xCell += xCellWidth;
    }
 
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_ALTITUDE) )
    {
       strcpy(szBuff, "0");
@@ -623,6 +642,7 @@ void render_osd_layout_lean_extended()
       xCell += xCellWidth;
    }
 
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_HOME ) )
    {
       osd_show_home(xCell+xCellWidth/2-height_text, yLine1, true, 1.0);
@@ -634,6 +654,7 @@ void render_osd_layout_lean_extended()
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry )
       sprintf(szBuff, "%% %d", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.throttle);
 
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_THROTTLE) )
    {
       osd_show_value_centered(xCell+xCellWidth/2, yLine1, szBuff, fontLine1);
@@ -655,6 +676,7 @@ void render_osd_layout_lean_extended()
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry )
       sprintf(szBuff, "%.2f", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.voltage/1000.0);
 
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_BATTERY) )
    {
       osd_show_value_centered(xCell+xCellWidth/2, yLine1, szBuff, fontLine1);
@@ -666,6 +688,7 @@ void render_osd_layout_lean_extended()
    strcpy(szBuff, "0");
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry )
       sprintf(szBuff, "%.1f", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.current/1000.0);
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_BATTERY) )
    {
       osd_show_value_centered(xCell+xCellWidth/2, yLine1, szBuff, fontLine1);
@@ -676,6 +699,7 @@ void render_osd_layout_lean_extended()
    strcpy(szBuff, "0");
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry )
       sprintf(szBuff, "%u", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.mah);
+   if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_BATTERY) )
    {
       osd_show_value_centered(xCell+xCellWidth/2, yLine1, szBuff, fontLine1);

@@ -60,6 +60,7 @@
 #include "../base/hardware.h"
 #include "../base/hardware_procs.h"
 #include "../base/hdmi.h"
+#include "../base/parser_h264.h"
 #include "../renderer/drm_core.h"
 #include <ctype.h>
 #include <sys/ioctl.h>
@@ -237,7 +238,7 @@ void _do_player_mode()
 
 
             if ( (g_iFileTempSlices % g_iFileDetectedSlices) == 0 )
-            if ( (uNALType != 7) && (uNALType != 8) )
+            if ( ! parser_h264_is_signaling_nal(uNALType) )
             {
                u32 uTimeNow = get_current_timestamp_ms();
 

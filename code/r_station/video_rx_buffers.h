@@ -78,6 +78,7 @@ class VideoRxPacketsBuffer
       int getTopBufferMaxReceivedVideoBlockPacketIndex();
 
       int getCountBlocksInBuffer();
+      type_rx_video_block_info* getTopBlockInBuffer();
       type_rx_video_block_info* getBlockInBufferFromBottom(int iDeltaPosition);
       type_rx_video_packet_info* getBottomBlockAndPacketInBuffer(type_rx_video_block_info** ppOutputBlock);
       int discardOldBlocks(u32 uCutOffTime);

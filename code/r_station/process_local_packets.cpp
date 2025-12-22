@@ -370,8 +370,8 @@ void _process_local_notification_model_changed(t_packet_header* pPH, u8 uChangeT
       bool bResetAdaptive = false;
       if ( g_pCurrentModel->video_params.iCurrentVideoProfile != oldVideoParams.iCurrentVideoProfile )
          bResetAdaptive = true;
-      if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps !=
-          oldVideoLinkProfiles[oldVideoParams.iCurrentVideoProfile].bitrate_fixed_bps )
+      if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS !=
+          oldVideoLinkProfiles[oldVideoParams.iCurrentVideoProfile].uTargetVideoBitrateBPS )
          bResetAdaptive = true;
       if ( (g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileFlags & VIDEO_PROFILE_FLAG_USE_HIGHER_DATARATE) !=
            (oldVideoLinkProfiles[oldVideoParams.iCurrentVideoProfile].uProfileFlags & VIDEO_PROFILE_FLAG_USE_HIGHER_DATARATE) )

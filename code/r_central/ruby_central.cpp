@@ -62,6 +62,7 @@
 #include "../base/base.h"
 #include "../base/hardware.h"
 #include "../base/hardware_audio.h"
+#include "../base/hardware_files.h"
 #include "../base/hdmi.h"
 #include "../base/config.h"
 #include "../base/ctrl_settings.h"
@@ -121,6 +122,7 @@
 #include "process_router_messages.h"
 #include "quickactions.h"
 #include "oled/oled_render.h"
+#include "video_playback.h"
 
 u32 s_idBgImage[5];
 u32 s_idBgImageMenu[5];
@@ -141,14 +143,16 @@ bool s_bShowMira = false;
 
 static int s_iRubyFPS = 0;
 static int s_iFPSCount = 0;
-static u32 s_iFPSLastTimeCheck = 0;
+static u32 s_uFPSLastTimeCheck = 0;
 
 static int s_iCountRequestsPauseWatchdog = 0;
 
-static u32 s_iMicroTimeMenuRender = 0;
-static u32 s_iMicroTimeOSDRender = 0;
+static u32 s_uMicroTimeMenuRender = 0;
+static u32 s_uMicroTimePopupRender = 0;
+static u32 s_uMicroTimeOSDRender = 0;
 
-static u32 s_TimeLastRender = 0;
+static u32 s_uTimeLastRender = 0;
+static u32 s_uTimeLastRenderDuration = 0;
 
 static u32 s_TimeCentralInitializationComplete = 0;
 static u32 s_TimeLastMenuInput = 0;
@@ -361,53 +365,6 @@ void _draw_background_picture()
          g_pRenderEngine->drawText(fXTextStart, 0.37, g_idFontMenuLarge, "Press [Menu] key and then select 'My Vehicles' to select the vehicle to connect to.");
       }
    }
-}
-
-
-void _render_video_player(u32 timeNow)
-{
-   char szBuff[1024];
-
-   g_pRenderEngine->startFrame();
-
-   double cColor[] = {0,0,0,0.7};
-   g_pRenderEngine->setColors(cColor, 0.9);
-   g_pRenderEngine->drawRoundRect(0.02, 0.03, 0.36, 0.1, 0.02);
-   g_pRenderEngine->setColors(get_Color_MenuText());
-
-   g_pRenderEngine->setFill(255,255,255,1);
-   g_pRenderEngine->setStroke(0,0,0,1);
-   g_pRenderEngine->setStrokeSize(1);
-   float y = 0.046;
-
-   if ( g_uVideoPlayingTimeMs/1000 > g_uVideoPlayingLengthSec+1 )
-   {
-      sprintf(szBuff, "Finished.");
-      g_pRenderEngine->drawText(0.04, y, g_idFontMenuLarge, szBuff);
-   }
-   else
-   {
-      char szVerb[32];
-      strcpy(szVerb, "Playing");
-      if ( access("/tmp/pausedvr", R_OK) != -1 )
-         strcpy(szVerb, "Paused");
-
-      sprintf(szBuff, "%s %02d", szVerb, ((g_uVideoPlayingTimeMs/1000)/60));
-      float fWidth = g_pRenderEngine->textWidth(g_idFontMenuLarge, szBuff);
-      g_pRenderEngine->drawText(0.04, y, g_idFontMenuLarge, szBuff);
-
-      fWidth += 0.15*g_pRenderEngine->textWidth(g_idFontMenuLarge, "A");
-
-      if ( (g_uVideoPlayingTimeMs/500)%2 )
-         g_pRenderEngine->drawText(0.04 + fWidth, y, g_idFontMenuLarge, ":");
-      fWidth += 0.5*g_pRenderEngine->textWidth(g_idFontMenuLarge, "A");
-      sprintf(szBuff, "%02d / %d:%02d", (g_uVideoPlayingTimeMs/1000)%60, g_uVideoPlayingLengthSec/60, g_uVideoPlayingLengthSec%60);
-      g_pRenderEngine->drawText(0.04 + fWidth, y, g_idFontMenuLarge, szBuff);
-   }
-   sprintf(szBuff, "Press [Menu] for pause/resume or [Back] to stop");
-   g_pRenderEngine->drawText(0.04, 0.084, g_idFontMenu, szBuff);  
-
-   g_pRenderEngine->endFrame();
 }
 
 // returns true if it rendered a background
@@ -718,9 +675,11 @@ void render_all_with_menus(u32 timeNow, bool bRenderMenus, bool bForceBackground
 
    if ( g_bIsVideoPlaying )
    {
-      _render_video_player(timeNow);
+      video_playback_render();
       return;
    }
+
+   u32 uTimeStart = get_current_timestamp_ms();
 
    g_pRenderEngine->startFrame();
    
@@ -728,7 +687,7 @@ void render_all_with_menus(u32 timeNow, bool bRenderMenus, bool bForceBackground
    
    if ( (!g_bSearching) || g_bSearchFoundVehicle )
    if ( ! bForceBackground )
-   if ( s_StartSequence == START_SEQ_COMPLETED || s_StartSequence == START_SEQ_FAILED )
+   if ( (s_StartSequence == START_SEQ_COMPLETED) || (s_StartSequence == START_SEQ_FAILED) )
    {
       if ( pairing_isStarted() )
       if ( g_bIsRouterReady )
@@ -738,8 +697,8 @@ void render_all_with_menus(u32 timeNow, bool bRenderMenus, bool bForceBackground
          u32 t = get_current_timestamp_micros();
          osd_render_all();
          t = get_current_timestamp_micros() - t;
-         if ( t < 300000 )
-            s_iMicroTimeOSDRender = s_iMicroTimeOSDRender*0.8 + t*0.2;
+         if ( t < 400000 )
+            s_uMicroTimeOSDRender = (s_uMicroTimeOSDRender*5 + t)/6;
       }
       if ( g_bIsRouterReady )
          alarms_render();
@@ -758,7 +717,6 @@ void render_all_with_menus(u32 timeNow, bool bRenderMenus, bool bForceBackground
    if ( 0 == g_pControllerSettings->iEnableDebugStats )
    //if ( g_bIsRouterReady )
    {
-      char szBuff[64];
       float yPos = osd_getMarginY() + osd_getBarHeight() + osd_getSecondBarHeight() + 0.01*osd_getScaleOSD();
       float xPos = osd_getMarginX() + 0.02*osd_getScaleOSD();
       if ( NULL != g_pCurrentModel && osd_get_current_layout_index() >= 0 && osd_get_current_layout_index() < MODEL_MAX_OSD_SCREENS )
@@ -768,15 +726,6 @@ void render_all_with_menus(u32 timeNow, bool bRenderMenus, bool bForceBackground
          yPos = osd_getMarginY() + 0.01*osd_getScaleOSD();
       }
    
-      if ( p->iShowCPULoad )
-      {
-         osd_set_colors();
-         g_pRenderEngine->setFill(0,0,0,0.5);
-         g_pRenderEngine->setStroke(0,0,0,0);
-         g_pRenderEngine->disableAlpha();
-         g_pRenderEngine->drawRect(xPos, yPos-0.003, 0.46, 0.03);
-      }
-
       osd_set_colors_text(get_Color_Dev());
       if ( (g_TimeNow/500) % 2 )
       {
@@ -797,56 +746,90 @@ void render_all_with_menus(u32 timeNow, bool bRenderMenus, bool bForceBackground
          float fWidth = 0.8*fHeight/g_pRenderEngine->getAspectRatio() + fWidthText;
          g_pRenderEngine->setFill(0,0,0,0.5);
          g_pRenderEngine->setStroke(0,0,0,0);
-         g_pRenderEngine->disableAlpha();
+         bool bAlphaEnabled = g_pRenderEngine->isAlphaBlendingEnabled();
+         g_pRenderEngine->disableAlphaBlending();
          g_pRenderEngine->drawRect(xPos, yPos, fWidth, fHeight*1.6);
          osd_set_colors_text(get_Color_Dev());
          osd_show_value( xPos+(fWidth-fWidthText)*0.5, yPos+fHeight*0.2, szDbgText, g_idFontOSDBig );
+         g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
       }
-
-      if ( p->iShowCPULoad )
-      {
-         xPos += 0.02*osd_getScaleOSD();
-         yPos += 0.003;
-         sprintf(szBuff, "UI FPS: %d", s_iRubyFPS);
-         osd_show_value(xPos, yPos, szBuff, g_idFontOSDSmall );
-
-         xPos += 0.05*osd_getScaleOSD();
-         sprintf(szBuff, "Menu: %.1f ms/frame", s_iMicroTimeMenuRender/1000.0);
-         osd_show_value(xPos, yPos, szBuff, g_idFontOSDSmall );
-
-         xPos += 0.095*osd_getScaleOSD();
-         sprintf(szBuff, "OSD: %.1f ms/frame", s_iMicroTimeOSDRender/1000.0);
-         osd_show_value(xPos, yPos, szBuff, g_idFontOSDSmall );
-
-         xPos += 0.095*osd_getScaleOSD();
-         sprintf(szBuff, "OSD: %d ms/sec", (int)(s_iMicroTimeOSDRender*s_iRubyFPS/1000.0));
-         osd_show_value(xPos, yPos, szBuff, g_idFontOSDSmall );
-      }
-      g_pRenderEngine->enableAlpha();
+      osd_set_colors();
    }
 
    u32 t = get_current_timestamp_micros();
+   u32 uTimePopups = 0;
    popups_render_bottom();
    popups_render();
-   if ( bRenderMenus )
-      menu_render();
-   popups_render_topmost();
-
    t = get_current_timestamp_micros() - t;
-   if ( t < 300000 )
-      s_iMicroTimeMenuRender = (s_iMicroTimeMenuRender*8 + t*2)/10;
+   if ( t < 400000 )
+      uTimePopups += t;
+
+   if ( bRenderMenus )
+   {
+      t = get_current_timestamp_micros();
+      menu_render();
+      t = get_current_timestamp_micros() - t;
+      if ( t < 400000 )
+         s_uMicroTimeMenuRender = (s_uMicroTimeMenuRender*5 + t)/6;
+   }
+
+   t = get_current_timestamp_micros();
+   popups_render_topmost();
+   t = get_current_timestamp_micros() - t;
+   if ( t < 400000 )
+   {
+      uTimePopups += t;
+      s_uMicroTimePopupRender = (s_uMicroTimePopupRender*5 + uTimePopups)/6;
+   }
+
+   if ( bDevMode )
+   if ( p->iShowCPULoad )
+   {
+      char szBuff[64];
+      float yPos = osd_getMarginY() + osd_getBarHeight() + osd_getSecondBarHeight() + 0.01*osd_getScaleOSD();
+      float xPos = osd_getMarginX() + 0.02*osd_getScaleOSD();
+      if ( NULL != g_pCurrentModel && osd_get_current_layout_index() >= 0 && osd_get_current_layout_index() < MODEL_MAX_OSD_SCREENS )
+      if ( g_pCurrentModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_LAYOUT_LEFT_RIGHT )
+      {
+         xPos = osd_getMarginX() + osd_getVerticalBarWidth() + 0.01*osd_getScaleOSD();
+         yPos = osd_getMarginY() + 0.01*osd_getScaleOSD();
+      }
+   
+      osd_set_colors();
+      g_pRenderEngine->setFill(0,0,0,0.5);
+      g_pRenderEngine->setStroke(0,0,0,0);
+      bool bAlphaEnabled = g_pRenderEngine->isAlphaBlendingEnabled();
+      g_pRenderEngine->disableAlphaBlending();
+      g_pRenderEngine->drawRect(xPos, yPos-0.003, 0.74, 0.05);
+
+      osd_set_colors_text(get_Color_Dev());      
+
+      xPos += 0.02*osd_getScaleOSD();
+      yPos += 0.003;
+      sprintf(szBuff, "UI FPS: %d", s_iRubyFPS);
+      xPos += osd_show_value(xPos, yPos, szBuff, g_idFontOSD );
+
+      xPos += 0.02*osd_getScaleOSD();
+      sprintf(szBuff, "Menu: %.1f ms/frame", (float)s_uMicroTimeMenuRender/1000.0);
+      xPos += osd_show_value(xPos, yPos, szBuff, g_idFontOSD );
+
+      xPos += 0.02*osd_getScaleOSD();
+      sprintf(szBuff, "Popup: %.1f ms/fr", (float)s_uMicroTimePopupRender/1000.0);
+      xPos += osd_show_value(xPos, yPos, szBuff, g_idFontOSD );
+
+      xPos += 0.02*osd_getScaleOSD();
+      sprintf(szBuff, "OSD: %.1f ms/fr", s_uMicroTimeOSDRender/1000.0);
+      xPos += osd_show_value(xPos, yPos, szBuff, g_idFontOSD );
+
+      xPos += 0.02*osd_getScaleOSD();
+      sprintf(szBuff, "OSD: %d ms/sec", (int)(s_uMicroTimeOSDRender*s_iRubyFPS/1000.0));
+      osd_show_value(xPos, yPos, szBuff, g_idFontOSD );
+
+      g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
+   }
   
    if ( handle_commands_is_command_in_progress() )
-      render_commands();
-
-   s_iFPSCount++;
-   if ( timeNow >= s_iFPSLastTimeCheck + 1000 )
-   {
-      s_iRubyFPS = s_iFPSCount;
-      s_iFPSCount = 0;
-      s_iFPSLastTimeCheck = timeNow;
-   }
-   
+      render_commands();   
 
    if ( s_bShowMira )
    {
@@ -867,6 +850,17 @@ void render_all_with_menus(u32 timeNow, bool bRenderMenus, bool bForceBackground
       g_pRenderEngine->rotate180();
 
    g_pRenderEngine->endFrame();
+
+   g_TimeNow = get_current_timestamp_ms();
+   s_uTimeLastRenderDuration = g_TimeNow - uTimeStart;
+
+   s_iFPSCount++;
+   if ( g_TimeNow >= s_uFPSLastTimeCheck + 1000 )
+   {
+      s_iRubyFPS = (s_iFPSCount * (g_TimeNow - s_uFPSLastTimeCheck))/1000;
+      s_iFPSCount = 0;
+      s_uFPSLastTimeCheck = g_TimeNow;
+   }
 }
 
 void render_all(u32 timeNow, bool bForceBackground, bool bDoInputLoop)
@@ -1045,6 +1039,11 @@ int ruby_stop_recording()
    send_control_message_to_router_and_data(PACKET_TYPE_LOCAL_CONTROL_VIDEO_RECORDING, &uCmd, 1);
    log_line("Sent message to router to stop recording.");
    return 0;
+}
+
+bool ruby_is_recording()
+{
+   return g_bIsVideoRecording;
 }
 
 int exectuteActionsInputDebugStats()
@@ -2200,7 +2199,6 @@ void clear_shared_mems()
    memset(&g_SM_VideoDecodeStats, 0, sizeof(shared_mem_video_stream_stats_rx_processors));
    
    memset(&g_SMControllerRTInfo, 0, sizeof(controller_runtime_info));
-   memset(&g_SMVehicleRTInfo, 0, sizeof(vehicle_runtime_info));
    memset(&g_SM_DownstreamInfoRC, 0, sizeof(t_packet_header_rc_info_downstream));
    memset(&g_SM_RouterVehiclesRuntimeInfo, 0, sizeof(shared_mem_router_vehicles_runtime_info));
    memset(&g_SM_RadioStats, 0, sizeof(shared_mem_radio_stats));
@@ -2268,7 +2266,8 @@ void synchronize_shared_mems()
       else
          log_line("Opened shared mem to controller runtime info for reading.");
    }
-   if ( NULL != g_pSMControllerRTInfo )
+
+   if ( (NULL != g_pSMControllerRTInfo) && (!g_bFreezeOSD) )
    {
       memcpy((u8*)&g_SMControllerRTInfo, g_pSMControllerRTInfo, sizeof(controller_runtime_info));
       if ( (g_SMControllerRTInfo.iCurrentIndex != g_SMControllerRTInfo.iCurrentIndex2) ||
@@ -2279,31 +2278,18 @@ void synchronize_shared_mems()
       }
    }
 
-   if ( NULL == g_pSMControllerDebugRTInfo )
+   if ( NULL == g_pSMControllerDebugVideoRTInfo )
    {
-      g_pSMControllerDebugRTInfo = controller_debug_rt_info_open_for_read();
-      if ( NULL == g_pSMControllerDebugRTInfo )
-         log_softerror_and_alarm("Failed to open shared mem to controller debug runtime info for reading: %s", SHARED_MEM_CONTROLLER_DEBUG_RUNTIME_INFO);
+      g_pSMControllerDebugVideoRTInfo = controller_debug_video_rt_info_open_for_read();
+      if ( NULL == g_pSMControllerDebugVideoRTInfo )
+         log_softerror_and_alarm("Failed to open shared mem to controller debug video runtime info for reading: %s", SHARED_MEM_CONTROLLER_DEBUG_VIDEO_RUNTIME_INFO);
       else
-         log_line("Opened shared mem to controller debug runtime info for reading.");
+         log_line("Opened shared mem to controller debug video runtime info for reading.");
    }
-   if ( g_pControllerSettings->iEnableDebugStats && (NULL != g_pSMControllerDebugRTInfo) )
-      memcpy((u8*)&g_SMControllerDebugRTInfo, g_pSMControllerDebugRTInfo, sizeof(controller_debug_runtime_info));
 
-   if ( NULL == g_pSMVehicleRTInfo )
-   {
-      g_pSMVehicleRTInfo = vehicle_rt_info_open_for_read();
-      if ( NULL == g_pSMVehicleRTInfo )
-         log_softerror_and_alarm("Failed to open shared mem to vehicle runtime info for reading: %s", SHARED_MEM_VEHICLE_RUNTIME_INFO);
-      else
-         log_line("Opened shared mem to vehicle runtime info for reading.");
-   }
-   if ( NULL != g_pSMVehicleRTInfo )
-      memcpy((u8*)&g_SMVehicleRTInfo, g_pSMVehicleRTInfo, sizeof(vehicle_runtime_info));
-
-
-   if ( g_bFreezeOSD )
-      return;
+   if ( (NULL != g_pSMControllerDebugVideoRTInfo) && (NULL != g_pCurrentModel) && (!g_bFreezeOSD) )
+   if ( g_pControllerSettings->iEnableDebugStats || (g_pCurrentModel->osd_params.osd_flags2[g_pCurrentModel->osd_params.iCurrentOSDScreen] & OSD_FLAG2_SHOW_VIDEO_FRAMES_STATS) )
+      memcpy((u8*)&g_SMControllerDebugVideoRTInfo, g_pSMControllerDebugVideoRTInfo, sizeof(controller_debug_video_runtime_info));
 
    if ( NULL != g_pProcessStatsRouter )
       memcpy((u8*)&g_ProcessStatsRouter, g_pProcessStatsRouter, sizeof(shared_mem_process_stats));
@@ -2311,6 +2297,9 @@ void synchronize_shared_mems()
       memcpy((u8*)&g_ProcessStatsTelemetry, g_pProcessStatsTelemetry, sizeof(shared_mem_process_stats));
    if ( NULL != g_pProcessStatsRC )
       memcpy((u8*)&g_ProcessStatsRC, g_pProcessStatsRC, sizeof(shared_mem_process_stats));
+
+   if ( g_bFreezeOSD )
+      return;
 
    if ( NULL != g_pSM_DownstreamInfoRC )
       memcpy((u8*)&g_SM_DownstreamInfoRC, g_pSM_DownstreamInfoRC, sizeof(t_packet_header_rc_info_downstream));
@@ -2348,8 +2337,12 @@ void synchronize_shared_mems()
 
 void ruby_processing_loop(bool bNoKeys)
 {
-   hardware_sleep_ms(10);
-   u32 uTimeStart = get_current_timestamp_ms();
+   if ( s_uTimeLastRenderDuration < 10 )
+      hardware_sleep_ms(10 - s_uTimeLastRenderDuration);
+   g_TimeNow = get_current_timestamp_ms();
+
+   u32 uTimeStart = g_TimeNow;
+
    try_read_messages_from_router(5);
    keyboard_consume_input_events();
    u32 uSumEvent = keyboard_get_triggered_input_events();
@@ -2373,15 +2366,13 @@ void ruby_processing_loop(bool bNoKeys)
     }
 
     s_TimeLastMenuInput = g_TimeNow;
+    menu_loop(bNoKeys);
+    //if ( keyboard_has_long_press_flag() )
+    //   menu_loop_parse_input_events();
     if ( ! bNoKeys )
-    {
-       menu_loop();
-       //if ( keyboard_has_long_press_flag() )
-       //   menu_loop_parse_input_events();
-       if ( ! exectuteActionsInputDebugStats() )
-       if ( keyboard_get_triggered_input_events() & (INPUT_EVENT_PRESS_QA1 | INPUT_EVENT_PRESS_QA2 | INPUT_EVENT_PRESS_QA3) )
-          executeQuickActions();
-    }
+    if ( ! exectuteActionsInputDebugStats() )
+    if ( keyboard_get_triggered_input_events() & (INPUT_EVENT_PRESS_QA1 | INPUT_EVENT_PRESS_QA2 | INPUT_EVENT_PRESS_QA3) )
+       executeQuickActions();
 
    if ( g_iMustSendCurrentActiveOSDLayoutCounter > 0 )
    if ( g_TimeNow >= g_TimeLastSentCurrentActiveOSDLayout+200 )
@@ -2401,17 +2392,20 @@ void ruby_processing_loop(bool bNoKeys)
       warnings_periodic_loop();
    }
 
-   u32 uTime10 = get_current_timestamp_ms();
-   u32 dTime = uTime10 - uTimeStart;
-   if ( dTime > 200 )
+   g_TimeNow = get_current_timestamp_ms();
+   if ( (g_TimeNow - uTimeStart) > 200 )
    if ( (s_StartSequence == START_SEQ_COMPLETED) || (s_StartSequence == START_SEQ_FAILED) )
-      log_softerror_and_alarm("Main processing loop took too long (%u ms)", dTime);
+      log_softerror_and_alarm("Main processing loop took too long (%u ms)", g_TimeNow - uTimeStart);
 }
 
 void main_loop_r_central()
 {
-   hardware_sleep_ms(2);
    ruby_processing_loop(false);
+
+   if ( g_bIsVideoPlaying )
+      video_playback_periodic_loop();
+
+   s_uTimeLastRenderDuration = 0;
 
    if ( (s_StartSequence != START_SEQ_COMPLETED) && (s_StartSequence != START_SEQ_FAILED) )
    {
@@ -2450,10 +2444,10 @@ void main_loop_r_central()
    int dt = 1000/15;
    if ( 0 != g_pControllerSettings->iRenderFPS )
       dt = 1000/g_pControllerSettings->iRenderFPS;
-   if ( g_TimeNow >= s_TimeLastRender+dt )
+   if ( g_TimeNow >= s_uTimeLastRender+dt )
    {
       ruby_signal_alive();
-      s_TimeLastRender = g_TimeNow;
+      s_uTimeLastRender = g_TimeNow;
       render_all(g_TimeNow, false, false);
       if ( NULL != g_pProcessStatsCentral )
          g_pProcessStatsCentral->lastActiveTime = g_TimeNow;
@@ -2624,7 +2618,6 @@ int main(int argc, char *argv[])
       g_bDebugState = true;
    if ( g_bDebugState )
       log_line("Starting in debug mode.");
-
    
    setlocale(LC_ALL, "en_GB.UTF-8");
 
@@ -2640,6 +2633,32 @@ int main(int argc, char *argv[])
    s_idBgImageMenu[4] = 0;
 
    log_init("Central");
+
+   if ( strcmp(argv[argc-1], "-mount") == 0 )
+   {
+      log_enable_stdout();
+      char szCommand[256];
+      sprintf(szCommand, "mkdir -p %s", FOLDER_USB_MOUNT);
+      hw_execute_bash_command(szCommand, NULL);
+      sprintf(szCommand, "chmod -R 777 %s", FOLDER_USB_MOUNT);
+      hw_execute_bash_command(szCommand, NULL);
+
+      int iMountRes = hardware_try_mount_usb();
+      if ( iMountRes <= 0 )
+         log_softerror_and_alarm("Failed to mount USB drive. Error code: %d", iMountRes);
+      else
+         log_line("Mounted USB driver. Result: %d", iMountRes);
+      return 0;
+   }
+
+   if ( strcmp(argv[argc-1], "-unmount") == 0 )
+   {
+      log_enable_stdout();
+      extern int s_iUSBMounted;
+      s_iUSBMounted = 1;
+      hardware_unmount_usb();
+      return 0;
+   }
 
    hardware_detectBoardAndSystemType();
 
@@ -2879,7 +2898,6 @@ int main(int argc, char *argv[])
    keyboard_init();
 
    controller_rt_info_init(&g_SMControllerRTInfo);
-   vehicle_rt_info_init(&g_SMVehicleRTInfo);
 
    s_StartSequence = START_SEQ_PRE_LOAD_CONFIG;
    log_line("Started main loop.");
@@ -2892,7 +2910,6 @@ int main(int argc, char *argv[])
       g_uLoopCounter++;
       g_TimeNow = get_current_timestamp_ms();
       g_TimeNowMicros = get_current_timestamp_micros();
-
       if ( rx_scope_is_started() )
       {
          try_read_messages_from_router(10);

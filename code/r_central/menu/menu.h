@@ -35,7 +35,7 @@ float menu_setGlobalAlpha(float fAlpha);
 float menu_getGlobalAlpha();
 
 int menu_init();
-void menu_loop();
+void menu_loop(bool bNoKeys);
 void menu_loop_parse_input_events();
 void menu_refresh_all_menus();
 void menu_refresh_all_menus_except(Menu* pMenu);

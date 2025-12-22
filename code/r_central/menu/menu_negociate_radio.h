@@ -75,6 +75,7 @@ class MenuNegociateRadio: public Menu
       void _startTest(int iTestIndex);
       void _endCurrentTest(bool bUpdateTestState);
       bool _currentTestUpdateWhenRunning();
+      bool _updateCurrentMultiTest();
       void _advance_to_next_test();
       
       void _save_new_settings_to_model();

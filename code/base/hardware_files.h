@@ -4,6 +4,8 @@
 
 bool hardware_file_check_and_fix_access(char* szFullFileName);
 long hardware_file_get_file_size(const char* szFullFileName);
+void hardware_file_replace_extension(const char* szFile, const char* szNewExtension);
+void hardware_files_check_config_folder();
 
 #ifdef __cplusplus
 extern "C" {

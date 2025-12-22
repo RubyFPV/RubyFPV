@@ -38,7 +38,7 @@ bool g_bRadioReinitialized = false;
 shared_mem_radio_stats g_SM_RadioStats;
 shared_mem_radio_stats_rx_hist* g_pSM_HistoryRxStats = NULL;
 shared_mem_radio_stats_rx_hist g_SM_HistoryRxStats;
-vehicle_runtime_info g_VehicleRuntimeInfo;
+
 type_uplink_rx_info_stats g_UplinkInfoRxStats[MAX_RADIO_INTERFACES];
 
 bool g_bVehicleArmed = false;

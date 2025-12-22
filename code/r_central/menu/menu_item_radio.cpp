@@ -300,9 +300,6 @@ void MenuItemRadio::Render(float xPos, float yPos, bool bSelected, float fWidthS
    else
       m_nFocusedIndex = -1;
 
-   //bool bEnableAlpha = g_pRenderEngine->isAlphaEnabled();
-   //g_pRenderEngine->enableAlpha();
-
    for( int i=0; i<m_nSelectionsCount; i++ )
    {
       float yItem = y;
@@ -366,7 +363,6 @@ void MenuItemRadio::Render(float xPos, float yPos, bool bSelected, float fWidthS
 
    g_pRenderEngine->setColors(get_Color_MenuText());
    g_pRenderEngine->setStrokeSize(1);
-   //g_pRenderEngine->setAlphaEnabled(bEnableAlpha);
 }
 
 void MenuItemRadio::RenderCondensed(float xPos, float yPos, bool bSelected, float fWidthSelection)

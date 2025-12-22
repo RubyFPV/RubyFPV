@@ -650,19 +650,9 @@ bool try_read_messages_from_router()
       log_line("Received pairing request from router (received resend count: %u). From CID %u to VID %u (%s). Developer mode: %s. Updating local model.",
          uResendCount, pPH->vehicle_id_src, pPH->vehicle_id_dest, (pPH->vehicle_id_dest == g_pCurrentModel->uVehicleId)?"self":"not self", (g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE)?"on":"off");
 
-      if ( (NULL != g_pCurrentModel) && (0 != g_uControllerId) && (g_uControllerId != pPH->vehicle_id_src) )
-      {
-         g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags &= ~(MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS);
-         g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab = 0;
-      }
-      g_uControllerId = pPH->vehicle_id_src;
       if ( NULL != g_pCurrentModel )
-      {
-         g_pCurrentModel->uControllerId = pPH->vehicle_id_src;
-         if ( g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId >= 0 )
-         if ( g_pCurrentModel->relay_params.uRelayedVehicleId != 0 )
-            g_pCurrentModel->relay_params.uCurrentRelayMode = RELAY_MODE_MAIN | RELAY_MODE_IS_RELAY_NODE;
-      }
+         g_pCurrentModel->onControllerIdUpdated(pPH->vehicle_id_src);
+      g_uControllerId = pPH->vehicle_id_src;
       return true;
    }
  

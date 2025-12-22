@@ -50,10 +50,8 @@ shared_mem_ctrl_ping_stats g_SMDbgPingStats;
 
 controller_runtime_info g_SMControllerRTInfo;
 controller_runtime_info* g_pSMControllerRTInfo = NULL;
-controller_debug_runtime_info g_SMControllerDebugRTInfo;
-controller_debug_runtime_info* g_pSMControllerDebugRTInfo = NULL;
-vehicle_runtime_info g_SMVehicleRTInfo;
-vehicle_runtime_info* g_pSMVehicleRTInfo = NULL;
+controller_debug_video_runtime_info g_SMControllerDebugVideoRTInfo;
+controller_debug_video_runtime_info* g_pSMControllerDebugVideoRTInfo = NULL;
 
 t_packet_header_rc_info_downstream* g_pSM_DownstreamInfoRC = NULL; // RC Info received on ground 
 t_packet_header_rc_info_downstream g_SM_DownstreamInfoRC; // RC Info received on ground 

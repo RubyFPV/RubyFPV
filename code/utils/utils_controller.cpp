@@ -68,7 +68,7 @@ u32 controller_utils_getControllerId()
    if ( bControllerIdOk )
       return uControllerId;
 
-   log_line("Generating a new unique controller ID...");
+   log_line("Generating a new unique controller Id...");
 
    uControllerId = rand();
    if ( BROADCAST_VEHICLE_ID == uControllerId )
@@ -78,13 +78,28 @@ u32 controller_utils_getControllerId()
    {
       char szBuff[256];
       szBuff[0] = 0;
-      if ( 1 == fscanf(fd, "%s", szBuff) && 4 < strlen(szBuff) )
+      if ( (1 == fscanf(fd, "%s", szBuff)) && (1 < strlen(szBuff)) )
       {
-         //log_line("Serial ID of HW: %s", szBuff);
          uControllerId += szBuff[strlen(szBuff)-1] + 256 * szBuff[strlen(szBuff)-2];
+         for( int i=0; i<(int)strlen(szBuff); i++ )
+            uControllerId += (szBuff[i]+1)*i + (szBuff[i]+2)*(1<<i);
       }
+      else
+         log_softerror_and_alarm("Failed to read hardware serial number for generating unique controller Id.");
       fclose(fd);
    }
+   else
+      log_softerror_and_alarm("Failed to get hardware serial number for generating unique controller Id.");
+
+   struct timespec t;
+   clock_gettime(RUBY_HW_CLOCK_ID, &t);
+   uControllerId += t.tv_nsec;
+
+   char szOutput[4096];
+   memset(szOutput, 0, 4096);
+   hw_execute_bash_command("lsusb", szOutput);
+   for( int i=1; i<4096; i++ )
+      uControllerId += szOutput[i]*i;
 
    log_line("Generated a new unique controller ID: %u", uControllerId);
 
@@ -95,7 +110,7 @@ u32 controller_utils_getControllerId()
       fclose(fd);
    }
    else
-      log_softerror_and_alarm("Failed to save the new generated unique controller ID!");
+      log_softerror_and_alarm("Failed to save the new generated unique controller Id!");
 
    return uControllerId;
 }

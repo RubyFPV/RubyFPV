@@ -33,11 +33,8 @@ extern ProcessorRxVideo* g_pVideoProcessorRxList[MAX_VIDEO_PROCESSORS];
 
 extern controller_runtime_info g_SMControllerRTInfo;
 extern controller_runtime_info* g_pSMControllerRTInfo;
-extern controller_debug_runtime_info g_SMControllerDebugRTInfo;
-extern controller_debug_runtime_info* g_pSMControllerDebugRTInfo;
-extern vehicle_runtime_info g_SMVehicleRTInfo;
-extern vehicle_runtime_info* g_pSMVehicleRTInfo;
-
+extern controller_debug_video_runtime_info g_SMControllerDebugVideoRTInfo;
+extern controller_debug_video_runtime_info* g_pSMControllerDebugVideoRTInfo;
 
 extern shared_mem_radio_stats_rx_hist* g_pSM_HistoryRxStats;
 extern shared_mem_radio_stats_rx_hist g_SM_HistoryRxStats;

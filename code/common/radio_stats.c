@@ -1037,12 +1037,13 @@ int radio_stats_update_on_new_radio_packet_received(shared_mem_radio_stats* pSMR
    u32 uTimeGap = timeNow - pSMRS->radio_interfaces[iInterfaceIndex].timeLastRxPacket;
    if ( 0 == pSMRS->radio_interfaces[iInterfaceIndex].timeLastRxPacket )
       uTimeGap = 0;
-   if ( uTimeGap > 254 )
-      uTimeGap = 254;
+   u32 uShortTimeGap = uTimeGap;
+   if ( uShortTimeGap > 254 )
+      uShortTimeGap = 254;
    if ( pSMRS->radio_interfaces[iInterfaceIndex].hist_rxGapMiliseconds[pSMRS->radio_interfaces[iInterfaceIndex].hist_rxPacketsCurrentIndex] == 0xFF )
-      pSMRS->radio_interfaces[iInterfaceIndex].hist_rxGapMiliseconds[pSMRS->radio_interfaces[iInterfaceIndex].hist_rxPacketsCurrentIndex] = uTimeGap;
-   else if ( uTimeGap > pSMRS->radio_interfaces[iInterfaceIndex].hist_rxGapMiliseconds[pSMRS->radio_interfaces[iInterfaceIndex].hist_rxPacketsCurrentIndex] )
-      pSMRS->radio_interfaces[iInterfaceIndex].hist_rxGapMiliseconds[pSMRS->radio_interfaces[iInterfaceIndex].hist_rxPacketsCurrentIndex] = uTimeGap;
+      pSMRS->radio_interfaces[iInterfaceIndex].hist_rxGapMiliseconds[pSMRS->radio_interfaces[iInterfaceIndex].hist_rxPacketsCurrentIndex] = uShortTimeGap;
+   else if ( uShortTimeGap > pSMRS->radio_interfaces[iInterfaceIndex].hist_rxGapMiliseconds[pSMRS->radio_interfaces[iInterfaceIndex].hist_rxPacketsCurrentIndex] )
+      pSMRS->radio_interfaces[iInterfaceIndex].hist_rxGapMiliseconds[pSMRS->radio_interfaces[iInterfaceIndex].hist_rxPacketsCurrentIndex] = uShortTimeGap;
      
    pSMRS->radio_interfaces[iInterfaceIndex].timeLastRxPacket = timeNow;
    
@@ -1098,7 +1099,7 @@ int radio_stats_update_on_new_radio_packet_received(shared_mem_radio_stats* pSMR
          if ( pPH->radio_link_packet_index > pSMRS->radio_interfaces[iInterfaceIndex].lastReceivedRadioLinkPacketIndex + 1 )
          {
             u32 uLost = pPH->radio_link_packet_index - pSMRS->radio_interfaces[iInterfaceIndex].lastReceivedRadioLinkPacketIndex - 1;
-
+            //log_line("DBG lost %d packets, gap is %u ms wide, radio pkt %d", uLost, uTimeGap, pPH->radio_link_packet_index);
             if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_VIDEO )
                pSMRS->radio_interfaces[iInterfaceIndex].hist_tmp_rxPacketsLostCountVideo += uLost;
             else

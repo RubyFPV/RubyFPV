@@ -112,13 +112,13 @@ void _test_link_end_and_notify()
       g_pCurrentModel->validateRadioSettings();
 
       u32 uMaxVideoBitrate = g_pCurrentModel->getMaxVideoBitrateSupportedForCurrentRadioLinks();
-      if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps > uMaxVideoBitrate )
+      if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS > uMaxVideoBitrate )
       {
          log_line("[TestLink-%d] Must adjust current video profile bitrate (%.1f Mbps) to max allowed on current links: %.1f Mbps",
             s_iTestLinkRunCount,
-            g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps/1000.0/1000.0, uMaxVideoBitrate/1000.0/1000.0);
+            g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS/1000.0/1000.0, uMaxVideoBitrate/1000.0/1000.0);
       
-         g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps = uMaxVideoBitrate;
+         g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS = uMaxVideoBitrate;
       }
 
 

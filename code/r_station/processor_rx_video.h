@@ -107,7 +107,7 @@ class ProcessorRxVideo
       
       void updateControllerRTInfoAndVideoDecodingStats(u8* pRadioPacket, int iPacketLength);
       
-      void _updateDebugStatsOnVideoPacket(u8* pRadioPacket, int iPacketLength);
+      void _updateDebugStatsOnVideoPacket(type_rx_video_packet_info* pVideoPacket);
       void _checkUpdateRetransmissionsState();
       void checkUpdateRetransmissionsState();
       // Returns how many retransmission packets where requested, if any
@@ -132,24 +132,19 @@ class ProcessorRxVideo
 
       // Output state
       t_packet_header_video_segment m_LastOutputedVideoPacketInfo;
+      type_rx_video_block_info m_CopyLastOutputedVideoRxBlockInfo;
       u32 m_uTimeLastOutputedVideoPacket;
       u32 m_uTimeReceivedLastOutputedVideoPacket;
 
       // Rx state 
       t_packet_header_video_segment m_NewestReceivedVideoPacketInfo;
+      type_rx_video_block_info m_CopyNewestReceivedVideoRxBlockInfo;
       u32 m_uNewestReceivedVideoPacketTime;
       bool m_bMustParseStream;
       bool m_bWasParsingStream;
       ParserH264 m_ParserH264;
 
       u8 m_uLastReceivedVideoLinkProfile;
-
-      // Debug stats
-      u32 m_uDebugStatsLastRecvFrameIndex;
-      int m_iDebugStatsCurrentFrameBytes;
-      int m_iDebugStatsCurrentFramePackets;
-      u32 m_uDebugStatsCurrentFrameFirstPacketTimeTensMS;
-      u32 m_uDebugStatsCurrentFrameLastPacketTimeTensMS;
 
       u32 m_uLastTimeCheckedForMissingPackets;
       u32 m_uRequestRetransmissionUniqueId;

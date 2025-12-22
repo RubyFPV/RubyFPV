@@ -63,7 +63,6 @@ extern bool g_bRadioReinitialized;
 extern shared_mem_radio_stats g_SM_RadioStats;
 extern shared_mem_radio_stats_rx_hist* g_pSM_HistoryRxStats;
 extern shared_mem_radio_stats_rx_hist g_SM_HistoryRxStats;
-extern vehicle_runtime_info g_VehicleRuntimeInfo;
 
 extern bool g_bVehicleArmed;
 extern int g_iVehicleSOCTemperatureC;

@@ -89,6 +89,34 @@ long hardware_file_get_file_size(const char* szFullFileName)
    return -3;
 }
 
+void hardware_file_replace_extension(const char* szFile, const char* szNewExtension)
+{
+   if ( (NULL == szFile) || (NULL == szNewExtension) || (0 == szFile[0]) || (0 == szNewExtension[0]) )
+      return;
+   // Code modifies input filename buffer! Enough room is assumed.
+
+   int iLen = strlen(szFile)-1;
+   while ( (iLen > 0) && (szFile[iLen] != '.') )
+      iLen--;
+
+   if ( iLen <= 0 )
+      return;
+
+   char* pFileName = (char*)szFile;
+   pFileName[iLen] = '.';
+   pFileName[iLen+1] = 0;
+   strcat(pFileName, szNewExtension);
+}
+
+void hardware_files_check_config_folder()
+{
+   char szComm[256];
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s* 2>/dev/null", FOLDER_CONFIG);
+   hw_execute_bash_command(szComm, NULL);
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s* 2>/dev/null", FOLDER_CONFIG_MODELS);
+   hw_execute_bash_command(szComm, NULL); 
+}
+
 void hardware_files_init()
 {
    s_szUSBMountName[0] = 0;

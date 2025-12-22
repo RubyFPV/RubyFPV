@@ -32,7 +32,7 @@ typedef struct
    u32 uCurrentVideoProfileEncodingFlags;
    int iCurrentVideoWidth;
    int iCurrentVideoHeight;
-   int iCurrentVideoFPS;
+   int iCurrentVideoTxSourceFPS;
    u32 uLastSetVideoBitrate;
    u32 uLastSetVideoKeyframeMs;
    u32 uCurrentECTimeMsPerSec;

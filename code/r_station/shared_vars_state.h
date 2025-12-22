@@ -1,5 +1,6 @@
 #pragma once
 #include "../base/config.h"
+#include "../base/msp.h"
 
 #define MAX_RUNTIME_INFO_COMMANDS_RT_TIMES 5
 
@@ -30,6 +31,15 @@ typedef struct
    u32 uLastTimeRecvDataFromVehicle;
    int iVehicleClockDeltaMilisec;
 
+   // Telemetry info
+   t_packet_header_fc_telemetry headerFCTelemetry;
+   t_packet_header_ruby_telemetry_short headerRubyTelemetryShort;
+   t_packet_header_ruby_telemetry_extended_v6 headerRubyTelemetryExtended;
+   u32  uTimeLastRecvFCTelemetryFC;
+   u32  uTimeLastRecvRubyTelemetryExtended;
+   u32  uTimeLastRecvRubyTelemetryShort;
+   type_msp_parse_state mspState;
+
    // Commands roundtrip info
 
    u32 uTimeLastCommandIdSent;
@@ -42,6 +52,7 @@ typedef struct
    u32 uMinCommandRoundtripMiliseconds;
 
    // Adaptive video info
+
    bool bIsDoingRetransmissions;
    bool bIsAdaptiveVideoActive;
    u32 uAdaptiveVideoActivationTime;

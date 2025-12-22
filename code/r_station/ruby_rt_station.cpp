@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <unistd.h>
 #include "../base/base.h"
 #include "../base/config.h"
 #include "../base/ctrl_settings.h"
@@ -125,38 +126,82 @@ bool router_is_eof()
 
 void _router_update_frame_eof()
 {
-   if ( g_bSearching || (NULL == g_pCurrentModel) )
+   if ( g_bSearching || (NULL == g_pCurrentModel) || (! is_sw_version_atleast(g_pCurrentModel, 11, 7)) )
+   {
+      s_bIsEOFDetected = true;
       return;
+   }
+   type_global_state_vehicle_runtime_info* pRTInfo = getVehicleRuntimeInfo(g_pCurrentModel->uVehicleId);
+   if ( (NULL == pRTInfo) || (! pRTInfo->bIsPairingDone) )
+      return;
+
+   static u32 s_uLastTimeCheckedForFrameEOF = 0;
+   if ( g_TimeNow == s_uLastTimeCheckedForFrameEOF )
+      return;
+   s_uLastTimeCheckedForFrameEOF = g_TimeNow;
 
    s_uLastDetectedFrameStartTime = radio_rx_get_current_frame_start_time();
    s_uLastDetectedFrameEndTime = radio_rx_get_current_frame_end_time();
-   u32 uTimeEOF2 = s_uLastDetectedFrameEndTime + ((((u32)g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileFlags) & VIDEO_PROFILE_FLAG_MASK_RETRANSMISSIONS_GUARD_MASK)>>8);
+   u32 uTimeGuard = ((((u32)g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileFlags) & VIDEO_PROFILE_FLAG_MASK_RETRANSMISSIONS_GUARD_MASK)>>8);
+   u32 uTimeEOFWithGuard = s_uLastDetectedFrameEndTime + uTimeGuard;
    g_TimeNow = get_current_timestamp_ms();
 
-   bool bIsEOF = false;
    u32 uMilisPerFrame = 33;
    if ( g_pCurrentModel->video_params.iVideoFPS > 0 )
       uMilisPerFrame = 1000/g_pCurrentModel->video_params.iVideoFPS;
 
-   if ( g_TimeNow >= uTimeEOF2 )
+   if ( (g_TimeNow < uTimeEOFWithGuard) || (g_TimeNow > s_uLastDetectedFrameEndTime + g_pCurrentModel->getCurrentVideoProfileMaxRetransmissionWindow() + uMilisPerFrame) ||
+        (g_TimeNow < s_uLastDetectedFrameStartTime) || (g_TimeNow > s_uLastDetectedFrameStartTime + g_pCurrentModel->getCurrentVideoProfileMaxRetransmissionWindow() + 2*uMilisPerFrame) )
+   {
+      s_bIsEOFDetected = false;
+      return;
+   }
+
+   bool bIsEOF = false;
+
+   if ( g_TimeNow >= uTimeEOFWithGuard )
    if ( g_TimeNow < s_uLastDetectedFrameStartTime + uMilisPerFrame )
-   if ( s_uLastDetectedFrameStartTime < s_uLastDetectedFrameEndTime )
+   if ( s_uLastDetectedFrameStartTime <= s_uLastDetectedFrameEndTime )
       bIsEOF = true;
 
-   if ( (! bIsEOF) && (g_TimeNow >= s_uLastDetectedFrameStartTime + uMilisPerFrame) && (g_TimeNow < s_uLastDetectedFrameStartTime + 10*uMilisPerFrame) )
-   for( u32 i=1; i<10; i++ )
+   if ( (! bIsEOF) && (g_TimeNow >= uTimeEOFWithGuard) && (g_TimeNow <= s_uLastDetectedFrameEndTime + g_pCurrentModel->getCurrentVideoProfileMaxRetransmissionWindow()) )
    {
-      if ( g_TimeNow > s_uLastDetectedFrameStartTime + i*uMilisPerFrame + uMilisPerFrame/2 )
+      /*
+      log_line("DBG check for EOF update on older frames (last detected frame start was %u ms ago, last EOF with guard was %u ms ago, last detected EOF was %u ms ago, max retr window is %d ms)...",
+          g_TimeNow - s_uLastDetectedFrameStartTime,
+          g_TimeNow - uTimeEOFWithGuard, g_TimeNow - s_uLastDetectedFrameEndTime,
+          g_pCurrentModel->getCurrentVideoProfileMaxRetransmissionWindow());
+      */
+      u32 uTimeFrameStart = s_uLastDetectedFrameStartTime;
+      u32 uTimeFrameEnd = uTimeEOFWithGuard;
+      if ( uTimeFrameEnd < uTimeFrameStart + 5 )
+         uTimeFrameEnd = uTimeFrameStart+5;
+      int iCount = 0;
+      uTimeFrameStart += uMilisPerFrame;
+      uTimeFrameEnd += uMilisPerFrame;
+      while ( (uTimeFrameStart < g_TimeNow) && (iCount < 10) )
       {
-         if ( g_TimeNow < s_uLastDetectedFrameStartTime + 2*uMilisPerFrame )
+         /*
+         if ( g_TimeNow >= uTimeFrameEnd )
+            log_line("DBG check foe EOF update on older frame %d: started %u ms ago, ended %u ms ago",
+               iCount, g_TimeNow - uTimeFrameStart, g_TimeNow - uTimeFrameEnd);
+         else
+            log_line("DBG check foe EOF update on older frame %d: will start %u ms from now, will end %u ms from now",
+               iCount, uTimeFrameStart - g_TimeNow, uTimeFrameEnd - g_TimeNow);
+         */
+         if ( g_TimeNow >= uTimeFrameEnd )
+         if ( g_TimeNow < uTimeFrameStart + uMilisPerFrame )
          {
             bIsEOF = true;
             break;
          }
+         iCount++;
+         uTimeFrameStart += uMilisPerFrame;
+         uTimeFrameEnd += uMilisPerFrame;
       }
-      else
-         break;
    }
+   //if ( s_bIsEOFDetected != bIsEOF )
+   //   log_line("DBG EOF changed to %d", bIsEOF);
    s_bIsEOFDetected = bIsEOF;
 }
 
@@ -1181,20 +1226,11 @@ void init_shared_memory_objects()
    else
       log_line("Opened shared mem to controller runtime info for writing.");
 
-   g_pSMControllerDebugRTInfo = controller_debug_rt_info_open_for_write();
-   if ( NULL == g_pSMControllerDebugRTInfo )
-      log_softerror_and_alarm("Failed to open shared mem to controller debug runtime info for writing: %s", SHARED_MEM_CONTROLLER_DEBUG_RUNTIME_INFO);
+   g_pSMControllerDebugVideoRTInfo = controller_debug_video_rt_info_open_for_write();
+   if ( NULL == g_pSMControllerDebugVideoRTInfo )
+      log_softerror_and_alarm("Failed to open shared mem to controller debug video runtime info for writing: %s", SHARED_MEM_CONTROLLER_DEBUG_VIDEO_RUNTIME_INFO);
    else
-      log_line("Opened shared mem to controller debug runtime info for writing.");
-
-   g_pSMVehicleRTInfo = vehicle_rt_info_open_for_write();
-   if ( NULL == g_pSMVehicleRTInfo )
-      log_softerror_and_alarm("Failed to open shared mem to vehicle runtime info for writing: %s", SHARED_MEM_VEHICLE_RUNTIME_INFO);
-   else
-      log_line("Opened shared mem to vehicle runtime info for writing.");
-
-   if ( NULL != g_pSMVehicleRTInfo )
-      memcpy((u8*)g_pSMVehicleRTInfo, (u8*)&g_SMVehicleRTInfo, sizeof(vehicle_runtime_info));
+      log_line("Opened shared mem to controller debug video runtime info for writing.");
 
    g_pSM_RadioStats = shared_mem_radio_stats_open_for_write();
    if ( NULL == g_pSM_RadioStats )
@@ -1383,7 +1419,10 @@ void _check_send_packets(bool bDoTxSync)
 {
    bool bSendNow = false;
 
-   if ( (!bDoTxSync) || g_bUpdateInProgress || (!g_pCurrentModel->hasCamera()) || (g_TimeNow > s_QueueRadioPacketsRegPrio.timeFirstPacket + 55) )
+   type_global_state_vehicle_runtime_info* pRTInfo = getVehicleRuntimeInfo(g_pCurrentModel->uVehicleId);
+   if ( (NULL == pRTInfo) || (! pRTInfo->bIsPairingDone) )
+      bSendNow = true;
+   else if ( (!bDoTxSync) || g_bUpdateInProgress || (!g_pCurrentModel->hasCamera()) || (g_TimeNow > s_QueueRadioPacketsRegPrio.timeFirstPacket + 55) )
       bSendNow = true;
    else if ( router_is_eof() )
       bSendNow = true;
@@ -1422,6 +1461,8 @@ int main(int argc, char *argv[])
    signal(SIGQUIT, handle_sigint);
          
    log_init("Router");
+   log_arguments(argc, argv);
+   log_line_forced_to_file("Linux mem page size: %d bytes", getpagesize());
    
    hardware_detectBoardAndSystemType();
 
@@ -1544,7 +1585,6 @@ int main(int argc, char *argv[])
    }
 
    controller_rt_info_init(&g_SMControllerRTInfo);
-   vehicle_rt_info_init(&g_SMVehicleRTInfo);
    init_shared_memory_objects();
 
    log_line("Init shared mem objects: done");
@@ -1701,7 +1741,6 @@ int main(int argc, char *argv[])
       g_pProcessStats->lastActiveTime = g_TimeNow;
       g_pProcessStats->uLoopCounter++;
       g_pProcessStats->uLoopSubStep = 0;
-
       u32 uMaxLoopTime = 15;
       if ( (NULL != g_pCurrentModel) && (g_pCurrentModel->video_params.iVideoFPS > 0) )
          uMaxLoopTime = 800 / g_pCurrentModel->video_params.iVideoFPS;
@@ -1764,8 +1803,7 @@ int main(int argc, char *argv[])
       uninit_processing_audio();
 
    controller_rt_info_close(g_pSMControllerRTInfo);
-   controller_debug_rt_info_close(g_pSMControllerDebugRTInfo);
-   vehicle_rt_info_close(g_pSMVehicleRTInfo);
+   controller_debug_video_rt_info_close(g_pSMControllerDebugVideoRTInfo);
    
    shared_mem_radio_stats_rx_hist_close(g_pSM_HistoryRxStats);
    shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_ROUTER_RX, g_pProcessStats);
@@ -2020,7 +2058,7 @@ void _main_loop_simple(bool bDoBasicTxSync)
       s_iCountCPULoopOverflows = 0;
    }
 
-   if ( controller_rt_info_check_advance_index(&g_SMControllerRTInfo, &g_SMControllerDebugRTInfo, g_TimeNow) )
+   if ( controller_rt_info_check_advance_index(&g_SMControllerRTInfo, g_TimeNow) )
    {
       radio_rx_set_packet_counter_output(&(g_SMControllerRTInfo.uRxHighPriorityPackets[g_SMControllerRTInfo.iCurrentIndex][0]),
           &(g_SMControllerRTInfo.uRxDataPackets[g_SMControllerRTInfo.iCurrentIndex][0]), &(g_SMControllerRTInfo.uRxMissingPackets[g_SMControllerRTInfo.iCurrentIndex][0]), &(g_SMControllerRTInfo.uRxMissingPacketsMaxGap[g_SMControllerRTInfo.iCurrentIndex][0]));
@@ -2157,7 +2195,7 @@ void _main_loop_adv_sync()
       s_iCountCPULoopOverflows = 0;
    }
 
-   if ( controller_rt_info_check_advance_index(&g_SMControllerRTInfo, &g_SMControllerDebugRTInfo, g_TimeNow) )
+   if ( controller_rt_info_check_advance_index(&g_SMControllerRTInfo, g_TimeNow) )
    {
       radio_rx_set_packet_counter_output(&(g_SMControllerRTInfo.uRxHighPriorityPackets[g_SMControllerRTInfo.iCurrentIndex][0]),
           &(g_SMControllerRTInfo.uRxDataPackets[g_SMControllerRTInfo.iCurrentIndex][0]), &(g_SMControllerRTInfo.uRxMissingPackets[g_SMControllerRTInfo.iCurrentIndex][0]), &(g_SMControllerRTInfo.uRxMissingPacketsMaxGap[g_SMControllerRTInfo.iCurrentIndex][0]));

@@ -49,8 +49,6 @@ MenuControllerExpert::MenuControllerExpert(void)
 {
    m_Width = 0.34;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.15;
-   
-   float fSliderWidth = 0.12;
 
    readConfigFile();
    addTopInfo();
@@ -65,6 +63,7 @@ MenuControllerExpert::MenuControllerExpert(void)
    m_iIndexPriorities = -1;
 
    #if defined(HW_PLATFORM_RASPBERRY)
+   float fSliderWidth = 0.12;
    m_pItemsSelect[2] = new MenuItemSelect(L("Enable CPU Overclocking"), L("Enables overclocking of the main CPU."));
    m_pItemsSelect[2]->addSelection(L("No"));
    m_pItemsSelect[2]->addSelection(L("Yes"));

@@ -285,7 +285,7 @@ void MenuRoot::RenderVehicleInfo()
 
       if ( (NULL != g_pCurrentModel) && link_is_vehicle_online_now(g_pCurrentModel->uVehicleId) )
       {
-         sprintf(szBuff, "Running ver %d.%d, on:", get_sw_version_major(g_pCurrentModel), get_sw_version_minor(g_pCurrentModel) / 10 );
+         sprintf(szBuff, "Running ver %d.%d on:", get_sw_version_major(g_pCurrentModel), get_sw_version_minor(g_pCurrentModel) );
          g_pRenderEngine->drawText(xPos, yPos, g_idFontMenuSmall, szBuff);
          yPos += g_pRenderEngine->textHeight(g_idFontMenuSmall);
          sprintf(szBuff, "%s", str_get_hardware_board_name(g_pCurrentModel->hwCapabilities.uBoardType));

@@ -388,13 +388,10 @@ void _radio_rx_add_packet_to_rx_queue(u8* pPacket, int iLength, int iRadioInterf
    int iIndexToWriteTo = -1;
    pthread_mutex_lock(&pQueue->mutexLock);
    iIndexToWriteTo = pQueue->iCurrentPacketIndexToWrite;
-   // No more room? Discard it
+   // No more room? Discard oldest packet
    if ( ((pQueue->iCurrentPacketIndexToWrite+1) % pQueue->iQueueSize) == pQueue->iCurrentPacketIndexToConsume )
-   {
-      //s_uRadioRxLastTimeQueue += get_current_timestamp_ms() - s_uRadioRxTimeNow;
-      pthread_mutex_unlock(&pQueue->mutexLock);
-      return;
-   }
+       pQueue->iCurrentPacketIndexToConsume = (pQueue->iCurrentPacketIndexToConsume+1) % pQueue->iQueueSize;
+
    pQueue->iCurrentPacketIndexToWrite = (pQueue->iCurrentPacketIndexToWrite + 1) % pQueue->iQueueSize;
    pthread_mutex_unlock(&pQueue->mutexLock);
 
@@ -431,6 +428,46 @@ void _radio_rx_check_add_packet_to_rx_queue(u8* pPacket, int iLength, int iRadio
    _radio_rx_add_packet_to_rx_queue(pPacket, iLength, iRadioInterfaceIndex);
 }
 
+void _radio_rx_update_frame_times(u8* pPacketBuffer, int iRxDatarate)
+{
+   if ( (NULL == pPacketBuffer) || (0 == iRxDatarate) )
+      return;
+
+   t_packet_header* pPH = (t_packet_header*)pPacketBuffer;
+   t_packet_header_video_segment* pPHVS = (t_packet_header_video_segment*) (pPacketBuffer+sizeof(t_packet_header));
+   u32 uBytesToEOF = pPH->total_length * 8 * ((pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_MASK_EOF_COUNTER) + ((pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_MASK_DATA_COUNTER)>>16)/2);
+   u32 uTimeMsToEOF = (uBytesToEOF * 1000) / getRealDataRateFromRadioDataRate(iRxDatarate, 0, 0);
+   u32 uTimeEnd = s_uRadioRxTimeNow + uTimeMsToEOF;
+
+   u32 uTimeStart = s_uRadioRxCurrentFrameStartTime;
+   if ( pPHVS->uH264FrameIndex > s_uRadioRxCurrentFrameNumber )
+   {
+      uTimeStart = s_uRadioRxTimeNow;
+      if ( pPHVS->uFramePacketsInfo & 0xFF )
+      {
+         u32 uDeltaBytesBefore = pPH->total_length * 8 * (pPHVS->uFramePacketsInfo & 0xFF);
+         u32 uDeltaTimeMs = (uDeltaBytesBefore * 1000) / getRealDataRateFromRadioDataRate(iRxDatarate, 0, 0);
+         uTimeStart -= uDeltaTimeMs;
+      }
+   }
+
+   pthread_mutex_lock(&s_MutexRadioRxFrameTimings);
+   s_uRadioRxCurrentFrameStartTime = uTimeStart;
+   s_uRadioRxCurrentFrameEndTime = uTimeEnd;
+   s_uRadioRxCurrentFrameNumber = pPHVS->uH264FrameIndex;
+   pthread_mutex_unlock(&s_MutexRadioRxFrameTimings);
+   
+   /*
+   log_line("DBG set frame EOF to %u ms from now, fr start to %u ms ago, for fr f%d pckt [%u/%d], blk schm %d/%d, fr packet %d of %d, EOF in %d, DR: %d",
+    s_uRadioRxCurrentFrameEndTime - s_uRadioRxTimeNow,
+    s_uRadioRxTimeNow - s_uRadioRxCurrentFrameStartTime,
+    pPHVS->uH264FrameIndex,
+    pPHVS->uCurrentBlockIndex, pPHVS->uCurrentBlockPacketIndex,
+    pPHVS->uCurrentBlockDataPackets, pPHVS->uCurrentBlockECPackets,
+    pPHVS->uFramePacketsInfo & 0xFF, pPHVS->uFramePacketsInfo >> 8, pPHVS->uVideoStatusFlags2 & 0xFF,
+    getRealDataRateFromRadioDataRate(iRxDatarate, 0, 0) );
+   */
+}
 
 int _radio_rx_process_serial_short_packet(int iInterfaceIndex, u8* pPacketBuffer, int iPacketLength)
 {
@@ -700,41 +737,9 @@ int _radio_rx_parse_received_wifi_radio_data(int iInterfaceIndex, int iMaxReads)
       pPH->uCRC = (u32)iRxDatarate;
 
       if ( (pPH->packet_type == PACKET_TYPE_VIDEO_DATA) )
-      if ( (iRxDatarate != 0) && (!(pPH->packet_flags & PACKET_FLAGS_BIT_RETRANSMITED)) )
       if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_VIDEO )
-      {
-         t_packet_header_video_segment* pPHVS = (t_packet_header_video_segment*) (pPacketBuffer+sizeof(t_packet_header));
-         u32 uTimeEnd = pPH->total_length * 8 * ((pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_MASK_EOF_COUNTER) + ((pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_MASK_DATA_COUNTER)>>16)/2);
-         uTimeEnd /= (getRealDataRateFromRadioDataRate(iRxDatarate, 0, 0)/1000);
-         uTimeEnd += s_uRadioRxTimeNow;
-
-         u32 uTimeStart = s_uRadioRxCurrentFrameStartTime;
-         if ( pPHVS->uH264FrameIndex > s_uRadioRxCurrentFrameNumber )
-         {
-            uTimeStart = s_uRadioRxTimeNow;
-            if ( 0 != (pPHVS->uFramePacketsInfo & 0xFF) )
-            {
-               u32 uDelta = pPH->total_length * 8 * (pPHVS->uFramePacketsInfo & 0xFF);
-               uDelta /= (getRealDataRateFromRadioDataRate(iRxDatarate, 0, 0)/1000);
-               uTimeStart -= uDelta;
-            }
-         }
-
-         pthread_mutex_lock(&s_MutexRadioRxFrameTimings);
-         s_uRadioRxCurrentFrameStartTime = uTimeStart;
-         s_uRadioRxCurrentFrameEndTime = uTimeEnd;
-         s_uRadioRxCurrentFrameNumber = pPHVS->uH264FrameIndex;
-         pthread_mutex_unlock(&s_MutexRadioRxFrameTimings);
-         /*
-         log_line("DBG set next EOF in %u ms for fr f%d pckt [%u/%d], schm %d/%d, fr-p %d/%d, EOF in %d, DR: %d",
-          s_uRadioRxCurrentFrameEndTime - s_uRadioRxTimeNow,
-          pPHVS->uH264FrameIndex,
-          pPHVS->uCurrentBlockIndex, pPHVS->uCurrentBlockPacketIndex,
-          pPHVS->uCurrentBlockDataPackets, pPHVS->uCurrentBlockECPackets,
-          pPHVS->uFramePacketsInfo & 0xFF, pPHVS->uFramePacketsInfo >> 8, pPHVS->uVideoStatusFlags2 & 0xFF,
-          getRealDataRateFromRadioDataRate(iRxDatarate, 0, 0) );
-         */
-      }
+      if ( !(pPH->packet_flags & PACKET_FLAGS_BIT_RETRANSMITED) )
+         _radio_rx_update_frame_times(pPacketBuffer, iRxDatarate);
 
       if ( uPacketType == PACKET_TYPE_VIDEO_DATA )
       {
@@ -974,14 +979,15 @@ void * _thread_radio_rx(void *argument)
 
       int iDbg1 = s_RadioRxState.queue_reg_priority.iCurrentPacketIndexToWrite - s_RadioRxState.queue_reg_priority.iCurrentPacketIndexToConsume;
       if ( s_RadioRxState.queue_reg_priority.iCurrentPacketIndexToWrite < s_RadioRxState.queue_reg_priority.iCurrentPacketIndexToConsume )
-         iDbg1 = s_RadioRxState.queue_reg_priority.iCurrentPacketIndexToWrite + (MAX_RX_PACKETS_QUEUE - s_RadioRxState.queue_reg_priority.iCurrentPacketIndexToConsume);
+         iDbg1 = s_RadioRxState.queue_reg_priority.iCurrentPacketIndexToWrite + (s_RadioRxState.queue_reg_priority.iQueueSize - s_RadioRxState.queue_reg_priority.iCurrentPacketIndexToConsume);
       
       int iDbg2 = s_RadioRxState.queue_high_priority.iCurrentPacketIndexToWrite - s_RadioRxState.queue_high_priority.iCurrentPacketIndexToConsume;
       if ( s_RadioRxState.queue_high_priority.iCurrentPacketIndexToWrite < s_RadioRxState.queue_high_priority.iCurrentPacketIndexToConsume )
-         iDbg2 = s_RadioRxState.queue_high_priority.iCurrentPacketIndexToWrite + (MAX_RX_PACKETS_QUEUE - s_RadioRxState.queue_high_priority.iCurrentPacketIndexToConsume);
+         iDbg2 = s_RadioRxState.queue_high_priority.iCurrentPacketIndexToWrite + (s_RadioRxState.queue_high_priority.iQueueSize - s_RadioRxState.queue_high_priority.iCurrentPacketIndexToConsume);
 
-      if ( (iDbg1 > 10) || (iDbg2 > 10) )
-         log_line("DBG radio rx has %d reg and %d high prio pending packets to consume", iDbg1, iDbg2);
+      //if ( (iDbg1 > 10) || (iDbg2 > 10) )
+      //   log_line("DBG radio rx has %d reg and %d high prio pending packets to consume", iDbg1, iDbg2);
+      
       // Loop is executed every 100 ms max. So check and update stats about every 250 ms max
       if ( 0 == (s_iRxThreadLoopCounter % 2) )
       {
@@ -1165,8 +1171,8 @@ void * _thread_radio_rx(void *argument)
 
 int _radio_rx_init_queues()
 {
-   s_RadioRxState.queue_reg_priority.iQueueSize = MAX_RX_PACKETS_QUEUE;
-   s_RadioRxState.queue_high_priority.iQueueSize = MAX_RX_PACKETS_QUEUE;
+   s_RadioRxState.queue_reg_priority.iQueueSize = MAX_RX_PACKETS_QUEUE_REG;
+   s_RadioRxState.queue_high_priority.iQueueSize = MAX_RX_PACKETS_QUEUE_HIP;
 
    for( int i=0; i<s_RadioRxState.queue_reg_priority.iQueueSize; i++ )
    {

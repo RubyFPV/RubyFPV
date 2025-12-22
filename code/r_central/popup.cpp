@@ -42,6 +42,7 @@
 #include "timers.h"
 
 float POPUP_LINE_SPACING = 0.5; // percentage of actual line height
+float POPUP_ALPHA_WHEN_MENU_ON = 0.8;
 
 Popup* sPopups[MAX_POPUPS];
 int countPopups = 0;
@@ -253,17 +254,19 @@ void popups_render()
    if ( render_engine_uses_raw_fonts() )
       POPUP_LINE_SPACING = 0.2;
 
-   if ( (! pairing_isStarted()) || (! link_has_received_videostream(0)) )
-      g_pRenderEngine->disableAlpha();
+   bool bAlphaEnabled = g_pRenderEngine->isAlphaBlendingEnabled();
+   float fAlfa = g_pRenderEngine->getGlobalAlfa();
 
-   float alfa = g_pRenderEngine->getGlobalAlfa();
-
-   //log_line("Render %d popups", countPopups);
+   g_pRenderEngine->disableAlphaBlending();
 
    if ( isMenuOn() )
-      g_pRenderEngine->setGlobalAlfa(0.47);
+   {
+      g_pRenderEngine->enableAlphaBlending();
+      g_pRenderEngine->setGlobalAlfa(POPUP_ALPHA_WHEN_MENU_ON);
+   }
 
    for( int i=0; i<countPopups; i++ )
+   {
       if ( NULL != sPopups[i] )
       {
          sPopups[i]->Render();
@@ -272,9 +275,9 @@ void popups_render()
             sPopups[i] = NULL;
          }
       }
-
-   g_pRenderEngine->setGlobalAlfa(alfa);
-   g_pRenderEngine->enableAlpha();
+   }
+   g_pRenderEngine->setGlobalAlfa(fAlfa);
+   g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
 
    // Remove expired ones (NULL)
    int index = 0;
@@ -294,23 +297,29 @@ void popups_render()
 
 void popups_render_topmost()
 {
-   float alfa = g_pRenderEngine->setGlobalAlfa(1.0);
+   bool bAlphaEnabled = g_pRenderEngine->isAlphaBlendingEnabled();
+   float fAlfa = g_pRenderEngine->setGlobalAlfa(1.0);
 
-   if ( (! pairing_isStarted()) || (! link_has_received_videostream(0)) )
-      g_pRenderEngine->disableAlpha();
+   g_pRenderEngine->disableAlphaBlending();
 
-   //log_line("Render %d topmost popups", countPopupsTopmost);
+   if ( isMenuOn() )
+   {
+      g_pRenderEngine->enableAlphaBlending();
+      g_pRenderEngine->setGlobalAlfa(POPUP_ALPHA_WHEN_MENU_ON);
+   }
 
    for( int i=0; i<countPopupsTopmost; i++ )
+   {
       if ( NULL != sPopupsTopmost[i] )
       {
          sPopupsTopmost[i]->Render();
          if ( sPopupsTopmost[i]->isExpired() )
             sPopupsTopmost[i] = NULL;
       }
+   }
 
-   g_pRenderEngine->setGlobalAlfa(alfa);
-   g_pRenderEngine->enableAlpha();
+   g_pRenderEngine->setGlobalAlfa(fAlfa);
+   g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
 
    // Remove expired ones (NULL)
    int index = 0;
@@ -331,23 +340,26 @@ void popups_render_topmost()
 
 void popups_render_bottom()
 {
-   float alfa = g_pRenderEngine->setGlobalAlfa(1.0);
+   bool bAlphaEnabled = g_pRenderEngine->isAlphaBlendingEnabled();
+   float fAlfa = g_pRenderEngine->getGlobalAlfa();
 
-   if ( (! pairing_isStarted()) || (! link_has_received_videostream(0)) )
-      g_pRenderEngine->disableAlpha();
+   g_pRenderEngine->disableAlphaBlending();
 
-   //log_line("Render %d topmost popups", countPopupsTopmost);
+   if ( isMenuOn() )
+      g_pRenderEngine->setGlobalAlfa(POPUP_ALPHA_WHEN_MENU_ON);
 
    for( int i=0; i<countPopupsBottom; i++ )
+   {
       if ( NULL != sPopupsBottom[i] )
       {
          sPopupsBottom[i]->Render();
          if ( sPopupsBottom[i]->isExpired() )
             sPopupsBottom[i] = NULL;
       }
+   }
 
-   g_pRenderEngine->setGlobalAlfa(alfa);
-   g_pRenderEngine->enableAlpha();
+   g_pRenderEngine->setGlobalAlfa(fAlfa);
+   g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
 
    // Remove expired ones (NULL)
    int index = 0;
@@ -1040,9 +1052,6 @@ void Popup::Render()
       g_pRenderEngine->drawRoundRect(m_RenderXPos, m_RenderYPos + m_RenderHeight - fBarHeight, fBarPercentage * (m_RenderWidth + fDeltaWidthIcons), fBarHeight, POPUP_ROUND_MARGIN);
    }
 
-   bool bAlpha = g_pRenderEngine->isAlphaEnabled();
-   g_pRenderEngine->disableAlpha();
-
    float xTextStart = m_RenderXPos+m_fPaddingX;
    float yTextStart = m_RenderYPos+m_fPaddingY;
    
@@ -1118,7 +1127,6 @@ void Popup::Render()
       }
       yTextStart += fHeightText;
    }
-   g_pRenderEngine->setAlphaEnabled(bAlpha);
    g_pRenderEngine->setGlobalAlfa(alfaOrg);
 }
 

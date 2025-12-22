@@ -57,8 +57,6 @@
 #define DEFAULT_RADIO_LINK_LOAD_PERCENT_HQ 50
 #define DEFAULT_RADIO_LINK_LOAD_PERCENT_HP 30
 
-
-#define DEFAULT_OSD_RADIO_GRAPH_REFRESH_PERIOD_MS 100
 #ifdef __cplusplus
 extern "C" {
 #endif 
@@ -86,15 +84,16 @@ int getSupportedChannels(u32 supportedBands, int includeSeparator, u32* pOutChan
 int* getSiKAirDataRates();
 int  getSiKAirDataRatesCount();
 
-int* getDataRatesBPS();
-int getDataRatesCount();
+int* getLegacyDataRatesBPS();
+int getLegacyDataRatesCount();
 
 int getTestDataRatesCountLegacy();
 int getTestDataRatesCountMCS();
 int* getTestDataRatesLegacy();
 int* getTestDataRatesMCS();
 
-int getLowerLevelDataRate(int iDatarateBSP);
+int getDataRateShiftedByLevels(int iDatarateBSP, int iLevelsToShift);
+
 u32 getRealDataRateFromMCSRate(int mcsIndex, int iHT40);
 u32 getRealDataRateFromRadioDataRate(int dataRateBPS, u32 uRadioFlags, int iIsDownlink);
 

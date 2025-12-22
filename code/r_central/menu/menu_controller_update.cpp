@@ -474,6 +474,9 @@ void MenuControllerUpdate::updateControllerSoftware(const char* szUpdateFile)
       MenuConfirmation* pMC = new MenuConfirmation(L("Update Failed"), L("Update timedout and failed."), 5, true);
       pMC->m_yPos = 0.3;
       add_menu_to_stack(pMC);
+      ruby_processing_loop(true);
+      render_all(g_TimeNow);
+      ruby_signal_alive();
       log_line("Exit from main update procedure (1).");
       return;
    }
@@ -508,12 +511,15 @@ void MenuControllerUpdate::updateControllerSoftware(const char* szUpdateFile)
 
       pMC->m_yPos = 0.3;
       add_menu_to_stack(pMC);
+      ruby_processing_loop(true);
+      render_all(g_TimeNow);
+      ruby_signal_alive();
       log_line("Exit from main update procedure (2).");
       return;
    }
 
    m_bWaitingForUserFinishUpdateConfirmation = true;
-
+   g_bDidAnUpdate = true;
    MenuConfirmation* pMC = new MenuConfirmation(L("Update Complete"), L("Update complete. You can now remove the USB stick. The system will reboot now."), 3, true);
    pMC->m_yPos = 0.3;
    pMC->addTopLine(L("(If it does not reboot, you can power it off and on)"));
@@ -533,5 +539,8 @@ void MenuControllerUpdate::updateControllerSoftware(const char* szUpdateFile)
    }
 
    add_menu_to_stack(pMC);
+   ruby_processing_loop(true);
+   render_all(g_TimeNow);
+   ruby_signal_alive();
    log_line("Exit from main update procedure (normal exit).");
 }

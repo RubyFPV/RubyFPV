@@ -604,7 +604,7 @@ bool Model::loadVersion10(FILE* fd)
       if ( ! bOk )
         { log_softerror_and_alarm("10-31"); bOk = false; }
  
-      if ( bOk && (6 != fscanf(fd, "%u %u %u %d %u %d", &(video_link_profiles[i].uProfileFlags), &(video_link_profiles[i].uProfileEncodingFlags), &(video_link_profiles[i].bitrate_fixed_bps), &(video_link_profiles[i].iAdaptiveAdjustmentStrength), &(video_link_profiles[i].uAdaptiveWeights), &(video_link_profiles[i].iDefaultFPS))) )
+      if ( bOk && (6 != fscanf(fd, "%u %u %u %d %u %d", &(video_link_profiles[i].uProfileFlags), &(video_link_profiles[i].uProfileEncodingFlags), &(video_link_profiles[i].uTargetVideoBitrateBPS), &(video_link_profiles[i].iAdaptiveAdjustmentStrength), &(video_link_profiles[i].uAdaptiveWeights), &(video_link_profiles[i].iDefaultFPS))) )
          { log_softerror_and_alarm("10-32"); bOk = false; }
 
       if ( bOk && (2 != fscanf(fd, "%d %d", &u2, &u3)) )
@@ -1307,7 +1307,7 @@ bool Model::loadVersion11(FILE* fd)
 
    for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
    {
-      if ( 7 != fscanf(fd, "%u %u %u %d %u %d %d", &(video_link_profiles[i].uProfileFlags), &(video_link_profiles[i].uProfileEncodingFlags), &(video_link_profiles[i].bitrate_fixed_bps), &(video_link_profiles[i].iAdaptiveAdjustmentStrength), &(video_link_profiles[i].uAdaptiveWeights), &(video_link_profiles[i].iDefaultFPS), &(video_link_profiles[i].iECPercentage)) )
+      if ( 7 != fscanf(fd, "%u %u %u %d %u %d %d", &(video_link_profiles[i].uProfileFlags), &(video_link_profiles[i].uProfileEncodingFlags), &(video_link_profiles[i].uTargetVideoBitrateBPS), &(video_link_profiles[i].iAdaptiveAdjustmentStrength), &(video_link_profiles[i].uAdaptiveWeights), &(video_link_profiles[i].iDefaultFPS), &(video_link_profiles[i].iECPercentage)) )
          { bOk = false; log_softerror_and_alarm("11-29 %d", i); return false; }
 
       if ( is_sw_version_atleast(this, 11, 6) )
@@ -1895,7 +1895,7 @@ bool Model::saveVersion11(FILE* fd, bool isOnController)
    strcat(szModel, szSetting);
    for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
    {
-      sprintf(szSetting, "%u %u %u %d %u %d %d ", video_link_profiles[i].uProfileFlags, video_link_profiles[i].uProfileEncodingFlags, video_link_profiles[i].bitrate_fixed_bps, video_link_profiles[i].iAdaptiveAdjustmentStrength, video_link_profiles[i].uAdaptiveWeights, video_link_profiles[i].iDefaultFPS, video_link_profiles[i].iECPercentage);
+      sprintf(szSetting, "%u %u %u %d %u %d %d ", video_link_profiles[i].uProfileFlags, video_link_profiles[i].uProfileEncodingFlags, video_link_profiles[i].uTargetVideoBitrateBPS, video_link_profiles[i].iAdaptiveAdjustmentStrength, video_link_profiles[i].uAdaptiveWeights, video_link_profiles[i].iDefaultFPS, video_link_profiles[i].iECPercentage);
       strcat(szModel, szSetting);
       if ( is_sw_version_atleast(this, 11, 6) )
       {
@@ -2193,7 +2193,14 @@ void Model::resetVideoLinkProfiles()
 {
    for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
       resetVideoLinkProfile(i);
-   setDefaultVideoBitrate();
+   setVideoProfilesDefaultVideoBitrates();
+}
+
+void Model::resetVideoLinkProfilesBuiltIn()
+{
+   resetVideoLinkProfile(VIDEO_PROFILE_HIGH_QUALITY);
+   resetVideoLinkProfile(VIDEO_PROFILE_HIGH_PERF);
+   resetVideoLinkProfile(VIDEO_PROFILE_LONG_RANGE);
 }
 
 void Model::resetVideoLinkProfile(int iProfile)
@@ -2205,6 +2212,8 @@ void Model::resetVideoLinkProfile(int iProfile)
    video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_USE_LOWER_DR_FOR_EC_PACKETS;
    video_link_profiles[iProfile].uProfileFlags &= ~VIDEO_PROFILE_FLAG_MASK_RETRANSMISSIONS_GUARD_MASK;
    video_link_profiles[iProfile].uProfileFlags |= (VIDEO_PROFILE_FLAG_MASK_RETRANSMISSIONS_GUARD_MASK & (((u32)DEFAULT_VIDEO_END_FRAME_DETECTION_BUFFER_MS)<<8));
+   video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_USE_HIGHER_DATARATE;
+   video_link_profiles[iProfile].uProfileFlags |= (((u32)0x01) << VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK_SHIFT);
 
    video_link_profiles[iProfile].uProfileEncodingFlags = VIDEO_PROFILE_ENCODING_FLAG_ENABLE_RETRANSMISSIONS | VIDEO_PROFILE_ENCODING_FLAG_RETRANSMISSIONS_DUPLICATION_PERCENT_AUTO;
    video_link_profiles[iProfile].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_LINK | VIDEO_PROFILE_ENCODING_FLAG_USE_MEDIUM_ADAPTIVE_VIDEO;
@@ -2215,7 +2224,7 @@ void Model::resetVideoLinkProfile(int iProfile)
    video_link_profiles[iProfile].h264level = 2; // 4.2
    video_link_profiles[iProfile].h264refresh = 2; // both
    video_link_profiles[iProfile].h264quantization = DEFAULT_VIDEO_H264_QUANTIZATION;
-   video_link_profiles[iProfile].iIPQuantizationDelta = -2;
+   video_link_profiles[iProfile].iIPQuantizationDelta = DEFAULT_VIDEO_H264_IPQUANTIZATION_DELTA;
 
    video_link_profiles[iProfile].iDefaultFPS = 0;
    video_link_profiles[iProfile].iDefaultLinkLoad = 0;
@@ -2232,18 +2241,18 @@ void Model::resetVideoLinkProfile(int iProfile)
 
    resetAdaptiveVideoParams(iProfile);
 
-   video_link_profiles[iProfile].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE;
+   video_link_profiles[iProfile].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE;
    if ( ((hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_PIZERO) ||
         ((hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_PIZEROW) ||
         hardware_board_is_goke(hardware_getBoardType()) )
-      video_link_profiles[iProfile].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_PI_ZERO;
+      video_link_profiles[iProfile].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_PI_ZERO;
    if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
-      video_link_profiles[iProfile].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
+      video_link_profiles[iProfile].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
 
    if ( iProfile == VIDEO_PROFILE_HIGH_QUALITY )
    {
       video_link_profiles[iProfile].uProfileFlags &= ~VIDEO_PROFILE_FLAGS_MASK_NOISE;
-      video_link_profiles[iProfile].uProfileFlags |= 2; // 3d noise
+      video_link_profiles[iProfile].uProfileFlags |= 1; // 3d noise
       video_link_profiles[iProfile].uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK;
       video_link_profiles[iProfile].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HQ<<8);
       video_link_profiles[iProfile].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_HQ;
@@ -2252,15 +2261,13 @@ void Model::resetVideoLinkProfile(int iProfile)
       video_link_profiles[iProfile].iIPQuantizationDelta = DEFAULT_VIDEO_H264_IPQUANTIZATION_DELTA_HQ;
       video_link_profiles[iProfile].iDefaultFPS = DEFAULT_VIDEO_FPS_PROFILE_HQ;
       video_link_profiles[iProfile].iDefaultLinkLoad = DEFAULT_RADIO_LINK_LOAD_PERCENT_HQ;
-
-      video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_USE_HIGHER_DATARATE;
-      video_link_profiles[iProfile].uProfileFlags |= (((u32)0x01) << VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK_SHIFT);
    }
 
    if ( iProfile == VIDEO_PROFILE_HIGH_PERF )
    {
       video_link_profiles[iProfile].uProfileFlags &= ~VIDEO_PROFILE_FLAGS_MASK_NOISE;
-      video_link_profiles[iProfile].uProfileFlags |= 1; // 3d noise
+      //video_link_profiles[iProfile].uProfileFlags |= 0; // 3d noise
+      video_link_profiles[iProfile].uProfileFlags &= ~VIDEO_PROFILE_FLAG_USE_LOWER_DR_FOR_EC_PACKETS;
       video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_USE_HIGHER_DATARATE;
       video_link_profiles[iProfile].uProfileFlags |= (((u32)0x02) << VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK_SHIFT);
       video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_LOWER_QP_DELTA_ON_LOW_LINK | VIDEO_PROFILE_FLAG_LOWER_QP_DELTA_ON_LOW_LINK_HIGH;
@@ -2274,11 +2281,11 @@ void Model::resetVideoLinkProfile(int iProfile)
    {
       video_link_profiles[iProfile].uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK;
       video_link_profiles[iProfile].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
-      video_link_profiles[iProfile].bitrate_fixed_bps = DEFAULT_HP_VIDEO_BITRATE;
+      video_link_profiles[iProfile].uTargetVideoBitrateBPS = DEFAULT_HP_VIDEO_BITRATE;
       if ( ((hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_PIZERO) ||
            ((hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_PIZEROW) ||
            hardware_board_is_goke(hardware_getBoardType()) )
-         video_link_profiles[iProfile].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_PI_ZERO;
+         video_link_profiles[iProfile].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_PI_ZERO;
 
       video_link_profiles[iProfile].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_HP;
       video_link_profiles[iProfile].iBlockECs = DEFAULT_VIDEO_BLOCK_ECS_HP;
@@ -2288,15 +2295,18 @@ void Model::resetVideoLinkProfile(int iProfile)
    if ( iProfile == VIDEO_PROFILE_LONG_RANGE )
    {
       video_link_profiles[iProfile].uProfileFlags &= ~VIDEO_PROFILE_FLAGS_MASK_NOISE;
-      video_link_profiles[iProfile].uProfileFlags |= 1; // 3d noise
+      //video_link_profiles[iProfile].uProfileFlags |= 0; // 3d noise
       video_link_profiles[iProfile].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_LR;
       video_link_profiles[iProfile].iBlockECs = DEFAULT_VIDEO_BLOCK_ECS_LR;
       video_link_profiles[iProfile].iECPercentage = DEFAULT_VIDEO_EC_RATE_LR;
       video_link_profiles[iProfile].iDefaultFPS = DEFAULT_VIDEO_FPS_PROFILE_LR;
+      video_link_profiles[iProfile].iIPQuantizationDelta = DEFAULT_VIDEO_H264_IPQUANTIZATION_DELTA_LR;
       video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_USE_LOWER_DR_FOR_EC_PACKETS | VIDEO_PROFILE_FLAG_USE_LOWER_DR_FOR_RETR_PACKETS;
       video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_LOWER_QP_DELTA_ON_LOW_LINK;
-
       video_link_profiles[iProfile].uProfileFlags |= VIDEO_PROFILE_FLAG_RETRANSMISSIONS_AGGRESIVE;
+
+      video_link_profiles[iProfile].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_LINK;
+      video_link_profiles[iProfile].uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_USE_MEDIUM_ADAPTIVE_VIDEO;
 
       video_link_profiles[iProfile].iKeyframeMS = DEFAULT_VIDEO_KEYFRAME_AUTO_LR;
    }
@@ -2336,13 +2346,14 @@ void Model::resetVideoLinkProfile(int iProfile)
    if ( ((board_type & BOARD_TYPE_MASK) == BOARD_TYPE_OPENIPC_GOKE200) || ((board_type & BOARD_TYPE_MASK) == BOARD_TYPE_OPENIPC_GOKE210) ||
         ((board_type & BOARD_TYPE_MASK) == BOARD_TYPE_PIZERO) || ((board_type & BOARD_TYPE_MASK) == BOARD_TYPE_PIZEROW) || ((board_type & BOARD_TYPE_MASK) == BOARD_TYPE_NONE) )
    {    
-      if ( video_link_profiles[iProfile].bitrate_fixed_bps > 4500000 )
-         video_link_profiles[iProfile].bitrate_fixed_bps -= 1000000;
-      else if ( video_link_profiles[iProfile].bitrate_fixed_bps > 3000000 )
-         video_link_profiles[iProfile].bitrate_fixed_bps -= 500000;
-      log_line("Model: Lowered video bitrate for video profile %d (single core CPU) to %u", iProfile, video_link_profiles[iProfile].bitrate_fixed_bps);
+      if ( video_link_profiles[iProfile].uTargetVideoBitrateBPS > 4500000 )
+         video_link_profiles[iProfile].uTargetVideoBitrateBPS -= 1000000;
+      else if ( video_link_profiles[iProfile].uTargetVideoBitrateBPS > 3000000 )
+         video_link_profiles[iProfile].uTargetVideoBitrateBPS -= 500000;
+      log_line("Model: Lowered video bitrate for video profile %d (single core CPU) to %u", iProfile, video_link_profiles[iProfile].uTargetVideoBitrateBPS);
    }
 
+   convertECPercentageToData(&video_link_profiles[iProfile]);
    log_line("Models: Did reset video profile %s to defaults.", str_get_video_profile_name(iProfile));
 }
 
@@ -2389,6 +2400,12 @@ void Model::generateUID()
    clock_gettime(RUBY_HW_CLOCK_ID, &t);
    uVehicleId += t.tv_nsec;
 
+   char szOutput[4096];
+   memset(szOutput, 0, 4096);
+   hw_execute_bash_command("lsusb", szOutput);
+   for( int i=1; i<4096; i++ )
+      uVehicleId += szOutput[i]*i;
+
    log_line("Generated new unique vehicle ID: %u", uVehicleId);
 }
 
@@ -2399,7 +2416,7 @@ void Model::populateHWInfo()
    hardwareInterfacesInfo.i2c_device_count = 0;
    hardwareInterfacesInfo.serial_port_count = 0;
 
-   hardware_i2c_enumerate_busses();
+   hardware_i2c_enumerate_busses(0);
 
    hardwareInterfacesInfo.i2c_bus_count = hardware_i2c_get_busses_count();
 
@@ -2482,7 +2499,7 @@ void Model::resetRadioLinkDataRatesAndFlags(int iRadioLink)
    radioLinksParams.uMaxLinkLoadPercent[iRadioLink] = DEFAULT_RADIO_LINK_LOAD_PERCENT;
    radioLinksParams.uSerialPacketSize[iRadioLink] = DEFAULT_RADIO_SERIAL_AIR_PACKET_SIZE;
    radioLinksParams.uDummyR1[iRadioLink] = 0;
-   log_line("Models: Did reste radio link %d to default rates and flags.", iRadioLink+1);
+   log_line("Models: Did reset radio link %d to default rates and flags, current freq: %d kHz", iRadioLink+1, radioLinksParams.link_frequency_khz[iRadioLink]);
 }
 
 
@@ -2977,7 +2994,6 @@ void Model::logVehicleRadioInfo()
    log_line("Vehicle's global radio flags & info:");
 
    log_line(" * Runtime capabilities: Computed? %s", (radioRuntimeCapabilities.uFlagsRuntimeCapab & MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED)?"yes":"no");
-   log_line(" * Runtime capabilities: Dirty? %s", (radioRuntimeCapabilities.uFlagsRuntimeCapab & MODEL_RUNTIME_RADIO_CAPAB_FLAG_DIRTY)?"yes":"no");
    log_line(" * Radio links global flags: Has negociated links? %s", (radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS)?"yes":"no");
    log_line(" * Max supported legacy/MCS rates: %d/%s", radioRuntimeCapabilities.iMaxSupportedLegacyDataRate, str_format_datarate_inline(radioRuntimeCapabilities.iMaxSupportedMCSDataRate));
    log_line(" * Supported MCS flags: %s", str_get_radio_frame_flags_description2(radioRuntimeCapabilities.uSupportedMCSFlags));
@@ -3263,21 +3279,24 @@ bool Model::validate_fps_and_exposure_settings(camera_profile_parameters_t* pCam
 }
 
 // Returns true if a change is made
-bool Model::validate_profiles_max_video_bitrate()
+bool Model::validateVideoProfilesMaxVideoBitrate()
 {
+   if ( ! (radioRuntimeCapabilities.uFlagsRuntimeCapab & MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED) )
+      return false;
+
    bool bUpdated = false;
    int iCurrentProfile = video_params.iCurrentVideoProfile;
    for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
    {
       video_params.iCurrentVideoProfile = i;
       u32 uMaxVideoBitrate = getMaxVideoBitrateSupportedForRadioLinks(&radioLinksParams, &video_params, &(video_link_profiles[0]));
-      if ( video_link_profiles[i].bitrate_fixed_bps > uMaxVideoBitrate )
+      if ( video_link_profiles[i].uTargetVideoBitrateBPS > uMaxVideoBitrate )
       {
          log_line("Model: Will decrease video bitrate (%u kbps) for video profile %s to max allowed on current links: %u kbps",
-            video_link_profiles[i].bitrate_fixed_bps/1000,
+            video_link_profiles[i].uTargetVideoBitrateBPS/1000,
             str_get_video_profile_name(i),
             uMaxVideoBitrate/1000);
-         video_link_profiles[i].bitrate_fixed_bps = uMaxVideoBitrate;
+         video_link_profiles[i].uTargetVideoBitrateBPS = uMaxVideoBitrate;
          bUpdated = true;
       }
    }
@@ -3503,7 +3522,7 @@ bool Model::validate_settings()
    if ( (rc_params.rc_failsafe_timeout_ms < 50) || (rc_params.rc_failsafe_timeout_ms > 5000) )
       rc_params.rc_failsafe_timeout_ms = DEFAULT_RC_FAILSAFE_TIME;
 
-   validate_profiles_max_video_bitrate();
+   validateVideoProfilesMaxVideoBitrate();
 
    log_line("Model: Validated model settings.");
    return true;
@@ -3578,15 +3597,17 @@ bool Model::validateRadioSettings()
       {
          if ( radioInterfacesParams.interface_link_id[k] == i )
          {
-            uNewRadioFlags = radioInterfacesParams.interface_current_radio_flags[k];
+            u32 uOldInterfaceFlags = radioInterfacesParams.interface_current_radio_flags[k];
             radioInterfacesParams.interface_current_radio_flags[k] &= ~(RADIO_FLAGS_USE_LEGACY_DATARATES | RADIO_FLAGS_USE_MCS_DATARATES);
             radioInterfacesParams.interface_current_radio_flags[k] |= (radioLinksParams.link_radio_flags[i] & (RADIO_FLAGS_USE_LEGACY_DATARATES | RADIO_FLAGS_USE_MCS_DATARATES));
-            if ( uNewRadioFlags != radioInterfacesParams.interface_current_radio_flags[k] )
+            if ( ! (radioInterfacesParams.interface_current_radio_flags[k] & RADIO_FLAGS_FRAME_TYPE_DATA) )
+               radioInterfacesParams.interface_current_radio_flags[k] |= RADIO_FLAGS_FRAME_TYPE_DATA;
+            if ( uOldInterfaceFlags != radioInterfacesParams.interface_current_radio_flags[k] )
             {
                char szOldFlags[128];
                char szNewFlags[128];
-               str_get_radio_frame_flags_description(radioInterfacesParams.interface_current_radio_flags[k], szOldFlags);
-               str_get_radio_frame_flags_description(uNewRadioFlags, szNewFlags);
+               str_get_radio_frame_flags_description(uOldInterfaceFlags, szOldFlags);
+               str_get_radio_frame_flags_description(radioInterfacesParams.interface_current_radio_flags[k], szNewFlags);
                log_line("Model VID %u: Validate radio settings: Updated radio interface %d radio flags to match radio link %d radio flags. (old flags: %s, new flags: %s)",
                  uVehicleId, k+1, i+1, szOldFlags, szNewFlags);
                bAnyUpdate = true;
@@ -3733,12 +3754,11 @@ bool Model::validateRadioSettings()
    }
 
    if ( bAnyUpdate )
-   {
       log_line("Model VID %u: Finished validating radio settings and did updates:", uVehicleId);
-      logVehicleRadioInfo();
-   }
    else
-      log_line("Model VID %u: Finished validating radio settings. No updates done, all radio params are consistent.", uVehicleId);
+      log_line("Model VID %u: Finished validating radio settings. No updates done, all radio params are consistent:");
+   logVehicleRadioInfo();
+
    return bAnyUpdate;
 }
 
@@ -4084,8 +4104,8 @@ void Model::resetRadioCapabilitiesRuntime(type_radio_runtime_capabilities_parame
       return;
 
    pRTInfo->uFlagsRuntimeCapab = 0;
-   pRTInfo->iMaxSupportedMCSDataRate = 0;
-   pRTInfo->iMaxSupportedLegacyDataRate = 0;
+   pRTInfo->iMaxSupportedMCSDataRate = -3;
+   pRTInfo->iMaxSupportedLegacyDataRate = 18000000;
    pRTInfo->uSupportedMCSFlags = RADIO_FLAGS_FRAME_TYPE_DATA;
    for( int iLink=0; iLink<MODEL_MAX_STORED_QUALITIES_LINKS; iLink++ )
    for( int i=0; i<MODEL_MAX_STORED_QUALITIES_VALUES; i++ )
@@ -4143,6 +4163,8 @@ void Model::resetOSDFlags(int iScreen)
          continue;
 
       osd_params.osd_layout_preset[i] = OSD_PRESET_DEFAULT;
+      if ( 0 == i )
+         osd_params.osd_layout_preset[i] = OSD_PRESET_COMPACT;
       osd_params.osd_flags[i] = 0;
       osd_params.osd_flags2[i] = 0;
       osd_params.osd_flags3[i] = 0;
@@ -4172,7 +4194,7 @@ void Model::resetOSDStatsFlags(int iScreen)
       if ( (iScreen != -1) && (iScreen != i) )
          continue;
 
-      osd_params.osd_flags2[i] |= OSD_FLAG2_SHOW_STATS_VIDEO | OSD_FLAG2_SHOW_MINIMAL_VIDEO_DECODE_STATS;// | OSD_FLAG2_SHOW_MINIMAL_RADIO_INTERFACES_STATS;
+      osd_params.osd_flags2[i] |= OSD_FLAG2_SHOW_VIDEO_FRAMES_STATS | OSD_FLAG2_SHOW_MINIMAL_VIDEO_DECODE_STATS;// | OSD_FLAG2_SHOW_MINIMAL_RADIO_INTERFACES_STATS;
       osd_params.osd_preferences[i] |= OSD_PREFERENCES_BIT_FLAG_ARANGE_STATS_WINDOWS_RIGHT;
    }
 }
@@ -4230,6 +4252,7 @@ void Model::resetOSDScreenToLayout(int iScreen, int iLayout)
       osd_params.osd_flags2[iScreen] |= OSD_FLAG2_SHOW_RADIO_LINK_QUALITY_NUMBERS | OSD_FLAG2_SHOW_RADIO_LINK_QUALITY_BARS;
       osd_params.osd_flags2[iScreen] |= OSD_FLAG2_SHOW_GROUND_SPEED;
       osd_params.osd_flags2[iScreen] |= OSD_FLAG2_SHOW_RC_RSSI;
+      osd_params.osd_flags2[iScreen] |= OSD_FLAG2_SHOW_VIDEO_FRAMES_STATS;
 
       osd_params.osd_flags2[iScreen] |= OSD_FLAG2_SHOW_STATS_RADIO_INTERFACES | OSD_FLAG2_SHOW_MINIMAL_RADIO_INTERFACES_STATS | OSD_FLAG2_SHOW_VEHICLE_RADIO_INTERFACES_STATS;
 
@@ -4241,7 +4264,7 @@ void Model::resetOSDScreenToLayout(int iScreen, int iLayout)
       if ( iScreen < 3 )
       {
          osd_params.osd_flags[iScreen] |= OSD_FLAG_SHOW_CPU_INFO;
-         osd_params.osd_flags2[iScreen] |= OSD_FLAG2_SHOW_STATS_VIDEO | OSD_FLAG2_SHOW_MINIMAL_VIDEO_DECODE_STATS;// | OSD_FLAG2_SHOW_MINIMAL_RADIO_INTERFACES_STATS;
+         osd_params.osd_flags2[iScreen] |= OSD_FLAG2_SHOW_MINIMAL_VIDEO_DECODE_STATS;// | OSD_FLAG2_SHOW_MINIMAL_RADIO_INTERFACES_STATS;
       }
    }
    checkUpdateOSDRadioLinksFlags(&osd_params);
@@ -5262,7 +5285,7 @@ int Model::isVideoSettingsMatchingBuiltinVideoProfile(video_parameters_t* pVideo
    {
       type_video_link_profile tempProfile;
       memcpy(&tempProfile, pVideoProfile, sizeof(type_video_link_profile));
-      tempProfile.bitrate_fixed_bps = video_link_profiles[i].bitrate_fixed_bps;
+      tempProfile.uTargetVideoBitrateBPS = video_link_profiles[i].uTargetVideoBitrateBPS;
       tempProfile.iAdaptiveAdjustmentStrength = video_link_profiles[i].iAdaptiveAdjustmentStrength;
       tempProfile.uAdaptiveWeights = video_link_profiles[i].uAdaptiveWeights;
 
@@ -5423,10 +5446,10 @@ void Model::logVideoSettingsDifferences(video_parameters_t* pNewVideoParams, typ
       iCountDifferencesProfile++;
       log_line("Diff Prof: Keyframe ms: %d -> %d", pCurrentProfile->iKeyframeMS, pNewVideoProfile->iKeyframeMS);
    }
-   if ( pCurrentProfile->bitrate_fixed_bps != pNewVideoProfile->bitrate_fixed_bps )
+   if ( pCurrentProfile->uTargetVideoBitrateBPS != pNewVideoProfile->uTargetVideoBitrateBPS )
    {
       iCountDifferencesProfile++;
-      log_line("Diff Prof: Fixed bitrate: %u -> %u", pCurrentProfile->bitrate_fixed_bps, pNewVideoProfile->bitrate_fixed_bps);
+      log_line("Diff Prof: Fixed bitrate: %u -> %u", pCurrentProfile->uTargetVideoBitrateBPS, pNewVideoProfile->uTargetVideoBitrateBPS);
    }
 
    if ( (0 == iCountDifferencesVideo) && (0 == iCountDifferencesProfile) )
@@ -5492,8 +5515,8 @@ u32 Model::getMaxVideoBitrateSupportedForRadioLinks(type_radio_links_parameters*
             if ( pVideoProfile->uProfileFlags & VIDEO_PROFILE_FLAG_USE_HIGHER_DATARATE )
                iDRBoost = (pVideoProfile->uProfileFlags & VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK) >> VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK_SHIFT;
 
-            for( int k=0; k<iDRBoost; k++ )
-               iMaxMCSRate = getLowerLevelDataRate(iMaxMCSRate);
+            if ( iDRBoost > 0 )
+               iMaxMCSRate = getDataRateShiftedByLevels(iMaxMCSRate, -iDRBoost);
             uMaxVideoBitrateForLink = getRealDataRateFromRadioDataRate(iMaxMCSRate, pRadioLinksParams->link_radio_flags[iLink], 1);
             uMaxVideoBitrateForLink = getUsableVideoBitrateFromTotalBitrate(uMaxVideoBitrateForLink, uMaxLinkLoadPercentage);
          }
@@ -5523,8 +5546,8 @@ u32 Model::getMaxVideoBitrateSupportedForRadioLinks(type_radio_links_parameters*
             if ( pVideoProfile->uProfileFlags & VIDEO_PROFILE_FLAG_USE_HIGHER_DATARATE )
                iDRBoost = (pVideoProfile->uProfileFlags & VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK) >> VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK_SHIFT;
 
-            for( int k=0; k<iDRBoost; k++ )
-               iMaxDataRate = getLowerLevelDataRate(iMaxDataRate);
+            if ( iDRBoost > 0 )
+               iMaxDataRate = getDataRateShiftedByLevels(iMaxDataRate, -iDRBoost);
             uMaxVideoBitrateForLink = getRealDataRateFromRadioDataRate(iMaxDataRate, pRadioLinksParams->link_radio_flags[iLink], 1);
             uMaxVideoBitrateForLink = getUsableVideoBitrateFromTotalBitrate(uMaxVideoBitrateForLink, uMaxLinkLoadPercentage);
          }
@@ -5561,19 +5584,27 @@ u32 Model::getMaxVideoBitrateForRadioDatarate(int iRadioDatarateBPS, int iRadioL
 
 u32 Model::getUsableVideoBitrateFromTotalBitrate(u32 uTotalBitrate, u32 uLoadPercent)
 {
+   // Total bitrate = (video bitrate) 
+   //               * (1000 + radio headers) / 1000
+   //               * (100 + ec percentage) / 100
+   //               * 100 / max load
+
    // usable-bandwidth = total-bandwidth * percentage% / 100;
    u32 uMaxRawVideoBitrate = (uTotalBitrate / 100 ) * uLoadPercent;
 
    // video-total = video * (100 + ec%) / 100    ->  video = video-total * 100 / (100 + ec%)
    uMaxRawVideoBitrate = (uMaxRawVideoBitrate / (100 + video_link_profiles[video_params.iCurrentVideoProfile].iECPercentage)) * 100;
 
-   uMaxRawVideoBitrate = (uMaxRawVideoBitrate / 105) * 100; // room for radio headers
+   // Radio headers
+   int iSizePacket = 1000;
+   uMaxRawVideoBitrate = (uMaxRawVideoBitrate / (iSizePacket + (sizeof(t_packet_header) + sizeof(t_packet_header_video_segment)+18))) * iSizePacket;
 
-   return uMaxRawVideoBitrate;
+   // Return few bytes less, to avoid rounding errors datarate over shoot when computing the inverse formula
+   return uMaxRawVideoBitrate - 100;
 }
 
 
-int Model::getRadioDataRateForVideoBitrate(u32 uVideoBitrateBPS, int iRadioLinkIndex)
+int Model::getRadioDataRateForVideoBitrate(u32 uVideoBitrateBPS, int iRadioLinkIndex, bool bLog)
 {
    static u32 s_uLastTotalBitrateChecked = 0;
    static u32 s_uLastVideoBitrateChecked = 0;
@@ -5582,16 +5613,19 @@ int Model::getRadioDataRateForVideoBitrate(u32 uVideoBitrateBPS, int iRadioLinkI
    static int s_iLastECChecked = 0;
    static int s_iLastRadioDatarateChecked = 0;
 
-   int iSizePacket = video_link_profiles[video_params.iCurrentVideoProfile].video_data_length;
+   // Total bitrate = (video bitrate) 
+   //               * (1000 + radio headers) / 1000
+   //               * (100 + ec percentage) / 100
+   //               * 100 / max load
 
    // Room for radio headers
+   int iSizePacket = 1000;
    u32 uBitrateWithHeaders = (uVideoBitrateBPS/iSizePacket) * (iSizePacket + (sizeof(t_packet_header) + sizeof(t_packet_header_video_segment)+18));
 
    u32 uBitrateWithEC = uBitrateWithHeaders;
    if ( 0 != video_link_profiles[video_params.iCurrentVideoProfile].iECPercentage )
       uBitrateWithEC = (uBitrateWithHeaders / 100) * (100 + video_link_profiles[video_params.iCurrentVideoProfile].iECPercentage);
 
-   // video = total * maxload% / 100   ->   total = video * 100 / maxload%
    if ( 0 == radioLinksParams.uMaxLinkLoadPercent[iRadioLinkIndex] )
       radioLinksParams.uMaxLinkLoadPercent[iRadioLinkIndex] = DEFAULT_RADIO_LINK_LOAD_PERCENT;
 
@@ -5626,11 +5660,11 @@ int Model::getRadioDataRateForVideoBitrate(u32 uVideoBitrateBPS, int iRadioLinkI
    }
    else
    {
-      for( int i=0; i<getDataRatesCount(); i++ )
+      for( int i=0; i<getLegacyDataRatesCount(); i++ )
       {
-         if ( (u32)(getDataRatesBPS()[i]) >= uBitrateTotalRequired )
+         if ( (u32)(getLegacyDataRatesBPS()[i]) >= uBitrateTotalRequired )
          {
-            iRadioDataRate = getDataRatesBPS()[i];
+            iRadioDataRate = getLegacyDataRatesBPS()[i];
             break;
          }
       }
@@ -5642,40 +5676,65 @@ int Model::getRadioDataRateForVideoBitrate(u32 uVideoBitrateBPS, int iRadioLinkI
    s_uLastRadioLoadChecked = uMaxLinkLoadPercentage;
    s_iLastECChecked = video_link_profiles[video_params.iCurrentVideoProfile].iECPercentage;
    s_iLastRadioDatarateChecked = iRadioDataRate;
-   log_line("Model: Checked radio datarate for radio link %d (for source video bitrate %.2f Mbps, %d%% EC, %d%% radio load) is: %s (%.2f Mbps with radio headers, %.2f Mbps with EC, %.2f Mbps with load percent)",
-      iRadioLinkIndex+1, uVideoBitrateBPS/1000.0/1000.0,
-      s_iLastECChecked, s_uLastRadioLoadChecked, str_format_bitrate_inline(iRadioDataRate),
-      (float)uBitrateWithHeaders/1000.0/1000.0,
-      (float)uBitrateWithEC/1000.0/1000.0,
-      (float)uBitrateTotalRequired/1000.0/1000.0);
+   if ( bLog )
+      log_line("Model: Checked radio datarate for radio link %d (for source video bitrate %.2f Mbps, %d%% EC, %d%% radio load) is: %s (%.2f Mbps with radio headers, %.2f Mbps with EC, %.2f Mbps with load percent)",
+         iRadioLinkIndex+1, uVideoBitrateBPS/1000.0/1000.0,
+         s_iLastECChecked, s_uLastRadioLoadChecked, str_format_bitrate_inline(iRadioDataRate),
+         (float)uBitrateWithHeaders/1000.0/1000.0,
+         (float)uBitrateWithEC/1000.0/1000.0,
+         (float)uBitrateTotalRequired/1000.0/1000.0);
    return iRadioDataRate;
 }
 
-void Model::setDefaultVideoBitrate()
+u32 Model::getVideoProfileInitialVideoBitrate(int iVideoProfile)
+{
+   if ( (iVideoProfile < 0) || (iVideoProfile >= MAX_VIDEO_LINK_PROFILES) )
+      return 0;
+
+   u32 uBitrate = DEFAULT_VIDEO_BITRATE;
+   if ( video_link_profiles[iVideoProfile].uTargetVideoBitrateBPS > 0 )
+      uBitrate = video_link_profiles[iVideoProfile].uTargetVideoBitrateBPS;
+
+   if ( ! (radioRuntimeCapabilities.uFlagsRuntimeCapab & MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED) )
+   {
+      uBitrate = getMaxVideoBitrateForRadioDatarate(9000000, 0);
+      log_line("Model: Has not negociated radio links. Use a lower target default video bitrate for video params: %.2f Mbps", (float)uBitrate/1000.0/1000.0);
+   }
+
+   if ( uBitrate > getMaxVideoBitrateSupportedForCurrentRadioLinks() )
+   {
+      log_line("Model: Initial desired video capture video bitrate (%.2f Mbps) is greater than max allowed on currently negociated radio links (%.2f Mbps). Lowering the initial capture video bitrate to that.",
+         (float)uBitrate/1000.0/1000.0, (float)getMaxVideoBitrateSupportedForCurrentRadioLinks()/1000.0/1000.0);
+      uBitrate = getMaxVideoBitrateSupportedForCurrentRadioLinks();
+   }
+   return uBitrate;
+}
+
+void Model::setVideoProfilesDefaultVideoBitrates()
 {
    u32 board_type = hardware_getBoardType();
 
-   video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE;
-   video_link_profiles[VIDEO_PROFILE_HIGH_PERF].bitrate_fixed_bps = DEFAULT_HP_VIDEO_BITRATE;
-   video_link_profiles[VIDEO_PROFILE_LONG_RANGE].bitrate_fixed_bps = DEFAULT_HP_VIDEO_BITRATE;
-   video_link_profiles[VIDEO_PROFILE_USER].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE;
-   video_link_profiles[VIDEO_PROFILE_CUST].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE;
+   video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE;
+   video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uTargetVideoBitrateBPS = DEFAULT_HP_VIDEO_BITRATE;
+   video_link_profiles[VIDEO_PROFILE_LONG_RANGE].uTargetVideoBitrateBPS = DEFAULT_HP_VIDEO_BITRATE;
+   video_link_profiles[VIDEO_PROFILE_USER].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE;
+   video_link_profiles[VIDEO_PROFILE_CUST].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE;
 
    if ( ((board_type & BOARD_TYPE_MASK) == BOARD_TYPE_PIZERO) ||
         ((board_type & BOARD_TYPE_MASK) == BOARD_TYPE_PIZEROW) ||
         hardware_board_is_goke(board_type) )
    {
-      video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_PI_ZERO;
-      video_link_profiles[VIDEO_PROFILE_HIGH_PERF].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_PI_ZERO;
-      video_link_profiles[VIDEO_PROFILE_LONG_RANGE].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_PI_ZERO;
-      video_link_profiles[VIDEO_PROFILE_USER].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_PI_ZERO;
-      video_link_profiles[VIDEO_PROFILE_CUST].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_PI_ZERO;
+      video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_PI_ZERO;
+      video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_PI_ZERO;
+      video_link_profiles[VIDEO_PROFILE_LONG_RANGE].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_PI_ZERO;
+      video_link_profiles[VIDEO_PROFILE_USER].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_PI_ZERO;
+      video_link_profiles[VIDEO_PROFILE_CUST].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_PI_ZERO;
    }
    if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
    {
-      video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
-      video_link_profiles[VIDEO_PROFILE_USER].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
-      video_link_profiles[VIDEO_PROFILE_CUST].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
+      video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
+      video_link_profiles[VIDEO_PROFILE_USER].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
+      video_link_profiles[VIDEO_PROFILE_CUST].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
    }
 
    // Lower video bitrate on all video profiles if running on a single core CPU
@@ -5685,18 +5744,22 @@ void Model::setDefaultVideoBitrate()
       for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
       {
          {
-            if ( video_link_profiles[i].bitrate_fixed_bps > 4500000 )
-               video_link_profiles[i].bitrate_fixed_bps -= 1000000;
-            else if ( video_link_profiles[i].bitrate_fixed_bps > 3000000 )
-               video_link_profiles[i].bitrate_fixed_bps -= 500000;
-            log_line("Model: Lowered video bitrate for video profile %d (single core CPU) to %u", i, video_link_profiles[i].bitrate_fixed_bps);
+            if ( video_link_profiles[i].uTargetVideoBitrateBPS > 4500000 )
+               video_link_profiles[i].uTargetVideoBitrateBPS -= 1000000;
+            else if ( video_link_profiles[i].uTargetVideoBitrateBPS > 3000000 )
+               video_link_profiles[i].uTargetVideoBitrateBPS -= 500000;
+            log_line("Model: Lowered video bitrate for video profile %d (single core CPU) to %u", i, video_link_profiles[i].uTargetVideoBitrateBPS);
          }
       }
    }
 
-   validate_profiles_max_video_bitrate();
+   validateVideoProfilesMaxVideoBitrate();
 }
 
+int Model::getCurrentVideoProfileMaxRetransmissionWindow()
+{
+   return ((video_link_profiles[video_params.iCurrentVideoProfile].uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK) >> 8) * 5;
+}
 
 void Model::getCameraFlags(char* szCameraFlags)
 {
@@ -5812,17 +5875,10 @@ u32 Model::getVideoFlags(char* szVideoFlags, int iVideoProfile, u32 uOverwriteVi
    camera_profile_parameters_t* pCamParams = &(camera_params[iCurrentCamera].profiles[camera_params[iCurrentCamera].iCurrentProfile]);
 
    char szBuff[128];
-   u32 uBitrate = DEFAULT_VIDEO_BITRATE;
-   if ( uOverwriteVideoBPS > 0 )
+   u32 uBitrate = getVideoProfileInitialVideoBitrate(video_params.iCurrentVideoProfile);
+   if ( uOverwriteVideoBPS > 50000 )
+   if ( uOverwriteVideoBPS < uBitrate )
       uBitrate = uOverwriteVideoBPS;
-   else if ( video_link_profiles[iVideoProfile].bitrate_fixed_bps > 0 )
-      uBitrate = video_link_profiles[iVideoProfile].bitrate_fixed_bps;
-
-   if ( ! (radioRuntimeCapabilities.uFlagsRuntimeCapab & MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED) )
-      uBitrate = getMaxVideoBitrateForRadioDatarate(9000000, 0);
-
-   if ( uBitrate > 6000000 )
-      uBitrate = (uBitrate*9)/10;
 
    sprintf(szBuff, "-b %u", uBitrate);
 
@@ -6701,6 +6757,24 @@ void Model::copy_radio_interface_params(int iFrom, int iTo)
    radioInterfacesParams.interface_capabilities_flags[iTo] = radioInterfacesParams.interface_capabilities_flags[iFrom];
    radioInterfacesParams.interface_current_frequency_khz[iTo] = radioInterfacesParams.interface_current_frequency_khz[iFrom];
    radioInterfacesParams.interface_current_radio_flags[iTo] = radioInterfacesParams.interface_current_radio_flags[iFrom];
+}
+
+bool Model::onControllerIdUpdated(u32 uNewControllerId)
+{
+   if ( uControllerId == uNewControllerId )
+      return false;
+
+   log_line("Model: Update controller Id from %u to %u", uControllerId, uNewControllerId);
+
+   radioLinksParams.uGlobalRadioLinksFlags &= ~(MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS);
+   radioRuntimeCapabilities.uFlagsRuntimeCapab = 0;
+   uControllerId = uNewControllerId;
+
+   if ( relay_params.isRelayEnabledOnRadioLinkId >= 0 )
+   if ( relay_params.uRelayedVehicleId != 0 )
+      relay_params.uCurrentRelayMode = RELAY_MODE_MAIN | RELAY_MODE_IS_RELAY_NODE;
+
+   return true;
 }
 
 

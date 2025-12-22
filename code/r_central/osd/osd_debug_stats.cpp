@@ -52,8 +52,7 @@ extern u32 s_idFontStatsSmall;
 bool s_bDebugStatsControllerInfoFreeze = false;
 int s_iDebugStatsControllerInfoZoom = 0;
 controller_runtime_info s_ControllerRTInfoFreeze;
-controller_debug_runtime_info s_ControllerDebugRTInfoFreeze;
-vehicle_runtime_info s_VehicleRTInfoFreeze;
+controller_debug_video_runtime_info s_ControllerDebugRTInfoFreeze;
 
 void osd_debug_stats_toggle_zoom(bool bIncrease)
 {
@@ -78,8 +77,7 @@ void osd_debug_stats_toggle_freeze()
    if ( s_bDebugStatsControllerInfoFreeze )
    {
       memcpy(&s_ControllerRTInfoFreeze, &g_SMControllerRTInfo, sizeof(controller_runtime_info));
-      memcpy(&s_ControllerDebugRTInfoFreeze, &g_SMControllerDebugRTInfo, sizeof(controller_debug_runtime_info));
-      memcpy(&s_VehicleRTInfoFreeze, &g_SMVehicleRTInfo, sizeof(vehicle_runtime_info));
+      memcpy(&s_ControllerDebugRTInfoFreeze, &g_SMControllerDebugVideoRTInfo, sizeof(controller_debug_video_runtime_info));
    }
 }
 
@@ -370,7 +368,7 @@ float _osd_render_debug_stats_graph_rxtx_bars(float xPos, float yPos, float hGra
    float hGraphBottom = 1.2*(hGraph - hGraphTop);
 
    controller_runtime_info* pCRTInfo = &g_SMControllerRTInfo;
-   controller_debug_runtime_info* pCDebugRTInfo = &g_SMControllerDebugRTInfo;
+   controller_debug_video_runtime_info* pCDebugRTInfo = &g_SMControllerDebugVideoRTInfo;
    if ( s_bDebugStatsControllerInfoFreeze )
    {
        pCRTInfo = &s_ControllerRTInfoFreeze;
@@ -729,7 +727,7 @@ float _osd_render_debug_stats_output_video(float xPos, float yPos, float hGraph,
    float fHeightPixel = g_pRenderEngine->getPixelHeight();
 
    controller_runtime_info* pCRTInfo = &g_SMControllerRTInfo;
-   controller_debug_runtime_info* pCDebugRTInfo = &g_SMControllerDebugRTInfo;
+   controller_debug_video_runtime_info* pCDebugRTInfo = &g_SMControllerDebugVideoRTInfo;
    if ( s_bDebugStatsControllerInfoFreeze )
    {
        pCRTInfo = &s_ControllerRTInfoFreeze;
@@ -740,7 +738,7 @@ float _osd_render_debug_stats_output_video(float xPos, float yPos, float hGraph,
    {
       if ( i == iCurrentIndex )
          continue;
-      u32 uBytes = (pValues[i] >> 8) & 0xFFFF;
+      u32 uBytes = (pValues[i] >> 16);
       if ( uBytes > iMaxValue )
          iMaxValue = uBytes;
    }
@@ -772,9 +770,9 @@ float _osd_render_debug_stats_output_video(float xPos, float yPos, float hGraph,
          continue;
       }
 
-      u32 uDeltaMS = pValues[i] >> 24;
-      u32 uBytes = (pValues[i] >> 8) & 0xFFFF;
-      u32 uFlags = (pValues[i] & 0xFF)<<8;
+      u32 uDeltaMS = pValues[i] & 0xFF;
+      u32 uBytes = (pValues[i] >> 16);
+      u32 uNALFlags = (pValues[i] & 0x0000FF00);
       if ( 0 == uBytes )
       {
          g_pRenderEngine->setStroke(200, 200, 200, OSD_STRIKE_WIDTH);
@@ -794,15 +792,15 @@ float _osd_render_debug_stats_output_video(float xPos, float yPos, float hGraph,
 
       bPrevValueWasEndOfFrame = false;
       bValueIsEndOfFrame = false;
-      if ( uFlags & VIDEO_STATUS_FLAGS2_IS_NAL_END )
+      if ( uNALFlags & VIDEO_STATUS_FLAGS2_IS_NAL_END )
          bValueIsEndOfFrame = true;
 
-      if ( uFlags & VIDEO_STATUS_FLAGS2_IS_NAL_P )
+      if ( uNALFlags & VIDEO_STATUS_FLAGS2_IS_NAL_P )
       {
          g_pRenderEngine->setStroke(pColorP[0], pColorP[1], pColorP[2], OSD_STRIKE_WIDTH);
          g_pRenderEngine->setFill(pColorP[0], pColorP[1], pColorP[2], s_fOSDStatsGraphLinesAlpha);
       }
-      if ( uFlags & VIDEO_STATUS_FLAGS2_IS_NAL_I )
+      if ( uNALFlags & VIDEO_STATUS_FLAGS2_IS_NAL_I )
       {
          g_pRenderEngine->setStroke(pColorI[0], pColorI[1], pColorI[2], OSD_STRIKE_WIDTH);
          g_pRenderEngine->setFill(pColorI[0], pColorI[1], pColorI[2], s_fOSDStatsGraphLinesAlpha);
@@ -836,7 +834,7 @@ float _osd_render_debug_stats_output_video(float xPos, float yPos, float hGraph,
       else
       {
          g_pRenderEngine->drawRect(x, yPos + hGraph - hBar - dyBar, w, hBar);
-         if ( uFlags & VIDEO_STATUS_FLAGS2_IS_END_OF_FRAME )
+         if ( uNALFlags & VIDEO_STATUS_FLAGS2_IS_END_OF_FRAME )
          {
             g_pRenderEngine->setStroke(pColorO[0], pColorO[1], pColorO[2], OSD_STRIKE_WIDTH);
             float dx = fWidthBar * (float)uDeltaMS/(float)pCRTInfo->uUpdateIntervalMs;
@@ -1044,10 +1042,9 @@ float _osd_render_ack_time_hist(controller_runtime_info_vehicle* pRTInfoVehicle,
 void osd_render_debug_stats()
 {
    Preferences* pP = get_Preferences();
-   ControllerSettings* pCS = get_ControllerSettings();
    Model* pActiveModel = osd_get_current_data_source_vehicle_model();
    controller_runtime_info* pCRTInfo = &g_SMControllerRTInfo;
-   controller_debug_runtime_info* pCDebugRTInfo = &g_SMControllerDebugRTInfo;
+   controller_debug_video_runtime_info* pCDebugRTInfo = &g_SMControllerDebugVideoRTInfo;
    if ( s_bDebugStatsControllerInfoFreeze )
    {
        pCRTInfo = &s_ControllerRTInfoFreeze;
@@ -1483,8 +1480,8 @@ void osd_render_debug_stats()
          {
             iValues1[iIndex] = pCRTInfo->radioInterfacesSignalInfoVideo[i][iInt].iSNRMin;
             iValues2[iIndex] = pCRTInfo->radioInterfacesSignalInfoVideo[i][iInt].iSNRMax;
-            iValues4[iIndex] = getRadioMinimSNRForDataRate(pCDebugRTInfo->iRecvVideoDataRate[i][iInt]);
-            iValues3[iIndex] = getRadioMinimSNRForDataRate(pCDebugRTInfo->iRecvVideoDataRate[i][iInt])+3;
+            iValues4[iIndex] = getRadioMinimSNRForDataRate(pCRTInfo->iRecvVideoDataRate[i][iInt]);
+            iValues3[iIndex] = getRadioMinimSNRForDataRate(pCRTInfo->iRecvVideoDataRate[i][iInt])+3;
             if ( 0 == iValues4[iIndex] )
             {
                iValues3[iIndex] = 1000;
@@ -1497,8 +1494,8 @@ void osd_render_debug_stats()
          {
             iValues1[iIndex] = pCRTInfo->radioInterfacesSignalInfoVideo[i][iInt].iSNRMin;
             iValues2[iIndex] = pCRTInfo->radioInterfacesSignalInfoVideo[i][iInt].iSNRMax;
-            iValues4[iIndex] = getRadioMinimSNRForDataRate(pCDebugRTInfo->iRecvVideoDataRate[i][iInt]);
-            iValues3[iIndex] = getRadioMinimSNRForDataRate(pCDebugRTInfo->iRecvVideoDataRate[i][iInt])+3;
+            iValues4[iIndex] = getRadioMinimSNRForDataRate(pCRTInfo->iRecvVideoDataRate[i][iInt]);
+            iValues3[iIndex] = getRadioMinimSNRForDataRate(pCRTInfo->iRecvVideoDataRate[i][iInt])+3;
             if ( 0 == iValues4[iIndex] )
             {
                iValues3[iIndex] = 1000;
@@ -1654,11 +1651,11 @@ void osd_render_debug_stats()
          iIndex -= SYSTEM_RT_INFO_INTERVALS;
       for( int i=0; i<SYSTEM_RT_INFO_INTERVALS-2; i++ )
       {
-         u32 uFlags = (pCDebugRTInfo->uOutputFramesInfo[iIndex] & 0xFF) << 8;
+         u32 uNALFlags = (pCDebugRTInfo->uOutputFramesInfo[iIndex] & 0x0000FF00);
          int iNAL = iCurrentNAL;
-         if ( uFlags & VIDEO_STATUS_FLAGS2_IS_NAL_I )
+         if ( uNALFlags & VIDEO_STATUS_FLAGS2_IS_NAL_I )
             iNAL = 1;
-         if ( uFlags & VIDEO_STATUS_FLAGS2_IS_NAL_P )
+         if ( uNALFlags & VIDEO_STATUS_FLAGS2_IS_NAL_P )
             iNAL = 5;
 
          if ( iNAL != -1 )
@@ -2263,13 +2260,14 @@ void osd_render_debug_stats()
       int iMaxTime = 0;
       int iAvgTime = 0;
       int iCounts = 0;
+      int iTime = 0;
       for( int i=0; i<SYSTEM_RT_INFO_INTERVALS_FRAMES; i++ )
       {
          if ( (i == pCDebugRTInfo->iCurrentFrameBufferIndex) || (i == pCDebugRTInfo->iCurrentFrameBufferIndex + 1) || (i == pCDebugRTInfo->iCurrentFrameBufferIndex - 1) )
             continue;
          iCounts++;
 
-         int iTime = (int)((pCDebugRTInfo->uVideoFramesProcessingTimes[i] >> 8) & 0xFF);
+         iTime = (int)((pCDebugRTInfo->uVideoFramesProcessingTimes[i] >> 8) & 0xFF);
          iTime += (int)((pCDebugRTInfo->uVideoFramesProcessingTimes[i] >> 4) & 0x0F);
          iAvgTime += iTime;
 
@@ -2280,7 +2278,7 @@ void osd_render_debug_stats()
       if ( iCounts > 0 )
          iAvgTime /= iCounts;
 
-      sprintf(szTitle, "Video Frames Send Duration (@Air Side): avg, min/max  %d, %d / %d  milisec", iAvgTime, iMinTime, iMaxTime);
+      sprintf(szTitle, "Video Frames Send Duration (@Air Side): avg, min, max  %d, %d, %d  milisec", iAvgTime, iMinTime, iMaxTime);
       g_pRenderEngine->setColors(get_Color_Dev());
       g_pRenderEngine->drawText(xPos, y, s_idFontStats, szTitle);
       float fWText = g_pRenderEngine->textWidth(s_idFontStats, szTitle) + 0.02;
@@ -2288,21 +2286,40 @@ void osd_render_debug_stats()
       g_pRenderEngine->drawText(xPos + fWText, y, s_idFontStats, "[blue] = keyframes");
       fWText += g_pRenderEngine->textWidth(s_idFontStats, "[blue] = keyframes") + 0.02;
       g_pRenderEngine->setColors(cGreen);
-      g_pRenderEngine->drawText(xPos + fWText, y, s_idFontStats, "[green] = other data too");
+      g_pRenderEngine->drawText(xPos + fWText, y, s_idFontStats, "[green] = other data");
+      fWText += g_pRenderEngine->textWidth(s_idFontStats, "[green] = other data") + 0.02;
       g_pRenderEngine->setColors(get_Color_Dev());
+      szBuff[0] = 0;
+      int iMSPerFrame = 0;
+      if ( 0 != pActiveModel->video_params.iVideoFPS )
+         iMSPerFrame = 1000/pActiveModel->video_params.iVideoFPS;
+      sprintf(szBuff, "FPS: %d, %d ms/frame", pActiveModel->video_params.iVideoFPS, iMSPerFrame);
+      g_pRenderEngine->drawText(xPos + fWText, y, s_idFontStats, szBuff);
       y += height_text*1.3;
 
-      sprintf(szBuff, "%d ms", iMinTime);
-      g_pRenderEngine->drawText(xPos, y + hGraphSmall - height_text_small*0.7, g_idFontStatsSmall, szBuff);
-      sprintf(szBuff, "%d ms", iMaxTime);
-      g_pRenderEngine->drawText(xPos, y - height_text_small*0.3, g_idFontStatsSmall, szBuff);
-      sprintf(szBuff, "%d ms", (iMaxTime + iMinTime)/2);
-      g_pRenderEngine->drawText(xPos, y + 0.5 * hGraphSmall - height_text_small*0.3, g_idFontStatsSmall, szBuff);
+      sprintf(szBuff, "%d ms", 0);
+      g_pRenderEngine->drawText(xPos, y + hGraphSmall - height_text*0.7, g_idFontStats, szBuff);
+      sprintf(szBuff, "%d ms", (iMSPerFrame*3)/2);
+      g_pRenderEngine->drawText(xPos, y - height_text*0.3, g_idFontStats, szBuff);
+
+      sprintf(szBuff, "%d ms",iMSPerFrame);
+      g_pRenderEngine->drawText(xPos, y + 0.33 * hGraphSmall - height_text*0.3, g_idFontStats, szBuff);
+
+      sprintf(szBuff, "%d ms",iMSPerFrame/2);
+      g_pRenderEngine->drawText(xPos, y + 0.66* hGraphSmall - height_text*0.3, g_idFontStats, szBuff);
 
       g_pRenderEngine->drawLine(fGraphXStart + dxWithMs, y - fHPixel, fGraphXStart + fWidthGraph - dxWithMs, y - fHPixel);
+      g_pRenderEngine->drawLine(fGraphXStart + dxWithMs, y + hGraphSmall, fGraphXStart + fWidthGraph - dxWithMs, y + hGraphSmall);
+      g_pRenderEngine->drawLine(fGraphXStart + dxWithMs, y + 0.33 * hGraphSmall, fGraphXStart + fWidthGraph - dxWithMs, y + 0.33 * hGraphSmall);
+      g_pRenderEngine->drawLine(fGraphXStart + dxWithMs, y + 0.66 * hGraphSmall, fGraphXStart + fWidthGraph - dxWithMs, y + 0.66 * hGraphSmall);
 
       float xPosBar = fGraphXStart + dxWithMs;
       float fWidthBar2 = (fWidthGraph-dxWithMs) / SYSTEM_RT_INFO_INTERVALS_FRAMES;
+      float fHeight = 0.0;
+      float fMaxBarHeight = 0.0;
+      double cWhite[] = {255,255,255, 1.0};
+      double cYellow[] = {255,255,0, 1.0};
+      double cRed[] = {255,50,50, 1.0};
 
       for( int i=0; i<SYSTEM_RT_INFO_INTERVALS_FRAMES; i++ )
       {
@@ -2318,33 +2335,59 @@ void osd_render_debug_stats()
             xPosBar += fWidthBar2;
             continue;
          }
-         int iTime = (int)((pCDebugRTInfo->uVideoFramesProcessingTimes[i] >> 8) & 0xFF);
-         int iTimeOthers = (int)((pCDebugRTInfo->uVideoFramesProcessingTimes[i] >> 4) & 0x0F);
-         iTime += iTimeOthers;
 
-         float fHeight = hGraphSmall * (float) (iTime-iMinTime) / (float)(iMaxTime-iMinTime);
+         fMaxBarHeight = 0.0;
+         // Sent video tx time
+         iTime = (int)((pCDebugRTInfo->uVideoFramesProcessingTimes[i] >> 8) & 0xFF);
+         fHeight = hGraphSmall * (float) (iTime) / (float)((iMSPerFrame*3)/2);
+         if ( fHeight > 1.0 )
+            fHeight = 1.0;
+         if ( fHeight > fMaxBarHeight )
+            fMaxBarHeight = fHeight;
+         if ( fHeight > fHPixel )
+         {
+            if ( iTime >= iMSPerFrame )
+               g_pRenderEngine->setColors(cRed);
+            else if ( iTime >= (iMSPerFrame*8)/10 )
+               g_pRenderEngine->setColors(cYellow);
+            else if ( pCDebugRTInfo->uReceivedFrameNALFlags[i] & (VIDEO_STATUS_FLAGS2_IS_NAL_I >> 8) )
+               g_pRenderEngine->setColors(cBlue);
+            else
+               g_pRenderEngine->setColors(get_Color_Dev());
+            g_pRenderEngine->drawRect(xPosBar, y + hGraphSmall - fHeight, fWidthBar2 - 2.0 * fWPixel, fHeight);
+            g_pRenderEngine->setColors(get_Color_Dev());
+         }
 
-         if ( fHeight < fHPixel )
+         // Expected video tx time
+         iTime = (int)((pCDebugRTInfo->uVideoFramesProcessingTimes[i] >> 24) & 0xFF);
+         fHeight = hGraphSmall * (float) (iTime) / (float)((iMSPerFrame*3)/2);
+         if ( fHeight > 1.0 )
+            fHeight = 1.0;
+         if ( fHeight > fMaxBarHeight )
+            fMaxBarHeight = fHeight;
+         if ( fHeight > fHPixel )
+         {
+            g_pRenderEngine->setColors(cGreen);
+            g_pRenderEngine->drawRect(xPosBar, y + hGraphSmall - fHeight, fWidthBar2 - 2.0 * fWPixel, fHeight*0.5);
+            g_pRenderEngine->setColors(get_Color_Dev());
+         }
+
+         // Sent others tx time
+         iTime = (int)((pCDebugRTInfo->uVideoFramesProcessingTimes[i] >> 4) & 0x0F);
+         float fHeight = hGraphSmall * (float) (iTime) / (float)((iMSPerFrame*3)/2);
+         if ( fHeight > 1.0 )
+            fHeight = 1.0;
+
+         if ( (iTime == 0) || (fHeight < 2.0*fHPixel) )
          {
             xPosBar += fWidthBar2;
             continue;
          }
 
-         if ( iTimeOthers > 0 )
-         {
-            g_pRenderEngine->setColors(cGreen);
-            g_pRenderEngine->drawRect(xPosBar, y + hGraphSmall - fHeight, fWidthBar2 - 2.0 * fWPixel, fHeight*0.5);
-            g_pRenderEngine->setColors(get_Color_Dev());
-            fHeight = fHeight * 0.5;
-         }
-         if ( pCDebugRTInfo->uReceivedFrameNALFlags[i] & (VIDEO_STATUS_FLAGS2_IS_NAL_I >> 8) )
-         {
-            g_pRenderEngine->setColors(cBlue);
-            g_pRenderEngine->drawRect(xPosBar, y + hGraphSmall - fHeight, fWidthBar2 - 2.0 * fWPixel, fHeight);
-            g_pRenderEngine->setColors(get_Color_Dev());
-         }
-         else
-            g_pRenderEngine->drawRect(xPosBar, y + hGraphSmall - fHeight, fWidthBar2 - 2.0 * fWPixel, fHeight);
+         g_pRenderEngine->setColors(cGreen);
+         g_pRenderEngine->drawRect(xPosBar, y + hGraphSmall - fMaxBarHeight - fHeight, fWidthBar2 - 2.0 * fWPixel, fHeight);
+         g_pRenderEngine->setColors(get_Color_Dev());
+
          xPosBar += fWidthBar2;
       }
 

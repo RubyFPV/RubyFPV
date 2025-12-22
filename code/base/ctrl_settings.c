@@ -88,7 +88,7 @@ void reset_ControllerSettings()
 
    s_CtrlSettings.iDisableHDMIOverscan = 0;
    s_CtrlSettings.iDeveloperMode = 0;
-   s_CtrlSettings.iRenderFPS = 10;
+   s_CtrlSettings.iRenderFPS = 15;
    s_CtrlSettings.iShowVoltage = 1;
    s_CtrlSettings.nRetryRetransmissionAfterTimeoutMS = DEFAULT_VIDEO_RETRANS_MINIMUM_RETRY_INTERVAL;
    s_CtrlSettings.nRequestRetransmissionsOnVideoSilenceMs = DEFAULT_VIDEO_RETRANS_REQUEST_ON_VIDEO_SILENCE_MS;
@@ -100,7 +100,7 @@ void reset_ControllerSettings()
    s_CtrlSettings.nRotaryEncoderFunction2 = 2; // 0 - none, 1 - menu, 2 - camera
    s_CtrlSettings.nRotaryEncoderSpeed2 = 0; // 0 - normal, 1 - slow
    s_CtrlSettings.nPingClockSyncFrequency = DEFAULT_PING_FREQUENCY;
-   s_CtrlSettings.nGraphVideoRefreshInterval = 50;
+   s_CtrlSettings.nGraphVideoRefreshInterval = DEFAULT_OSD_RADIO_GRAPH_REFRESH_PERIOD_MS;
    s_CtrlSettings.iDisableRetransmissionsAfterControllerLinkLostMiliseconds = DEFAULT_CONTROLLER_LINK_MILISECONDS_TIMEOUT_TO_DISABLE_RETRANSMISSIONS;
    s_CtrlSettings.iVideoDecodeStatsSnapshotClosesOnTimeout = 1;
    s_CtrlSettings.iFreezeOSD = 0;
@@ -129,6 +129,18 @@ void reset_ControllerSettings()
    s_CtrlSettings.iDbgPingGraphs = 0;
    s_CtrlSettings.iEnableDebugStats = 0;
    s_CtrlSettings.iWaitFullFrameForOutput = 0;
+
+   s_CtrlSettings.iRecordOSD = 1;
+   s_CtrlSettings.iRecordSTR = 1;
+   s_CtrlSettings.iRecordSTRFramerate = 2;
+   s_CtrlSettings.iRecordSTRTime = 1;
+   s_CtrlSettings.iRecordSTRHome = 0;
+   s_CtrlSettings.iRecordSTRGPS = 0;
+   s_CtrlSettings.iRecordSTRAlt = 0;
+   s_CtrlSettings.iRecordSTRRSSI = 1;
+   s_CtrlSettings.iRecordSTRVoltage = 1;
+   s_CtrlSettings.iRecordSTRBitrate = 1;
+
    if ( s_CtrlSettingsLoaded )
       log_line("Reseted controller settings.");
 }
@@ -187,6 +199,9 @@ int save_ControllerSettings()
    fprintf(fd, "%d %d %d\n", s_CtrlSettings.iThreadPriorityVideoRecording, s_CtrlSettings.iThreadPriorityRC, s_CtrlSettings.iThreadPriorityOthers);
    fprintf(fd, "%d %d\n", s_CtrlSettings.iDbgPingGraphs, s_CtrlSettings.iEnableDebugStats);
    fprintf(fd, "%d\n", s_CtrlSettings.iWaitFullFrameForOutput);
+
+   fprintf(fd, "%d %d %d %d %d\n", s_CtrlSettings.iRecordOSD, s_CtrlSettings.iRecordSTR, s_CtrlSettings.iRecordSTRFramerate, s_CtrlSettings.iRecordSTRTime, s_CtrlSettings.iRecordSTRHome);
+   fprintf(fd, "%d %d %d %d %d\n", s_CtrlSettings.iRecordSTRGPS, s_CtrlSettings.iRecordSTRAlt, s_CtrlSettings.iRecordSTRRSSI, s_CtrlSettings.iRecordSTRVoltage, s_CtrlSettings.iRecordSTRBitrate);
    fclose(fd);
 
    log_line("Saved controller settings to file: %s", szFile);
@@ -335,6 +350,34 @@ int load_ControllerSettings()
       s_CtrlSettings.iEnableDebugStats = 0;
    if ( 1 != fscanf(fd, "%d", &s_CtrlSettings.iWaitFullFrameForOutput) )
       s_CtrlSettings.iWaitFullFrameForOutput = 0;
+
+   if ( 5 != fscanf(fd, "%d %d %d %d %d", &s_CtrlSettings.iRecordOSD, &s_CtrlSettings.iRecordSTR, &s_CtrlSettings.iRecordSTRFramerate, &s_CtrlSettings.iRecordSTRTime, &s_CtrlSettings.iRecordSTRHome) )
+   {
+      s_CtrlSettings.iRecordOSD = 1;
+      s_CtrlSettings.iRecordSTR = 1;
+      s_CtrlSettings.iRecordSTRFramerate = 2;
+      s_CtrlSettings.iRecordSTRTime = 1;
+      s_CtrlSettings.iRecordSTRHome = 0;
+      s_CtrlSettings.iRecordSTRGPS = 0;
+      s_CtrlSettings.iRecordSTRAlt = 0;
+      s_CtrlSettings.iRecordSTRRSSI = 1;
+      s_CtrlSettings.iRecordSTRVoltage = 1;
+      s_CtrlSettings.iRecordSTRBitrate = 1;
+   }
+   if ( 5 != fscanf(fd, "%d %d %d %d %d", &s_CtrlSettings.iRecordSTRGPS, &s_CtrlSettings.iRecordSTRAlt, &s_CtrlSettings.iRecordSTRRSSI, &s_CtrlSettings.iRecordSTRVoltage, &s_CtrlSettings.iRecordSTRBitrate) )
+   {
+      s_CtrlSettings.iRecordOSD = 1;
+      s_CtrlSettings.iRecordSTR = 1;
+      s_CtrlSettings.iRecordSTRFramerate = 2;
+      s_CtrlSettings.iRecordSTRTime = 1;
+      s_CtrlSettings.iRecordSTRHome = 0;
+      s_CtrlSettings.iRecordSTRGPS = 0;
+      s_CtrlSettings.iRecordSTRAlt = 0;
+      s_CtrlSettings.iRecordSTRRSSI = 1;
+      s_CtrlSettings.iRecordSTRVoltage = 1;
+      s_CtrlSettings.iRecordSTRBitrate = 1;
+   }
+
    fclose(fd);
 
    //--------------------------------------------------------
@@ -370,7 +413,7 @@ int load_ControllerSettings()
       reset_ControllerPriorities();
      
    if ( s_CtrlSettings.iRenderFPS < 10 || s_CtrlSettings.iRenderFPS > 30 )
-      s_CtrlSettings.iRenderFPS = 10;
+      s_CtrlSettings.iRenderFPS = 15;
 
    if ( s_CtrlSettings.nRotaryEncoderFunction < 0 || s_CtrlSettings.nRotaryEncoderFunction > 2 )
       s_CtrlSettings.nRotaryEncoderFunction = 1;

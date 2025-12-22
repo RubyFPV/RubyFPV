@@ -182,14 +182,15 @@ int process_received_ruby_message_from_controller(int iInterfaceIndex, u8* pPack
       log_line("Pairing request: Currently stored controller ID: %u / %u", g_uControllerId, g_pCurrentModel->uControllerId);
       log_line("Pairing request: Received pairing request from controller (received resend count: %u). From CID %u to VID %u (%s). Developer mode before: %s",
          uResendCount, pPH->vehicle_id_src, pPH->vehicle_id_dest, (pPH->vehicle_id_dest == g_pCurrentModel->uVehicleId)?"self":"not self", (g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE)?"on":"off");
-      if ( (NULL != g_pCurrentModel) && (g_uControllerId != pPH->vehicle_id_src) )
+
+      if ( NULL != g_pCurrentModel )
+         bUpdated |= g_pCurrentModel->onControllerIdUpdated(pPH->vehicle_id_src);
+
+      if ( g_uControllerId != pPH->vehicle_id_src )
       {
-         log_line("Update controller ID to this one: %u", pPH->vehicle_id_src);
+         log_line("Update controller ID stored on file from this: %u to this one: %u", g_uControllerId, pPH->vehicle_id_src);
          u32 uOldControllerId = g_uControllerId;
          g_uControllerId = pPH->vehicle_id_src;
-         g_pCurrentModel->uControllerId = g_uControllerId;
-         g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags &= ~(MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS);
-         g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab = 0;
          char szFile[128];
          strcpy(szFile, FOLDER_CONFIG);
          strcat(szFile, FILE_CONFIG_CONTROLLER_ID);
@@ -229,15 +230,16 @@ int process_received_ruby_message_from_controller(int iInterfaceIndex, u8* pPack
       radio_packet_init(&PH, PACKET_COMPONENT_RUBY, PACKET_TYPE_RUBY_PAIRING_CONFIRMATION, STREAM_ID_DATA);
       PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
       PH.vehicle_id_dest = g_uControllerId;
-      PH.total_length = sizeof(t_packet_header) + sizeof(u32);
+      PH.total_length = sizeof(t_packet_header) + sizeof(u32) + sizeof(u16);
 
       s_uResendPairingConfirmationCounter++;
 
+      u16 uVersion = (SYSTEM_SW_VERSION_MAJOR << 8) | SYSTEM_SW_VERSION_MINOR;
       u8 packet[MAX_PACKET_TOTAL_SIZE];
       memcpy(packet, (u8*)&PH, sizeof(t_packet_header));
       memcpy(packet+sizeof(t_packet_header), &s_uResendPairingConfirmationCounter, sizeof(u32));
+      memcpy(packet+sizeof(t_packet_header)+sizeof(u32), &uVersion, sizeof(u16));
       packets_queue_add_packet(&g_QueueRadioPacketsOut, packet);
-
       send_radio_config_to_controller();
 
       if ( (uDeveloperFlags != 0xFFFFFFFF) )

@@ -399,9 +399,9 @@ void MenuVehicleVideoEncodings::valuesToUI()
 
    if ( -1 != m_IndexVideoBitrate )
    {
-      m_pItemsSlider[2]->setCurrentValue((4*g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps)/1000/1000);
+      m_pItemsSlider[2]->setCurrentValue((4*g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS)/1000/1000);
       m_pItemsSlider[2]->setEnabled( true );
-      log_line("MenuVehicleVideoEncodings: Set UI slider video bitrate to %u bps (%d) for current video profile %s", g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps, m_pItemsSlider[2]->getCurrentValue(), str_get_video_profile_name(g_pCurrentModel->video_params.iCurrentVideoProfile));
+      log_line("MenuVehicleVideoEncodings: Set UI slider video bitrate to %u bps (%d) for current video profile %s", g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS, m_pItemsSlider[2]->getCurrentValue(), str_get_video_profile_name(g_pCurrentModel->video_params.iCurrentVideoProfile));
    }
 
    if (adaptiveKeyframe && (! g_pCurrentModel->isVideoLinkFixedOneWay()) )
@@ -727,8 +727,8 @@ bool MenuVehicleVideoEncodings::sendVideoParams()
 
    if ( -1 != m_IndexVideoBitrate )
    {
-      profileNew.bitrate_fixed_bps = m_pItemsSlider[2]->getCurrentValue()*1000*1000/4;
-      log_line("MenuVehicleVideoEncodings: Set update profile video bitrate to %u bps (%d) for new video profile %s", profileNew.bitrate_fixed_bps, m_pItemsSlider[2]->getCurrentValue(), str_get_video_profile_name(paramsNew.iCurrentVideoProfile));
+      profileNew.uTargetVideoBitrateBPS = m_pItemsSlider[2]->getCurrentValue()*1000*1000/4;
+      log_line("MenuVehicleVideoEncodings: Set update profile video bitrate to %u bps (%d) for new video profile %s", profileNew.uTargetVideoBitrateBPS, m_pItemsSlider[2]->getCurrentValue(), str_get_video_profile_name(paramsNew.iCurrentVideoProfile));
    }
    paramsNew.iH264Slices = 1 + m_pItemsSelect[12]->getSelectedIndex();
    paramsNew.uMaxAutoKeyframeIntervalMs = m_pItemsSlider[6]->getCurrentValue();
@@ -814,13 +814,13 @@ bool MenuVehicleVideoEncodings::sendVideoParams()
    if ( iCurrentDRBoost != m_pItemsSelect[16]->getSelectedIndex() )
    {
       u32 uMaxVideoBitrate = g_pCurrentModel->getMaxVideoBitrateSupportedForRadioLinks(&g_pCurrentModel->radioLinksParams, &paramsNew, &(profiles[0]));
-      if ( profileNew.bitrate_fixed_bps > uMaxVideoBitrate )
+      if ( profileNew.uTargetVideoBitrateBPS > uMaxVideoBitrate )
       {
          log_line("MenuVehicleVideoEncodings: Will decrease video bitrate (%u kbps) for video profile %s to max allowed on current links: %u kbps",
-            profileNew.bitrate_fixed_bps/1000,
+            profileNew.uTargetVideoBitrateBPS/1000,
             str_get_video_profile_name(paramsNew.iCurrentVideoProfile),
             uMaxVideoBitrate/1000);
-         profileNew.bitrate_fixed_bps = uMaxVideoBitrate;
+         profileNew.uTargetVideoBitrateBPS = uMaxVideoBitrate;
       }
    }
 

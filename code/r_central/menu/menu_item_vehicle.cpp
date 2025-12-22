@@ -94,6 +94,12 @@ float MenuItemVehicle::getTitleWidth(float maxWidth)
    if ( m_RenderTitleWidth > 0.001 )
       return m_RenderTitleWidth;
 
+   if ( g_pControllerSettings->iDeveloperMode )
+   {
+      m_RenderTitleWidth = maxWidth;
+      return m_RenderTitleWidth;
+   }
+
    m_RenderTitleWidth = g_pRenderEngine->textWidth(g_idFontMenu, m_pszTitle);
 
    m_RenderTitleWidth += getItemHeight(0.0);
@@ -182,12 +188,31 @@ void MenuItemVehicle::Render(float xPos, float yPos, bool bSelected, float fWidt
    g_pRenderEngine->setColors(get_Color_MenuText());
    g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
 
+   float yText = yPos;
    if ( bIsCurrentVehicle )
-      RenderBaseTitle(xPos+fIconWidth + height_text*0.5, yPos + height_text*0.6, bSelected, fWidthSelection - fIconWidth - height_text*0.8);
-   else
-      RenderBaseTitle(xPos+fIconWidth + height_text*0.5, yPos, bSelected, fWidthSelection - fIconWidth - height_text*0.8);
-}
+      yText += height_text*0.6;
 
+   RenderBaseTitle(xPos+fIconWidth + height_text*0.5, yText, bSelected, fWidthSelection - fIconWidth - height_text*0.8);
+
+   if ( g_pControllerSettings->iDeveloperMode )
+   {
+      if ( bSelected && (!m_bIsEditing) )
+         g_pRenderEngine->setColors(get_Color_MenuItemSelectedText());
+      else
+      {
+         if ( m_bEnabled )
+            g_pRenderEngine->setColors(get_Color_Dev());
+         else
+            g_pRenderEngine->setColors(get_Color_MenuItemDisabledText());
+      }
+      char szId[64];
+      if ( NULL != pModel )
+         sprintf(szId, "VID: %u", pModel->uVehicleId);
+      else
+         strcpy(szId, "VID: N/A");
+      g_pRenderEngine->drawTextLeft(xPos + fWidthSelection - 1.4*Menu::getSelectionPaddingX(), yText, g_idFontMenu, szId);
+   }
+}
 
 void MenuItemVehicle::RenderCondensed(float xPos, float yPos, bool bSelected, float fWidthSelection)
 {

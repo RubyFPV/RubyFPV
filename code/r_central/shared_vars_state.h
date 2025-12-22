@@ -25,29 +25,6 @@ typedef struct
 extern t_structure_file_upload g_CurrentUploadingFile;
 extern bool g_bHasFileUploadInProgress;
 
-typedef struct
-{
-   t_packet_header_telemetry_msp headerTelemetryMSP;
-
-   u8  uMSPRawCommand[256]; // Max size is one byte long
-   int iMSPRawCommandFilledBytes;
-   int iMSPState;
-   int iMSPDirection;
-   u8  uMSPCommandPayload[256]; // Max size is one byte long
-   int iMSPCommandPayloadSize;
-   int iMSPParsedCommandPayloadBytes;
-   u8  uMSPChecksum;
-   u8  uMSPCommand;
-   u8  uMSPPreviousCommand;
-   u8  uMSPDisplayPortCommand;
-   u8  uMSPDisplayPortPreviousCommand;
-   u32 uLastMSPCommandReceivedTime;
-
-   u16 uScreenChars[MAX_MSP_CHARS_BUFFER]; // Max 64x24
-   u16 uScreenCharsTmp[MAX_MSP_CHARS_BUFFER]; // Max 64x24
-   bool bEmptyBuffer;
-} ALIGN_STRUCT_SPEC_INFO type_msp_parse_state;
-
 typedef struct 
 {
    u32 uVehicleId;

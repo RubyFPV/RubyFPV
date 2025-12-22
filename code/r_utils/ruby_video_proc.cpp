@@ -34,6 +34,7 @@
 #include "../base/config.h"
 #include "../base/hardware.h"
 #include "../base/hardware_procs.h"
+#include "../base/hardware_files.h"
 #include "../base/models.h"
 #include "../base/flags_video.h"
 #include "../common/string_utils.h"
@@ -88,6 +89,10 @@ bool store_video()
    int length = 0;
    int width, height;
    int iVideoType = VIDEO_TYPE_H264;
+   int iFC = 0;
+   int iOSDFont = 0;
+   int iMSPCols = 0;
+   int iMSPRows = 0;
 
    strcpy(szFileInInfo, FOLDER_RUBY_TEMP);
    strcat(szFileInInfo, FILE_TEMP_VIDEO_FILE_INFO);
@@ -117,6 +122,13 @@ bool store_video()
       log_softerror_and_alarm("Failed to read video recording info file video type from %s", szFileInInfo);
       iVideoType = VIDEO_TYPE_H264;
    }
+   if ( 4 != fscanf(fd, "%d %d %d %d", &iFC, &iOSDFont, &iMSPCols, &iMSPRows) )
+   {
+      fclose(fd);
+      log_softerror_and_alarm("Failed to read video recording info file 3/2: %s", szFileInInfo);
+      _store_error("Failed to read video recording info file. Invalid file.");
+      return false;
+   }
    fclose(fd);
 
    log_line("Read video info file: fps: %d, length: %d, w x h: %d x %d, type: %d, in video file: [%s]",
@@ -124,7 +136,7 @@ bool store_video()
 
    if ( NULL != strstr(szFileInVideo, FOLDER_TEMP_VIDEO_MEM) )
    {
-      snprintf(szComm, 511, "nice -n %d mv %s %s%s", niceValue, szFileInVideo, FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE);
+      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "nice -n %d mv %s %s%s", niceValue, szFileInVideo, FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE);
       hw_execute_bash_command(szComm, NULL);
 
       strcpy(szFileInVideo, FOLDER_RUBY_TEMP);
@@ -177,19 +189,17 @@ bool store_video()
    sprintf(szOutFileInfo, FILE_FORMAT_VIDEO_INFO, vehicle_name, g_iBootCount, (int)timeNow/1000, (int)timeNow%1000 );
 
    strncpy(szOutFileVideo, szOutFileInfo, sizeof(szOutFileVideo)/sizeof(szOutFileVideo[0]));
-   szOutFileVideo[strlen(szOutFileVideo)-4] = 'h';
-   szOutFileVideo[strlen(szOutFileVideo)-3] = '2';
-   szOutFileVideo[strlen(szOutFileVideo)-2] = '6';
-   szOutFileVideo[strlen(szOutFileVideo)-1] = '4';
    if ( iVideoType == VIDEO_TYPE_H265 )
-      szOutFileVideo[strlen(szOutFileVideo)-1] = '5';
-
+      hardware_file_replace_extension(szOutFileVideo, "h265");
+   else
+      hardware_file_replace_extension(szOutFileVideo, "h264");
+   
    snprintf(szFullOutFileInfo, sizeof(szFullOutFileInfo)/sizeof(szFullOutFileInfo[0]), "%s%s", FOLDER_MEDIA, szOutFileInfo);
 
    log_line("Built output file names: out video file: [%s], out info file: [%s]", szOutFileVideo, szOutFileInfo);
    log_line("Output info file: [%s]", szFullOutFileInfo);
    
-   sprintf(szComm, "mkdir -p %s", FOLDER_MEDIA);
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "mkdir -p %s", FOLDER_MEDIA);
    hw_execute_bash_command(szComm, NULL);
 
    fd = fopen(szFullOutFileInfo, "w");
@@ -203,15 +213,21 @@ bool store_video()
    fprintf(fd, "%d %d\n", fps, length );
    fprintf(fd, "%d %d\n", width, height );
    fprintf(fd, "%d\n", iVideoType );
+   fprintf(fd, "%d %d %d %d\n", iFC, iOSDFont, iMSPCols, iMSPRows);
    fclose(fd);
 
    log_line("Moving temp video file [%s] to: [%s%s]", szFileInVideo, FOLDER_MEDIA, szOutFileVideo);
 
-   snprintf(szComm, 1023, "nice -n %d mv %s %s%s", niceValue, szFileInVideo, FOLDER_MEDIA, szOutFileVideo);
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "nice -n %d mv %s %s%s", niceValue, szFileInVideo, FOLDER_MEDIA, szOutFileVideo);
    hw_execute_bash_command(szComm, NULL);
    //launch_set_proc_priority("cp", 10,0,1);
 
-   sprintf(szComm, "rm -rf %s%s", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_INFO);
+   hardware_file_replace_extension(szOutFileVideo, "osd");
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "mv %s%s %s%s 2>/dev/null", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_OSD, FOLDER_MEDIA, szOutFileVideo);
+   hw_execute_bash_command(szComm, NULL);
+
+   hardware_file_replace_extension(szOutFileVideo, "srt");
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "mv %s%s %s%s 2>/dev/null", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_SRT, FOLDER_MEDIA, szOutFileVideo);
    hw_execute_bash_command(szComm, NULL);
 
    return true;
@@ -347,10 +363,16 @@ int main(int argc, char *argv[])
       log_line("Processing input video file to store it to media folder...");
       store_video();
       log_line("Remove temporary recording files...");
-      sprintf(szComm, "rm -rf %s%s", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_INFO);
+
+      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s%s 2>/dev/null", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE);
       hw_execute_bash_command(szComm, NULL);
-      sprintf(szComm, "rm -rf %s%s", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE);
+      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s%s 2>/dev/null", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_INFO);
       hw_execute_bash_command(szComm, NULL);
+      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s%s 2>/dev/null", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_OSD);
+      hw_execute_bash_command(szComm, NULL );
+      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s%s 2>/dev/null", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_SRT);
+      hw_execute_bash_command(szComm, NULL );
+
    }
    else
    {
@@ -358,9 +380,9 @@ int main(int argc, char *argv[])
       process_video(szFileInfo, szFileOut);
    }
 
-   sprintf(szComm, "chmod 777 %s 2>&1 1>/dev/null", FOLDER_MEDIA);
+   sprintf(szComm, "chmod 777 %s 2>/dev/null", FOLDER_MEDIA);
    hw_execute_bash_command(szComm, NULL);
-   sprintf(szComm, "chmod 777 %s* 2>&1 1>/dev/null", FOLDER_MEDIA);
+   sprintf(szComm, "chmod 777 %s* 2>/dev/null", FOLDER_MEDIA);
    hw_execute_bash_command(szComm, NULL);
    hw_execute_bash_command("sync", NULL);
    log_line("Finished processing video file.");

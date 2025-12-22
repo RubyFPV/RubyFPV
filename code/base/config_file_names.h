@@ -63,6 +63,8 @@
 #define FILE_TEMP_VIDEO_MEM_FILE "tmpVideo.h26x"
 #define FILE_TEMP_VIDEO_FILE "tmpVideo.h26x"
 #define FILE_TEMP_VIDEO_FILE_INFO "tmpVideo.info"
+#define FILE_TEMP_VIDEO_FILE_OSD "tmpVideo.osd"
+#define FILE_TEMP_VIDEO_FILE_SRT "tmpVideo.srt"
 #define FILE_TEMP_VIDEO_FILE_PROCESS_ERROR "tmpErrorVideo.stat"
 #define FILE_TEMP_UPDATE_IN_PROGRESS "updateinprogress"
 #define FILE_TEMP_UPDATE_IN_PROGRESS_APPLY "updateinprogressapply"

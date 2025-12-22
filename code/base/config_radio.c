@@ -50,7 +50,7 @@ u32 channels25[] = { 2487000, 2489000, 2492000, 2494000, 2497000, 2499000, 25120
 u32 channels58[] = { 5180000, 5200000, 5220000, 5240000, 5260000, 5280000, 5300000, 5320000, 5500000, 5520000, 5540000, 5560000, 5580000, 5600000, 5620000, 5640000, 5660000, 5680000, 5700000, 5745000, 5765000, 5785000, 5805000, 5825000, 5845000, 5865000, 5885000 };
 
 // in 1 Mb increments, in bps
-int s_WiFidataRates[] = {6000000, 9000000, 12000000, 18000000, 24000000, 36000000, 48000000, 54000000};
+int s_LegacyIEEERates[] = {6000000, 9000000, 12000000, 18000000, 24000000, 36000000, 48000000, 54000000};
 int s_SiKAirDataRates[] = {2000, 4000, 8000, 16000, 19000, 24000, 32000, 48000, 64000, 96000, 128000, 192000, 250000};
 
 int s_ArrayTestRadioRatesLegacy[] = {6000000, 12000000, 18000000, 24000000, 36000000, 48000000, 54000000};
@@ -261,32 +261,50 @@ int getSupportedChannels(u32 supportedBands, int includeSeparator, u32* pOutChan
    return iCountSupported;
 }
 
-int *getDataRatesBPS() { return s_WiFidataRates; }
-int getDataRatesCount() { return sizeof(s_WiFidataRates)/sizeof(s_WiFidataRates[0]); }
+int *getLegacyDataRatesBPS() { return s_LegacyIEEERates; }
+int getLegacyDataRatesCount() { return sizeof(s_LegacyIEEERates)/sizeof(s_LegacyIEEERates[0]); }
 
 int getTestDataRatesCountLegacy() { return sizeof(s_ArrayTestRadioRatesLegacy)/sizeof(s_ArrayTestRadioRatesLegacy[0]); }
 int getTestDataRatesCountMCS() { return sizeof(s_ArrayTestRadioRatesMCS)/sizeof(s_ArrayTestRadioRatesMCS[0]); }
 int* getTestDataRatesLegacy() { return s_ArrayTestRadioRatesLegacy; }
 int* getTestDataRatesMCS() { return s_ArrayTestRadioRatesMCS; }
 
-int getLowerLevelDataRate(int iDatarateBSP)
+// Positive level shift -> increase datarate
+// Negative level shift -> decrease datarate
+int getDataRateShiftedByLevels(int iDatarateBSP, int iLevelsToShift)
 {
+   if ( 0 == iLevelsToShift )
+      return iDatarateBSP;
+
+   // MCS datarates
    if ( iDatarateBSP < 0 )
    {
-      if ( iDatarateBSP < -1 )
-         return iDatarateBSP + 1;
+      iDatarateBSP -= iLevelsToShift;
+      if ( iDatarateBSP < -MAX_MCS_INDEX-1 )
+         iDatarateBSP = -MAX_MCS_INDEX-1;
+      if ( iDatarateBSP > -1 )
+         iDatarateBSP = -1;
       return iDatarateBSP;
    }
-   else if ( iDatarateBSP > 0 )
+
+   // Legacy datarates
+   // Find the datarate index (lowest one) and then do the shifting
+   int iCountRates = getLegacyDataRatesCount();
+   int* pRates = getLegacyDataRatesBPS();
+   for( int iRateIndex=0; iRateIndex<iCountRates; iRateIndex++ )
    {
-      for( int i=0; i<getDataRatesCount(); i++ )
+      if ( pRates[iRateIndex] >= iDatarateBSP )
       {
-         if ( getDataRatesBPS()[i] >= iDatarateBSP )
-         if ( i > 0 )
-            return getDataRatesBPS()[i-1];
+         iRateIndex += iLevelsToShift;
+         if ( iRateIndex < 0 )
+            iRateIndex = 0;
+         if ( iRateIndex >= iCountRates )
+            iRateIndex = iCountRates - 1;
+         iDatarateBSP = pRates[iRateIndex];
+         break;
       }
-      return iDatarateBSP;
    }
+
    return iDatarateBSP;
 }
 

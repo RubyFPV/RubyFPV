@@ -45,7 +45,7 @@
 #include "../media.h"
 #include "../shared_vars.h"
 #include "../launchers_controller.h"
-
+#include "../video_playback.h"
 
 const char* s_szWarningFreeDiskSpace = "You are running low on free storage space. Move your media files to a USB memory stick.";
 
@@ -440,7 +440,7 @@ int MenuStorage::onBack()
 {
    if ( g_bIsVideoPlaying )
    {
-      stopVideoPlay();
+      video_playback_stop();
       hardware_sleep_ms(50);
       return 1;
    }
@@ -694,13 +694,31 @@ bool MenuStorage::moveVideos(bool bDelete)
       }
 
       strcpy(szOutFile, szSrcFile);
-      szOutFile[strlen(szOutFile)-4] = 'm';
-      szOutFile[strlen(szOutFile)-3] = 'p';
-      szOutFile[strlen(szOutFile)-2] = '4';
-      szOutFile[strlen(szOutFile)-1] = 0;
+      hardware_file_replace_extension(szOutFile, "mp4");
       snprintf(szCommand, sizeof(szCommand)/sizeof(szCommand[0]), "rm -rf %sRuby/%s", FOLDER_USB_MOUNT, szOutFile);
       hw_execute_bash_command(szCommand, NULL);
       snprintf(szCommand, sizeof(szCommand)/sizeof(szCommand[0]), "rm -rf %s%s", FOLDER_RUBY_TEMP, szOutFile);
+      hw_execute_bash_command(szCommand, NULL);
+
+      char szFileOSDIn[MAX_FILE_PATH_SIZE];
+      char szFileOSDOut[MAX_FILE_PATH_SIZE];
+
+      strcpy(szFileOSDIn, m_szVideoInfoFiles[i]);
+      strcpy(szFileOSDOut, m_szVideoInfoFiles[i]);
+      hardware_file_replace_extension(szFileOSDIn, "osd");
+      hardware_file_replace_extension(szFileOSDOut, "osd");
+      if ( bDelete )
+         snprintf(szCommand, sizeof(szCommand)/sizeof(szCommand[0]), "mv -f %s%s %sRuby/%s 2>/dev/null", FOLDER_MEDIA, szFileOSDIn, FOLDER_USB_MOUNT, szFileOSDOut);
+      else
+         snprintf(szCommand, sizeof(szCommand)/sizeof(szCommand[0]), "cp -rf %s%s %sRuby/%s 2>/dev/null", FOLDER_MEDIA, szFileOSDIn, FOLDER_USB_MOUNT, szFileOSDOut);
+      hw_execute_bash_command(szCommand, NULL);
+
+      hardware_file_replace_extension(szFileOSDIn, "srt");
+      hardware_file_replace_extension(szFileOSDOut, "srt");
+      if ( bDelete )
+         snprintf(szCommand, sizeof(szCommand)/sizeof(szCommand[0]), "mv -f %s%s %sRuby/%s 2>/dev/null", FOLDER_MEDIA, szFileOSDIn, FOLDER_USB_MOUNT, szFileOSDOut);
+      else
+         snprintf(szCommand, sizeof(szCommand)/sizeof(szCommand[0]), "cp -rf %s%s %sRuby/%s 2>/dev/null", FOLDER_MEDIA, szFileOSDIn, FOLDER_USB_MOUNT, szFileOSDOut);
       hw_execute_bash_command(szCommand, NULL);
 
       snprintf(szCommand, sizeof(szCommand)/sizeof(szCommand[0]), "./ruby_video_proc %s%s %s%s &", FOLDER_MEDIA, m_szVideoInfoFiles[i], FOLDER_RUBY_TEMP, szOutFile);
@@ -775,13 +793,23 @@ bool MenuStorage::moveVideos(bool bDelete)
 
       if ( bDelete )
       {
-         sprintf(szCommand, "rm -rf %s%s", FOLDER_MEDIA, m_szVideoInfoFiles[i] );
-         hw_execute_bash_command(szCommand, NULL);
-         szCommand[strlen(szCommand)-4] = 'h';
-         szCommand[strlen(szCommand)-3] = '2';
-         szCommand[strlen(szCommand)-2] = '6';
-         szCommand[strlen(szCommand)-1] = '*';
-         hw_execute_bash_command(szCommand, NULL);
+         char szComm2[256];
+         snprintf(szCommand, sizeof(szCommand)/sizeof(szCommand[0]), "rm -rf %s%s", FOLDER_MEDIA, m_szVideoInfoFiles[i]);
+         strcpy(szComm2, szCommand);
+         strcat(szComm2, " 2>/dev/null");
+         hw_execute_bash_command(szComm2, NULL);
+         hardware_file_replace_extension(szCommand, "h26*");
+         strcpy(szComm2, szCommand);
+         strcat(szComm2, " 2>/dev/null");
+         hw_execute_bash_command(szComm2, NULL);
+         hardware_file_replace_extension(szCommand, "osd");
+         strcpy(szComm2, szCommand);
+         strcat(szComm2, " 2>/dev/null");
+         hw_execute_bash_command(szComm2, NULL);
+         hardware_file_replace_extension(szCommand, "srt");
+         strcpy(szComm2, szCommand);
+         strcat(szComm2, " 2>/dev/null");
+         hw_execute_bash_command(szComm2, NULL);
       }
    }
 
@@ -803,7 +831,14 @@ bool MenuStorage::flowCopyMoveFiles(bool bDeleteToo)
    m_pPopupProgress->setCentered();
    popups_add_topmost(m_pPopupProgress);
 
-   sprintf(szCommand, "mkdir -p %s", FOLDER_USB_MOUNT); 
+   ruby_signal_alive();
+   ruby_processing_loop(true);
+   render_all(g_TimeNow);
+   ruby_signal_alive();
+
+   sprintf(szCommand, "mkdir -p %s", FOLDER_USB_MOUNT);
+   hw_execute_bash_command(szCommand, NULL);
+   sprintf(szCommand, "chmod -R 777 %s", FOLDER_USB_MOUNT);
    hw_execute_bash_command(szCommand, NULL);
 
    ruby_pause_watchdog("copy media files");
@@ -870,56 +905,8 @@ bool MenuStorage::flowCopyMoveFiles(bool bDeleteToo)
    return true;
 }
 
-
-void MenuStorage::stopVideoPlay()
-{
-   log_line("Stopping video playback...");
-   hw_stop_process(VIDEO_PLAYER_OFFLINE);
- 
-   g_bIsVideoPlaying = false;
-   render_all(get_current_timestamp_ms(), true);
-
-   log_line("Stopped video playback.");
-
-   char szComm[256];
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s", CONFIG_FILE_FULLPATH_PAUSE_VIDEO_PLAYER);
-   hw_execute_bash_command(szComm, NULL);
-      
-   //if ( m_bWasPairingStarted )
-   //   pairing_start_normal();
-   if ( pairing_isStarted() )
-      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_PAUSE_LOCAL_VIDEO_DISPLAY, 0);
-
-   render_all(get_current_timestamp_ms(), true);
-}
-
 bool MenuStorage::periodicLoop()
 {
-   if ( g_bIsVideoPlaying )
-   {
-      if ( access(CONFIG_FILE_FULLPATH_PAUSE_VIDEO_PLAYER, R_OK) == -1 )
-         g_uVideoPlayingTimeMs += g_TimeNow - m_uTimestampLastLoopMs;
-      m_uTimestampLastLoopMs = g_TimeNow;
-      
-      static u32 s_uTimeLastVideoPlayerProcessCheck = 0;
-
-      if ( g_TimeNow > s_uTimeLastVideoPlayerProcessCheck + 3000 )
-      {
-         s_uTimeLastVideoPlayerProcessCheck = g_TimeNow;
-         if ( g_uVideoPlayingTimeMs > 2000 )
-         if ( ! hw_process_exists(VIDEO_PLAYER_OFFLINE) )
-         {
-            log_line("MenuStorage: video player process (%s) does not exist, exit playback.", VIDEO_PLAYER_OFFLINE);
-            stopVideoPlay();
-         }
-      }
-      if ( g_uVideoPlayingTimeMs > g_uVideoPlayingLengthSec*1000 + 1000 )
-      {
-         log_line("Video playback duration reached. Stopping video player.");
-         stopVideoPlay();
-      }
-   }
-
    if ( m_uMustRefreshTime != 0 )
    if ( (g_TimeNow > m_uMustRefreshTime) || (! g_bIsVideoProcessing) )
    {
@@ -942,7 +929,6 @@ void MenuStorage::onSelectItem()
       else
          snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "touch %s", CONFIG_FILE_FULLPATH_PAUSE_VIDEO_PLAYER);
       hw_execute_bash_command(szComm, NULL);
-      //stopVideoPlay();
       return;
    }
 
@@ -1049,26 +1035,12 @@ void MenuStorage::onSelectItem()
 void MenuStorage::playVideoFile(int iMenuItemIndex)
 {
    char szFile[MAX_FILE_PATH_SIZE];
-   char szBuff[1024];
    int index = m_UIFilesPerPage * m_UIFilesPage + iMenuItemIndex - m_StaticMenuItemsCountBeforeUIFiles;
    if ( index < 0 || index >= m_VideoInfoFilesCount )
       return;
 
-   char szComm[256];
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s", CONFIG_FILE_FULLPATH_PAUSE_VIDEO_PLAYER);
-   hw_execute_bash_command(szComm, NULL);
-
-   snprintf(szFile, sizeof(szFile)/sizeof(szFile[0]), "%s%s", FOLDER_MEDIA, m_szVideoInfoFiles[index]); 
-   FILE* fd = fopen(szFile, "r");
-   if ( NULL == fd )
-      return;
-
-   if ( 1 != fscanf(fd, "%s", szFile) )
-   {
-      fclose(fd);
-      return;
-   }
-   fclose(fd);
+   snprintf(szFile, sizeof(szFile)/sizeof(szFile[0]), "%s%s", FOLDER_MEDIA, m_szVideoInfoFiles[index]);
+   video_playback_play_file(szFile);
 
    /*
    if ( pairing_isStarted() )
@@ -1084,41 +1056,6 @@ void MenuStorage::playVideoFile(int iMenuItemIndex)
       ruby_signal_alive();
    }
    */
-   if ( pairing_isStarted() )
-   {
-      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_PAUSE_LOCAL_VIDEO_DISPLAY, 1);
-      hardware_sleep_ms(200);
-   }  
-   #ifdef HW_PLATFORM_RASPBERRY
-   snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "./%s -file %s%s -fps %d", VIDEO_PLAYER_OFFLINE, FOLDER_MEDIA, szFile, m_VideoFilesFPS[index]);
-   #endif
 
-   #ifdef HW_PLATFORM_RADXA
-   snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "./%s -file %s%s -fps %d", VIDEO_PLAYER_OFFLINE, FOLDER_MEDIA, szFile, m_VideoFilesFPS[index]);
-   #endif
-
-   ControllerSettings* pCS = get_ControllerSettings();
-   if ( pCS->iCoresAdjustment )
-   {
-      char szTmp[32];
-      sprintf(szTmp, " -af %d", (0x01 << CORE_AFFINITY_VIDEO_OUTPUT));
-      strcat(szBuff, szTmp);
-   }
-
-   if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityVideo > 1) && (pCS->iThreadPriorityVideo < 100) )
-   {
-      char szTmp[32];
-      sprintf(szTmp, " -rawp %d", pCS->iThreadPriorityVideo );
-      strcat(szBuff, szTmp);
-   }
-
-   strcat(szBuff, "&");
-   hw_execute_bash_command_nonblock(szBuff, NULL);
-   hardware_sleep_ms(100);
-   g_bIsVideoPlaying = true;
-   g_uVideoPlayingTimeMs = 0;
-   g_uVideoPlayingLengthSec = m_VideoFilesDuration[index];
-   m_uTimestampLastLoopMs = g_TimeNow;
-   log_line("Started video playback of file: (%s%s)", FOLDER_MEDIA, szFile);
-
+   log_line("Started video playback of info file: (%s%s)", FOLDER_MEDIA, szFile);
 }

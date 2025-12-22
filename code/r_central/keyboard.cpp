@@ -265,7 +265,7 @@ bool _keyboard_try_detect()
    return bDetectedNewDevices;
 }
 
-void _add_input_event(u32 uEvent)
+void _add_input_event(u32 uEvent, bool bFromKeyboard)
 {
    if ( (uEvent == INPUT_EVENT_PRESS_QA1) ||
         (uEvent == INPUT_EVENT_PRESS_QA2) ||
@@ -276,8 +276,8 @@ void _add_input_event(u32 uEvent)
       s_uKeyboardLastQAActionEventTime = get_current_timestamp_ms();
    }
 
-   if ( uEvent == INPUT_EVENT_PRESS_MENU )
-      log_line("[Input] Added input event %u, %d events", uEvent, s_iCountKeyboardInputEvents);
+   //if ( uEvent == INPUT_EVENT_PRESS_MENU )
+      log_line("[Input] Added input event %u %s, %d events already in queue", uEvent, bFromKeyboard?"from keyboard":"from GPIO", s_iCountKeyboardInputEvents);
    int iLock = pthread_mutex_lock(&s_pThreadKeyboardMutex);
 
    s_uKeyboardInputEvents[s_iCountKeyboardInputEvents] = uEvent;
@@ -368,7 +368,7 @@ int _read_keyboard_input_events()
                uEvent = ((u32)events[k].code) << 16;
             }
             if ( uEvent > 0 )
-               _add_input_event(uEvent);
+               _add_input_event(uEvent, true);
          }
       }
    }
@@ -391,30 +391,30 @@ static void * _thread_keyboard(void *argument)
       if ( ! (*pbInitialized) )
          break;
       if ( isKeyMenuPressed() )
-         _add_input_event(INPUT_EVENT_PRESS_MENU);
+         _add_input_event(INPUT_EVENT_PRESS_MENU, false);
       if ( isKeyBackPressed() )
-         _add_input_event(INPUT_EVENT_PRESS_BACK);
+         _add_input_event(INPUT_EVENT_PRESS_BACK, false);
       if ( isKeyMinusPressed() )
-         _add_input_event(INPUT_EVENT_PRESS_MINUS);
+         _add_input_event(INPUT_EVENT_PRESS_MINUS, false);
       if ( isKeyPlusPressed() )
-         _add_input_event(INPUT_EVENT_PRESS_PLUS);
+         _add_input_event(INPUT_EVENT_PRESS_PLUS, false);
       if ( isKeyQA1Pressed() )
-         _add_input_event(INPUT_EVENT_PRESS_QA1);
+         _add_input_event(INPUT_EVENT_PRESS_QA1, false);
       if ( isKeyQA2Pressed() )
-         _add_input_event(INPUT_EVENT_PRESS_QA2);
+         _add_input_event(INPUT_EVENT_PRESS_QA2, false);
       if ( isKeyQA3Pressed() )
-         _add_input_event(INPUT_EVENT_PRESS_QA3);
+         _add_input_event(INPUT_EVENT_PRESS_QA3, false);
 
       if ( isKeyMinusLongPressed() )
-         _add_input_event(INPUT_EVENT_PRESS_MINUS);
+         _add_input_event(INPUT_EVENT_PRESS_MINUS, false);
       if ( isKeyPlusLongPressed() )
-         _add_input_event(INPUT_EVENT_PRESS_PLUS);
+         _add_input_event(INPUT_EVENT_PRESS_PLUS, false);
 
       if ( isKeyMinusLongLongPressed() || isKeyPlusLongLongPressed() || isKeyMenuLongLongPressed() )
          s_bHasLongPressFlag = true;
       else
          s_bHasLongPressFlag = false;
-      hardware_sleep_ms(15);
+      hardware_sleep_ms(10);
 
       if ( ! (*pbInitialized) )
          break;

@@ -38,12 +38,12 @@
 #include "radiopackets_short.h"
 
 #if defined (HW_PLATFORM_RASPBERRY) || defined (HW_PLATFORM_RADXA)
-#define MAX_RXTX_BLOCKS_BUFFER 200
-#define MAX_TOTAL_PACKETS_IN_BLOCK 64
-#define MAX_DATA_PACKETS_IN_BLOCK 32
-#define MAX_FECS_PACKETS_IN_BLOCK 32
+#define MAX_RXTX_BLOCKS_BUFFER 100
+#define MAX_TOTAL_PACKETS_IN_BLOCK 32
+#define MAX_DATA_PACKETS_IN_BLOCK 16
+#define MAX_FECS_PACKETS_IN_BLOCK 16
 #else
-#define MAX_RXTX_BLOCKS_BUFFER 80
+#define MAX_RXTX_BLOCKS_BUFFER 70
 #define MAX_TOTAL_PACKETS_IN_BLOCK 32
 #define MAX_DATA_PACKETS_IN_BLOCK 16
 #define MAX_FECS_PACKETS_IN_BLOCK 16
@@ -194,6 +194,7 @@ typedef struct
 #define PACKET_TYPE_RUBY_PAIRING_CONFIRMATION 8
 // Sent by vehicle to controller.
 // Has an optional u32 param after header: count of received pairing requests;
+// Has an optional software verion u16 byte-maj.byte-minor
 
 #define PACKET_TYPE_RUBY_RADIO_CONFIG_UPDATED 9 // Sent by vehicle to controller to let it know about the current radio config.
                                            // Contains a type_relay_parameters, type_radio_interfaces_parameters and a type_radio_links_parameters
@@ -237,6 +238,12 @@ typedef struct
 
 
 #define PACKET_TYPE_RUBY_LOG_FILE_SEGMENT 13 // from vehicle to controller, contains a file segment header too and then file data segment
+
+#define PACKET_TYPE_RUBY_MESSAGE 14
+// u16 message id, monotonically increasing
+// u8 type: 0 debug, 1 info, 2 warning, 3 error
+// 0...n: string, null terminated
+
 
 #define PACKET_TYPE_RUBY_ALARM 15
 // Contains 4 u32: alarm index (u32), alarm id(s) (u32), flags1 (u32) and flags2 (u32)
@@ -307,6 +314,8 @@ typedef struct
       //    bit 6  - 0/1: contains P-NAL unit
       //    bit 7  - 0/1: contains other NAL unit
       // byte 2: data/other packets count after video packets
+      // byte 3:
+      //    bit 0  - 1 if it was reconstructed on Rx side (valid only on rx side)
 
    u8 uStreamInfoFlags;
    // See enum above
@@ -740,12 +749,17 @@ typedef struct
 #define MSP_FLAGS_FC_TYPE_ARDUPILOT 3
 #define MSP_FLAGS_FC_TYPE_PITLAB 4
 
+#define MSP_FLAG_GOT_FC_TYPE ((u32)(((u32)0x01)<<5))
+#define MSP_FLAG_GOT_FC_DISPLAY_OPTIONS ((u32)(((u32)0x01)<<6))
+#define MSP_FLAG_FC_DID_ADJUSTED_OSD_SIZE ((u32)(((u32)0x01)<<7))
+#define MSP_FLAG_AUTO_ADJUSTED_OSD_SIZE ((u32)(((u32)0x01)<<8))
+
 typedef struct
 {
-   u32 uFlags;
+   u32 uMSPFlags; // See flags above
    // bit 0..2: FC type (see above): 1 BF, 2 INAV, 3 Ardupilot
-   u8 uRows;
-   u8 uCols;
+   u8 uMSPOSDRows;
+   u8 uMSPOSDCols;
    u32 uSegmentIdAndExtraInfo; // byte 0..1: segment id (monotonically increasing), byte 2: checksum
 } __attribute__((packed)) t_packet_header_telemetry_msp;
 
@@ -915,7 +929,7 @@ byte 4: command type:
 #define OTA_UPDATE_STATUS_FAILED 255
 
 
-#define PACKET_TYPE_DEBUG_VEHICLE_RT_INFO 110
+//#define PACKET_TYPE_DEBUG_VEHICLE_RT_INFO 110 // deprecated in 11.7
 // contains a vehicle_runtime_info structure
 
 #ifdef __cplusplus

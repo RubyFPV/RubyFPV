@@ -24,6 +24,7 @@ class MenuVehicleOSDStats: public Menu
       int m_IndexRadioRxDbgPingStats;
       int m_IndexAudioDecodeStats;
       int m_IndexVehicleDevStats;
+      int m_IndexVideoFramesStats;
       int m_IndexRadioRefreshInterval, m_IndexVideoRefreshInterval, m_IndexSnapshot, m_IndexSnapshotTimeout;
       int m_IndexStatsVideoH264FramesInfo, m_IndexRefreshIntervalVideoBitrateHistory;
       int m_IndexTelemetryStats;

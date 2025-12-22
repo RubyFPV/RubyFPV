@@ -53,6 +53,15 @@ extern u32 g_uOSDElementChangeTimeout;
 extern u32 g_uOSDElementChangeBlinkInterval;
 extern bool g_bOSDElementChangeNotification;
 
+const double* osdGetColorVideoFrameNormal();
+const double* osdGetColorVideoFrameI();
+const double* osdGetColorVideoFrameO();
+const double* osdGetColorVideoFrameEC();
+const double* osdGetColorVideoFrameECMax();
+const double* osdGetColorVideoFrameRetr();
+const double* osdGetColorVideoFrameRetrDiscard();
+const double* osdGetColorVideoFrameMissing();
+
 float osd_getMarginX();
 float osd_getMarginY();
 void osd_setMarginX(float x);
