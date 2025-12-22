@@ -577,7 +577,7 @@ void _process_received_msp_telemetry(u8* pPacketBuffer)
    }
    memcpy(&(pRuntimeInfo->mspState.headerTelemetryMSP), pPHMSP, sizeof(t_packet_header_telemetry_msp));
 
-   parse_msp_incoming_data(&(pRuntimeInfo->mspState), pPacketBuffer + sizeof(t_packet_header) + sizeof(t_packet_header_telemetry_msp), pPH->total_length - sizeof(t_packet_header) - sizeof(t_packet_header_telemetry_msp), g_bFreezeOSD);
+   parse_msp_incoming_data(&(pRuntimeInfo->mspState), pPacketBuffer + sizeof(t_packet_header) + sizeof(t_packet_header_telemetry_msp), pPH->total_length - sizeof(t_packet_header) - sizeof(t_packet_header_telemetry_msp), !g_bFreezeOSD);
 }
 
 void _process_received_model_settings(u8* pPacketBuffer)
