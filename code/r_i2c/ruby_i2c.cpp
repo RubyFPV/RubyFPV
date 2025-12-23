@@ -964,7 +964,7 @@ int main(int argc, char *argv[])
 
    hardware_detectBoardAndSystemType();
    
-   hardware_i2c_enumerate_busses();
+   hardware_i2c_enumerate_busses(0);
 
    for( int i=0; i<MAX_I2C_DEVICES; i++ )
    {

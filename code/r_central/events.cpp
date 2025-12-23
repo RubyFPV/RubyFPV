@@ -198,7 +198,22 @@ void onEventReboot()
 {
    log_line("[Events] Handling event Reboot...");
    ruby_pause_watchdog("rebooting");
-   save_temp_local_stats();
+   bool bMigratedFirmware = false;
+   if ( g_bDidAnUpdate )
+   {
+      char szFile[MAX_FILE_PATH_SIZE];
+      strcpy(szFile, FOLDER_BINARIES);
+      strcat(szFile, "ruby_start");
+      if ( access(szFile, R_OK) != -1 )
+      {
+         strcpy(szFile, FOLDER_BINARIES);
+         strcat(szFile, "onyxfpv_start");
+         if ( access(szFile, R_OK) != -1 )
+            bMigratedFirmware = true;
+      }
+   }
+   if ( ! bMigratedFirmware )
+      save_temp_local_stats();
    hardware_sleep_ms(50);
    //pairing_stop();
 
@@ -709,7 +724,7 @@ bool _onEventCheckNewlyPairedModelForUIActionsToTake()
    }
 
    if ( ! s_bEventTookPairingUIActionUpdateController )
-   if ( ! is_sw_version_latest(s_pEventsLastRecvModelSettings) )
+   if ( get_sw_version_build(s_pEventsLastRecvModelSettings) > SYSTEM_SW_BUILD_NUMBER )
    {
       char szBuff[256];
       char szBuff2[32];

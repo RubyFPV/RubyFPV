@@ -17,6 +17,7 @@ class MenuControllerPeripherals: public Menu
       virtual void onSelectItem();
 
    private:
+      void addItems();
       void addI2CDevices();
       MenuItemSelect* m_pItemsSelect[100];
       MenuItemSlider* m_pItemsSlider[20];

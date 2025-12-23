@@ -42,6 +42,99 @@
 #include "../base/hardware_procs.h"
 #include "../base/config.h"
 
+static bool s_bQuit = false;
+static int s_iLastValues[20];
+
+void _check_process(const char* szProc, int iLogIndex)
+{
+   char szComm[MAX_FILE_PATH_SIZE];
+   char szOutput[1024];
+   int iValue = 0;
+
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "ps -eo min_flt,comm | grep %s", szProc);
+   hw_execute_bash_command(szComm, szOutput);
+   if ( (strlen(szOutput) < 6) || (1 != sscanf(szOutput, "%d", &iValue)) )
+      iValue = 0;
+
+   if ( iValue == 0 )
+   {
+      if ( 0 == s_iLastValues[iLogIndex] )
+      {
+         s_iLastValues[iLogIndex] = 1;
+         printf("----\t%s\n", szProc);
+      }
+      return;
+   }
+
+   if ( 0 == s_iLastValues[iLogIndex] )
+   {
+      printf("%d\t%s\n", iValue, szProc);
+      s_iLastValues[iLogIndex] = iValue;
+      return;
+   }
+
+   if ( iValue != s_iLastValues[iLogIndex] )
+      printf("%d/sec\t%s\n", iValue - s_iLastValues[iLogIndex], szProc);
+   s_iLastValues[iLogIndex] = iValue;
+}
+
+
+void log_page_faults()
+{
+   printf("Mem Page Faults / Proc\n");
+   printf("-----------------------\n");
+
+   u32 uTimeCheck = get_current_timestamp_ms();
+   int iCounter = 0;
+
+   while ( ! s_bQuit )
+   {   
+      _check_process("ruby_logger", 0);
+      _check_process("ruby_rt_vehicle", 1);
+      _check_process("ruby_tx_telemetry", 2);
+
+      #if defined(HW_PLATFORM_OPENIPC_CAMERA)
+      _check_process("majestic", 3);
+      #else
+      _check_process("ruby_capture_raspi", 4);
+      #endif
+
+      _check_process("ruby_central", 5);
+      _check_process("ruby_rt_station", 6);
+      _check_process("ruby_rx_telemetry", 7);
+
+      #if defined(HW_PLATFORM_RADXA)
+      _check_process("ruby_player_radxa", 8);
+      #else
+      _check_process("ruby_player_p", 9);
+      _check_process("ruby_player_s", 10);
+      #endif
+
+      if ( 0 == iCounter )
+      {
+         printf("-----------------------\n");
+         printf("Ctrl+C to stop\n");
+         printf("Page Fauts/Sec  Proc\n");
+      }
+      iCounter++;
+      u32 uTime = get_current_timestamp_ms();
+      if ( uTime < uTimeCheck + 1000 )
+      {
+         hardware_sleep_ms(20);
+         continue;
+      }
+   }
+}
+
+void handle_sigint(int sig) 
+{ 
+   log_line("--------------------------");
+   log_line("Caught signal to stop: %d", sig);
+   log_line("--------------------------");
+   s_bQuit = true;
+} 
+
+
 int main(int argc, char *argv[])
 {
    if ( NULL != strstr(argv[argc-1], "-v") )
@@ -50,6 +143,17 @@ int main(int argc, char *argv[])
       return 0;
    }
 
+   if ( NULL != strstr(argv[argc-1], "-pagefaults") )
+   {
+      signal(SIGINT, handle_sigint);
+      signal(SIGTERM, handle_sigint);
+      signal(SIGQUIT, handle_sigint);
+
+      for(int i=0; i<20; i++ )
+         s_iLastValues[i] = 0;
+      log_page_faults();
+      return 0;
+   }
    hw_log_processes(argc, argv);
    return 0;
 } 

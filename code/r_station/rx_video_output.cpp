@@ -889,28 +889,28 @@ void _rx_video_output_parse_h264_stream(u32 uVehicleId, u8* pBuffer, int iLength
       if ( (NULL != g_pCurrentModel) && g_pControllerSettings->iDeveloperMode )
       if ( get_Preferences()->uDebugStatsFlags & CTRL_RT_DEBUG_INFO_FLAG_SHOW_OUTPUT_VIDEO_FRAMES )
       {
-         u32 uSize = (g_SMControllerDebugRTInfo.uOutputFramesInfo[g_SMControllerRTInfo.iCurrentIndex] >> 8) & 0xFFFF;
+         u32 uSize = (g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] >> 16);
          uSize += iLength;
-         g_SMControllerDebugRTInfo.uOutputFramesInfo[g_SMControllerRTInfo.iCurrentIndex] = 
-         (g_SMControllerDebugRTInfo.uOutputFramesInfo[g_SMControllerRTInfo.iCurrentIndex] & 0xFF0000FF) | ((uSize & 0xFFFF) << 8);
+         g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] = 
+         (g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] & 0x0000FFFF) | ((uSize & 0xFFFF) << 16);
 
          u32 uDeltaMS = g_TimeNow - g_SMControllerRTInfo.uCurrentSliceStartTime;
          if ( uDeltaMS > 128 )
             uDeltaMS = 128;
-         g_SMControllerDebugRTInfo.uOutputFramesInfo[g_SMControllerRTInfo.iCurrentIndex] &= 0xFFFFFF;
-         g_SMControllerDebugRTInfo.uOutputFramesInfo[g_SMControllerRTInfo.iCurrentIndex] |= (uDeltaMS << 24);
+         g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] &= 0xFFFFFF00;
+         g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] |= (uDeltaMS & 0xFF);
       }
 
       u32 uNewNALType = s_ParserH264StreamOutput.parseData(pBuffer, iLength, g_TimeNow);
       if ( uNewNALType == 1 )
-         g_SMControllerDebugRTInfo.uOutputFramesInfo[g_SMControllerRTInfo.iCurrentIndex] |= (VIDEO_STATUS_FLAGS2_IS_NAL_P>>8);
+         g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] |= VIDEO_STATUS_FLAGS2_IS_NAL_P;
       else if ( uNewNALType == 5 )
-         g_SMControllerDebugRTInfo.uOutputFramesInfo[g_SMControllerRTInfo.iCurrentIndex] |= (VIDEO_STATUS_FLAGS2_IS_NAL_I>>8);
+         g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] |= VIDEO_STATUS_FLAGS2_IS_NAL_I;
       else
-         g_SMControllerDebugRTInfo.uOutputFramesInfo[g_SMControllerRTInfo.iCurrentIndex] |= (VIDEO_STATUS_FLAGS2_IS_NAL_O>>8);
+         g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] |= VIDEO_STATUS_FLAGS2_IS_NAL_O;
 
       if ( s_ParserH264StreamOutput.lastParseDetectedNALStart() != -1 )
-         g_SMControllerDebugRTInfo.uOutputFramesInfo[g_SMControllerRTInfo.iCurrentIndex] |= (VIDEO_STATUS_FLAGS2_IS_NAL_START>>8);
+         g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] |= VIDEO_STATUS_FLAGS2_IS_NAL_START;
    }
    // To fix
    /*
@@ -1170,10 +1170,10 @@ void rx_video_output_video_data(u32 uVehicleId, t_packet_header_video_segment* p
 
    if ( g_pControllerSettings->iEnableDebugStats )
    {
-      u32 uSize = g_SMControllerDebugRTInfo.uOutputedFramesSizes[g_SMControllerDebugRTInfo.iCurrentFrameBufferIndex] & 0xFFFFFF;
+      u32 uSize = g_SMControllerDebugVideoRTInfo.uOutputedFramesSizes[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] & 0xFFFFFF;
       uSize += video_data_length;
-      g_SMControllerDebugRTInfo.uOutputedFramesSizes[g_SMControllerDebugRTInfo.iCurrentFrameBufferIndex] &= 0xFF000000;
-      g_SMControllerDebugRTInfo.uOutputedFramesSizes[g_SMControllerDebugRTInfo.iCurrentFrameBufferIndex] |= uSize;
+      g_SMControllerDebugVideoRTInfo.uOutputedFramesSizes[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] &= 0xFF000000;
+      g_SMControllerDebugVideoRTInfo.uOutputedFramesSizes[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] |= uSize;
    }
 
    // To fix
@@ -1212,6 +1212,8 @@ void rx_video_output_video_data(u32 uVehicleId, t_packet_header_video_segment* p
    if ( bParseStream != s_bLastParseVideoOutputStreamState )
       s_ParserH264StreamOutput.init();
    s_bLastParseVideoOutputStreamState = bParseStream;
+
+   g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] |= (pPHVS->uVideoStatusFlags2 & 0x0000FF00);
 
    if ( bParseStream )
       _rx_video_output_parse_h264_stream(uVehicleId, pBuffer, video_data_length);

@@ -57,6 +57,7 @@
 #define VIDEO_STATUS_FLAGS2_IS_NAL_P ((u32)(((u32)0x01)<<13))
 #define VIDEO_STATUS_FLAGS2_IS_NAL_O ((u32)(((u32)0x01)<<14))
 #define VIDEO_STATUS_FLAGS2_IS_END_OF_FRAME ((u32)(((u32)0x01)<<15))
+#define VIDEO_STATUS_FLAGS2_WAS_RECONSTRUCTED ((u32)(((u32)0x01)<<24))
 
 // Highest bit in video bitrate field tells if vehicle adjusted the videobitrate
 #define VIDEO_BITRATE_FLAG_ADJUSTED     ((u32)(((u32)0x01)<<31))

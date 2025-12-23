@@ -139,17 +139,11 @@ bool saveCurrentModel()
       return false;
    }
 
-   char szComm[256];
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s* 2>/dev/null", FOLDER_CONFIG);
-   hw_execute_bash_command(szComm, NULL);
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s* 2>/dev/null", FOLDER_CONFIG_MODELS);
-   hw_execute_bash_command(szComm, NULL);
-
    char szFile[MAX_FILE_PATH_SIZE];
    strcpy(szFile, FOLDER_CONFIG);
    strcat(szFile, FILE_CONFIG_CURRENT_VEHICLE_MODEL);
 
-   log_line("Saving model id %u as current model", s_pCurrentModel->uVehicleId);
+   log_line("Saving model VID %u as current model", s_pCurrentModel->uVehicleId);
    s_pCurrentModel->saveToFile(szFile, hardware_is_station());
 
    if ( hardware_is_vehicle() )
@@ -175,7 +169,7 @@ bool saveCurrentModel()
    {
       if ( s_pModels[i]->uVehicleId != s_pCurrentModel->uVehicleId )
          continue;
-      log_line("Saving model id %u as controller model index %d", s_pCurrentModel->uVehicleId, i);
+      log_line("Saving model VID %u as controller model index %d", s_pCurrentModel->uVehicleId, i);
       char szFolderM[MAX_FILE_PATH_SIZE];
       strcpy(szFolderM, FOLDER_CONFIG_MODELS);
       strcat(szFolderM, FILE_VEHICLE_CONTROLL);
@@ -217,7 +211,7 @@ void setCurrentModel(u32 uVehicleId)
    {
        if ( (NULL != s_pModels[i]) && (s_pModels[i]->uVehicleId == uVehicleId) )
        {
-          log_line("Set current vehicle to controller vehicle index %d (VID %u)", i, uVehicleId);
+          log_line("Set current vehicle: Controller's vehicle index %d (VID %u)", i, uVehicleId);
           s_pCurrentModel = s_pModels[i];
           return;
        }
@@ -226,7 +220,7 @@ void setCurrentModel(u32 uVehicleId)
    {
        if ( (NULL != s_pModelsSpectator[i]) && (s_pModelsSpectator[i]->uVehicleId == uVehicleId) )
        {
-          log_line("Set current vehicle to controller spectator vehicle index %d (VID %u)", i, uVehicleId);
+          log_line("Set current vehicle: Controller's spectator vehicle index %d (VID %u)", i, uVehicleId);
           s_pCurrentModel = s_pModelsSpectator[i];
           return;
        }
@@ -328,13 +322,16 @@ Model* getModelAtIndex(int index)
    return s_pModels[index];
 }
 
-Model* addNewModel(int iVersionMajor, int iVersionMinor)
+Model* addNewModel(u32 uVehicleId, int iVersionMajor, int iVersionMinor)
 {
    if ( s_iModelsCount >= MAX_MODELS-1 )
       return NULL;
-   log_line("Adding a new model in the controller's models list...");
+   log_line("Adding a new model in the controller's models list for VID %u, SW: %d.%d ...",
+      uVehicleId, iVersionMajor, iVersionMinor);
+
    s_pModels[s_iModelsCount] = new Model();
-   s_pModels[s_iModelsCount]->resetToDefaults(true);
+   s_pModels[s_iModelsCount]->resetToDefaults(false);
+   s_pModels[s_iModelsCount]->uVehicleId = uVehicleId;
    s_pModels[s_iModelsCount]->sw_version = (iVersionMajor * 256 + iVersionMinor);
 
    char szBuff[256];

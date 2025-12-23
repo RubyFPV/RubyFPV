@@ -38,6 +38,7 @@ void render_all(u32 timeNow, bool bForceBackground = false, bool bDoInputLoop = 
 void render_all_with_menus(u32 timeNow, bool bRenderMenus, bool bForceBackground = false, bool bDoInputLoop = false);
 int ruby_start_recording();
 int ruby_stop_recording();
+bool ruby_is_recording();
 
 void ruby_load_models();
 

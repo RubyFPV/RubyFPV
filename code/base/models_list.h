@@ -20,7 +20,7 @@ Model* addSpectatorModel(u32 vehicleId);
 void moveSpectatorModelToTop(int index);
 
 Model* getModelAtIndex(int index);
-Model* addNewModel(int iVersionMajor, int iVersionMinor);
+Model* addNewModel(u32 uVehicleId, int iVersionMajor, int iVersionMinor);
 void replaceModel(int index, Model* pModel);
 Model* findModelWithId(u32 uVehicleId, u32 uSrcId);
 bool modelIsInControllerList(u32 uVehicleId);

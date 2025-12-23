@@ -47,7 +47,11 @@ const char* s_szVehicleNone3 = L("* Or import a previously saved vehicle from a 
 MenuVehicles::MenuVehicles(void)
 :Menu(MENU_ID_VEHICLES, L("My Vehicles"), NULL)
 {
-   m_Width = 0.33;
+   if ( g_pControllerSettings->iDeveloperMode )
+      m_Width = 0.38;
+   else
+      m_Width = 0.32;
+
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.2;
    m_iLastSelectedVehicle = -1;
 
@@ -273,7 +277,7 @@ void MenuVehicles::Render()
    float fFavoriteHeight = 1.2*g_pRenderEngine->textHeight(g_idFontMenu);
    float fFavoriteWidth = fFavoriteHeight / g_pRenderEngine->getAspectRatio();
 
-   bool bAlphaEnabled = g_pRenderEngine->isAlphaEnabled();
+   bool bAlphaEnabled = g_pRenderEngine->isAlphaBlendingEnabled();
 
    int iCountVehicles = getControllerModelsCount();
    if ( m_bShowSpectator )
@@ -302,7 +306,7 @@ void MenuVehicles::Render()
             g_pRenderEngine->drawIcon(xFav, y0-dy, fFavoriteWidth, fFavoriteHeight, g_idIconFavorite);
       }
    }
-   g_pRenderEngine->setAlphaEnabled(bAlphaEnabled);
+   g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
    RenderEnd(yTop);
 }
 

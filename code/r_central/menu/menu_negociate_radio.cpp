@@ -289,7 +289,7 @@ void MenuNegociateRadio::_reset_tests_and_state()
 
    log_line("[NegociateRadioLink] Vehicle radio link 1 card type: %s, max power: %d mW", str_get_radio_card_model_string(iRadioInterfacelModel), iRadioInterfacePowerMaxMw);
    
-   for( int i=0; i<5/*getTestDataRatesCountLegacy()*/; i++ )
+   for( int i=0; i<6/*getTestDataRatesCountLegacy()*/; i++ )
    {
       m_TestsInfo[m_iTestsCount].iDataRateToTest = getTestDataRatesLegacy()[i];
       m_TestsInfo[m_iTestsCount].uRadioFlagsToTest = RADIO_FLAGS_USE_LEGACY_DATARATES;
@@ -973,7 +973,6 @@ void MenuNegociateRadio::_send_revert_flags_to_vehicle()
    log_line("[NegociateRadioLink] Send revert flags to vehicle");
    u8 uFlagsRuntimeCapab = g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab;
    g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab = uFlagsRuntimeCapab & (~MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED);
-   g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab &= ~MODEL_RUNTIME_RADIO_CAPAB_FLAG_DIRTY;
    g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags &= ~MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS;
 
    g_pCurrentModel->validateRadioSettings();
@@ -1191,6 +1190,11 @@ bool MenuNegociateRadio::_currentTestUpdateWhenRunning()
    if ( m_iCurrentTestIndex < m_iIndexFirstRadioPowersTest )
       return false;
 
+   return _updateCurrentMultiTest();
+}
+
+bool MenuNegociateRadio::_updateCurrentMultiTest()
+{
    if ( g_TimeNow <= m_TestsInfo[m_iCurrentTestIndex].uTimeStarted + m_TestsInfo[m_iCurrentTestIndex].uDurationSubTest )
       return false;
 
@@ -1293,6 +1297,7 @@ bool MenuNegociateRadio::_currentTestUpdateWhenRunning()
    m_iState = NEGOCIATE_STATE_START_TEST;
    log_line("[NegociateRadioLink] Multistep test %d/%d increase substep to: %d", m_iCurrentTestIndex, m_iTestsCount-1, m_TestsInfo[m_iCurrentTestIndex].iCurrentSubTest);
    log_line("[NegociateRadioLink] State (Test: (%s) %d/%d): (Multi step test running) -> Start test.", _getTestType(m_iCurrentTestIndex), m_iCurrentTestIndex, m_iTestsCount-1);
+
    return false;
 }
 
@@ -1403,7 +1408,6 @@ void MenuNegociateRadio::_save_new_settings_to_model()
        g_pCurrentModel->radioLinksParams.downlink_datarate_data_bps[i] = 0;
    }
    g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab = uFlagsRuntimeCapab | MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED;
-   g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab &= ~MODEL_RUNTIME_RADIO_CAPAB_FLAG_DIRTY;
    g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags |= MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS;
 
    g_pCurrentModel->validateRadioSettings();
@@ -1445,20 +1449,20 @@ void MenuNegociateRadio::_onFinishedTests()
    u32 uMaxVideoBitrate = g_pCurrentModel->getMaxVideoBitrateSupportedForCurrentRadioLinks();
    log_line("[NegociateRadioLink] Max supported video bitrate: %u bps for max supported datarates: legacy: %d, MCS: MCS-%d, DR boost: %d",
       uMaxVideoBitrate, g_pCurrentModel->radioRuntimeCapabilities.iMaxSupportedLegacyDataRate, -g_pCurrentModel->radioRuntimeCapabilities.iMaxSupportedMCSDataRate-1, ((g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileFlags & VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK) >> VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK_SHIFT));
-   log_line("[NegociateRadioLink] Current video profile video bitrate: %u bps", g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps);
+   log_line("[NegociateRadioLink] Current video profile video bitrate: %u bps", g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS);
 
    bool bUpdatedVideoBitrate = false;
    u32 uVideoBitrateToSet = 0;
 
    for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
    {
-      if ( 0 == g_pCurrentModel->video_link_profiles[i].bitrate_fixed_bps )
+      if ( 0 == g_pCurrentModel->video_link_profiles[i].uTargetVideoBitrateBPS )
          continue;
-      log_line("[NegociateRadioLink] Video profile %s video bitrate: %u bps", str_get_video_profile_name(i), g_pCurrentModel->video_link_profiles[i].bitrate_fixed_bps);
-      if ( g_pCurrentModel->video_link_profiles[i].bitrate_fixed_bps > uMaxVideoBitrate )
+      log_line("[NegociateRadioLink] Video profile %s video bitrate: %u bps", str_get_video_profile_name(i), g_pCurrentModel->video_link_profiles[i].uTargetVideoBitrateBPS);
+      if ( g_pCurrentModel->video_link_profiles[i].uTargetVideoBitrateBPS > uMaxVideoBitrate )
       {
          log_line("[NegociateRadioLink] Must decrease video bitrate (%.2f Mbps) for video profile %s to max allowed on current links: %.2f Mbps",
-            (float)g_pCurrentModel->video_link_profiles[i].bitrate_fixed_bps/1000.0/1000.0,
+            (float)g_pCurrentModel->video_link_profiles[i].uTargetVideoBitrateBPS/1000.0/1000.0,
             str_get_video_profile_name(i),
             (float)uMaxVideoBitrate/1000.0/1000.0);
          uVideoBitrateToSet = uMaxVideoBitrate;
@@ -1469,10 +1473,10 @@ void MenuNegociateRadio::_onFinishedTests()
            ((g_pCurrentModel->hwCapabilities.uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PIZERO) && ((g_pCurrentModel->hwCapabilities.uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PIZEROW) && ((g_pCurrentModel->hwCapabilities.uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_NONE) )
       if ( (g_pCurrentModel->radioRuntimeCapabilities.iMaxSupportedMCSDataRate < -4) &&
            (g_pCurrentModel->radioRuntimeCapabilities.iMaxSupportedLegacyDataRate > 36000000) &&
-           (g_pCurrentModel->video_link_profiles[i].bitrate_fixed_bps < 9000000 ) )
+           (g_pCurrentModel->video_link_profiles[i].uTargetVideoBitrateBPS < 9000000 ) )
       {
          log_line("[NegociateRadioLink] Must increase video bitrate (%.2f Mbps) for video profile %s as radio supports higher datarates.",
-            (float)g_pCurrentModel->video_link_profiles[i].bitrate_fixed_bps/1000.0/1000.0,
+            (float)g_pCurrentModel->video_link_profiles[i].uTargetVideoBitrateBPS/1000.0/1000.0,
             str_get_video_profile_name(i));
          uVideoBitrateToSet = 9000000;
          bUpdatedVideoBitrate = true;
@@ -1485,8 +1489,8 @@ void MenuNegociateRadio::_onFinishedTests()
 
       for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
       {
-         if ( 0 != m_VideoProfilesToApply[i].bitrate_fixed_bps )
-            m_VideoProfilesToApply[i].bitrate_fixed_bps = uVideoBitrateToSet;
+         if ( 0 != m_VideoProfilesToApply[i].uTargetVideoBitrateBPS )
+            m_VideoProfilesToApply[i].uTargetVideoBitrateBPS = uVideoBitrateToSet;
       }
       m_iUserState = NEGOCIATE_USER_STATE_WAIT_VIDEO_CONFIRMATION;
       m_iState = NEGOCIATE_STATE_SET_VIDEO_SETTINGS;
@@ -1616,16 +1620,32 @@ void MenuNegociateRadio::_computeQualities()
       {
          if ( i == 0 )
             m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][0] = m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][1];
-         else if ( m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][i+1] > 0 )
+         else if ( ((i+1) <= (m_iIndexFirstRadioPowersTestMCS-m_iIndexFirstRadioPowersTest)) && (m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][i+1] > 0) )
             m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][i] = (m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][i-1]+m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][i+1])/2;
+         else if ( m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][i-1] > 0)
+            m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][i] = m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][i-1] / 2;
       }
       if ( m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i] <= 0 )
       {
          if ( i == 0 )
             m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][0] = m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][1];
-         else if ( m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i+1] > 0 )
+         else if ( ((i+1) <= (m_iIndexLastRadioPowersTestMCS-m_iIndexFirstRadioPowersTestMCS)) && (m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i+1] > 0) )
             m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i] = (m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i-1]+m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i+1])/2;
+         else if ( m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i-1] > 0)
+            m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i] = m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i-1] / 2;
       }
+
+      if ( i > 3 )
+      if ( m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][i] > 0 )
+      if ( m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][i-1] > 0 )
+      if ( m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][i] > (m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][i-1]*12)/10 )
+         m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][i] = (m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwLegacy[0][i-1]*12)/10;
+
+      if ( i > 3 )
+      if ( m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i] > 0 )
+      if ( m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i-1] > 0 )
+      if ( m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i] > (m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i-1]*12)/10 )
+         m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i] = (m_RadioRuntimeCapabilitiesToApply.iMaxTxPowerMwMCS[0][i-1]*12)/10;
    }
 }
 
@@ -2174,7 +2194,7 @@ void MenuNegociateRadio::_close()
    }
 
    menu_rearrange_all_menus_no_animation();
-   menu_loop();
+   menu_loop(true);
 
    menu_stack_pop_no_delete(0);
    setModal(false);

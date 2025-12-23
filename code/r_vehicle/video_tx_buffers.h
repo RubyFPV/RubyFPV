@@ -33,15 +33,17 @@ class VideoTxPacketsBuffer
       bool init(Model* pModel);
       bool uninit();
       void discardBuffer();
-      void setLastFrameTimers(u32 uTimeReadCamera, u32 uTimeSendVideo, u32 uTimeSendOthers, u32 uTotalProcessingTime);
+      void setLastFrameTimers(u32 uTimeReadCamera, u32 uTimeSendVideo, u32 uTimeExpectedSendVideoTime, u32 uTimeSendOthers, u32 uTotalProcessingTime);
       void setLastFrameDistanceMs(u32 uDistanceMs);
       void setCurrentRealFPS(int iFPS);
+      int  getCurrentRealFPS();
+
       void setCustomECScheme(u16 uECScheme);
       int  getCurrentTotalBlockPackets();
       void updateVideoHeader(Model* pModel);
       void appendDataToCurrentFrame(u8* pVideoData, int iDataSize, u32 uNALPresenceFlags, bool bIsEndOfFrame, u32 uTimeDataAvailable);
       bool hasPendingPacketsToSend();
-      int sendAvailablePackets(int iCountPacketsAferVideo);
+      int  sendAvailablePackets(int iCountPacketsAferVideo);
       void resendVideoPacket(u32 uRetransmissionId, u32 uVideoBlockIndex, u32 uVideoBlockPacketIndex);
       void resendVideoPacketsFromFrameEnd(u32 uRetransmissionId, u16 uH264FrameIndex, u8 uPacketsToEOF);
 
@@ -50,7 +52,6 @@ class VideoTxPacketsBuffer
       u32 getLastFrameExpectedTxTimeMicros();
       u32 getLastFrameSentDRMin_BPS();
       u32 getLastFrameSentDRMax_BPS();
-      u32 getCurrentOutputFrameIndex();
       int getCurrentUsableRawVideoDataSize();
       bool getResetOverflowFlag();
       int getCurrentMaxUsableRawVideoDataSize();
@@ -59,7 +60,7 @@ class VideoTxPacketsBuffer
 
       void _checkAllocatePacket(int iBufferIndex, int iPacketIndex);
       void _fillVideoPacketHeaders(int iBufferIndex, int iPacketIndex, bool bIsECPacket, int iRawVideoDataSize, bool bIsLastPacket);
-      int _addNewVideoPacket(u8* pRawVideoData, int iRawVideoDataSize, bool bIsLastPacket);
+      int _addNewVideoPacket(u8* pRawVideoData, int iRawVideoDataSize, int iRemainingVideoPackets, bool bIsLastPacket);
       void _sendPacket(int iBufferIndex, int iPacketIndex, u32 uRetransmissionId, int iCountPacketsAferVideo);
       static int m_siVideoBuffersInstancesCount;
       bool m_bInitialized;

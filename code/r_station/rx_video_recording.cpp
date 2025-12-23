@@ -67,6 +67,7 @@
 #include "packets_utils.h"
 #include "timers.h"
 #include "ruby_rt_station.h"
+#include "rx_video_recording_data.h"
 
 bool s_bIsRecording = false;
 bool s_bRequestedStopRecording = false;
@@ -161,10 +162,28 @@ bool _recording_write_info_file(u32 uDurrationMs)
    fprintf(fd, "%d %d\n", s_iRecordingFPS, (int)(uDurrationMs/1000));
    fprintf(fd, "%d %d\n", s_iRecordingWidth, s_iRecordingHeight);
    fprintf(fd, "%d\n", s_iRecordingType);
+
+   int iFC = 0;
+   int iOSDFont = 0;
+   int iMSPCols = 0;
+   int iMSPRows = 0;
+
+   type_global_state_vehicle_runtime_info* pRuntimeInfo = getVehicleRuntimeInfo(g_pCurrentModel->uVehicleId);
+   if ( NULL != pRuntimeInfo )
+   {
+      iFC = pRuntimeInfo->mspState.headerTelemetryMSP.uMSPFlags & MSP_FLAGS_FC_TYPE_MASK;
+      iOSDFont = pRuntimeInfo->mspState.headerTelemetryMSP.uMSPFlags & MSP_FLAGS_FC_TYPE_MASK;
+      if ( (g_pCurrentModel->osd_params.uFlags & OSD_BIT_FLAGS_MASK_MSPOSD_FONT) != 0 )
+         iOSDFont = g_pCurrentModel->osd_params.uFlags & OSD_BIT_FLAGS_MASK_MSPOSD_FONT;
+      iMSPCols = pRuntimeInfo->mspState.headerTelemetryMSP.uMSPOSDCols;
+      iMSPRows = pRuntimeInfo->mspState.headerTelemetryMSP.uMSPOSDRows;
+   }
+
+   fprintf(fd, "%d %d %d %d\n", iFC, iOSDFont, iMSPCols, iMSPRows);
    fclose(fd);
 
-   log_line("[VideoRecording-Th] Created video info file %s, for raw stream: (%s) resolution: %d x %d, %d fps, video type: %d",
-      szFile, s_szFileRecordingOutput, s_iRecordingWidth, s_iRecordingHeight, s_iRecordingFPS, s_iRecordingType);
+   log_line("[VideoRecording-Th] Created video info file %s, for raw stream: (%s) resolution: %d x %d, %d fps, video type: %d, FC: %d, OSD Font: %d, cols/rows: %d/%d",
+      szFile, s_szFileRecordingOutput, s_iRecordingWidth, s_iRecordingHeight, s_iRecordingFPS, s_iRecordingType, iFC, iOSDFont, iMSPCols, iMSPRows);
    return true;
 }
 
@@ -182,12 +201,16 @@ void _recording_cleanp_temp_recording_data()
    }
    if ( s_bIsRecordingToRAM )
    {
-      sprintf(szComm, "umount %s", FOLDER_TEMP_VIDEO_MEM);
+      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "umount %s", FOLDER_TEMP_VIDEO_MEM);
       hw_execute_bash_command_silent(szComm, NULL);
       s_bIsRecordingToRAM = false;
    }
 
-   sprintf(szComm, "rm -rf %s%s 2>/dev/null", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_INFO);
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s%s 2>/dev/null", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_INFO);
+   hw_execute_bash_command(szComm, NULL );
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s%s 2>/dev/null", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_OSD);
+   hw_execute_bash_command(szComm, NULL );
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s%s 2>/dev/null", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_SRT);
    hw_execute_bash_command(szComm, NULL );
 }
 
@@ -271,6 +294,11 @@ void* _thread_video_recording(void *argument)
       return NULL;
    }
 
+   if ( g_pControllerSettings->iRecordSTR )
+      rx_video_recording_data_start_srt();
+   if ( g_pControllerSettings->iRecordOSD )
+      rx_video_recording_data_start_osd();
+
    //if ( RUBY_PIPES_EXTRA_FLAGS & O_NONBLOCK )
    //if ( 0 != fcntl(s_iFileVideoRecordingOutput, F_SETFL, O_NONBLOCK) )
    //   log_softerror_and_alarm("[VideoRecording] Failed to set nonblock flag on video recording file");
@@ -323,12 +351,14 @@ void* _thread_video_recording(void *argument)
             _recording_write_info_file(uTimeNow - s_TimeStartRecording);
       }
 
+      rx_video_recording_periodic_data_loop();
+
       FD_ZERO(&fdSet);
       FD_SET(s_iPipeRecordingThreadRead, &fdSet);
 
       struct timeval timeInput;
       timeInput.tv_sec = 0;
-      timeInput.tv_usec = 50*1000; // 50 miliseconds timeout
+      timeInput.tv_usec = 40*1000; // 40 miliseconds timeout
 
       int iSelectResult = select(s_iPipeRecordingThreadRead+1, &fdSet, NULL, NULL, &timeInput);
       if ( s_bRequestedStopRecording )
@@ -383,6 +413,9 @@ void* _thread_video_recording(void *argument)
 
    close(s_iFileVideoRecordingOutput);
    s_iFileVideoRecordingOutput = -1;
+
+   rx_video_recording_data_stop_osd();
+   rx_video_recording_data_stop_srt();
 
    if ( (0 == s_TimeStartRecording) || (s_uRecordingFileSize < 10000) )
    {

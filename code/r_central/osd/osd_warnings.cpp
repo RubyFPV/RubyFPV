@@ -117,7 +117,7 @@ void osd_warnings_render()
    static u32 s_uTimeTriggeredAlarmECOverload = 0;
    static u32 s_uTimeTriggeredAlarmTxOverload = 0;
 
-   if ( pVDS->uCurrentECTimeMsPerSec >= 60 )
+   if ( pVDS->uCurrentECTimeMsPerSec >= 100 )
    {
       if ( 0 == s_uTimeTriggeredAlarmECOverload )
          s_uTimeTriggeredAlarmECOverload = g_TimeNow;

@@ -357,7 +357,7 @@ Model* first_boot_create_default_model(bool bIsVehicle, u32 uBoardType)
             bHasAtheros = true;
       }
 
-      s_ModelFirstBoot.setDefaultVideoBitrate();
+      s_ModelFirstBoot.setVideoProfilesDefaultVideoBitrates();
       
       if ( bHasAtheros )
       {
@@ -366,12 +366,12 @@ Model* first_boot_create_default_model(bool bIsVehicle, u32 uBoardType)
             s_ModelFirstBoot.radioLinksParams.downlink_datarate_video_bps[i] = DEFAULT_RADIO_DATARATE_VIDEO_ATHEROS;
             s_ModelFirstBoot.radioLinksParams.downlink_datarate_data_bps[i] = DEFAULT_RADIO_DATARATE_VIDEO_ATHEROS;
          }
-         s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_HIGH_PERF].bitrate_fixed_bps = 5000000;
-         s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].bitrate_fixed_bps = 5000000;
-         s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_LONG_RANGE].bitrate_fixed_bps = 5000000;
-         s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_USER].bitrate_fixed_bps = 5000000;
-         s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_CUST].bitrate_fixed_bps = 5000000;
-         s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_PIP].bitrate_fixed_bps = 5000000;
+         s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uTargetVideoBitrateBPS = 5000000;
+         s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uTargetVideoBitrateBPS = 5000000;
+         s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_LONG_RANGE].uTargetVideoBitrateBPS = 5000000;
+         s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_USER].uTargetVideoBitrateBPS = 5000000;
+         s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_CUST].uTargetVideoBitrateBPS = 5000000;
+         s_ModelFirstBoot.video_link_profiles[VIDEO_PROFILE_PIP].uTargetVideoBitrateBPS = 5000000;
       }
 
       strcpy(szFile, FOLDER_CONFIG);

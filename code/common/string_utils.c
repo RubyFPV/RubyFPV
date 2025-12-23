@@ -329,6 +329,7 @@ char* str_get_packet_type(int iPacketType)
       case PACKET_TYPE_RUBY_PAIRING_CONFIRMATION: strcpy(s_szPacketType, "PACKET_TYPE_RUBY_PAIRING_CONFIRMATION"); break;
       case PACKET_TYPE_RUBY_RADIO_CONFIG_UPDATED: strcpy(s_szPacketType, "PACKET_TYPE_RUBY_RADIO_CONFIG_UPDATED"); break;
       case PACKET_TYPE_RUBY_LOG_FILE_SEGMENT:    strcpy(s_szPacketType, "PACKET_TYPE_RUBY_LOG_FILE_SEGMENT"); break;
+      case PACKET_TYPE_RUBY_MESSAGE:             strcpy(s_szPacketType, "PACKET_TYPE_RUBY_MESSAGE"); break;
       case PACKET_TYPE_RUBY_ALARM:               strcpy(s_szPacketType, "PACKET_TYPE_RUBY_ALARM"); break;
       case PACKET_TYPE_VIDEO_DATA:               strcpy(s_szPacketType, "PACKET_TYPE_VIDEO_DATA"); break;
       case PACKET_TYPE_AUDIO_SEGMENT:            strcpy(s_szPacketType, "PACKET_TYPE_AUDIO_SEGMENT"); break;
@@ -401,7 +402,6 @@ char* str_get_packet_type(int iPacketType)
       case PACKET_TYPE_LOCAL_CONTROL_OSD_PLUGINS_NEED_TELEMETRY: strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_OSD_PLUGINS_NEED_TELEMETRY"); break;
       case PACKET_TYPE_LOCAL_CONTROL_LONG_TASK: strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_LONG_TASK"); break;
 
-      case PACKET_TYPE_DEBUG_VEHICLE_RT_INFO:      strcpy(s_szPacketType, "PACKET_TYPE_DEBUG_VEHICLE_RT_INFO"); break;
       case PACKET_TYPE_OTA_UPDATE_STATUS:          strcpy(s_szPacketType, "PACKET_TYPE_OTA_UPDATE_STATUS"); break;
       case PACKET_TYPE_LOCAL_CONTROL_VEHICLE_CALIBRATION_FILE: strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_VEHICLE_CALIBRATION_FILE"); break;
    }
@@ -1252,7 +1252,9 @@ void str_get_radio_frame_flags_description(u32 frameFlags, char* szOutput)
    else
       strcpy(szOutput, "[Unknown rates]");
 
-   if ( !( frameFlags & RADIO_FLAGS_FRAME_TYPE_DATA) )
+   if ( frameFlags & RADIO_FLAGS_FRAME_TYPE_DATA )
+      strcat(szOutput, " [Fr Type: DATA]");
+   else
       strcat(szOutput, " [Frames Type: UNKNOWN]");
 
    if ( frameFlags & RADIO_FLAGS_SIK_ECC )

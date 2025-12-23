@@ -197,7 +197,7 @@ void ParserH264::_parseDetectedStartOfNALUnit(u32 uTimeNow)
    else
    {
       // Reached a keyframe frame
-      if ( (m_uLastNALUType != 1) && (m_uLastNALUType != 7) && (m_uLastNALUType != 8) )
+      if ( (m_uLastNALUType != 1) && (! parser_h264_is_signaling_nal(m_uLastNALUType)) )
       {
          if ( m_bDetectedFirstKeyframe )
          {
@@ -311,3 +311,12 @@ void ParserH264::resetDetectedProfileAndLevel()
    m_iDetectedH264Level = 0;
 }
 
+bool parser_h264_is_signaling_nal(u8 uNALId)
+{
+   // 7,8: present in h264
+   // 0,2,4: present in h265
+
+   if ( (uNALId == 0) || (uNALId == 2) || (uNALId == 4) || (uNALId == 7) || (uNALId == 8) )
+      return true;
+   return false;
+}

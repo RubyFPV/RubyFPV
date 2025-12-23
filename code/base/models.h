@@ -148,7 +148,7 @@ typedef struct
    int iECPercentage; // In percentages (0...100%)
    int video_data_length;
    int iKeyframeMS; // positive: fixed, negative: auto
-   u32 bitrate_fixed_bps; // in bits/second, 0 for auto
+   u32 uTargetVideoBitrateBPS; // in bits/second, 0 for auto
    u32 uDummyVP1;
    u32 uDummyVP2;
 } type_video_link_profile;
@@ -643,6 +643,7 @@ class Model
       void resetVideoParamsToDefaults();
       void resetAdaptiveVideoParams(int iVideoProfile);
       void resetVideoLinkProfiles();
+      void resetVideoLinkProfilesBuiltIn();
       void resetVideoLinkProfile(int iProfile);
       void resetCameraToDefaults(int iCameraIndex);
       void resetCameraProfileToDefaults(camera_profile_parameters_t* pCamParams);
@@ -654,7 +655,6 @@ class Model
       
       bool find_and_validate_camera_settings();
       bool validate_fps_and_exposure_settings(camera_profile_parameters_t* pCameraProfile, bool bFullForce);
-      bool validate_profiles_max_video_bitrate();
       bool validate_settings();
       bool validateRadioSettings();
       bool validateProcessesParams();
@@ -700,11 +700,15 @@ class Model
       u32 getMaxVideoBitrateSupportedForRadioLinks(type_radio_links_parameters* pRadioLinksParams, video_parameters_t* pVideoParams, type_video_link_profile* pVideoProfiles);
       u32 getMaxVideoBitrateForRadioDatarate(int iRadioDatarateBPS, int iRadioLinkIndex);
       u32 getUsableVideoBitrateFromTotalBitrate(u32 uTotalBitrate, u32 uLoadPercent);
-      int getRadioDataRateForVideoBitrate(u32 uVideoBitrateBPS, int iRadioLinkIndex);
-      void setDefaultVideoBitrate();
+      int getRadioDataRateForVideoBitrate(u32 uVideoBitrateBPS, int iRadioLinkIndex, bool bLog);
+      u32 getVideoProfileInitialVideoBitrate(int iVideoProfile);
+      void setVideoProfilesDefaultVideoBitrates();
+      bool validateVideoProfilesMaxVideoBitrate();
+      int getCurrentVideoProfileMaxRetransmissionWindow();
+
       
       void getCameraFlags(char* szCameraFlags);
-      u32 getVideoFlags(char* szVideoFlags, int iVideoProfile, u32 uOverwriteVideoBPS, int iOverwriteKeyframeMS);
+      u32  getVideoFlags(char* szVideoFlags, int iVideoProfile, u32 uOverwriteVideoBPS, int iOverwriteKeyframeMS);
       void populateVehicleTelemetryData_v6(t_packet_header_ruby_telemetry_extended_v6* pPHRTE);
       void populateFromVehicleTelemetryData_v3(t_packet_header_ruby_telemetry_extended_v3* pPHRTE);
       void populateFromVehicleTelemetryData_v4(t_packet_header_ruby_telemetry_extended_v4* pPHRTE);
@@ -731,6 +735,8 @@ class Model
 
       void copy_radio_link_params(int iFrom, int iTo);
       void copy_radio_interface_params(int iFrom, int iTo);
+
+      bool onControllerIdUpdated(u32 uNewControllerId);
 
    private:
       char vehicle_long_name[256];

@@ -118,6 +118,47 @@ Model* s_pCurrentOSDLayoutSourceModel = NULL;
 
 int s_iCurrentOSDVehicleDataSourceRuntimeIndex = 0;
 
+double OSD_COLOR_FRAME_NORMAL[4] = { 255,255,255, 0.7 };
+double OSD_COLOR_FRAME_MISSING[4] = {255,70,70, 0.9};
+double OSD_COLOR_FRAME_EC[4] = {90,255,110, 0.9};
+double OSD_COLOR_FRAME_ECMAX[4] = {255,250,40, 1.0};
+double OSD_COLOR_FRAME_NAL_I[4] = {80,80,255, 0.94};
+double OSD_COLOR_FRAME_NAL_OTHER[4] = {0,0,100, 0.94};
+double OSD_COLOR_FRAME_RETR[4] = {255,170, 0, 0.9};
+double OSD_COLOR_FRAME_RETR_DISCARD[4] = {70,100,255,1.0};
+
+const double* osdGetColorVideoFrameNormal()
+{
+   return OSD_COLOR_FRAME_NORMAL;
+}
+const double* osdGetColorVideoFrameI()
+{
+   return OSD_COLOR_FRAME_NAL_I;
+}
+const double* osdGetColorVideoFrameO()
+{
+   return OSD_COLOR_FRAME_NAL_OTHER;
+}
+const double* osdGetColorVideoFrameEC()
+{
+   return OSD_COLOR_FRAME_EC;
+}
+const double* osdGetColorVideoFrameECMax()
+{
+   return OSD_COLOR_FRAME_ECMAX;
+}
+const double* osdGetColorVideoFrameRetr()
+{
+   return OSD_COLOR_FRAME_RETR;
+}
+const double* osdGetColorVideoFrameRetrDiscard()
+{
+   return OSD_COLOR_FRAME_RETR_DISCARD;
+}
+const double* osdGetColorVideoFrameMissing()
+{
+   return OSD_COLOR_FRAME_MISSING;
+}
 
 float osd_getSetScreenScale(int iOSDScreenSize)
 {
@@ -584,9 +625,19 @@ float osd_show_video_profile_mode(float xPos, float yPos, u32 uFontId, bool bLef
    
    if ( pVDS->iAdaptiveVideoLevelNow > 0 )
    {
-      char szTmp[16];
-      sprintf(szTmp, "-%d", pVDS->iAdaptiveVideoLevelNow);
-      strcat(szBuff, szTmp);
+      if ( pVDS->bIsOnLowestAdaptiveLevel )
+      {
+         if ( pActiveModel->video_link_profiles[pActiveModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_USE_MEDIUM_ADAPTIVE_VIDEO )
+            strcat(szBuff, "-M");
+         else
+            strcat(szBuff, "-L");
+      }
+      else
+      {
+         char szTmp[16];
+         sprintf(szTmp, "-%d", pVDS->iAdaptiveVideoLevelNow);
+         strcat(szBuff, szTmp);
+      }
    }
    else if ( pVDS->PHVS.uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_IS_ON_LOWER_BITRATE )
       strcat(szBuff, "-");
@@ -596,12 +647,6 @@ float osd_show_video_profile_mode(float xPos, float yPos, u32 uFontId, bool bLef
    if (((pVDS->PHVS.uVideoStreamIndexAndType >> 4) & 0x0F) == VIDEO_TYPE_H265 )
       strcat(szBuff, " H265");
    
-   if ( pVDS->bIsOnLowestAdaptiveLevel )
-   {
-      char szTmp[64];
-      snprintf(szTmp, sizeof(szTmp)/sizeof(szTmp[0]), "%s.", szBuff);
-      strcpy(szBuff, szTmp);
-   }
    fWidth = g_pRenderEngine->textWidth(uFontId, szBuff);
 
    if ( bLeft )

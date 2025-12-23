@@ -37,6 +37,7 @@
 #include "../base/ctrl_interfaces.h"
 #include "../base/ctrl_preferences.h"
 #include "../base/ctrl_settings.h"
+#include "../base/msp.h"
 #include "../common/models_connect_frequencies.h"
 #include "../common/string_utils.h"
 #include "menu/menu.h"
@@ -532,6 +533,9 @@ void _process_received_ruby_telemetry_extended(u8* pPacketBuffer)
    {
       log_line("Received telemetry has camera flag set? %s",
           (pRuntimeInfo->headerRubyTelemetryExtended.uRubyFlags & FLAG_RUBY_TELEMETRY_VEHICLE_HAS_CAMERA)?"yes":"no");
+      log_line("Received telemetry radio links count: %d", pRuntimeInfo->headerRubyTelemetryExtended.radio_links_count);
+      for( int i=0; i<pRuntimeInfo->headerRubyTelemetryExtended.radio_links_count; i++ )
+         log_line("Received telemetry radio link %d freq: %u Mhz", i+1, pRuntimeInfo->headerRubyTelemetryExtended.uRadioFrequenciesKhz[i]/1000);
       onEventPairingStartReceivingData(pPH->vehicle_id_src);
    }
 
@@ -567,11 +571,13 @@ void _process_received_msp_telemetry(u8* pPacketBuffer)
    t_packet_header_telemetry_msp* pPHMSP = (t_packet_header_telemetry_msp*)(pPacketBuffer + sizeof(t_packet_header));
 
    if ( (pPHMSP->uSegmentIdAndExtraInfo & 0xFFFF) <= (pRuntimeInfo->mspState.headerTelemetryMSP.uSegmentIdAndExtraInfo & 0xFFFF) )
-   if ( (pRuntimeInfo->mspState.headerTelemetryMSP.uSegmentIdAndExtraInfo & 0xFFFF) - (pPHMSP->uSegmentIdAndExtraInfo & 0xFFFF) < 5 )
-      return;
+   {
+      if ( (pRuntimeInfo->mspState.headerTelemetryMSP.uSegmentIdAndExtraInfo & 0xFFFF) - (pPHMSP->uSegmentIdAndExtraInfo & 0xFFFF) < 50 )
+         return;
+   }
    memcpy(&(pRuntimeInfo->mspState.headerTelemetryMSP), pPHMSP, sizeof(t_packet_header_telemetry_msp));
 
-   parse_msp_incoming_data(pRuntimeInfo, pPacketBuffer + sizeof(t_packet_header) + sizeof(t_packet_header_telemetry_msp), pPH->total_length - sizeof(t_packet_header) - sizeof(t_packet_header_telemetry_msp));
+   parse_msp_incoming_data(&(pRuntimeInfo->mspState), pPacketBuffer + sizeof(t_packet_header) + sizeof(t_packet_header_telemetry_msp), pPH->total_length - sizeof(t_packet_header) - sizeof(t_packet_header_telemetry_msp), !g_bFreezeOSD);
 }
 
 void _process_received_model_settings(u8* pPacketBuffer)
@@ -779,6 +785,33 @@ int _process_received_message_from_router(u8* pPacketBuffer)
       return 0;
    }
 
+   if ( pPH->packet_type == PACKET_TYPE_RUBY_MESSAGE )
+   {
+      if ( pPH->total_length <= sizeof(t_packet_header) + sizeof(u16) + sizeof(u8) + 1 )
+         return 0;
+      if ( pPH->total_length > sizeof(t_packet_header) + sizeof(u16) + sizeof(u8) + 250 )
+         return 0;
+
+      u16 uMsgId = 0;
+      u8 uMsgType = 0;
+      memcpy(&uMsgId, pPacketBuffer + sizeof(t_packet_header), sizeof(u16));
+      memcpy(&uMsgType, pPacketBuffer + sizeof(t_packet_header)+sizeof(u16), sizeof(u8));
+      char* pMsg = (char*)pPacketBuffer + sizeof(t_packet_header)+sizeof(u16)+sizeof(u8);
+      pPacketBuffer[pPH->total_length-1] = 0;
+      log_line("Received message index %d, type %d, from vehicle VID %u, text: [%s]", uMsgId, uMsgType, pPH->vehicle_id_src, pMsg);
+      static u16 s_uLastMsgIndex = 0xFFFF;
+      if ( s_uLastMsgIndex == uMsgId )
+         return  0;
+      s_uLastMsgIndex = uMsgId;
+      char szBuff[256];
+      szBuff[0] = 0;
+      if ( 0 == uMsgType )
+        strcpy(szBuff, "Developer Info: ");
+      strcat(szBuff, pMsg);
+      warnings_add(pPH->vehicle_id_src, szBuff, g_idIconInfo);
+      return 0;
+   }
+
    if ( pPH->packet_type == PACKET_TYPE_LOCAL_CONTROL_VIDEO_RECORDING )
    {
       u8 uCmd = pPacketBuffer[sizeof(t_packet_header)];
@@ -864,10 +897,13 @@ int _process_received_message_from_router(u8* pPacketBuffer)
    if ( pPH->packet_type == PACKET_TYPE_RUBY_PAIRING_CONFIRMATION )
    {
       u32 uResendCount = 0;
+      u16 uVehicleSoftwareVersion = 0;
       if ( pPH->total_length >= sizeof(t_packet_header) + sizeof(u32) )
          memcpy(&uResendCount, pPacketBuffer + sizeof(t_packet_header), sizeof(u32));
+      if ( pPH->total_length >= (int)(sizeof(t_packet_header) + sizeof(u32) + sizeof(16)) )
+         memcpy(&uVehicleSoftwareVersion, pPacketBuffer + sizeof(t_packet_header) + sizeof(u32), sizeof(u16));
 
-      log_line("Received pairing confirmation from router (received vehicle resend counter: %u). VID: %u, CID: %u", uResendCount, pPH->vehicle_id_src, pPH->vehicle_id_dest);
+      log_line("Received pairing confirmation from router (received vehicle resend counter: %u). VID: %u, CID: %u, vehicle SW version: %d.%d", uResendCount, pPH->vehicle_id_src, pPH->vehicle_id_dest, uVehicleSoftwareVersion >> 8, uVehicleSoftwareVersion & 0xFF);
       t_structure_vehicle_info* pRuntimeInfo = _get_runtime_info_for_packet(pPacketBuffer);
       if ( NULL == pRuntimeInfo )
          log_softerror_and_alarm("Failed to create a vehicle runtime info for vehicle id %u", pPH->vehicle_id_src);
@@ -1010,7 +1046,7 @@ int _process_received_message_from_router(u8* pPacketBuffer)
 
          if ( bSucceeded )
          {
-            u32 uCurrentProfileVideoBitrate = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps;
+            u32 uCurrentProfileVideoBitrate = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS;
             bool bMustUpdateMainConnectFreq = false;
             u32 uMainConnectFrequency = get_model_main_connect_frequency(g_pCurrentModel->uVehicleId);
             if ( g_pCurrentModel->radioLinksParams.link_frequency_khz[iRadioLinkId] == uMainConnectFrequency )
@@ -1021,7 +1057,7 @@ int _process_received_message_from_router(u8* pPacketBuffer)
             if ( bMustUpdateMainConnectFreq )
                set_model_main_connect_frequency(g_pCurrentModel->uVehicleId, g_pCurrentModel->radioLinksParams.link_frequency_khz[iRadioLinkId]);
 
-            if ( uCurrentProfileVideoBitrate != g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps )
+            if ( uCurrentProfileVideoBitrate != g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS )
             {
                Menu* pm = new Menu(MENU_ID_SIMPLE_MESSAGE, L("Video bitrate updated"),NULL);
                pm->m_xPos = 0.32; pm->m_yPos = 0.4;
@@ -1337,6 +1373,9 @@ int _process_received_message_from_router(u8* pPacketBuffer)
 
    if ( pPH->packet_type == PACKET_TYPE_RUBY_TELEMETRY_VEHICLE_RX_CARDS_STATS )
    {
+      if ( g_bFreezeOSD )
+         return 0;
+
       t_structure_vehicle_info* pRuntimeInfo = _get_runtime_info_for_packet(pPacketBuffer);
       if ( NULL == pRuntimeInfo )
          return 0;
@@ -1417,12 +1456,10 @@ int _process_received_message_from_router(u8* pPacketBuffer)
       u8* pTelemetryData = pPacketBuffer + sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_raw);
 
       if ( pRuntimeInfo->pModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MSP )
-         parse_msp_incoming_data(pRuntimeInfo, pTelemetryData, iDataLen);
+         parse_msp_incoming_data(&(pRuntimeInfo->mspState), pTelemetryData, iDataLen, g_bFreezeOSD);
 
       if ( g_bOSDPluginsNeedTelemetryStreams )
       {
-         t_packet_header* pPH = (t_packet_header*)pPacketBuffer;
-
          for( int i=0; i<g_iPluginsOSDCount; i++ )
          {
             if ( NULL == g_pPluginsOSD[i]->pFunctionRequestTelemetryStreams ||
@@ -1629,22 +1666,43 @@ int _process_received_message_from_router(u8* pPacketBuffer)
 
    if ( pPH->packet_type == PACKET_TYPE_RUBY_RADIO_CONFIG_UPDATED )
    {
-      log_line("Received current radio configuration from vehicle uid %u, packet size: %d bytes.", pPH->vehicle_id_src, pPH->total_length);
-      if ( NULL == g_pCurrentModel )
+      log_line("Received current radio configuration from vehicle VID %u, packet size: %d bytes.", pPH->vehicle_id_src, pPH->total_length);
+
+      Model* pModel = findModelWithId(pPH->vehicle_id_src, 381);
+      if ( NULL == pModel )
+      {
+         log_softerror_and_alarm("Received vehicle's current radio configuration but can't find the coresponding controller model. Ignore this config update.");
          return 0;
-      if ( pPH->total_length != (sizeof(t_packet_header) + sizeof(type_relay_parameters) + sizeof(type_radio_interfaces_parameters) + sizeof(type_radio_links_parameters)) )
+      }
+
+      if ( NULL == g_pCurrentModel )
+      {
+         log_softerror_and_alarm("There is no current vehicle. Ignore this vehicle radio configuration update.");
+         return 0;
+      }
+      if ( ! is_sw_version_atleast(pModel, 11, 7) )
+      {
+         log_line("Vehicle SW version is too old (%d.%d). Ignore this vehicle radio config update.", get_sw_version_major(pModel), get_sw_version_minor(pModel));
+         return 0;
+      }
+
+      if ( pPH->total_length < (sizeof(t_packet_header) + sizeof(type_relay_parameters) + sizeof(type_radio_interfaces_parameters) + sizeof(type_radio_links_parameters)) )
       {
          log_softerror_and_alarm("Received current radio configuration: invalid packet size. Ignoring.");
          return 0;
       }
       bool bChanged = false;
-      if ( 0 != memcmp(&(g_pCurrentModel->relay_params), pPacketBuffer + sizeof(t_packet_header), sizeof(type_relay_parameters)) )
+      if ( 0 != memcmp(&(pModel->relay_params), pPacketBuffer + sizeof(t_packet_header), sizeof(type_relay_parameters)) )
          bChanged = true;
-      if ( 0 != memcmp(&(g_pCurrentModel->radioInterfacesParams), pPacketBuffer + sizeof(t_packet_header) + sizeof(type_relay_parameters), sizeof(type_radio_interfaces_parameters)) )
+      if ( 0 != memcmp(&(pModel->radioInterfacesParams), pPacketBuffer + sizeof(t_packet_header) + sizeof(type_relay_parameters), sizeof(type_radio_interfaces_parameters)) )
          bChanged = true;
-      if ( 0 != memcmp(&(g_pCurrentModel->radioLinksParams), pPacketBuffer + sizeof(t_packet_header) + sizeof(type_relay_parameters) + sizeof(type_radio_interfaces_parameters), sizeof(type_radio_links_parameters)) )
+      if ( 0 != memcmp(&(pModel->radioLinksParams), pPacketBuffer + sizeof(t_packet_header) + sizeof(type_relay_parameters) + sizeof(type_radio_interfaces_parameters), sizeof(type_radio_links_parameters)) )
          bChanged = true;
-     
+
+      if ( pPH->total_length >= (sizeof(t_packet_header) + sizeof(type_relay_parameters) + sizeof(type_radio_interfaces_parameters) + sizeof(type_radio_links_parameters) + sizeof(type_radio_runtime_capabilities_parameters)) )
+      if ( 0 != memcmp(&(pModel->radioRuntimeCapabilities), pPacketBuffer + sizeof(t_packet_header) + sizeof(type_relay_parameters) + sizeof(type_radio_interfaces_parameters) + sizeof(type_radio_links_parameters), sizeof(type_radio_runtime_capabilities_parameters)) )
+         bChanged = true;
+
       if ( g_bDidAnUpdate && (g_nSucceededOTAUpdates > 0) )
          g_bLinkWizardAfterUpdate = true;
       g_bDidAnUpdate = false;
@@ -1653,10 +1711,14 @@ int _process_received_message_from_router(u8* pPacketBuffer)
       if ( bChanged )
       {
          log_line("Radio configuration has changed on the vehicle.");
-         memcpy(&(g_pCurrentModel->relay_params), pPacketBuffer + sizeof(t_packet_header), sizeof(type_relay_parameters));
-         memcpy(&(g_pCurrentModel->radioInterfacesParams), pPacketBuffer + sizeof(t_packet_header) + sizeof(type_relay_parameters), sizeof(type_radio_interfaces_parameters));
-         memcpy(&(g_pCurrentModel->radioLinksParams), pPacketBuffer + sizeof(t_packet_header) + sizeof(type_relay_parameters) + sizeof(type_radio_interfaces_parameters), sizeof(type_radio_links_parameters));
-         g_pCurrentModel->validateRadioSettings();
+         memcpy(&(pModel->relay_params), pPacketBuffer + sizeof(t_packet_header), sizeof(type_relay_parameters));
+         memcpy(&(pModel->radioInterfacesParams), pPacketBuffer + sizeof(t_packet_header) + sizeof(type_relay_parameters), sizeof(type_radio_interfaces_parameters));
+         memcpy(&(pModel->radioLinksParams), pPacketBuffer + sizeof(t_packet_header) + sizeof(type_relay_parameters) + sizeof(type_radio_interfaces_parameters), sizeof(type_radio_links_parameters));
+
+         if ( pPH->total_length >= (sizeof(t_packet_header) + sizeof(type_relay_parameters) + sizeof(type_radio_interfaces_parameters) + sizeof(type_radio_links_parameters) + sizeof(type_radio_runtime_capabilities_parameters)) )
+            memcpy(&pModel->radioRuntimeCapabilities, pPacketBuffer + sizeof(t_packet_header) + sizeof(type_relay_parameters) + sizeof(type_radio_interfaces_parameters) + sizeof(type_radio_links_parameters), sizeof(type_radio_runtime_capabilities_parameters));
+
+         pModel->validateRadioSettings();
          
          warnings_add(pPH->vehicle_id_src, "Radio configuration has changed on the vehicle. Updating controller radio configuration.", g_idIconRadio);
          hardware_load_radio_info();

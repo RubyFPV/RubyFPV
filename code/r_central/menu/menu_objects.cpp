@@ -876,18 +876,18 @@ void Menu::RenderPrepare()
 void Menu::Render()
 {
    RenderPrepare();
+
+   bool bAlpha = g_pRenderEngine->isAlphaBlendingEnabled();
+   g_pRenderEngine->disableAlphaBlending();
    
    float yTop = RenderFrameAndTitle();
    float yPos = yTop;
-
-   bool bAlpha = g_pRenderEngine->isAlphaEnabled();
-   g_pRenderEngine->disableAlpha();
 
    s_bMenuObjectsRenderEndItems = false;
    for( int i=0; i<m_ItemsCount; i++ )
       yPos += RenderItem(i,yPos);
 
-   g_pRenderEngine->setAlphaEnabled(bAlpha);
+   g_pRenderEngine->setAlphaBlendingEnabled(bAlpha);
 
    RenderEnd(yTop);
    g_pRenderEngine->setColors(get_Color_MenuText());
@@ -895,8 +895,8 @@ void Menu::Render()
 
 void Menu::RenderEnd(float yPos)
 {
-   bool bAlpha = g_pRenderEngine->isAlphaEnabled();
-   g_pRenderEngine->disableAlpha();
+   bool bAlpha = g_pRenderEngine->isAlphaBlendingEnabled();
+   g_pRenderEngine->disableAlphaBlending();
 
    for( int i=0; i<m_ItemsCount; i++ )
    {
@@ -907,7 +907,7 @@ void Menu::RenderEnd(float yPos)
          s_bMenuObjectsRenderEndItems = false;
       }
    }
-   g_pRenderEngine->setAlphaEnabled(bAlpha);
+   g_pRenderEngine->setAlphaBlendingEnabled(bAlpha);
 }
 
 float Menu::RenderFrameAndTitle()
@@ -2094,8 +2094,12 @@ static void * _thread_generate_upload(void *argument)
    strcpy(szFolderLocalUpdateBinaries, FOLDER_UPDATES);
    if ( hardware_board_is_openipc(g_pCurrentModel->hwCapabilities.uBoardType) )
       strcat(szFolderLocalUpdateBinaries, SUBFOLDER_UPDATES_OIPC);
-   else
+   else if ( hardware_board_is_raspberry(g_pCurrentModel->hwCapabilities.uBoardType) )
       strcat(szFolderLocalUpdateBinaries, SUBFOLDER_UPDATES_PI);
+   else if ( hardware_board_is_radxa(g_pCurrentModel->hwCapabilities.uBoardType) )
+      strcat(szFolderLocalUpdateBinaries, SUBFOLDER_UPDATES_RADXA);
+   else
+      log_error_and_alarm("ThreadGenerateUpload: Invalid vehicle board type: none of the known ones.");
 
    strcpy(szFile, szFolderLocalUpdateBinaries);
    strcat(szFile, "ruby_start");

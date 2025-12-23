@@ -109,7 +109,7 @@ void MenuVehicleDev::addItems()
    addMenuItem(new MenuItemSection("Video"));
 
    m_pItemsSlider[0] = new MenuItemSlider("Max Retransmissions Window (ms)", "Max duration it should try to retransmit video data (in miliseconds).", 5,500,10, fSliderWidth);
-   int iDuration = 5 * ((g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK) >> 8);
+   int iDuration = g_pCurrentModel->getCurrentVideoProfileMaxRetransmissionWindow();
    m_pItemsSlider[0]->setCurrentValue(iDuration);
    m_IndexRetransmissionWindow = addMenuItem(m_pItemsSlider[0]);
 

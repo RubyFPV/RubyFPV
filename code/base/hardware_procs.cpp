@@ -360,6 +360,7 @@ void hw_log_processes(int argc, char *argv[])
       printf("  -g  controller (ground side) only\n");
       printf("  -t  sort on priorities\n");
       printf("  -c  sort on CPU cores\n");
+      printf("  -pagefaults show processes memory page faults\n");
       return;
    }
 

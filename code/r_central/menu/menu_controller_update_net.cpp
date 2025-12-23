@@ -127,16 +127,13 @@ void MenuControllerUpdateNet::Render()
       float fHeight = (m_RenderYPos + m_RenderHeight - m_sfMenuPaddingY) - yPos - 2.0 * height_text;
 
       float fAlpha = g_pRenderEngine->setGlobalAlfa(0.9);
-      bool bAlpha = g_pRenderEngine->isAlphaEnabled();
-      g_pRenderEngine->enableAlpha();
+      bool bAlpha = g_pRenderEngine->isAlphaBlendingEnabled();
+      g_pRenderEngine->enableAlphaBlending();
       g_pRenderEngine->setColors(get_Color_MenuBg());
       //g_pRenderEngine->setStroke(get_Color_MenuText());
       g_pRenderEngine->setStroke(0,0,0,0);
       g_pRenderEngine->drawRoundRect(xPos - g_pRenderEngine->getPixelWidth(), yPos - g_pRenderEngine->getPixelHeight(), fWidth + 2.0 * g_pRenderEngine->getPixelWidth(), fHeight + 2.0*g_pRenderEngine->getPixelHeight(), 0.01*Menu::getMenuPaddingY());
-      if ( bAlpha )
-         g_pRenderEngine->enableAlpha();
-      else
-         g_pRenderEngine->disableAlpha();
+      g_pRenderEngine->setAlphaBlendingEnabled(bAlpha);
       g_pRenderEngine->setGlobalAlfa(fAlpha);
 
       yPos += fHeight*0.3;

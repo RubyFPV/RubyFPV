@@ -40,48 +40,145 @@
 
 
 
-controller_debug_runtime_info* controller_debug_rt_info_open_for_read()
+controller_debug_video_runtime_info* controller_debug_video_rt_info_open_for_read()
 {
-   void *retVal = open_shared_mem_for_read(SHARED_MEM_CONTROLLER_DEBUG_RUNTIME_INFO, sizeof(controller_debug_runtime_info));
-   return (controller_debug_runtime_info*)retVal;
+   void *retVal = open_shared_mem_for_read(SHARED_MEM_CONTROLLER_DEBUG_VIDEO_RUNTIME_INFO, sizeof(controller_debug_video_runtime_info));
+   return (controller_debug_video_runtime_info*)retVal;
 }
 
-controller_debug_runtime_info* controller_debug_rt_info_open_for_write()
+controller_debug_video_runtime_info* controller_debug_video_rt_info_open_for_write()
 {
-   void *retVal = open_shared_mem_for_write(SHARED_MEM_CONTROLLER_DEBUG_RUNTIME_INFO, sizeof(controller_debug_runtime_info));
-   controller_debug_runtime_info* pRTInfo = (controller_debug_runtime_info*)retVal;
-   controller_debug_rt_info_init(pRTInfo);
+   void *retVal = open_shared_mem_for_write(SHARED_MEM_CONTROLLER_DEBUG_VIDEO_RUNTIME_INFO, sizeof(controller_debug_video_runtime_info));
+   controller_debug_video_runtime_info* pRTInfo = (controller_debug_video_runtime_info*)retVal;
+   controller_debug_video_rt_info_init(pRTInfo);
    return pRTInfo;
 }
 
-void controller_debug_rt_info_close(controller_debug_runtime_info* pAddress)
+void controller_debug_video_rt_info_close(controller_debug_video_runtime_info* pAddress)
 {
    if ( NULL != pAddress )
-      munmap(pAddress, sizeof(controller_debug_runtime_info));
+      munmap(pAddress, sizeof(controller_debug_video_runtime_info));
    //shm_unlink(szName);
 }
 
 
-void controller_debug_rt_info_init(controller_debug_runtime_info* pCDebugRTInfo)
+void controller_debug_video_rt_info_init(controller_debug_video_runtime_info* pCVideoRTInfo)
 {
-   if ( NULL == pCDebugRTInfo )
+   if ( NULL == pCVideoRTInfo )
       return;
 
-   log_line("controller_debug_runtime_info total size: %d", sizeof(controller_debug_runtime_info));
-   memset(pCDebugRTInfo, 0, sizeof(controller_debug_runtime_info));
+   log_line("controller_debug_video_runtime_info total size: %d", sizeof(controller_debug_video_runtime_info));
+   memset(pCVideoRTInfo, 0, sizeof(controller_debug_video_runtime_info));
 
-   pCDebugRTInfo->iCurrentFrameBufferIndex =0;
+   pCVideoRTInfo->iCurrentFrameBufferIndex = 0;
+   pCVideoRTInfo->uCurrentReceivedH264Frame = 0xFFFF;
+   pCVideoRTInfo->uPreviousReceivedH264Frame = 0xFFFF;
+   pCVideoRTInfo->uLastComputedFPSAtFrameId = 0xFFFF;
+   pCVideoRTInfo->uLastComputedFPSAtTime = MAX_U32;
 }
 
-void controller_debug_rt_info_advance_frame(controller_debug_runtime_info* pCDebugRTInfo)
+void controller_debug_video_rt_info_advance_frame(controller_debug_video_runtime_info* pCVideoRTInfo, u16 uNewCurrentFrameH264Index, int iCurrentFPS, u32 uTimeNowMs)
 {
-   if ( NULL == pCDebugRTInfo )
+   if ( (NULL == pCVideoRTInfo) || (uNewCurrentFrameH264Index == pCVideoRTInfo->uCurrentReceivedH264Frame) )
       return;
 
-   pCDebugRTInfo->iCurrentFrameBufferIndex = (pCDebugRTInfo->iCurrentFrameBufferIndex+1) % SYSTEM_RT_INFO_INTERVALS_FRAMES;
+   int iExpectedFPS = iCurrentFPS;
+   if ( iExpectedFPS <= 10 )
+      iExpectedFPS = 30;
 
-   pCDebugRTInfo->uOutputedFramesSizes[pCDebugRTInfo->iCurrentFrameBufferIndex] = 0;
-   pCDebugRTInfo->uVideoFramesProcessingTimes[pCDebugRTInfo->iCurrentFrameBufferIndex] = 0;
+   // Reset?
+   bool bReset = false;
+   if ( (pCVideoRTInfo->uCurrentReceivedH264Frame == 0xFFFF) && (pCVideoRTInfo->uPreviousReceivedH264Frame == 0xFFFF) )
+      bReset = true;
+   if ( ! bReset )
+   if ( uNewCurrentFrameH264Index > pCVideoRTInfo->uCurrentReceivedH264Frame )
+   if ( (uNewCurrentFrameH264Index - pCVideoRTInfo->uCurrentReceivedH264Frame) > iExpectedFPS/2 )
+      bReset = true;
+   if ( ! bReset )
+   if ( uNewCurrentFrameH264Index < pCVideoRTInfo->uCurrentReceivedH264Frame )
+   if ( (uNewCurrentFrameH264Index > 2) || (pCVideoRTInfo->uCurrentReceivedH264Frame < (0xFFFF-2)) )
+      bReset = true;
+
+   if ( bReset )
+   {
+      controller_debug_video_rt_info_init(pCVideoRTInfo);
+      pCVideoRTInfo->uCurrentReceivedH264Frame = uNewCurrentFrameH264Index;
+      pCVideoRTInfo->uReceivedFrameStartTime[pCVideoRTInfo->iCurrentFrameBufferIndex] = uTimeNowMs;
+      return;
+   }
+
+   // Update current frame stats
+   pCVideoRTInfo->uReceivedFrameTotalSizeBytes[pCVideoRTInfo->iCurrentFrameBufferIndex] = pCVideoRTInfo->iCurrentFrameRecvBytes;
+   pCVideoRTInfo->iCurrentFrameRecvBytes = 0;
+
+   u32 uDelta = pCVideoRTInfo->uCurrentFrameLastPacketTimeTensMS - pCVideoRTInfo->uCurrentFrameFirstPacketTimeTensMS;
+   if ( uDelta > 255 ) uDelta = 255;
+      pCVideoRTInfo->uReceivedFrameDurationTensMs[pCVideoRTInfo->iCurrentFrameBufferIndex] = uDelta;
+
+   pCVideoRTInfo->uCurrentFrameFirstPacketTimeTensMS = pCVideoRTInfo->uCurrentFrameLastPacketTimeTensMS = get_current_timestamp_ms_tens();
+
+   int iIndex = pCVideoRTInfo->iCurrentFrameBufferIndex;
+   u32 uTotalBytes = 0;
+   u32 uTotalTensMs = 0;
+   for( int i=0; i<10; i++ )
+   {
+      uTotalBytes +=  pCVideoRTInfo->uReceivedFrameTotalSizeBytes[iIndex];
+      uTotalTensMs += pCVideoRTInfo->uReceivedFrameDurationTensMs[iIndex];
+      iIndex--;
+      if ( iIndex < 0 )
+         iIndex = SYSTEM_RT_INFO_INTERVALS_FRAMES-1;
+   }
+   if ( uTotalTensMs > 0 )
+   {
+      u32 uThroughput = (8*10*1000*uTotalBytes)/uTotalTensMs;
+      if ( uThroughput < 100000000 )
+         pCVideoRTInfo->uReceivedFrameThroughputBPS[pCVideoRTInfo->iCurrentFrameBufferIndex] = uThroughput;
+   }
+
+   // Advance to new frame
+
+   int iCountFrames = 0;
+   while ( pCVideoRTInfo->uCurrentReceivedH264Frame != uNewCurrentFrameH264Index )
+   {
+      iCountFrames++;
+      pCVideoRTInfo->uPreviousReceivedH264Frame = pCVideoRTInfo->uCurrentReceivedH264Frame;
+      pCVideoRTInfo->uCurrentReceivedH264Frame++;
+      pCVideoRTInfo->iCurrentFrameBufferIndex = (pCVideoRTInfo->iCurrentFrameBufferIndex+1) % SYSTEM_RT_INFO_INTERVALS_FRAMES;
+
+      pCVideoRTInfo->uOutputFramePackets[pCVideoRTInfo->iCurrentFrameBufferIndex] = 0;
+      pCVideoRTInfo->uOutputFramesInfo[pCVideoRTInfo->iCurrentFrameBufferIndex] = 0;
+      pCVideoRTInfo->uOutputedFramesSizes[pCVideoRTInfo->iCurrentFrameBufferIndex] = 0;
+      pCVideoRTInfo->uVideoFramesProcessingTimes[pCVideoRTInfo->iCurrentFrameBufferIndex] = 0;
+      pCVideoRTInfo->uReceivedFrameTotalSizeBytes[pCVideoRTInfo->iCurrentFrameBufferIndex] = 0;
+      pCVideoRTInfo->uReceivedFrameThroughputBPS[pCVideoRTInfo->iCurrentFrameBufferIndex] = 0;
+      pCVideoRTInfo->uReceivedFrameStartTime[pCVideoRTInfo->iCurrentFrameBufferIndex] = 0;
+      pCVideoRTInfo->uReceivedFrameDurationTensMs[pCVideoRTInfo->iCurrentFrameBufferIndex] = 0;
+
+      if ( iCountFrames > iExpectedFPS )
+      {
+         controller_debug_video_rt_info_init(pCVideoRTInfo);
+         pCVideoRTInfo->uCurrentReceivedH264Frame = uNewCurrentFrameH264Index;
+         pCVideoRTInfo->uReceivedFrameStartTime[pCVideoRTInfo->iCurrentFrameBufferIndex] = uTimeNowMs;
+         return;
+      }
+   }
+
+   pCVideoRTInfo->uReceivedFrameStartTime[pCVideoRTInfo->iCurrentFrameBufferIndex] = uTimeNowMs;
+
+   if ( (pCVideoRTInfo->uLastComputedFPSAtFrameId == 0xFFFF) || (pCVideoRTInfo->uLastComputedFPSAtTime == MAX_U32) )
+   {
+      pCVideoRTInfo->uLastComputedFPSAtFrameId = pCVideoRTInfo->uCurrentReceivedH264Frame;
+      pCVideoRTInfo->uLastComputedFPSAtTime = uTimeNowMs;
+   }
+   else if ( uTimeNowMs >= pCVideoRTInfo->uLastComputedFPSAtTime + 500 )
+   {
+      int iCountFrames = ((int)pCVideoRTInfo->uCurrentReceivedH264Frame) - ((int)pCVideoRTInfo->uLastComputedFPSAtFrameId);
+      if ( pCVideoRTInfo->uCurrentReceivedH264Frame < pCVideoRTInfo->uLastComputedFPSAtFrameId )
+         iCountFrames = ((int)pCVideoRTInfo->uCurrentReceivedH264Frame) + ((int)0xFFFF - ((int)pCVideoRTInfo->uLastComputedFPSAtFrameId));
+      pCVideoRTInfo->iComputedRxVideoFPS = (iCountFrames * 1000) / (uTimeNowMs - pCVideoRTInfo->uLastComputedFPSAtTime);
+      pCVideoRTInfo->uLastComputedFPSAtFrameId = pCVideoRTInfo->uCurrentReceivedH264Frame;
+      pCVideoRTInfo->uLastComputedFPSAtTime = uTimeNowMs;
+   }
 }
 
 
@@ -215,7 +312,7 @@ int controller_rt_info_will_advance_index(controller_runtime_info* pRTInfo, u32 
    return 1;
 }
 
-int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, controller_debug_runtime_info* pDebugRTInfo, u32 uTimeNowMs)
+int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, u32 uTimeNowMs)
 {
    if ( ! controller_rt_info_will_advance_index(pRTInfo, uTimeNowMs) )
       return 0;
@@ -347,8 +444,6 @@ int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, con
    pRTInfo->uTxLastDeltaTime[iIndex] = 0;
    pRTInfo->uTxPackets[iIndex] = 0;
    pRTInfo->uTxHighPriorityPackets[iIndex] = 0;
-
-   pDebugRTInfo->uOutputFramesInfo[iIndex] = 0;
  
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
    {
@@ -378,7 +473,7 @@ int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, con
 
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
    {
-      pDebugRTInfo->iRecvVideoDataRate[iIndex][i] = 0;
+      pRTInfo->iRecvVideoDataRate[iIndex][i] = 0;
    }
 
    pRTInfo->uFlagsAdaptiveVideo[iIndex] = 0;

@@ -108,15 +108,15 @@ void _synchronize_shared_mems()
       s_TimeLastControllerRTInfoUpdate = g_TimeNow;
       if ( NULL != g_pSMControllerRTInfo )
          memcpy((u8*)g_pSMControllerRTInfo, (u8*)&g_SMControllerRTInfo, sizeof(controller_runtime_info));
-      if ( g_pControllerSettings->iEnableDebugStats && (NULL != g_pSMControllerDebugRTInfo) )
-         memcpy((u8*)g_pSMControllerDebugRTInfo, (u8*)&g_SMControllerDebugRTInfo, sizeof(controller_debug_runtime_info));
-      if ( NULL != g_pSMVehicleRTInfo )
-         memcpy((u8*)g_pSMVehicleRTInfo, (u8*)&g_SMVehicleRTInfo, sizeof(vehicle_runtime_info));
+      
+      if ( (NULL != g_pSMControllerDebugVideoRTInfo) && (NULL != g_pCurrentModel) )
+      if ( g_pControllerSettings->iEnableDebugStats || (g_pCurrentModel->osd_params.osd_flags2[g_pCurrentModel->osd_params.iCurrentOSDScreen] & OSD_FLAG2_SHOW_VIDEO_FRAMES_STATS) )
+         memcpy((u8*)g_pSMControllerDebugVideoRTInfo, (u8*)&g_SMControllerDebugVideoRTInfo, sizeof(controller_debug_video_runtime_info));
    }
    //---------------------------------------------
    
    if ( (NULL != g_pCurrentModel) && g_pControllerSettings->iDeveloperMode )
-   if ( g_pCurrentModel->osd_params.osd_flags[g_pCurrentModel->osd_params.iCurrentOSDScreen] & OSD_FLAG_SHOW_STATS_VIDEO_H264_FRAMES_INFO)
+   if ( g_pCurrentModel->osd_params.osd_flags[g_pCurrentModel->osd_params.iCurrentOSDScreen] & OSD_FLAG_SHOW_STATS_VIDEO_H264_FRAMES_INFO )
    if ( g_TimeNow >= g_SM_VideoFramesStatsOutput.uLastTimeStatsUpdate + 200 )
    {
       update_shared_mem_video_frames_stats( &g_SM_VideoFramesStatsOutput, g_TimeNow);
@@ -247,19 +247,28 @@ void _check_send_pairing_requests()
       PH.vehicle_id_dest = pModel->uVehicleId;
       PH.total_length = sizeof(t_packet_header) + 3*sizeof(u32);
 
-      u32 uDeveloperFlags = g_pCurrentModel->uDeveloperFlags;
-      if ( (NULL != g_pControllerSettings) && g_pControllerSettings->iDeveloperMode )
-         uDeveloperFlags |= DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE;
-      else
-         uDeveloperFlags &= ~DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE;
-
-      u32 uBoardType = hardware_getBoardType();
       u8 packet[MAX_PACKET_TOTAL_SIZE];
-      memcpy(packet, (u8*)&PH, sizeof(t_packet_header));
-      memcpy(packet + sizeof(t_packet_header), &(g_State.vehiclesRuntimeInfo[i].uPairingRequestId), sizeof(u32));
-      memcpy(packet + sizeof(t_packet_header) + sizeof(u32), &uDeveloperFlags, sizeof(u32));
-      memcpy(packet + sizeof(t_packet_header) + 2*sizeof(u32), &uBoardType, sizeof(u32));
+      if ( ! is_sw_version_atleast(pModel, 11, 6) )
+      {
+         PH.total_length = sizeof(t_packet_header) + sizeof(u32);
+         memcpy(packet, (u8*)&PH, sizeof(t_packet_header));
+         memcpy(packet + sizeof(t_packet_header), &(g_State.vehiclesRuntimeInfo[i].uPairingRequestId), sizeof(u32));
+         log_line("Vehicle SW version (%d.%d) is older, send minimal pairing request.", get_sw_version_major(pModel), get_sw_version_minor(pModel));
+      }
+      else
+      {
+         u32 uDeveloperFlags = g_pCurrentModel->uDeveloperFlags;
+         if ( (NULL != g_pControllerSettings) && g_pControllerSettings->iDeveloperMode )
+            uDeveloperFlags |= DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE;
+         else
+            uDeveloperFlags &= ~DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE;
 
+         u32 uBoardType = hardware_getBoardType();
+         memcpy(packet, (u8*)&PH, sizeof(t_packet_header));
+         memcpy(packet + sizeof(t_packet_header), &(g_State.vehiclesRuntimeInfo[i].uPairingRequestId), sizeof(u32));
+         memcpy(packet + sizeof(t_packet_header) + sizeof(u32), &uDeveloperFlags, sizeof(u32));
+         memcpy(packet + sizeof(t_packet_header) + 2*sizeof(u32), &uBoardType, sizeof(u32));
+      }
       if ( 0 == send_packet_to_radio_interfaces(packet, PH.total_length, -1, 1, 500) )
       {
          if ( g_State.vehiclesRuntimeInfo[i].uPairingRequestId < 2 )

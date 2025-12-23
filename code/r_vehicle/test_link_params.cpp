@@ -111,25 +111,28 @@ void _test_link_end_and_notify()
    }
    if ( (iCountDiff > 0) || s_bTestLinkCurrentTestSucceeded )
    {
-      bool bUpdated = g_pCurrentModel->validate_profiles_max_video_bitrate();
+      bool bUpdated = g_pCurrentModel->validateVideoProfilesMaxVideoBitrate();
       u32 uMaxVideoBitrate = g_pCurrentModel->getMaxVideoBitrateSupportedForCurrentRadioLinks();
-      if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps > uMaxVideoBitrate )
+      if ( s_uOriginalVideoBitrate > uMaxVideoBitrate )
+         s_uOriginalVideoBitrate = uMaxVideoBitrate;
+
+      if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS > uMaxVideoBitrate )
          bUpdated = true;
       if ( bUpdated )
       {
          log_line("[TestLink-%d] Must adjust current video profile bitrate (%.2f Mbps) to max allowed on current links: %.1f Mbps",
             s_iTestLinkCurrentRunCount,
-            g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps/1000.0/1000.0, uMaxVideoBitrate/1000.0/1000.0);
+            g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS/1000.0/1000.0, uMaxVideoBitrate/1000.0/1000.0);
       
          type_video_link_profile oldVideoLinkProfiles[MAX_VIDEO_LINK_PROFILES];
          memcpy(&(oldVideoLinkProfiles[0]), &(g_pCurrentModel->video_link_profiles[0]), MAX_VIDEO_LINK_PROFILES*sizeof(type_video_link_profile));
-         g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps = uMaxVideoBitrate;
-         if ( g_pCurrentModel->validate_profiles_max_video_bitrate() )
+         g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS = uMaxVideoBitrate;
+         if ( g_pCurrentModel->validateVideoProfilesMaxVideoBitrate() )
             log_line("[TestLink-%d] Video bitrate was adjusted again to match max allowed on links");
          video_sources_on_changed_video_params(&(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].iCurrentProfile]), &(g_pCurrentModel->video_params), &oldVideoLinkProfiles[0]);
          log_line("[TestLink-%d] Done adjusting current video profile bitrate (%.1f Mbps) to max allowed on current links: %.1f Mbps",
             s_iTestLinkCurrentRunCount,
-            g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps/1000.0/1000.0, uMaxVideoBitrate/1000.0/1000.0);
+            g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS/1000.0/1000.0, uMaxVideoBitrate/1000.0/1000.0);
       }
       log_line("[TestLink-%d] Saving final model.", s_iTestLinkCurrentRunCount);
       saveCurrentModel();

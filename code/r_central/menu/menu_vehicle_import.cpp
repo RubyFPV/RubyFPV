@@ -153,7 +153,7 @@ void MenuVehicleImport::onSelectItem()
 
    if ( m_bCreateNew )
    {
-      Model* pModel = addNewModel(0,0);
+      Model* pModel = addNewModel(0, 0,0);
       pModel->loadFromFile(szFile, true);
       pModel->is_spectator = false;
       saveControllerModel(pModel);

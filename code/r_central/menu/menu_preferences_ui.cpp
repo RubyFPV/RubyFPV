@@ -537,7 +537,7 @@ void MenuPreferencesUI::onSelectItem()
       popups_invalidate_all();
 
       menu_rearrange_all_menus_xpos_no_animation();
-      menu_loop();
+      menu_loop(true);
       menu_invalidate_all();
       popups_invalidate_all();
 

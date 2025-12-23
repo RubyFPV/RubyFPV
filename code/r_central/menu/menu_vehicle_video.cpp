@@ -277,7 +277,7 @@ void MenuVehicleVideo::valuesToUI()
    
    if ( -1 != m_IndexVideoBitrate )
    {
-      m_pItemsSlider[2]->setCurrentValue(4*g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].bitrate_fixed_bps/1000/1000);
+      m_pItemsSlider[2]->setCurrentValue(4*g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS/1000/1000);
       m_pItemsSlider[2]->setEnabled( true );
    }
 
@@ -525,7 +525,7 @@ void MenuVehicleVideo::sendVideoSettings()
    else
       log_line("MenuVehicleVideo: Video codes is unchanged");
 
-   //profileNew.bitrate_fixed_bps = m_pItemsSlider[2]->getCurrentValue()*1000*1000/4;
+   //profileNew.uTargetVideoBitrateBPS = m_pItemsSlider[2]->getCurrentValue()*1000*1000/4;
 
    type_video_link_profile profiles[MAX_VIDEO_LINK_PROFILES];
    memcpy((u8*)&profiles[0], (u8*)&g_pCurrentModel->video_link_profiles[0], MAX_VIDEO_LINK_PROFILES*sizeof(type_video_link_profile));

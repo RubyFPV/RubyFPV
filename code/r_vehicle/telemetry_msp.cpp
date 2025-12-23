@@ -166,8 +166,9 @@ void telemetry_msp_on_open_port(int iSerialPortFile)
    s_uMSPPreviousDisplayPortCommand = 0xFF;
 
    memset(&s_PHTMSP, 0, sizeof(t_packet_header_telemetry_msp));
-   s_PHTMSP.uCols = 60;
-   s_PHTMSP.uRows = 22;
+   s_PHTMSP.uMSPOSDCols = 60;
+   s_PHTMSP.uMSPOSDRows = 22;
+   log_line("[Telem] Reset MSP OSD canvas size to: cols: %d, rows: %d", s_PHTMSP.uMSPOSDCols, s_PHTMSP.uMSPOSDRows);
 }
 
 void telemetry_msp_on_close()
@@ -251,7 +252,12 @@ void _parse_msp_osd_command()
 {
    if ( (s_uMSPCommand != MSP_CMD_DISPLAYPORT) || (s_iMSPCommandPayloadSize < 1) || (s_iMSPDirection != MSP_DIR_FROM_FC) )
       return;
-   
+
+   if (! (s_PHTMSP.uMSPFlags & MSP_FLAG_GOT_FC_TYPE) )
+      return;
+   if ( 0 == (s_PHTMSP.uMSPFlags & MSP_FLAGS_FC_TYPE_MASK) )
+      return;
+
    s_uMSPPreviousDisplayPortCommand = s_uMSPDisplayPortCommand;
    s_uMSPDisplayPortCommand = s_uMSPCommandPayload[0];
 
@@ -265,30 +271,34 @@ void _parse_msp_osd_command()
          {
             int y = s_uMSPCommandPayload[1];
             int x = s_uMSPCommandPayload[2];
-            if ( x >= s_PHTMSP.uCols )
+            if ( x >= s_PHTMSP.uMSPOSDCols )
             {
+               s_PHTMSP.uMSPFlags |= MSP_FLAG_AUTO_ADJUSTED_OSD_SIZE;
                if ( x >= 50 )
-                  s_PHTMSP.uCols = 60;
+                  s_PHTMSP.uMSPOSDCols = 60;
                else if ( x >= 30 )
-                  s_PHTMSP.uCols = 50;
+                  s_PHTMSP.uMSPOSDCols = 50;
                else
-                  s_PHTMSP.uCols = 30;
+                  s_PHTMSP.uMSPOSDCols = 30;
+               log_line("[Telem] Auto adjusted MSP OSD canvas size to: cols: %d, rows: %d", s_PHTMSP.uMSPOSDCols, s_PHTMSP.uMSPOSDRows);
             }
-            if ( y >= s_PHTMSP.uRows )
+            if ( y >= s_PHTMSP.uMSPOSDRows )
             {
+               s_PHTMSP.uMSPFlags |= MSP_FLAG_AUTO_ADJUSTED_OSD_SIZE;
                if ( y >= 20 )
-                  s_PHTMSP.uRows = 22;
+                  s_PHTMSP.uMSPOSDRows = 22;
                else if ( y >= 18 )
-                  s_PHTMSP.uRows = 20;
+                  s_PHTMSP.uMSPOSDRows = 20;
                else if ( y >= 16 )
-                  s_PHTMSP.uRows = 18;
+                  s_PHTMSP.uMSPOSDRows = 18;
                else
-                  s_PHTMSP.uRows = 16;
+                  s_PHTMSP.uMSPOSDRows = 16;
+               log_line("[Telem] Auto adjusted MSP OSD canvas size to: cols: %d, rows: %d", s_PHTMSP.uMSPOSDCols, s_PHTMSP.uMSPOSDRows);
             }
             char szData[128];
             memset(szData, 0, 128);
             memcpy(szData, &s_uMSPCommandPayload[4], s_iMSPCommandPayloadSize-4);
-            if ( s_iMSPCommandPayloadSize <= 4 )
+            if ( s_iMSPCommandPayloadSize < 4 )
                bSkip = true;
          }
          break;
@@ -297,26 +307,39 @@ void _parse_msp_osd_command()
          {
             if ( s_iMSPCommandPayloadSize >= 3 )
             {
+               s_PHTMSP.uMSPFlags |= MSP_FLAG_GOT_FC_DISPLAY_OPTIONS;
+               bool bAdjusted = false;
                if ( s_uMSPCommandPayload[2] == MSP_SD_OPTION_30_16 )
                {
-                  s_PHTMSP.uCols = 30;
-                  s_PHTMSP.uRows = 16;
+                  s_PHTMSP.uMSPOSDCols = 30;
+                  s_PHTMSP.uMSPOSDRows = 16;
+                  bAdjusted = true;
                }
                if ( s_uMSPCommandPayload[2] == MSP_HD_OPTION_50_18 )
                {
-                  s_PHTMSP.uCols = 50;
-                  s_PHTMSP.uRows = 18;
+                  s_PHTMSP.uMSPOSDCols = 50;
+                  s_PHTMSP.uMSPOSDRows = 18;
+                  bAdjusted = true;
                }
                if ( s_uMSPCommandPayload[2] == MSP_HD_OPTION_30_16 )
                {
-                  s_PHTMSP.uCols = 30;
-                  s_PHTMSP.uRows = 16;
+                  s_PHTMSP.uMSPOSDCols = 30;
+                  s_PHTMSP.uMSPOSDRows = 16;
+                  bAdjusted = true;
                }
                if ( s_uMSPCommandPayload[2] == MSP_HD_OPTION_60_22 )
                {
-                  s_PHTMSP.uCols = 60;
-                  s_PHTMSP.uRows = 22;
+                  s_PHTMSP.uMSPOSDCols = 60;
+                  s_PHTMSP.uMSPOSDRows = 22;
+                  bAdjusted = true;
                }
+               if ( bAdjusted )
+               {
+                  log_line("[Telem] Got MSP OSD SET OPTIONS: value: %d, canvas size adjusted to: cols: %d, rows: %d", s_uMSPCommandPayload[2], s_PHTMSP.uMSPOSDCols, s_PHTMSP.uMSPOSDRows);
+                  s_PHTMSP.uMSPFlags |= MSP_FLAG_FC_DID_ADJUSTED_OSD_SIZE;
+               }
+               else
+                  log_line("[Telem] Got MSP OSD SET OPTIONS: value: %d, no change in canvas size: cols: %d, rows: %d", s_uMSPCommandPayload[2], s_PHTMSP.uMSPOSDCols, s_PHTMSP.uMSPOSDRows);
             }
          }
          break;
@@ -411,15 +434,16 @@ void _parse_msp_command()
             strncpy(szBuff, (char*)s_uMSPCommandPayload, 4);
             szBuff[4] = 0;
             log_line("[Telem] Got MSP FC variant: (%s)", szBuff);
-            s_PHTMSP.uFlags &= ~MSP_FLAGS_FC_TYPE_MASK;
+            s_PHTMSP.uMSPFlags |= MSP_FLAG_GOT_FC_TYPE;
+            s_PHTMSP.uMSPFlags &= ~MSP_FLAGS_FC_TYPE_MASK;
             if ( strncmp("BTFL", (char*)s_uMSPCommandPayload, s_iMSPCommandPayloadSize) == 0 )
-               s_PHTMSP.uFlags |= MSP_FLAGS_FC_TYPE_BETAFLIGHT;
+               s_PHTMSP.uMSPFlags |= MSP_FLAGS_FC_TYPE_BETAFLIGHT;
             else if ( strncmp("ARDU", (char*)s_uMSPCommandPayload, s_iMSPCommandPayloadSize) == 0 )
-               s_PHTMSP.uFlags |= MSP_FLAGS_FC_TYPE_ARDUPILOT;
+               s_PHTMSP.uMSPFlags |= MSP_FLAGS_FC_TYPE_ARDUPILOT;
             else if ( strncmp("PITL", (char*)s_uMSPCommandPayload, s_iMSPCommandPayloadSize) == 0 )
-               s_PHTMSP.uFlags |= MSP_FLAGS_FC_TYPE_PITLAB;
+               s_PHTMSP.uMSPFlags |= MSP_FLAGS_FC_TYPE_PITLAB;
             else
-               s_PHTMSP.uFlags |= MSP_FLAGS_FC_TYPE_INAV;
+               s_PHTMSP.uMSPFlags |= MSP_FLAGS_FC_TYPE_INAV;
 
             _send_msp_to_fc(MSP_CMD_API_VERSION, NULL, 0);
          }
@@ -431,13 +455,17 @@ void _parse_msp_command()
             for( int i=0; i<s_iMSPCommandPayloadSize; i++ )
                log_line("[Telem] Got MSP API version, byte[%d]=%d", i, s_uMSPCommandPayload[i]);
 
+            if ( s_PHTMSP.uMSPFlags & MSP_FLAG_GOT_FC_TYPE )
+            if ( (s_PHTMSP.uMSPFlags & MSP_FLAGS_FC_TYPE_MASK) == MSP_FLAGS_FC_TYPE_BETAFLIGHT )
+            if ( s_uMSPCommandPayload[2] >= 45 ) // minor version
             if ( ! s_bMSPSentOSDCanvasSize )
             {
                s_bMSPSentOSDCanvasSize = true;
                u8 uBuffer[2];
-               uBuffer[0] = 60;
-               uBuffer[1] = 22;
+               uBuffer[0] = s_PHTMSP.uMSPOSDCols;
+               uBuffer[1] = s_PHTMSP.uMSPOSDRows;
                _send_msp_to_fc(MSP_CMD_SET_OSD_CANVAS, uBuffer, 2);
+               log_line("[Telem] Sent MSP OSD SET CANVAS to FC, cols: %d, rows: %d", s_PHTMSP.uMSPOSDCols, s_PHTMSP.uMSPOSDRows);
             }
          }
          break;

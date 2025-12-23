@@ -122,6 +122,10 @@ void osd_add_stats_total_flights()
 
 void osd_show_voltage(float x, float y, float voltage, bool bRightAlign)
 {
+   Model* pActiveModel = osd_get_current_data_source_vehicle_model();
+   if ( (NULL == pActiveModel) || (pActiveModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MSP) )
+      return;
+
    osd_set_colors();
 
    bool bMultiLine = false;
@@ -221,20 +225,28 @@ void osd_show_voltage(float x, float y, float voltage, bool bRightAlign)
    osd_set_colors();
 }
 
-float osd_show_amps(float x, float y, float amps, bool bRightAlign)
+void osd_show_amps(float x, float y, float amps, bool bRightAlign)
 {
+   Model* pActiveModel = osd_get_current_data_source_vehicle_model();
+   if ( (NULL == pActiveModel) || (pActiveModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MSP) )
+      return;
+
    if ( g_pCurrentModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_LAYOUT_LEFT_RIGHT )
       bRightAlign = false;
    char szBuff[32];
    snprintf(szBuff, 31, "%.1f", amps);
    if ( bRightAlign )
-      return osd_show_value_sufix_left(x,y, szBuff, "A", g_idFontOSDBig, g_idFontOSD);
+      osd_show_value_sufix_left(x,y, szBuff, "A", g_idFontOSDBig, g_idFontOSD);
    else
-      return osd_show_value_sufix(x,y, szBuff, "A", g_idFontOSDBig, g_idFontOSD);
+      osd_show_value_sufix(x,y, szBuff, "A", g_idFontOSDBig, g_idFontOSD);
 }
 
 float osd_show_mah(float x, float y, u32 mah, bool bRightAlign)
 {
+   Model* pActiveModel = osd_get_current_data_source_vehicle_model();
+   if ( (NULL == pActiveModel) || (pActiveModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MSP) )
+      return 0.0;
+
    if ( g_pCurrentModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_LAYOUT_LEFT_RIGHT )
       bRightAlign = false;
 
@@ -259,6 +271,10 @@ float osd_show_mah(float x, float y, u32 mah, bool bRightAlign)
 
 float _osd_show_gps(float x, float y, bool bMultiLine)
 {
+   Model* pActiveModel = osd_get_current_data_source_vehicle_model();
+   if ( (NULL == pActiveModel) || (pActiveModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MSP) )
+      return 0.0;
+
    int iOSVehicleDataSourceIndex = osd_get_current_data_source_vehicle_index();
 
    char szBuff[32];
@@ -1910,10 +1926,11 @@ void _render_osd_left_right()
       {
          if ( pActiveModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_VIDEO_MODE )
          {
-            if ( (pVDS->iCurrentVideoFPS - pActiveModel->video_params.iVideoFPS > 3) || (pVDS->iCurrentVideoFPS - pActiveModel->video_params.iVideoFPS < -3) )
-               sprintf(szBuff, "*%d fps", pVDS->iCurrentVideoFPS);
+            if ( ((pVDS->iCurrentVideoTxSourceFPS - pActiveModel->video_params.iVideoFPS) > 2) ||
+                 ((pVDS->iCurrentVideoTxSourceFPS - pActiveModel->video_params.iVideoFPS) < -2) )
+               sprintf(szBuff, "*%d FPS", pVDS->iCurrentVideoTxSourceFPS);
             else
-               sprintf(szBuff, "%d fps", pVDS->iCurrentVideoFPS);
+               sprintf(szBuff, "%d FPS", pVDS->iCurrentVideoTxSourceFPS);
          }
       }
       else
@@ -2289,10 +2306,11 @@ void osd_render_elements()
          strcpy(szBuff, "N/A");
       else if ( link_has_received_videostream(uVehicleIdVideo) )
       {
-         if ( (pVDS->iCurrentVideoFPS - pActiveModel->video_params.iVideoFPS > 3) || (pVDS->iCurrentVideoFPS - pActiveModel->video_params.iVideoFPS < -3) )
-            sprintf(szBuff, "%s *%d fps", getOptionVideoResolutionName(pVDS->iCurrentVideoWidth, pVDS->iCurrentVideoHeight), pVDS->iCurrentVideoFPS);
+         if ( ((pVDS->iCurrentVideoTxSourceFPS - pActiveModel->video_params.iVideoFPS) > 2) ||
+              ((pVDS->iCurrentVideoTxSourceFPS - pActiveModel->video_params.iVideoFPS) < -2) )
+            sprintf(szBuff, "%s *%d FPS", getOptionVideoResolutionName(pVDS->iCurrentVideoWidth, pVDS->iCurrentVideoHeight), pVDS->iCurrentVideoTxSourceFPS);
          else
-            sprintf(szBuff, "%s %d fps", getOptionVideoResolutionName(pVDS->iCurrentVideoWidth, pVDS->iCurrentVideoHeight), pVDS->iCurrentVideoFPS);
+            sprintf(szBuff, "%s %d FPS", getOptionVideoResolutionName(pVDS->iCurrentVideoWidth, pVDS->iCurrentVideoHeight), pVDS->iCurrentVideoTxSourceFPS);
       }
       else
          sprintf(szBuff, "[waiting]");
@@ -2733,39 +2751,29 @@ void osd_render_warnings()
    osd_warnings_render();
 }
 
-void _osd_render_msp(Model* pModel)
+void osd_render_msposd_buffer(int iFCType, int iOSDFontType, int iCols, int iRows, u16* pCharBuffer)
 {
-   if ( NULL == pModel )
-      return;
-
-   t_structure_vehicle_info* pRuntimeInfo = get_vehicle_runtime_info_for_vehicle_id(pModel->uVehicleId);
-   if ( NULL == pRuntimeInfo )
-      return;
-
-   if ( (pRuntimeInfo->mspState.headerTelemetryMSP.uRows == 0) ||
-        (pRuntimeInfo->mspState.headerTelemetryMSP.uCols == 0) ||
-        ((pRuntimeInfo->mspState.headerTelemetryMSP.uFlags & MSP_FLAGS_FC_TYPE_MASK) == 0) )
+   if ( (iCols <= 0) || (iRows <= 0) || (NULL == pCharBuffer) )
       return;
 
    Preferences* pP = get_Preferences();
 
    u32 uImgId = g_idImgMSPOSDBetaflight;
-   if ( (pRuntimeInfo->mspState.headerTelemetryMSP.uFlags & MSP_FLAGS_FC_TYPE_MASK) == MSP_FLAGS_FC_TYPE_INAV )
+   if ( iFCType == MSP_FLAGS_FC_TYPE_INAV )
       uImgId = g_idImgMSPOSDINAV;
-   if ( (pRuntimeInfo->mspState.headerTelemetryMSP.uFlags & MSP_FLAGS_FC_TYPE_MASK) == MSP_FLAGS_FC_TYPE_ARDUPILOT )
+   if ( iFCType == MSP_FLAGS_FC_TYPE_ARDUPILOT )
       uImgId = g_idImgMSPOSDArdupilot;
-   if ( (pRuntimeInfo->mspState.headerTelemetryMSP.uFlags & MSP_FLAGS_FC_TYPE_MASK) == MSP_FLAGS_FC_TYPE_PITLAB )
+   if ( iFCType == MSP_FLAGS_FC_TYPE_PITLAB )
       uImgId = g_idImgMSPOSDPitLab;
-   if ( (pModel->osd_params.uFlags & OSD_BIT_FLAGS_MASK_MSPOSD_FONT) != 0 )
+   if ( iOSDFontType != 0 )
    {
-      u32 uFont = pModel->osd_params.uFlags & OSD_BIT_FLAGS_MASK_MSPOSD_FONT;
-      if ( uFont == 1 )
+      if ( iOSDFontType == 1 )
          uImgId = g_idImgMSPOSDBetaflight;
-      if ( uFont == 2 )
+      if ( iOSDFontType == 2 )
          uImgId = g_idImgMSPOSDINAV;
-      if ( uFont == 3 )
+      if ( iOSDFontType == 3 )
          uImgId = g_idImgMSPOSDArdupilot;
-      if ( uFont == 4 )
+      if ( iOSDFontType == 4 )
          uImgId = g_idImgMSPOSDPitLab;
    }
    
@@ -2776,8 +2784,8 @@ void _osd_render_msp(Model* pModel)
       iImgCharWidth = 24;
       iImgCharHeight = 36;    
    }
-   float fScreenCharWidth = (1.0 - 2.0*osd_getMarginX()) / (float)pRuntimeInfo->mspState.headerTelemetryMSP.uCols;
-   float fScreenCharHeight = (1.0 - 2.0*osd_getMarginY()) / (float)pRuntimeInfo->mspState.headerTelemetryMSP.uRows;
+   float fScreenCharWidth = (1.0 - 2.0*osd_getMarginX()) / (float)iCols;
+   float fScreenCharHeight = (1.0 - 2.0*osd_getMarginY()) / (float)iRows;
 
    if ( (pP->iMSPOSDSize > 30) && (pP->iMSPOSDSize < 150) )
    {
@@ -2794,10 +2802,10 @@ void _osd_render_msp(Model* pModel)
       fStartPosY += pP->iMSPOSDDeltaY * fScreenCharHeight;
    }
 
-   for( int y=0; y<pRuntimeInfo->mspState.headerTelemetryMSP.uRows; y++ )
-   for( int x=0; x<pRuntimeInfo->mspState.headerTelemetryMSP.uCols; x++ )
+   for( int y=0; y<iRows; y++ )
+   for( int x=0; x<iCols; x++ )
    {
-      u16 uChar = pRuntimeInfo->mspState.uScreenChars[x + y*pRuntimeInfo->mspState.headerTelemetryMSP.uCols];
+      u16 uChar = pCharBuffer[x + y*iCols];
       if ( 0 == (uChar & 0xFF) )
          continue;
       u8 uPage = uChar >> 8;
@@ -2808,6 +2816,27 @@ void _osd_render_msp(Model* pModel)
       g_pRenderEngine->bltSprite(fStartPosX + x * fScreenCharWidth, fStartPosY + y * fScreenCharHeight,
          iImgSrcX, iImgSrcY, iImgCharWidth, iImgCharHeight, uImgId);
    }
+}
+
+void _osd_render_msp(Model* pModel)
+{
+   if ( NULL == pModel )
+      return;
+
+   t_structure_vehicle_info* pRuntimeInfo = get_vehicle_runtime_info_for_vehicle_id(pModel->uVehicleId);
+   if ( NULL == pRuntimeInfo )
+      return;
+
+   if ( (pRuntimeInfo->mspState.headerTelemetryMSP.uMSPOSDRows == 0) ||
+        (pRuntimeInfo->mspState.headerTelemetryMSP.uMSPOSDCols == 0) ||
+        ((pRuntimeInfo->mspState.headerTelemetryMSP.uMSPFlags & MSP_FLAGS_FC_TYPE_MASK) == 0) )
+      return;
+
+   osd_render_msposd_buffer(pRuntimeInfo->mspState.headerTelemetryMSP.uMSPFlags & MSP_FLAGS_FC_TYPE_MASK,
+      pModel->osd_params.uFlags & OSD_BIT_FLAGS_MASK_MSPOSD_FONT,
+      pRuntimeInfo->mspState.headerTelemetryMSP.uMSPOSDCols,
+      pRuntimeInfo->mspState.headerTelemetryMSP.uMSPOSDRows,
+      pRuntimeInfo->mspState.uScreenChars);
 }
 
 
@@ -2843,28 +2872,41 @@ void osd_show_monitor()
 
 void osd_render_all()
 {
+   bool bAlphaEnabled = g_pRenderEngine->isAlphaBlendingEnabled();
+   g_pRenderEngine->disableAlphaBlending();
+
    if ( s_bOSDDisableRendering )
    {
       Model* pModel = osd_get_current_data_source_vehicle_model();
       if ( (NULL == pModel) || (0 == g_uActiveControllerModelVID) )
+      {
+         g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
          return;
+      }
       osd_render_instruments();
       osd_widgets_render(pModel->uVehicleId, osd_get_current_layout_index());
       osd_plugins_render();
+      g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
       return;
    }
 
    Model* pModel = osd_get_current_data_source_vehicle_model();
    if ( (NULL == pModel) || (0 == g_uActiveControllerModelVID) )
+   {
+      g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
       return;
-
+   }
    if ( ! (pModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_LAYOUT_ENABLED) )
    if ( ! (pModel->osd_params.osd_flags3[osd_get_current_layout_index()] & OSD_FLAG3_LAYOUT_ENABLED_PLUGINS_ONLY) )
+   {
+      g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
       return;
-
+   }
    if ( ! pairing_isStarted() )
+   {
+      g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
       return;
-
+   }
    Preferences* p = get_Preferences();
    
    s_RenderCount++;
@@ -2875,11 +2917,15 @@ void osd_render_all()
 
 
    if ( pModel->is_spectator && (!(pModel->telemetry_params.flags & TELEMETRY_FLAGS_SPECTATOR_ENABLE)) )
+   {
+      g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
       return;
-
+   }
    if ( !pairing_isStarted() )
+   {
+      g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
       return;
-
+   }
    float fAlfaOrg = g_pRenderEngine->getGlobalAlfa();
    
    osd_setMarginX(0.0);
@@ -2981,6 +3027,7 @@ void osd_render_all()
 
    g_pRenderEngine->drawBackgroundBoundingBoxes(false);
    g_pRenderEngine->setGlobalAlfa(fAlfaOrg);
+   g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
 }
 
 void osd_start_flash_osd_elements()

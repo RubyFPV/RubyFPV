@@ -119,7 +119,6 @@ ProcessorRxVideo::ProcessorRxVideo(u32 uVehicleId, u8 uVideoStreamIndex)
    m_uRequestRetransmissionUniqueId = 0;
    m_TimeLastHistoryStatsUpdate = 0;
    m_TimeLastRetransmissionsStatsUpdate = 0;
-   m_uDebugStatsLastRecvFrameIndex = 0;
 
    m_uLastVideoBlockIndexResolutionChange = 0;
    m_uLastVideoBlockPacketIndexResolutionChange = 0;
@@ -213,11 +212,7 @@ void ProcessorRxVideo::resetReceiveState()
 {
    log_line("[ProcessorRxVideo] Start: Reset video RX state and buffers");
    
-   m_uDebugStatsLastRecvFrameIndex = 0;
-   m_iDebugStatsCurrentFrameBytes = 0;
-   m_iDebugStatsCurrentFramePackets = 0;
-   m_uDebugStatsCurrentFrameFirstPacketTimeTensMS = 0;
-   m_uDebugStatsCurrentFrameLastPacketTimeTensMS = 0;
+   controller_debug_video_rt_info_init(&g_SMControllerDebugVideoRTInfo);
 
    m_uRetryRetransmissionAfterTimeoutMiliseconds = g_pControllerSettings->nRetryRetransmissionAfterTimeoutMS;
    m_uTimeIntervalMsForRequestingRetransmissions = DEFAULT_RETRANSMISSION_MIN_REQUEST_INTERVAL_MS;
@@ -237,6 +232,7 @@ void ProcessorRxVideo::resetReceiveState()
    m_uLastVideoBlockIndexResolutionChange = 0;
    m_uLastVideoBlockPacketIndexResolutionChange = 0;
    memset(&m_NewestReceivedVideoPacketInfo, 0, sizeof(t_packet_header_video_segment));
+   memset(&m_CopyNewestReceivedVideoRxBlockInfo, 0, sizeof(type_rx_video_block_info));
    m_uNewestReceivedVideoPacketTime = 0;
    m_uLastTimeActivated = g_TimeNow;
 
@@ -249,6 +245,7 @@ void ProcessorRxVideo::_resetOutputState()
 {
    log_line("[ProcessorRxVideo] Reset output state.");
    memset(&m_LastOutputedVideoPacketInfo, 0, sizeof(t_packet_header_video_segment));
+   memset(&m_CopyLastOutputedVideoRxBlockInfo, 0, sizeof(type_rx_video_block_info));
    m_uTimeLastOutputedVideoPacket = 0;
    m_uTimeReceivedLastOutputedVideoPacket = 0;
    rx_video_output_discard_cached_data();
@@ -319,11 +316,14 @@ void ProcessorRxVideo::checkAndDiscardBlocksTooOld()
    {
       log_line("[ProcessorRxVideo] Discarded %d blocks too old (at least %d ms old), last successfull missing packets check for retransmission: %u ms ago",
           iCountSkipped, m_iMilisecondsMaxRetransmissionWindow, g_TimeNow - m_uLastTimeCheckedForMissingPackets );
-      log_line("[ProcessorRxVideo] When discarded block, last received video block packet was [f%d %u/%u eof %d], received %u ms ago, last outputed video block packet was [f%d %u/%u], outputed %u ms ago and received %u ms ago",
+      log_line("[ProcessorRxVideo] When discarded block, last received video block packet was [f%d pckt %u/%u eof %d], fr pckt %d of %d, received %u ms ago, last outputed video block packet was [f%d pkt %u/%u] fr pkt %d of %d, outputed %u ms ago and received %u ms ago",
          m_NewestReceivedVideoPacketInfo.uH264FrameIndex, m_NewestReceivedVideoPacketInfo.uCurrentBlockIndex,
          m_NewestReceivedVideoPacketInfo.uCurrentBlockPacketIndex, m_NewestReceivedVideoPacketInfo.uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_MASK_EOF_COUNTER,
+         m_NewestReceivedVideoPacketInfo.uFramePacketsInfo & 0xFF, m_NewestReceivedVideoPacketInfo.uFramePacketsInfo >> 8,
          g_TimeNow - m_uNewestReceivedVideoPacketTime,
          m_LastOutputedVideoPacketInfo.uH264FrameIndex, m_LastOutputedVideoPacketInfo.uCurrentBlockIndex, m_LastOutputedVideoPacketInfo.uCurrentBlockPacketIndex,
+         m_LastOutputedVideoPacketInfo.uFramePacketsInfo & 0xFF, m_LastOutputedVideoPacketInfo.uFramePacketsInfo >> 8,
+
          g_TimeNow - m_uTimeLastOutputedVideoPacket,
          g_TimeNow - m_uTimeReceivedLastOutputedVideoPacket);
 
@@ -402,7 +402,7 @@ int ProcessorRxVideo::getVideoFPS()
 {
    int iFPS = 0;
    if ( -1 != m_iIndexVideoDecodeStats )
-      iFPS = g_SM_VideoDecodeStats.video_streams[m_iIndexVideoDecodeStats].iCurrentVideoFPS;
+      iFPS = g_SM_VideoDecodeStats.video_streams[m_iIndexVideoDecodeStats].iCurrentVideoTxSourceFPS;
    if ( 0 == iFPS )
    {
       Model* pModel = findModelWithId(m_uVehicleId, 177);
@@ -440,7 +440,7 @@ int ProcessorRxVideo::periodicLoopProcessor(u32 uTimeNow, bool bForceSyncNow)
 {
    type_global_state_vehicle_runtime_info* pRuntimeInfo = getVehicleRuntimeInfo(m_uVehicleId);
    Model* pModel = findModelWithId(m_uVehicleId, 155);
-   if ( (NULL == pModel) || (NULL == pRuntimeInfo) )
+   if ( (NULL == pModel) || (NULL == pRuntimeInfo) || (! pRuntimeInfo->bIsPairingDone) )
       return -1;
 
    controller_runtime_info_vehicle* pCtrlRTInfo = controller_rt_info_get_vehicle_info(&g_SMControllerRTInfo, m_uVehicleId);
@@ -601,23 +601,18 @@ void ProcessorRxVideo::handleReceivedVideoPacket(int interfaceNb, u8* pBuffer, i
 
    // Save info about it
 
+   bool bIsNewest = false;
    if ( (pPHVS->uCurrentBlockIndex > m_NewestReceivedVideoPacketInfo.uCurrentBlockIndex) )
-   {
-      memcpy(&m_NewestReceivedVideoPacketInfo, pPHVS, sizeof(t_packet_header_video_segment));
-      m_uNewestReceivedVideoPacketTime = g_TimeNow;
-      updateControllerRTInfoAndVideoDecodingStats(pBuffer, iBufferLength);
-   }
+      bIsNewest = true;
    if ( pPHVS->uCurrentBlockIndex == m_NewestReceivedVideoPacketInfo.uCurrentBlockIndex )
    if ( pPHVS->uCurrentBlockPacketIndex >= m_NewestReceivedVideoPacketInfo.uCurrentBlockPacketIndex )
+      bIsNewest = true;
+   if ( bIsNewest )
    {
       memcpy(&m_NewestReceivedVideoPacketInfo, pPHVS, sizeof(t_packet_header_video_segment));
       m_uNewestReceivedVideoPacketTime = g_TimeNow;
       updateControllerRTInfoAndVideoDecodingStats(pBuffer, iBufferLength);
    }
-
-   if ( g_pControllerSettings->iEnableDebugStats )
-   if ( ! m_pVideoRxBuffer->hasVideoPacket(pPHVS->uCurrentBlockIndex, pPHVS->uCurrentBlockPacketIndex) )
-      _updateDebugStatsOnVideoPacket(pBuffer, iBufferLength);
 
    if ( pPHVS->uCurrentBlockPacketIndex >= pPHVS->uCurrentBlockDataPackets )
       g_SMControllerRTInfo.uRxVideoECPackets[g_SMControllerRTInfo.iCurrentIndex][0]++;
@@ -653,8 +648,14 @@ void ProcessorRxVideo::handleReceivedVideoPacket(int interfaceNb, u8* pBuffer, i
 
 
    if ( ! m_pVideoRxBuffer->checkAddVideoPacket(pBuffer, iBufferLength) )
+   {
+      if ( bIsNewest )
+         memcpy(&m_CopyNewestReceivedVideoRxBlockInfo, m_pVideoRxBuffer->getTopBlockInBuffer(), sizeof(type_rx_video_block_info));
       return;
-   
+   }
+   if ( bIsNewest )
+      memcpy(&m_CopyNewestReceivedVideoRxBlockInfo, m_pVideoRxBuffer->getTopBlockInBuffer(), sizeof(type_rx_video_block_info));
+
    _checkAndOutputAvailablePackets(pRuntimeInfo, pModel);
 }
 
@@ -714,7 +715,13 @@ void ProcessorRxVideo::processAndOutputVideoPacket(type_rx_video_block_info* pVi
    u8* pVideoRawStreamData = pVideoPacket->pVideoData;
    pVideoRawStreamData += sizeof(t_packet_header_video_segment_important);
 
+
+   if ( g_pControllerSettings->iEnableDebugStats ||
+        ((NULL != g_pCurrentModel) && (g_pCurrentModel->osd_params.osd_flags2[g_pCurrentModel->osd_params.iCurrentOSDScreen] & OSD_FLAG2_SHOW_VIDEO_FRAMES_STATS)) )
+      _updateDebugStatsOnVideoPacket(pVideoPacket);
+
    memcpy(&m_LastOutputedVideoPacketInfo, pPHVS, sizeof(t_packet_header_video_segment));
+   memcpy(&m_CopyLastOutputedVideoRxBlockInfo, pVideoBlock, sizeof(type_rx_video_block_info));
    m_uTimeLastOutputedVideoPacket = g_TimeNow;
    m_uTimeReceivedLastOutputedVideoPacket = pVideoPacket->uReceivedTime;
 
@@ -804,12 +811,12 @@ void ProcessorRxVideo::processAndOutputVideoPacket(type_rx_video_block_info* pVi
       s_uLastOutputedVideoBlockIdReconstructed = pVideoBlock->uVideoBlockIndex;
       g_SMControllerRTInfo.uOutputedVideoBlocksECUsed[g_SMControllerRTInfo.iCurrentIndex]++;
 
-      if ( (pPHVS->uCurrentBlockECPackets > 2) &&
-           (pVideoBlock->iReconstructedECUsed >= pPHVS->uCurrentBlockECPackets-1) )
-         g_SMControllerRTInfo.uOutputedVideoBlocksMaxECUsed[g_SMControllerRTInfo.iCurrentIndex]++;
-      else if ( (pPHVS->uCurrentBlockECPackets > 0) && (pPHVS->uCurrentBlockECPackets <= 2) &&
+      if ( (pPHVS->uCurrentBlockECPackets > 0) &&
            (pVideoBlock->iReconstructedECUsed >= pPHVS->uCurrentBlockECPackets) )
+      {
          g_SMControllerRTInfo.uOutputedVideoBlocksMaxECUsed[g_SMControllerRTInfo.iCurrentIndex]++;
+         g_SMControllerDebugVideoRTInfo.uOutputFramePackets[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] |= ((u32)0x01)<<24;
+      }   
       
       if ( pVideoBlock->iReconstructedECUsed == 1 )
          g_SMControllerRTInfo.uOutputedVideoBlocksSingleECUsed[g_SMControllerRTInfo.iCurrentIndex]++;
@@ -868,7 +875,7 @@ void ProcessorRxVideo::updateControllerRTInfoAndVideoDecodingStats(u8* pRadioPac
    }
    if ( pPHVS->uStreamInfoFlags == VIDEO_STREAM_INFO_FLAG_FPS )
    {
-      g_SM_VideoDecodeStats.video_streams[m_iIndexVideoDecodeStats].iCurrentVideoFPS = pPHVS->uStreamInfo;
+      g_SM_VideoDecodeStats.video_streams[m_iIndexVideoDecodeStats].iCurrentVideoTxSourceFPS = pPHVS->uStreamInfo;
    }
    if ( pPHVS->uStreamInfoFlags == VIDEO_STREAM_INFO_FLAG_EC_TX_TIME )
    if ( NULL != pModel )
@@ -897,75 +904,78 @@ void ProcessorRxVideo::updateControllerRTInfoAndVideoDecodingStats(u8* pRadioPac
    }
 }
 
-void ProcessorRxVideo::_updateDebugStatsOnVideoPacket(u8* pRadioPacket, int iPacketLength)
+void ProcessorRxVideo::_updateDebugStatsOnVideoPacket(type_rx_video_packet_info* pVideoPacket)
 {
-   //t_packet_header* pPH = (t_packet_header*)pRadioPacket;
+   u8* pRadioPacket = pVideoPacket->pRawData;
+   t_packet_header* pPH = (t_packet_header*)pRadioPacket;
    t_packet_header_video_segment* pPHVS = (t_packet_header_video_segment*) (pRadioPacket+sizeof(t_packet_header));
-
+   int iPacketLength = pPH->total_length;
+   
    if ( g_pControllerSettings->iEnableDebugStats )
    {
       if ( pPHVS->uStreamInfoFlags == VIDEO_STREAM_INFO_FLAG_LAST_FRAME_TIMERS )
       {
-         int iPrevIndex = g_SMControllerDebugRTInfo.iCurrentFrameBufferIndex - 1;
+         int iPrevIndex = g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex - 1;
          if ( iPrevIndex < 0 )
             iPrevIndex = SYSTEM_RT_INFO_INTERVALS_FRAMES - 1;
-         if ( 0 == g_SMControllerDebugRTInfo.uVideoFramesProcessingTimes[iPrevIndex] )
-            g_SMControllerDebugRTInfo.uVideoFramesProcessingTimes[iPrevIndex] = pPHVS->uStreamInfo;
-      }
-      if ( m_uDebugStatsLastRecvFrameIndex == pPHVS->uH264FrameIndex )
-      {
-         m_iDebugStatsCurrentFrameBytes += pPHVS->uCurrentBlockPacketSize;
-         m_iDebugStatsCurrentFramePackets++;
-         m_uDebugStatsCurrentFrameLastPacketTimeTensMS = get_current_timestamp_ms_tens();
+         if ( pPHVS->uH264FrameIndex == (g_SMControllerDebugVideoRTInfo.uPreviousReceivedH264Frame + 1) )
+         if ( 0 == g_SMControllerDebugVideoRTInfo.uVideoFramesProcessingTimes[iPrevIndex] )
+            g_SMControllerDebugVideoRTInfo.uVideoFramesProcessingTimes[iPrevIndex] = pPHVS->uStreamInfo;
       }
 
       if ( pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_IS_END_OF_FRAME )
       {
-         g_SMControllerDebugRTInfo.uOutputFramesInfo[g_SMControllerRTInfo.iCurrentIndex] |= (VIDEO_STATUS_FLAGS2_IS_END_OF_FRAME >> 8);
+         g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] |= VIDEO_STATUS_FLAGS2_IS_END_OF_FRAME;
          u32 uDeltaMS = g_TimeNow - g_SMControllerRTInfo.uCurrentSliceStartTime;
          if ( uDeltaMS > 128 )
             uDeltaMS = 128;
-         g_SMControllerDebugRTInfo.uOutputFramesInfo[g_SMControllerRTInfo.iCurrentIndex] &= 0xFFFFFF;
-         g_SMControllerDebugRTInfo.uOutputFramesInfo[g_SMControllerRTInfo.iCurrentIndex] |= (uDeltaMS << 24);
+         g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] &= 0xFFFFFF00;
+         g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] |= (uDeltaMS & 0xFF);
       }
    }
 
-   if ( (m_uDebugStatsLastRecvFrameIndex == pPHVS->uH264FrameIndex) || (! g_pControllerSettings->iEnableDebugStats) )
+   if ( g_bSearching || (NULL == g_pCurrentModel) )
       return;
 
-   u32 uDelta = m_uDebugStatsCurrentFrameLastPacketTimeTensMS - m_uDebugStatsCurrentFrameFirstPacketTimeTensMS;
-   if ( uDelta > 255 ) uDelta = 255;
-   g_SMControllerDebugRTInfo.uReceivedFrameDurationTensMs[g_SMControllerDebugRTInfo.iCurrentFrameBufferIndex] = uDelta;
-   g_SMControllerDebugRTInfo.uReceivedFrameTotalSizeBytes[g_SMControllerDebugRTInfo.iCurrentFrameBufferIndex] = m_iDebugStatsCurrentFrameBytes;
-   
-   int iIndex = g_SMControllerDebugRTInfo.iCurrentFrameBufferIndex;
-   u32 uTotalBytes = 0;
-   u32 uTotalTensMs = 0;
-   for( int i=0; i<5; i++ )
+   if ( (! g_pControllerSettings->iEnableDebugStats) && ( !(g_pCurrentModel->osd_params.osd_flags2[g_pCurrentModel->osd_params.iCurrentOSDScreen] & OSD_FLAG2_SHOW_VIDEO_FRAMES_STATS)) )
+      return;
+
+
+   if ( pVideoPacket->bReconstructed )
    {
-      uTotalBytes +=  g_SMControllerDebugRTInfo.uReceivedFrameTotalSizeBytes[iIndex];
-      uTotalTensMs += g_SMControllerDebugRTInfo.uReceivedFrameDurationTensMs[iIndex];
-      iIndex--;
-      if ( iIndex < 0 )
-         iIndex = SYSTEM_RT_INFO_INTERVALS_FRAMES-1;
-   }
-   if ( uTotalTensMs > 0 )
-   {
-      u32 uThroughput = (8*10*1000*uTotalBytes)/uTotalTensMs;
-      if ( uThroughput < 100000000 )
-         g_SMControllerDebugRTInfo.uReceivedFrameThroughputBPS[g_SMControllerDebugRTInfo.iCurrentFrameBufferIndex] = uThroughput;
+      u8 uPckts = (g_SMControllerDebugVideoRTInfo.uOutputFramePackets[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] >> 16) & 0xFF;
+      uPckts++;
+      g_SMControllerDebugVideoRTInfo.uOutputFramePackets[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] = 
+        (g_SMControllerDebugVideoRTInfo.uOutputFramePackets[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] & 0xFF00FFFF) | (((u32)uPckts) << 16);
    }
 
-   g_TimeNow = get_current_timestamp_ms();
+   if ( pPH->packet_flags & PACKET_FLAGS_BIT_RETRANSMITED )
+   {
+      u8 uPckts = (g_SMControllerDebugVideoRTInfo.uOutputFramePackets[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] >> 8) & 0xFF;
+      uPckts++;
+      g_SMControllerDebugVideoRTInfo.uOutputFramePackets[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] = 
+        (g_SMControllerDebugVideoRTInfo.uOutputFramePackets[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] & 0xFFFF00FF) | (((u32)uPckts) << 8);
+   }
+   else
+   {
+      u8 uPckts = (g_SMControllerDebugVideoRTInfo.uOutputFramePackets[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex]) & 0xFF;
+      uPckts++;
+      g_SMControllerDebugVideoRTInfo.uOutputFramePackets[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] = 
+        (g_SMControllerDebugVideoRTInfo.uOutputFramePackets[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] & 0xFFFFFF00) | uPckts;
+   }
 
-   m_uDebugStatsLastRecvFrameIndex = pPHVS->uH264FrameIndex;
-   m_iDebugStatsCurrentFrameBytes = 0;
-   m_iDebugStatsCurrentFramePackets = 0;
-   m_uDebugStatsCurrentFrameFirstPacketTimeTensMS = m_uDebugStatsCurrentFrameLastPacketTimeTensMS = get_current_timestamp_ms_tens();
+   if  ( g_SMControllerDebugVideoRTInfo.uCurrentReceivedH264Frame == pPHVS->uH264FrameIndex ) 
+   {
+      g_SMControllerDebugVideoRTInfo.iCurrentFrameRecvBytes += pPHVS->uCurrentBlockPacketSize;
+      g_SMControllerDebugVideoRTInfo.uCurrentFrameLastPacketTimeTensMS = get_current_timestamp_ms_tens();
+      return;
+   }
 
-   controller_debug_rt_info_advance_frame(&g_SMControllerDebugRTInfo);
-   g_SMControllerDebugRTInfo.uCaptureFramesDistanceTimes[g_SMControllerDebugRTInfo.iCurrentFrameBufferIndex] = pPHVS->uRuntimeMetrics & 0xFF;
-   g_SMControllerDebugRTInfo.uReceivedFrameNALFlags[g_SMControllerDebugRTInfo.iCurrentFrameBufferIndex] = (pPHVS->uVideoStatusFlags2 >> 8) & 0xFF;
+   // New H264 frame received
+
+   controller_debug_video_rt_info_advance_frame(&g_SMControllerDebugVideoRTInfo, pPHVS->uH264FrameIndex, g_pCurrentModel->video_params.iVideoFPS, g_TimeNow);
+   g_SMControllerDebugVideoRTInfo.uCaptureFramesDistanceTimes[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] = pPHVS->uRuntimeMetrics & 0xFF;
+   g_SMControllerDebugVideoRTInfo.uReceivedFrameNALFlags[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] = (pPHVS->uVideoStatusFlags2 >> 8) & 0xFF;
 }
 
 void ProcessorRxVideo::checkUpdateRetransmissionsState()
@@ -1033,6 +1043,32 @@ void ProcessorRxVideo::_checkUpdateRetransmissionsState()
 
 int ProcessorRxVideo::checkAndRequestMissingPackets(bool bForceSyncNow)
 {
+   /*
+   static u32 ultchr = 0;
+   if ( g_TimeNow > ultchr + 5 )
+   {
+      ultchr = g_TimeNow;
+      log_line("DBG retr check r EOF was %ums ago last recv fr f%d blk %u/%d fr pkt %d of %d; last recv block: f%d blk %u, scheme %d/%d, recv: %d/%d, recon %d",
+          g_TimeNow - radio_rx_get_current_frame_end_time(),
+         m_NewestReceivedVideoPacketInfo.uH264FrameIndex, m_NewestReceivedVideoPacketInfo.uCurrentBlockIndex, m_NewestReceivedVideoPacketInfo.uCurrentBlockPacketIndex,
+         m_NewestReceivedVideoPacketInfo.uFramePacketsInfo & 0xFF, m_NewestReceivedVideoPacketInfo.uFramePacketsInfo >> 8,
+         m_CopyNewestReceivedVideoRxBlockInfo.uH264FrameIndex, m_CopyNewestReceivedVideoRxBlockInfo.uVideoBlockIndex,
+         m_CopyNewestReceivedVideoRxBlockInfo.iBlockDataPackets, m_CopyNewestReceivedVideoRxBlockInfo.iBlockECPackets,
+         m_CopyNewestReceivedVideoRxBlockInfo.iRecvDataPackets, m_CopyNewestReceivedVideoRxBlockInfo.iRecvECPackets,
+         m_CopyNewestReceivedVideoRxBlockInfo.iReconstructedECUsed);
+
+      log_line("DBG retr check r EOF was %ums ago last output fr f%d blk %u/%d fr pkt %d of %d recon: %d, last output block: f%d blk %u, scheme %d/%d, recv: %d/%d, recon %d",
+          g_TimeNow - radio_rx_get_current_frame_end_time(),
+         m_LastOutputedVideoPacketInfo.uH264FrameIndex, m_LastOutputedVideoPacketInfo.uCurrentBlockIndex, m_LastOutputedVideoPacketInfo.uCurrentBlockPacketIndex,
+         m_LastOutputedVideoPacketInfo.uFramePacketsInfo & 0xFF, m_LastOutputedVideoPacketInfo.uFramePacketsInfo >> 8,
+         (m_NewestReceivedVideoPacketInfo.uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_WAS_RECONSTRUCTED)?1:0,
+         m_CopyLastOutputedVideoRxBlockInfo.uH264FrameIndex, m_CopyLastOutputedVideoRxBlockInfo.uVideoBlockIndex,
+         m_CopyLastOutputedVideoRxBlockInfo.iBlockDataPackets, m_CopyLastOutputedVideoRxBlockInfo.iBlockECPackets,
+         m_CopyLastOutputedVideoRxBlockInfo.iRecvDataPackets, m_CopyLastOutputedVideoRxBlockInfo.iRecvECPackets,
+         m_CopyLastOutputedVideoRxBlockInfo.iReconstructedECUsed);
+   }
+   */
+
    type_global_state_vehicle_runtime_info* pRuntimeInfo = getVehicleRuntimeInfo(m_uVehicleId);
    Model* pModel = findModelWithId(m_uVehicleId, 179);
    if ( (NULL == pModel) || (NULL == pRuntimeInfo) || g_bUpdateInProgress )
@@ -1054,8 +1090,7 @@ int ProcessorRxVideo::checkAndRequestMissingPackets(bool bForceSyncNow)
       return -1;
    checkUpdateRetransmissionsState();
 
-   int iVideoProfileNow = g_SM_VideoDecodeStats.video_streams[m_iIndexVideoDecodeStats].PHVS.uCurrentVideoLinkProfile;
-   m_iMilisecondsMaxRetransmissionWindow = ((pModel->video_link_profiles[iVideoProfileNow].uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK) >> 8) * 5;
+   m_iMilisecondsMaxRetransmissionWindow = pModel->getCurrentVideoProfileMaxRetransmissionWindow();
 
    checkAndDiscardBlocksTooOld();
    if ( 0 == m_pVideoRxBuffer->getCountBlocksInBuffer() )
@@ -1095,6 +1130,18 @@ int ProcessorRxVideo::checkAndRequestMissingPackets(bool bForceSyncNow)
    int iCountBlocks = m_pVideoRxBuffer->getCountBlocksInBuffer();
    if ( 0 == iCountBlocks )
       return -1;
+
+   type_rx_video_block_info* pVideoBlockDbg = m_pVideoRxBuffer->getBlockInBufferFromBottom(0);
+   /*
+   log_line("DBG retr check: video buffer has %d blocks to check. Bottom block: f%d blk %u, scheme %d/%d, recv %d/%d pckts, frame has %d pckts, this block has %d to %d f pckts",
+       iCountBlocks, pVideoBlockDbg->uH264FrameIndex,
+       pVideoBlockDbg->uVideoBlockIndex,
+       pVideoBlockDbg->iBlockDataPackets, pVideoBlockDbg->iBlockECPackets,
+       pVideoBlockDbg->iRecvDataPackets, pVideoBlockDbg->iRecvECPackets,
+       pVideoBlockDbg->iTotalFramePackets,
+       pVideoBlockDbg->iFramePacketStart, pVideoBlockDbg->iFramePacketEnd
+       );
+   */
 
    if ( g_TimeNow >= m_uLastTimeRequestedRetransmission + m_iMilisecondsMaxRetransmissionWindow )
       m_uTimeIntervalMsForRequestingRetransmissions = DEFAULT_RETRANSMISSION_MIN_REQUEST_INTERVAL_MS;

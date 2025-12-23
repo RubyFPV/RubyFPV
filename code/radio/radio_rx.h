@@ -6,11 +6,14 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#if defined (HW_PLATFORM_RASPBERRY) || defined (HW_PLATFORM_RADXA)
-#define MAX_RX_PACKETS_QUEUE 700
+#if defined (HW_PLATFORM_OPENIPC)
+#define MAX_RX_PACKETS_QUEUE_REG 500
+#define MAX_RX_PACKETS_QUEUE_HIP 200
 #else
-#define MAX_RX_PACKETS_QUEUE 300
+#define MAX_RX_PACKETS_QUEUE_REG 2000
+#define MAX_RX_PACKETS_QUEUE_HIP 1000
 #endif
+
 typedef struct
 {
    u32 uVehicleId;
@@ -29,10 +32,10 @@ typedef struct
 
 typedef struct
 {
-   u8* pPacketsBuffers[MAX_RX_PACKETS_QUEUE];
-   int iPacketsLengths[MAX_RX_PACKETS_QUEUE];
-   u8  uPacketsAreShort[MAX_RX_PACKETS_QUEUE];
-   u8  uPacketsRxInterface[MAX_RX_PACKETS_QUEUE];
+   u8* pPacketsBuffers[MAX_RX_PACKETS_QUEUE_REG];
+   int iPacketsLengths[MAX_RX_PACKETS_QUEUE_REG];
+   u8  uPacketsAreShort[MAX_RX_PACKETS_QUEUE_REG];
+   u8  uPacketsRxInterface[MAX_RX_PACKETS_QUEUE_REG];
    int iQueueSize;
    _ATOMIC_PREFIX int iCurrentPacketIndexToWrite; // Where next packet will be added
    _ATOMIC_PREFIX int iCurrentPacketIndexToConsume; // Where the first packet to read/consume is

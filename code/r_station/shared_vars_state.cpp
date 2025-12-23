@@ -82,6 +82,14 @@ void resetVehicleRuntimeInfo(int iIndex)
    g_State.vehiclesRuntimeInfo[iIndex].uMaxCommandRoundtripMiliseconds = MAX_U32;
    g_State.vehiclesRuntimeInfo[iIndex].uMinCommandRoundtripMiliseconds = MAX_U32;
 
+   g_State.vehiclesRuntimeInfo[iIndex].uTimeLastRecvFCTelemetryFC = 0;
+   g_State.vehiclesRuntimeInfo[iIndex].uTimeLastRecvRubyTelemetryExtended = 0;
+   g_State.vehiclesRuntimeInfo[iIndex].uTimeLastRecvRubyTelemetryShort = 0;
+   memset( &(g_State.vehiclesRuntimeInfo[iIndex].headerFCTelemetry), 0, sizeof(t_packet_header_fc_telemetry));
+   memset( &(g_State.vehiclesRuntimeInfo[iIndex].headerRubyTelemetryExtended), 0, sizeof(t_packet_header_ruby_telemetry_extended_v6));
+   memset( &(g_State.vehiclesRuntimeInfo[iIndex].headerRubyTelemetryShort), 0, sizeof(t_packet_header_ruby_telemetry_short));
+   parse_msp_reset_state(&(g_State.vehiclesRuntimeInfo[iIndex].mspState));
+
    g_State.vehiclesRuntimeInfo[iIndex].bIsDoingRetransmissions = false;
    g_State.vehiclesRuntimeInfo[iIndex].bIsAdaptiveVideoActive = false;
    g_State.vehiclesRuntimeInfo[iIndex].uAdaptiveVideoActivationTime = g_TimeNow;

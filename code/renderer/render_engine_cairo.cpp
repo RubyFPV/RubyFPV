@@ -978,6 +978,7 @@ void RenderEngineCairo::drawLine(float x1, float y1, float x2, float y2)
 
 void RenderEngineCairo::drawRect(float xPos, float yPos, float fWidth, float fHeight)
 {   
+
    int xSt = xPos*m_iRenderWidth;
    int ySt = yPos*m_iRenderHeight;
    int w = fWidth*m_iRenderWidth;
@@ -1006,51 +1007,104 @@ void RenderEngineCairo::drawRect(float xPos, float yPos, float fWidth, float fHe
    if ( (w <= 0) || (h <= 0) )
       return;
 
-   /*
-   if ( m_bEnableAlpha )
-   {
-      if ( m_fColorFill[3] > 0.001 )
-      {
-         cairo_rectangle(m_pCairoCtx, xPos * m_iRenderWidth, yPos * m_iRenderHeight, fWidth * m_iRenderWidth, fHeight * m_iRenderHeight);  
-         cairo_set_source_rgba(m_pCairoCtx, m_fColorFill[0], m_fColorFill[1], m_fColorFill[2], m_fColorFill[3]);
-         cairo_fill(m_pCairoCtx);
-      }
-      if ( m_fColorStroke[3] > 0.001 )
-      if ( m_fStrokeSizePx > 0.00001 )
-      {
-         cairo_rectangle(m_pCairoCtx, xPos * m_iRenderWidth, yPos * m_iRenderHeight, fWidth * m_iRenderWidth, fHeight * m_iRenderHeight);  
-         cairo_set_source_rgba(m_pCairoCtx, m_fColorStroke[0], m_fColorStroke[1], m_fColorStroke[2], m_fColorStroke[3]);
-         cairo_stroke(m_pCairoCtx);
-      }
-      return;
-   }
-   */
    u8 r = m_ColorFill[0];
    u8 g = m_ColorFill[1];
    u8 b = m_ColorFill[2];
    u8 a = m_ColorFill[3];
 
    // Output surface format order is: BGRA
-   if ( m_ColorFill[3] > 2 )
+   if ( a > 2 )
    {
       type_drm_buffer* pOutputBufferInfo = ruby_drm_core_get_back_draw_buffer();
-      for( int y=0; y<h; y++ )
+      u32* pDest = NULL;
+      u32 uColor = (((u32)a) << 24) | (((u32)r) << 16) | (((u32)g) << 8) | ((u32)b);
+
+      int yTop = ySt;
+      int yBottom = ySt + h;
+      if ( (w > 2) && (h > 2) )
       {
-         u8* pDestLine = (u8*)&(pOutputBufferInfo->pData[(ySt+y)*pOutputBufferInfo->uStride]);
-         pDestLine += 4*xSt;
-         for( int x=0; x<w; x++ )
+         u8* pDestLine = (u8*)&(pOutputBufferInfo->pData[yTop*pOutputBufferInfo->uStride]);
+         pDestLine += 4*(xSt+1);
+         pDest = (u32*)pDestLine;
+         if ( m_bEnableAlphaBlending )
          {
-            //_blend_pixel(pDestLine, r,g,b,a);
-            //pDestLine += 4;
-            *pDestLine++ = b;
-            *pDestLine++ = g;
-            *pDestLine++ = r;
-            *pDestLine++ = a;
+            for( int x=0; x<w-2; x++ )
+            {
+               _blend_pixel(pDestLine, r,g,b,a);
+               pDestLine += 4;
+            }
+         }
+         else
+         {
+            for( int x=0; x<w-2; x++ )
+            {
+               //*pDestLine++ = b;
+               //*pDestLine++ = g;
+               //*pDestLine++ = r;
+               //*pDestLine++ = a;
+               *pDest++ = uColor;
+            }
+         }
+         yTop++;
+         yBottom--;
+      }
+      for( int y=yTop; y<yBottom; y++ )
+      {
+         u8* pDestLine = (u8*)&(pOutputBufferInfo->pData[y*pOutputBufferInfo->uStride]);
+         pDestLine += 4*xSt;
+         pDest = (u32*)pDestLine;
+         if ( m_bEnableAlphaBlending )
+         {
+            for( int x=0; x<w; x++ )
+            {
+               _blend_pixel(pDestLine, r,g,b,a);
+               pDestLine += 4;
+            }
+         }
+         else
+         {
+            for( int x=0; x<w; x++ )
+            {
+               //*pDestLine++ = b;
+               //*pDestLine++ = g;
+               //*pDestLine++ = r;
+               //*pDestLine++ = a;
+               *pDest++ = uColor;
+            }
          }
       }
+      if ( (w > 2) && (h > 2) )
+      {
+         u8* pDestLine = (u8*)&(pOutputBufferInfo->pData[(ySt+h-1)*pOutputBufferInfo->uStride]);
+         pDestLine += 4*(xSt+1);
+         pDest = (u32*)pDestLine;
+         if ( m_bEnableAlphaBlending )
+         {
+            for( int x=0; x<w-2; x++ )
+            {
+               _blend_pixel(pDestLine, r,g,b,a);
+               pDestLine += 4;
+            }
+         }
+         else
+         {
+            for( int x=0; x<w-2; x++ )
+            {
+               //*pDestLine++ = b;
+               //*pDestLine++ = g;
+               //*pDestLine++ = r;
+               //*pDestLine++ = a;
+               *pDest++ = uColor;
+            }
+         }
+
+      }
    }
-   if ( m_ColorStroke[3] > 2 )
-   if ( m_fStrokeSizePx > 0.00001 )
+   if ( (m_ColorStroke[0] != m_ColorFill[0]) ||
+        (m_ColorStroke[1] != m_ColorFill[1]) ||
+        (m_ColorStroke[2] != m_ColorFill[2]) ||
+        (m_ColorStroke[3] != m_ColorFill[3]) )
+   if ( (m_ColorStroke[3] > 2) && (m_fStrokeSizePx >= 0.9) )
    {
       r = m_ColorStroke[0];
       g = m_ColorStroke[1];
@@ -1127,14 +1181,23 @@ void RenderEngineCairo::drawRoundRect(float xPos, float yPos, float fWidth, floa
       {
          u8* pDestLine = (u8*)&(pOutputBufferInfo->pData[(ySt+y)*pOutputBufferInfo->uStride]);
          pDestLine += 4*(xSt+3);
-         for( int x=0; x<(w-5); x++ )
+         if ( false && m_bEnableAlphaBlending )
          {
-            //_blend_pixel(pDestLine, r,g,b,a);
-            //pDestLine += 4;
-            *pDestLine++ = b;
-            *pDestLine++ = g;
-            *pDestLine++ = r;
-            *pDestLine++ = a;
+            for( int x=0; x<(w-5); x++ )
+            {
+               _blend_pixel(pDestLine, r,g,b,a);
+               pDestLine += 4;
+            }
+         }
+         else
+         {
+            for( int x=0; x<(w-5); x++ )
+            {
+               *pDestLine++ = b;
+               *pDestLine++ = g;
+               *pDestLine++ = r;
+               *pDestLine++ = a;
+            }
          }
       }
   
@@ -1174,29 +1237,6 @@ void RenderEngineCairo::drawRoundRect(float xPos, float yPos, float fWidth, floa
       _draw_vline(xSt+w-1, ySt+1,  2 , r,g,b,a);
       _draw_vline(xSt+w-1, ySt+h-3, 2 , r,g,b,a);
    }
-
-
-   //drawRect(xPos, yPos, fWidth, fHeight);
-
-   /*
-   double degrees = M_PI / 180.0;
-   fCornerRadius = 10.0;
-   cairo_new_sub_path (m_pCairoCtx);
-   cairo_arc (m_pCairoCtx, xPos + fWidth - fCornerRadius, yPos + fCornerRadius, fCornerRadius, -90 * degrees, 0 * degrees);
-   cairo_arc (m_pCairoCtx, xPos + fWidth - fCornerRadius, yPos + fHeight - fCornerRadius, fCornerRadius, 0 * degrees, 90 * degrees);
-   cairo_arc (m_pCairoCtx, xPos + fCornerRadius, yPos + fHeight - fCornerRadius, fCornerRadius, 90 * degrees, 180 * degrees);
-   cairo_arc (m_pCairoCtx, xPos + fCornerRadius, yPos + fCornerRadius, fCornerRadius, 180 * degrees, 270 * degrees);
-   cairo_close_path (m_pCairoCtx);
-
-   if ( m_fColorFill[3] > 0.001 )
-   {
-      cairo_set_source_rgba(m_pCairoCtx, m_fColorFill[0], m_fColorFill[1], m_fColorFill[2], m_fColorFill[3]);
-      cairo_fill_preserve(m_pCairoCtx);
-   }
-
-   cairo_set_source_rgba(m_pCairoCtx, m_fColorStroke[0], m_fColorStroke[1], m_fColorStroke[2], m_fColorStroke[3]);
-   cairo_stroke(m_pCairoCtx);
-   */
 }
 
 
@@ -1240,14 +1280,35 @@ void RenderEngineCairo::drawRoundRectMenu(float xPos, float yPos, float fWidth, 
 
    if ( m_ColorFill[3] > 2 )
    {
-      cairo_rectangle(m_pCairoCtx, xSt, ySt, w, h);
-      cairo_set_source_rgba(m_pCairoCtx, m_ColorFill[0]/255.0, m_ColorFill[1]/255.0, m_ColorFill[2]/255.0, m_ColorFill[3]/255.0);
-      cairo_fill(m_pCairoCtx);
-
       u8 r = m_ColorFill[0];
       u8 g = m_ColorFill[1];
       u8 b = m_ColorFill[2];
       u8 a = m_ColorFill[3];
+      type_drm_buffer* pOutputBufferInfo = ruby_drm_core_get_back_draw_buffer();
+      for( int y=0; y<h; y++ )
+      {
+         u8* pDestLine = (u8*)&(pOutputBufferInfo->pData[(ySt+y)*pOutputBufferInfo->uStride]);
+         pDestLine += 4*(xSt+3);
+       
+         if ( false && m_bEnableAlphaBlending )
+         {
+            for( int x=0; x<(w-5); x++ )
+            {
+               _blend_pixel(pDestLine, r,g,b,a);
+               pDestLine += 4;
+            }
+         }
+         else
+         {
+            for( int x=0; x<(w-5); x++ )
+            {
+               *pDestLine++ = b;
+               *pDestLine++ = g;
+               *pDestLine++ = r;
+               *pDestLine++ = a;
+            }          
+         }
+      }
 
       _draw_vline(xSt+2, ySt+1, h-2 , r,g,b,a);
       _draw_vline(xSt+1, ySt+1, h-2 , r,g,b,a);
@@ -1702,7 +1763,7 @@ void RenderEngineCairo::_drawSimpleTextScaled(RenderEngineRawFont* pFont, const 
    }
    if ( 0 == szText[0] )
    {
-      log_softerror_and_alarm("[RenderEngineCairo] Tried to draw empty string.");
+      //log_softerror_and_alarm("[RenderEngineCairo] Tried to draw empty string.");
       return;
    }
    if ( ! m_bStartedFrame )

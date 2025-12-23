@@ -43,7 +43,7 @@ MenuVehicleVideoCompare::MenuVehicleVideoCompare(void)
    m_Height = 0.0;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.2;
 
-   float fColWidth = g_pRenderEngine->textWidth(g_idFontMenu, "100% NAAB");
+   float fColWidth = g_pRenderEngine->textWidth(g_idFontMenu, "100% NAAB22");
    float fStartWidth = g_pRenderEngine->textWidth(g_idFontMenu, "Some Long Random Text Here Again");
    m_Width = 5.0 * fColWidth + fStartWidth;
 
@@ -72,7 +72,7 @@ void MenuVehicleVideoCompare::valuesToUI()
 void MenuVehicleVideoCompare::addRenderLine(const char* szTitle, const char* szVal1, const char* szVal2, const char* szVal3, const char* szVal4, const char* szVal5 )
 {
    float fStartWidth = g_pRenderEngine->textWidth(g_idFontMenu, "Some Long Random Text Here Again");
-   float fColWidth = g_pRenderEngine->textWidth(g_idFontMenu, "100% NAAB");
+   float fColWidth = g_pRenderEngine->textWidth(g_idFontMenu, "100% NAAB22");
    float fTextHeight = g_pRenderEngine->textHeight(g_idFontMenu);
 
    m_fCurrentYPos += 0.5 * 1.5 * Menu::getSelectionPaddingY();
@@ -111,14 +111,17 @@ void MenuVehicleVideoCompare::Render()
    float yTop = RenderFrameAndTitle();
 
    float fTableTop = m_RenderYPos + m_RenderTitleHeight + m_sfMenuPaddingY*2.0;
-   float fColWidth = g_pRenderEngine->textWidth(g_idFontMenu, "100% NAAB");
+   float fColWidth = g_pRenderEngine->textWidth(g_idFontMenu, "100% NAAB22");
    float fStartWidth = g_pRenderEngine->textWidth(g_idFontMenu, "Some Long Random Text Here Again");
    float x = m_RenderXPos + m_sfMenuPaddingX + fStartWidth - 2.0*g_pRenderEngine->getPixelWidth();
 
+   bool bAlphaEnabled = g_pRenderEngine->isAlphaBlendingEnabled();
+   g_pRenderEngine->enableAlphaBlending();
    g_pRenderEngine->setFill(255,100,100,0.2);
    g_pRenderEngine->setStroke(250,250,250, 0.3);
    //g_pRenderEngine->drawRect(x + fColWidth * g_pCurrentModel->video_params.iCurrentVideoProfile, fTableTop, fColWidth, m_RenderHeight - (fTableTop - m_RenderYPos) - m_sfMenuPaddingY);
    g_pRenderEngine->drawRect(x + fColWidth * g_pCurrentModel->video_params.iCurrentVideoProfile + 8.0 * g_pRenderEngine->getPixelWidth(), fTableTop - 0.5 * m_sfMenuPaddingY, fColWidth - 16.0 * g_pRenderEngine->getPixelWidth(), m_fExtraHeightStart + 0.2 * m_sfMenuPaddingY);
+   g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
    g_pRenderEngine->setColors(get_Color_MenuText());
 
    m_fCurrentYPos = fTableTop;

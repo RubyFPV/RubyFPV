@@ -52,10 +52,8 @@ ProcessorRxVideo* g_pVideoProcessorRxList[MAX_VIDEO_PROCESSORS];
 
 controller_runtime_info g_SMControllerRTInfo;
 controller_runtime_info* g_pSMControllerRTInfo = NULL;
-controller_debug_runtime_info g_SMControllerDebugRTInfo;
-controller_debug_runtime_info* g_pSMControllerDebugRTInfo = NULL;
-vehicle_runtime_info g_SMVehicleRTInfo;
-vehicle_runtime_info* g_pSMVehicleRTInfo = NULL;
+controller_debug_video_runtime_info g_SMControllerDebugVideoRTInfo;
+controller_debug_video_runtime_info* g_pSMControllerDebugVideoRTInfo = NULL;
 
 shared_mem_radio_stats_rx_hist* g_pSM_HistoryRxStats = NULL;
 shared_mem_radio_stats_rx_hist g_SM_HistoryRxStats;

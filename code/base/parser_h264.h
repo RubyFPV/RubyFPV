@@ -60,3 +60,6 @@ class ParserH264
       int m_iDetectedH264ProfileConstrains;
       int m_iDetectedH264Level;
 };
+
+
+bool parser_h264_is_signaling_nal(u8 uNALId);

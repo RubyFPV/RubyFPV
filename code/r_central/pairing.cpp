@@ -294,26 +294,14 @@ void _pairing_open_shared_mem()
 
    for(int i=0; i<iRetryCount; i++ )
    {
-      if ( NULL != g_pSMControllerDebugRTInfo )
+      if ( NULL != g_pSMControllerDebugVideoRTInfo )
          break;
-      g_pSMControllerDebugRTInfo = controller_debug_rt_info_open_for_read();
+      g_pSMControllerDebugVideoRTInfo = controller_debug_video_rt_info_open_for_read();
       
       hardware_sleep_ms(2);
       iAnyNewOpen++;
    }
-   if ( NULL == g_pSMControllerDebugRTInfo )
-      iAnyFailed++;
-
-   for(int i=0; i<iRetryCount; i++ )
-   {
-      if ( NULL != g_pSMVehicleRTInfo )
-         break;
-      g_pSMVehicleRTInfo = vehicle_rt_info_open_for_read();
-      
-      hardware_sleep_ms(2);
-      iAnyNewOpen++;
-   }
-   if ( NULL == g_pSMVehicleRTInfo )
+   if ( NULL == g_pSMControllerDebugVideoRTInfo )
       iAnyFailed++;
 
    for( int i=0; i<iRetryCount; i++ )
@@ -433,11 +421,8 @@ void _pairing_close_shared_mem()
    controller_rt_info_close(g_pSMControllerRTInfo);
    g_pSMControllerRTInfo = NULL;
 
-   controller_debug_rt_info_close(g_pSMControllerDebugRTInfo);
-   g_pSMControllerDebugRTInfo = NULL;
-
-   vehicle_rt_info_close(g_pSMVehicleRTInfo);
-   g_pSMVehicleRTInfo = NULL;
+   controller_debug_video_rt_info_close(g_pSMControllerDebugVideoRTInfo);
+   g_pSMControllerDebugVideoRTInfo = NULL;
 
    shared_mem_router_vehicles_runtime_info_close(g_pSM_RouterVehiclesRuntimeInfo);
    g_pSM_RouterVehiclesRuntimeInfo = NULL;

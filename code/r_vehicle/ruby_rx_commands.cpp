@@ -1531,18 +1531,35 @@ bool process_command(u8* pBuffer, int length)
       char szOutput[1500];
       szBuffer[0] = 0;
       
-      FILE* fd = try_open_base_version_file(NULL);
-      if ( NULL != fd )
+      FILE* fd = NULL;
+      int iMajor = 0;
+      int iMinor = 0;
+      get_Ruby_BaseVersion(&iMajor, &iMinor);
+      if ( 0 != iMajor )
       {
-         szOutput[0] = 0;
-         if ( 1 == fscanf(fd, "%s", szOutput) )
-         {
-            strcat(szBuffer, "Ruby base version: ");
-            strcat(szBuffer, szOutput);
-            strcat(szBuffer, "; ");
-         }
-         fclose(fd);
+         strcat(szBuffer, "Ruby base version: ");
+         if ( iMinor >= 10 )
+            iMinor /= 10;
+         sprintf(szOutput, "%d.%d", iMajor, iMinor);
+         strcat(szBuffer, szOutput);
+         strcat(szBuffer, "; ");
       }
+      else
+      {
+         fd = try_open_base_version_file(NULL);
+         if ( NULL != fd )
+         {
+            szOutput[0] = 0;
+            if ( 1 == fscanf(fd, "%s", szOutput) )
+            {
+               strcat(szBuffer, "Ruby base version: ");
+               strcat(szBuffer, szOutput);
+               strcat(szBuffer, "; ");
+            }
+            fclose(fd);
+         }
+      }
+      
       char szFile[128];
       strcpy(szFile, FOLDER_CONFIG);
       strcat(szFile, FILE_INFO_LAST_UPDATE);
@@ -3157,7 +3174,7 @@ int r_start_commands_rx(int argc, char* argv[])
  
    hardware_detectBoardAndSystemType();
    // Need to have i2c enumarated already so command reset/factory reset does not take a lot of time
-   hardware_i2c_enumerate_busses();
+   hardware_i2c_enumerate_busses(0);
    hardware_i2c_load_device_settings();
 
    g_uControllerId = vehicle_utils_getControllerId();
@@ -3280,15 +3297,8 @@ int r_start_commands_rx(int argc, char* argv[])
                uResendCount, pPH->vehicle_id_src, pPH->vehicle_id_dest, (pPH->vehicle_id_dest == g_pCurrentModel->uVehicleId)?"self":"not self", (g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE)?"on":"off");
 
             if ( NULL != g_pCurrentModel )
-            {
-               if ( (0 != g_uControllerId) && (g_uControllerId != pPH->vehicle_id_src) )
-               {
-                  g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags &= ~(MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS);
-                  g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab = 0;
-               }
-               g_uControllerId = pPH->vehicle_id_src;
-               g_pCurrentModel->uControllerId = pPH->vehicle_id_src;
-            }
+               g_pCurrentModel->onControllerIdUpdated(pPH->vehicle_id_src);
+            g_uControllerId = pPH->vehicle_id_src;
             s_InfoLastFileUploaded.uLastCommandIdForThisFile = 0;
          }
 

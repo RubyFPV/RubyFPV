@@ -52,7 +52,6 @@ class MenuStorage: public Menu
       u32 m_ScreenshotImageId;
       Popup* m_pPopupProgress;
       u32 m_uMustRefreshTime;
-      u32 m_uTimestampLastLoopMs;
       int m_IndexCopy;
       int m_IndexMove;
       int m_IndexDelete;
@@ -65,6 +64,4 @@ class MenuStorage: public Menu
       bool moveVideos(bool bDelete);
 
       bool flowCopyMoveFiles(bool bDeleteToo);
-
-      void stopVideoPlay();
 };

@@ -370,8 +370,10 @@ void fbg_computeFramerate(struct _fbg *fbg, int to_string) {
     fbg->frame += 1;
 }
 
+typedef unsigned int u32;
 
-void fbg_drawFramerate(struct _fbg *fbg, struct _fbg_font *fnt, int task, int x, int y, int r, int g, int b) {
+void fbg_drawFramerate(struct _fbg *fbg, struct _fbg_font *fnt, int task, int x, int y, int r, int g, int b, int a)
+{
 #ifdef FBG_PARALLEL
     if (task > fbg->parallel_tasks) {
         return;
@@ -392,13 +394,13 @@ void fbg_drawFramerate(struct _fbg *fbg, struct _fbg_font *fnt, int task, int x,
 
         sprintf(fps_char, "%i", (int)fps);
 
-        fbg_text(fbg, fnt, fps_char, x, y, r, g, b);
+        fbg_text(fbg, fnt, fps_char, x, y, r, g, b, a);
 
         return;
     }
 #endif
 
-    fbg_text(fbg, fnt, fbg->fps_char, x, y, r, g, b);
+    fbg_text(fbg, fnt, fbg->fps_char, x, y, r, g, b, a);
 }
 
 int fbg_getFramerate(struct _fbg *fbg, int task) {
@@ -719,13 +721,15 @@ void fbg_createFragment(struct _fbg *fbg,
 }
 #endif
 
-void fbg_fill(struct _fbg *fbg, unsigned char r, unsigned char g, unsigned char b) {
+void fbg_fill(struct _fbg *fbg, unsigned char r, unsigned char g, unsigned char b, unsigned char a) {
     fbg->fill_color.r = r;
     fbg->fill_color.g = g;
     fbg->fill_color.b = b;
+    fbg->fill_color.a = a;
 }
 
-void fbg_pixel(struct _fbg *fbg, int x, int y, unsigned char r, unsigned char g, unsigned char b) {
+void fbg_pixel(struct _fbg *fbg, int x, int y, unsigned char r, unsigned char g, unsigned char b, unsigned char a)
+{
     char *pix_pointer = (char *)(fbg->back_buffer + (y * fbg->line_length + x * fbg->components));
 
     *pix_pointer = r;
@@ -734,7 +738,8 @@ void fbg_pixel(struct _fbg *fbg, int x, int y, unsigned char r, unsigned char g,
     pix_pointer++;
     *pix_pointer = b;
     pix_pointer++;
-    *pix_pointer = 0xFF;
+    *pix_pointer = a;
+    //*pix_pointer = 0xFF;
 }
 
 void fbg_pixela(struct _fbg *fbg, int x, int y, unsigned char r, unsigned char g, unsigned char b, unsigned char a)
@@ -806,12 +811,11 @@ void fbg_hline(struct _fbg *fbg, int x, int y, int w, unsigned char r, unsigned 
     }
     else
     {
+       u32 uColor = (((u32)a) << 24) | (((u32)b) << 16) | (((u32)g) << 8) | ((u32)r);
+       u32* pDest = (u32*)pix_pointer;
        for (int xx = 0; xx < w; xx++)
        {
-         *pix_pointer++ = r;
-         *pix_pointer++ = g;
-         *pix_pointer++ = b;
-         *pix_pointer++ = 0xFF;
+         *pDest++ = uColor;
        }
     }
 }
@@ -830,13 +834,12 @@ void fbg_vline(struct _fbg *fbg, int x, int y, int h, unsigned char r, unsigned 
     }
     else
     {
+       u32 uColor = (((u32)a) << 24) | (((u32)b) << 16) | (((u32)g) << 8) | ((u32)r);
+       u32* pDest = (u32*)pix_pointer;
        for (int yy = 0; yy < h; yy++)
        {
-          *pix_pointer++ = r;
-          *pix_pointer++ = g;
-          *pix_pointer++ = b;
-          *pix_pointer++ = 0xFF;
-          pix_pointer += fbg->line_length - 4;
+          *pDest = uColor;
+          pDest += fbg->line_length>>2;
        }
     }
 }
@@ -873,7 +876,8 @@ void fbg_line(struct _fbg *fbg, int x1, int y1, int x2, int y2, unsigned char r,
           *pix_pointer++ = r;
           *pix_pointer++ = g;
           *pix_pointer++ = b;
-          *pix_pointer++ = 0xFF;
+          *pix_pointer++ = a;
+          //*pix_pointer++ = 0xFF;
           pix_pointer += fbg->line_length - 4;
        }
     }
@@ -895,7 +899,7 @@ void fbg_line(struct _fbg *fbg, int x1, int y1, int x2, int y2, unsigned char r,
                if ( fbg->s_iEnableAlpha )
                   fbg_pixela(fbg, px, py, r, g, b, a);
                else
-                  fbg_pixel(fbg, px, py, r, g, b);
+                  fbg_pixel(fbg, px, py, r, g, b, a);
             }
         }
     }
@@ -916,7 +920,7 @@ void fbg_line(struct _fbg *fbg, int x1, int y1, int x2, int y2, unsigned char r,
             if ( fbg->s_iEnableAlpha )
                fbg_pixela(fbg, px, py, r, g, b, a);
             else
-               fbg_pixel(fbg, px, py, r, g, b);
+               fbg_pixel(fbg, px, py, r, g, b, a);
         }
     }
 }
@@ -963,18 +967,60 @@ void fbg_rect(struct _fbg *fbg, int x, int y, int w, int h, unsigned char r, uns
     int xx = 0, yy = 0, w3 = w * fbg->components;
 
     unsigned char *pix_pointer = (unsigned char *)(fbg->back_buffer + (y * fbg->line_length + x * fbg->components));
+    u32* pDest = NULL;
+    u32 uColor = (((u32)a) << 24) | (((u32)b) << 16) | (((u32)g) << 8) | ((u32)r);
 
-    for (yy = 0; yy < h; yy += 1) {
-        for (xx = 0; xx < w; xx += 1) {
-            *pix_pointer++ = r;
-            *pix_pointer++ = g;
-            *pix_pointer++ = b;
-            //*pix_pointer++ = a;
-            *pix_pointer++ = 0xFF;
-            pix_pointer += fbg->comp_offset;
-        }
+    int dy = 0;
+    if ( (h > 2) && (w > 2) )
+    {
+       pix_pointer += fbg->components;
+       pDest = (u32*)pix_pointer;
+       for (xx = 1; xx < w-1; xx++)
+       {
+           //*pix_pointer++ = r;
+           //*pix_pointer++ = g;
+           //*pix_pointer++ = b;
+           //*pix_pointer++ = a;
+           //pix_pointer += fbg->comp_offset;
+           *pDest++ = uColor;
+       }
+       pix_pointer += (w-2)*fbg->components;
+       pix_pointer += fbg->components;
+       pix_pointer += (fbg->line_length - w3);
+       yy++;
+       dy++;
+    }
 
-        pix_pointer += (fbg->line_length - w3);
+    for (; yy < h-dy; yy++)
+    {
+       pDest = (u32*)pix_pointer;
+       for (xx = 0; xx < w; xx++)
+       {
+           //*pix_pointer++ = r;
+           //*pix_pointer++ = g;
+           //*pix_pointer++ = b;
+           //*pix_pointer++ = a;
+           //pix_pointer += fbg->comp_offset;
+           *pDest++ = uColor;
+       }
+       pix_pointer += w*fbg->components;
+
+       pix_pointer += (fbg->line_length - w3);
+    }
+
+    if ( (h > 2) && (w > 2) )
+    {
+       pix_pointer += fbg->components;
+       pDest = (u32*)pix_pointer;
+       for (xx = 1; xx < w-1; xx++)
+       {
+           //*pix_pointer++ = r;
+           //*pix_pointer++ = g;
+           //*pix_pointer++ = b;
+           //*pix_pointer++ = a;
+           //pix_pointer += fbg->comp_offset;
+           *pDest++ = uColor;
+       }
     }
 }
 
@@ -990,6 +1036,7 @@ void fbg_frect(struct _fbg *fbg, int x, int y, int w, int h) {
         *pix_pointer++ = fbg->fill_color.r;
         *pix_pointer++ = fbg->fill_color.g;
         *pix_pointer++ = fbg->fill_color.b;
+        *pix_pointer++ = fbg->fill_color.a;
         pix_pointer += fbg->comp_offset;
     }
 
@@ -1294,7 +1341,7 @@ void fbg_textBackground(struct _fbg *fbg, int r, int g, int b, int a) {
     fbg->text_alpha = a;
 }
 
-void fbg_text(struct _fbg *fbg, struct _fbg_font *fnt, char *text, int x, int y, int r, int g, int b) {
+void fbg_text(struct _fbg *fbg, struct _fbg_font *fnt, char *text, int x, int y, int r, int g, int b, int a) {
     int i = 0, c = 0, gx, gy;
 
     if (!fnt) {
@@ -1339,7 +1386,7 @@ void fbg_text(struct _fbg *fbg, struct _fbg_font *fnt, char *text, int x, int y,
                 if (fl == fbg->text_colorkey) {
                     fbg_pixela(fbg, x + gx + c * fnt->glyph_width, py, fbg->text_background.r, fbg->text_background.g, fbg->text_background.b, fbg->text_alpha);
                 } else {
-                    fbg_pixel(fbg, x + gx + c * fnt->glyph_width, py, r, g, b);
+                    fbg_pixel(fbg, x + gx + c * fnt->glyph_width, py, r, g, b, a);
                 }
             }
         }
@@ -1805,20 +1852,47 @@ void fbg_imageDrawAlpha(struct _fbg *fbg, struct _fbg_img *img, int x, int y, in
           break;
        int yImgOffset = iyImg * img->width;
        float xImg = cx;
-       for( int sx=0; sx<w; sx++ )
+       if ( fbg->s_iEnableAlpha )
        {
-           unsigned char *img_pointer = (unsigned char *)(img->data + ((((int)xImg) + yImgOffset) * fbg->components));
-            r = *img_pointer;
-            g = *(img_pointer+1);
-            b = *(img_pointer+2);
-            a = *(img_pointer+3);
-            r = (r*fbg->mix_color.r)>>8;
-            g = (g*fbg->mix_color.g)>>8;
-            b = (b*fbg->mix_color.b)>>8;
-            a = (a*fbg->mix_color.a)>>8;
-            fbg_pixela_fast(fbg, scr_pointer, r,g,b,a);
-            scr_pointer += fbg->components;
-           xImg += dxImg;
+          for( int sx=0; sx<w; sx++ )
+          {
+              unsigned char *img_pointer = (unsigned char *)(img->data + ((((int)xImg) + yImgOffset) * fbg->components));
+              r = *img_pointer;
+              g = *(img_pointer+1);
+              b = *(img_pointer+2);
+              a = *(img_pointer+3);
+              r = (r*fbg->mix_color.r)>>8;
+              g = (g*fbg->mix_color.g)>>8;
+              b = (b*fbg->mix_color.b)>>8;
+              a = (a*fbg->mix_color.a)>>8;
+              fbg_pixela_fast(fbg, scr_pointer, r,g,b,a);
+              scr_pointer += fbg->components;
+              xImg += dxImg;
+          }
+       }
+       else
+       {
+          for( int sx=0; sx<w; sx++ )
+          {
+              unsigned char *img_pointer = (unsigned char *)(img->data + ((((int)xImg) + yImgOffset) * fbg->components));
+              r = *img_pointer;
+              g = *(img_pointer+1);
+              b = *(img_pointer+2);
+              a = *(img_pointer+3);
+              r = (r*fbg->mix_color.r)>>8;
+              g = (g*fbg->mix_color.g)>>8;
+              b = (b*fbg->mix_color.b)>>8;
+              a = (a*fbg->mix_color.a)>>8;
+              if ( a > 10 )
+              {
+                 *scr_pointer = r;
+                 *(scr_pointer+1) = g;
+                 *(scr_pointer+2) = b;
+                 *(scr_pointer+3) = a;
+              }
+              scr_pointer += fbg->components;
+              xImg += dxImg;
+          }        
        }
        scr_pointer += fbg->line_length - w * fbg->components;
        yImg += dyImg;

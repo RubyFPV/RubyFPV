@@ -701,14 +701,18 @@ void _hardware_camera_maj_set_all_params()
    _execute_maj_command_wait(szComm);
 
    s_uCurrentMajesticBitrate = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
-   if ( s_pCurrentMajesticModel->video_link_profiles[s_iCurrentMajesticVideoProfile].bitrate_fixed_bps > 0 )
-      s_uCurrentMajesticBitrate = s_pCurrentMajesticModel->video_link_profiles[s_iCurrentMajesticVideoProfile].bitrate_fixed_bps;
-
    if ( NULL != s_pCurrentMajesticModel )
-   if ( ! (s_pCurrentMajesticModel->radioRuntimeCapabilities.uFlagsRuntimeCapab & MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED) )
-      s_uCurrentMajesticBitrate = (s_pCurrentMajesticModel->getMaxVideoBitrateForRadioDatarate(9000000, 0) * 9) / 10;
+   {
+      s_pCurrentMajesticModel->getVideoProfileInitialVideoBitrate(s_pCurrentMajesticModel->video_params.iCurrentVideoProfile);
+      if ( ! (s_pCurrentMajesticModel->radioRuntimeCapabilities.uFlagsRuntimeCapab & MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED) )
+      {
+         s_uCurrentMajesticBitrate = s_pCurrentMajesticModel->getMaxVideoBitrateForRadioDatarate(9000000, 0);
+         log_line("[HwCamMajestic] Model has not negociated radio links. Use a lower target default video bitrate for video params: %.1f Mbps", (float)s_uCurrentMajesticBitrate/1000.0/1000.0);
+      }
+   }
 
    if ( s_uTemporaryMajesticBitrate > 0 )
+   if ( s_uTemporaryMajesticBitrate < s_uCurrentMajesticBitrate )
       s_uCurrentMajesticBitrate = s_uTemporaryMajesticBitrate;
 
    sprintf(szComm, "cli -s .video0.bitrate %u", s_uCurrentMajesticBitrate/1000);
@@ -755,14 +759,20 @@ void _hardware_camera_maj_set_all_params()
 
    u32 uNoiseLevel = s_pCurrentMajesticModel->video_link_profiles[s_iCurrentMajesticVideoProfile].uProfileFlags & VIDEO_PROFILE_FLAGS_MASK_NOISE;
    if ( uNoiseLevel > 2 )
+   {
       _execute_maj_command_wait("cli -d .fpv.noiseLevel");
-   else if ( uNoiseLevel == 2 )
-      _execute_maj_command_wait("cli -s .fpv.noiseLevel 2");
-   else if ( uNoiseLevel == 1 )
-      _execute_maj_command_wait("cli -s .fpv.noiseLevel 1");
+      _execute_maj_command_wait("cli -d .fpv.enabled");
+   }
    else
-      _execute_maj_command_wait("cli -s .fpv.noiseLevel 0");
-
+   {
+      _execute_maj_command_wait("cli -s .fpv.enabled true");
+      if ( uNoiseLevel == 2 )
+         _execute_maj_command_wait("cli -s .fpv.noiseLevel 2");
+      else if ( uNoiseLevel == 1 )
+         _execute_maj_command_wait("cli -s .fpv.noiseLevel 1");
+      else
+         _execute_maj_command_wait("cli -s .fpv.noiseLevel 0");
+   }
    hardware_camera_maj_set_daylight_off((s_CurrentMajesticCamSettings.uFlags & CAMERA_FLAG_OPENIPC_DAYLIGHT_OFF)?1:0, false);
 
    _hardware_camera_maj_apply_image_settings();

@@ -44,10 +44,10 @@
 
 
 bool gbQuit = false;
-bool g_bIsController = true;
 char g_szUpdateZipFileFullPath[MAX_FILE_PATH_SIZE];
 char g_szUpdateZipFileName[MAX_FILE_PATH_SIZE];
 char g_szUpdateUnpackFolder[MAX_FILE_PATH_SIZE];
+bool bIsOnyx = false;
 
 void handle_sigint(int sig) 
 { 
@@ -284,14 +284,18 @@ int _replace_runtime_binary_files()
 
    log_line("Check for binary files in unzipped folder [%s] ...", szSrcBinariesFolder);
 
-   // Check if ruby binaries are present in folder
    char szFile[MAX_FILE_PATH_SIZE];
+   bIsOnyx = false;
    strcpy(szFile, szSrcBinariesFolder);
-   strcat(szFile, "ruby_start");
-   if ( access(szFile, R_OK) == -1 )
+   strcat(szFile, "onyxfpv_start");
+   if ( access(szFile, R_OK) != -1 )
+      bIsOnyx = true;
+
+   // Check if ruby binaries are present in folder
+   if ( ! bIsOnyx )
    {
       strcpy(szFile, szSrcBinariesFolder);
-      strcat(szFile, "onyxfpv_start");
+      strcat(szFile, "ruby_start");
       if ( access(szFile, R_OK) == -1 )
       {
          char szOutput[4096];
@@ -305,6 +309,16 @@ int _replace_runtime_binary_files()
          return -1;
       }
    }
+
+
+   #if defined (HW_PLATFORM_RASPBERRY) || defined(HW_PLATFORM_RADXA)
+   if ( bIsOnyx )
+   {
+      hw_execute_bash_command("chmod 777 /root/.profile 2>/dev/null", NULL);
+      hw_execute_bash_command("sed -i -e 's/ruby/onyxfpv/g' /root/.profile", NULL);
+      hw_execute_bash_command("chmod 777 /root/.profile 2>/dev/null", NULL);
+   }
+   #endif
 
    /*
    log_line("Binaries version in the unzipped folder:");
@@ -328,40 +342,50 @@ int _replace_runtime_binary_files()
 
    log_line("Copying binary files from unzipped folder [%s] ...", szSrcBinariesFolder);
 
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %sruby_* %s 2>&1", szSrcBinariesFolder, FOLDER_BINARIES);
-   //hw_execute_process_wait(szComm);
+   if ( bIsOnyx )
+      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %sonyxfpv_* %s 2>/dev/null", szSrcBinariesFolder, FOLDER_BINARIES);
+   else
+      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %sruby_* %s 2>/dev/null", szSrcBinariesFolder, FOLDER_BINARIES);
    hw_execute_bash_command(szComm, NULL);
-   hardware_sleep_ms(500);
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %sonyx_* %s 2>&1", szSrcBinariesFolder, FOLDER_BINARIES);
-   //hw_execute_process_wait(szComm);
-   hw_execute_bash_command(szComm, NULL);
-   hardware_sleep_ms(500);
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %sonyxfpv_* %s 2>&1", szSrcBinariesFolder, FOLDER_BINARIES);
-   //hw_execute_process_wait(szComm);
-   hw_execute_bash_command(szComm, NULL);
-   hardware_sleep_ms(500);
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %sstop* %s  2>&1", szSrcBinariesFolder, FOLDER_BINARIES);
+   hardware_sleep_ms(200);
+
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %sstop* %s  2>/dev/null", szSrcBinariesFolder, FOLDER_BINARIES);
    //hw_execute_process_wait(szComm);
    hw_execute_bash_command(szComm, NULL);
    hardware_sleep_ms(50);
 
-   hw_execute_bash_command("chown root ruby* 2>&1", NULL);
-   hw_execute_bash_command("chgrp root ruby* 2>&1", NULL);
-   hw_execute_bash_command("chmod 777 ruby* 2>&1", NULL);
-   hw_execute_bash_command("chown root onyx* 2>&1", NULL);
-   hw_execute_bash_command("chgrp root onyx* 2>&1", NULL);
-   hw_execute_bash_command("chmod 777 onyx* 2>&1", NULL);
-   hardware_sleep_ms(500);
-
-   log_line("Binaries versions after replacing:");
-   hw_execute_ruby_process_wait(NULL, "ruby_start", "-ver", szOutput, 1);
-   log_line("ruby_start: [%s]", szOutput);
-   hw_execute_ruby_process_wait(NULL, "ruby_rt_vehicle", "-ver", szOutput, 1);
-   log_line("ruby_rt_vehicle: [%s]", szOutput);
-   hw_execute_ruby_process_wait(NULL, "ruby_rt_station", "-ver", szOutput, 1);
-   log_line("ruby_rt_station: [%s]", szOutput);
-   hw_execute_ruby_process_wait(NULL, "ruby_central", "-ver", szOutput, 1);
-   log_line("ruby_central: [%s]", szOutput);
+   if ( bIsOnyx )
+   {
+      hw_execute_bash_command("chown root onyx* 2>/dev/null", NULL);
+      hw_execute_bash_command("chgrp root onyx* 2>/dev/null", NULL);
+      hw_execute_bash_command("chmod 777 onyx* 2>/dev/null", NULL);
+      hardware_sleep_ms(100);
+      log_line("Binaries versions after replacing:");
+      hw_execute_ruby_process_wait(NULL, "onyxfpv_start", "-ver", szOutput, 1);
+      log_line("onyxfpv_start: [%s]", szOutput);
+      hw_execute_ruby_process_wait(NULL, "onyxfpv_router_s", "-ver", szOutput, 1);
+      log_line("onyxfpv_router_s: [%s]", szOutput);
+      hw_execute_ruby_process_wait(NULL, "onyxfpv_router_v", "-ver", szOutput, 1);
+      log_line("onyxfpv_router_v: [%s]", szOutput);
+      hw_execute_ruby_process_wait(NULL, "onyxfpv_central", "-ver", szOutput, 1);
+      log_line("onyxfpv_central: [%s]", szOutput);
+   }
+   else
+   {
+      hw_execute_bash_command("chown root ruby* 2>/dev/null", NULL);
+      hw_execute_bash_command("chgrp root ruby* 2>/dev/null", NULL);
+      hw_execute_bash_command("chmod 777 ruby* 2>/dev/null", NULL);
+      hardware_sleep_ms(100);
+      log_line("Binaries versions after replacing:");
+      hw_execute_ruby_process_wait(NULL, "ruby_start", "-ver", szOutput, 1);
+      log_line("ruby_start: [%s]", szOutput);
+      hw_execute_ruby_process_wait(NULL, "ruby_rt_vehicle", "-ver", szOutput, 1);
+      log_line("ruby_rt_vehicle: [%s]", szOutput);
+      hw_execute_ruby_process_wait(NULL, "ruby_rt_station", "-ver", szOutput, 1);
+      log_line("ruby_rt_station: [%s]", szOutput);
+      hw_execute_ruby_process_wait(NULL, "ruby_central", "-ver", szOutput, 1);
+      log_line("ruby_central: [%s]", szOutput);
+   }
  
 
    #ifdef HW_PLATFORM_RASPBERRY
@@ -466,7 +490,7 @@ int _copy_update_binary_files()
    //hw_execute_process_wait(szComm);
    hw_execute_bash_command(szComm, NULL);
 
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s%s* 2>&1", FOLDER_UPDATES, SUBFOLDER_UPDATES_DRIVERS);
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s%s* 2>/dev/null", FOLDER_UPDATES, SUBFOLDER_UPDATES_DRIVERS);
    //hw_execute_process_wait(szComm);
    hw_execute_bash_command(szComm, NULL);
 
@@ -489,7 +513,10 @@ int _copy_res_files()
 
    char szComm[256];
 
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %s%s %s%s", g_szUpdateUnpackFolder, FILE_INFO_SHORT_LAST_UPDATE, FOLDER_CONFIG, FILE_INFO_LAST_UPDATE);
+   if ( bIsOnyx )
+      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %sonyxfpv_update.log %sonyxfpv_update.log", g_szUpdateUnpackFolder, FOLDER_CONFIG);
+   else
+      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %s%s %s%s", g_szUpdateUnpackFolder, FILE_INFO_SHORT_LAST_UPDATE, FOLDER_CONFIG, FILE_INFO_LAST_UPDATE);
    //hw_execute_process_wait(szComm);
    hw_execute_bash_command(szComm, NULL);
 
@@ -524,13 +551,13 @@ int _copy_plugin_files()
 
    log_line("Copying plugins files from source folder: (%s)", szSrcPluginsFolder);
 
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %s* %splugins/  2>&1", szSrcPluginsFolder, FOLDER_BINARIES);
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %s* %splugins/  2>/dev/null", szSrcPluginsFolder, FOLDER_BINARIES);
    //hw_execute_process_wait(szComm);
    hw_execute_bash_command(szComm, NULL);
 
-   hw_execute_bash_command("chmod 777 plugins/* 2>&1", NULL);
-   hw_execute_bash_command("chmod 777 plugins/osd/* 2>&1", NULL);
-   hw_execute_bash_command("chmod 777 plugins/core/* 2>&1", NULL);
+   hw_execute_bash_command("chmod 777 plugins/* 2>/dev/null", NULL);
+   hw_execute_bash_command("chmod 777 plugins/osd/* 2>/dev/null", NULL);
+   hw_execute_bash_command("chmod 777 plugins/core/* 2>/dev/null", NULL);
    return 0;
 }
 
@@ -641,10 +668,10 @@ int _copy_update_drivers()
    char szComm[MAX_FILE_PATH_SIZE];
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "mkdir -p %s", FOLDER_DRIVERS);
    hw_execute_process_wait(szComm);
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %s %s 2>&1", szDrivers, FOLDER_DRIVERS);
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %s %s 2>/dev/null", szDrivers, FOLDER_DRIVERS);
    //hw_execute_process_wait(szComm);
    hw_execute_bash_command(szComm, NULL);
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s* 2>&1", FOLDER_DRIVERS);
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s* 2>/dev/null", FOLDER_DRIVERS);
    //hw_execute_process_wait(szComm);
    hw_execute_bash_command(szComm, NULL);
 
@@ -692,53 +719,21 @@ bool _download_update(const char* szDownloadURL)
    return true;
 }
 
-bool _find_update_zip_file()
+bool _find_update_partial_zip_filename(const char* szPartialName, char* szOutputFulLPath, char* szOutputFileName)
 {
+   if ( (NULL == szPartialName) || (0 == szPartialName[0]) || (NULL == szOutputFulLPath) || (NULL == szOutputFileName) )
+      return false;
+
    char szComm[MAX_FILE_PATH_SIZE];
    char szOutput[1024];
 
-   g_szUpdateZipFileFullPath[0] = 0;
-   g_szUpdateZipFileName[0] = 0;
-
-   if ( g_bIsController )
-      sprintf(szComm, "find %sruby_update*.zip", FOLDER_USB_MOUNT);
-   else
-      sprintf(szComm, "find ruby_update*.zip");
-
-   //hw_execute_process(szComm, 0, szOutput, sizeof(szOutput)/sizeof(szOutput[0]));
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "find %s%s*.zip", FOLDER_USB_MOUNT, szPartialName);
    hw_execute_bash_command(szComm, szOutput);
-   log_line("Partial output of find: [%s]", szOutput);
+   log_line("Partial output of finding [%s]: [%s]", szPartialName, szOutput);
 
-   if ( (0 == strlen(szOutput)) || (NULL == strstr(szOutput, "ruby_update")) || (NULL != strstr(szOutput, "No such")) )
-   {
-      if ( g_bIsController )
-         sprintf(szComm, "find %sruby_update*.upd", FOLDER_USB_MOUNT);
-      else
-         sprintf(szComm, "find ruby_update*.upd");
-      szOutput[0] = 0;
-      //hw_execute_process(szComm, 0, szOutput, sizeof(szOutput)/sizeof(szOutput[0]));
-      hw_execute_bash_command(szComm, szOutput);
-      log_line("Partial output of find: [%s]", szOutput);
-
-      if ( (0 == strlen(szOutput)) || (NULL == strstr(szOutput, "ruby_update")) || (NULL != strstr(szOutput, "No such")) )
-      {
-         if ( g_bIsController )
-            sprintf(szComm, "find %sonyxfpv_update*.zip", FOLDER_USB_MOUNT);
-         else
-            sprintf(szComm, "find onyxfpv_update*.zip");
-         szOutput[0] = 0;
-         //hw_execute_process(szComm, 0, szOutput, sizeof(szOutput)/sizeof(szOutput[0]));
-         hw_execute_bash_command(szComm, szOutput);
-         log_line("Partial output of find: [%s]", szOutput);
-         if ( (0 == strlen(szOutput)) || (NULL == strstr(szOutput, "onyxfpv_update")) || (NULL != strstr(szOutput, "No such")) )
-         {
-            return false;
-         }
-      }
-   }
-
-   log_line("Output of find: [%s]", szOutput);
-
+   if ( (0 == strlen(szOutput)) || (NULL == strstr(szOutput, szPartialName)) || (NULL != strstr(szOutput, "No such")) )
+      return false;
+  
    int iLen = strlen(szOutput);
    for( int i=0; i<iLen; i++ )
    {
@@ -748,14 +743,32 @@ bool _find_update_zip_file()
          break;
       }
    }
-   strncpy(g_szUpdateZipFileFullPath, szOutput, MAX_FILE_PATH_SIZE-1);
-   if ( NULL != strstr(szOutput, "ruby_update") )
-      strncpy(g_szUpdateZipFileName, strstr(szOutput, "ruby_update"), MAX_FILE_PATH_SIZE-1);
-   else if ( NULL != strstr(szOutput, "onyxfpv_update") )
-      strncpy(g_szUpdateZipFileName, strstr(szOutput, "onyxfpv_update"), MAX_FILE_PATH_SIZE-1);
+   strncpy(szOutputFulLPath, szOutput, MAX_FILE_PATH_SIZE-1);
+   if ( NULL != strstr(szOutput, szPartialName) )
+      strncpy(szOutputFileName, strstr(szOutput, szPartialName), MAX_FILE_PATH_SIZE-1);
 
-   log_line("Found zip archive full path: [%s]", g_szUpdateZipFileFullPath);
-   log_line("Found zip archive filename: [%s]", g_szUpdateZipFileName);
+   log_line("Found zip archive full path: [%s]", szOutputFulLPath);
+   log_line("Found zip archive filename: [%s]", szOutputFileName);
+
+   if ( (0 == szOutputFileName[0]) || (0 == szOutputFulLPath[0]) || (strlen(szOutputFileName) < 6) || (NULL == strstr(szOutputFileName, "update")) )
+      return false;
+   return true;
+}
+
+bool _find_update_zip_file()
+{
+   char szComm[MAX_FILE_PATH_SIZE];
+   char szOutput[1024];
+
+   g_szUpdateZipFileFullPath[0] = 0;
+   g_szUpdateZipFileName[0] = 0;
+
+   if ( ! _find_update_partial_zip_filename("onyxfpv_update", g_szUpdateZipFileFullPath, g_szUpdateZipFileName) )
+   {
+      g_szUpdateZipFileFullPath[0] = 0;
+      g_szUpdateZipFileName[0] = 0;
+      _find_update_partial_zip_filename("ruby_update", g_szUpdateZipFileFullPath, g_szUpdateZipFileName);
+   }
 
    if ( (0 == g_szUpdateZipFileName[0]) || (0 == g_szUpdateZipFileFullPath[0]) || (strlen(g_szUpdateZipFileName) < 6) || (NULL == strstr(g_szUpdateZipFileName, "update")) )
       return false;
@@ -773,7 +786,7 @@ void _step_copy_and_extract_zip()
    sprintf(szComm, "mkdir -p %s", FOLDER_UPDATES);
    hw_execute_process_wait(szComm);
 
-   sprintf(szComm, "chmod 777 %s", FOLDER_UPDATES);
+   sprintf(szComm, "chmod 777 %s 2>/dev/null", FOLDER_UPDATES);
    //hw_execute_process_wait(szComm);
    hw_execute_bash_command(szComm, NULL);
    
@@ -792,7 +805,7 @@ void _step_copy_and_extract_zip()
 
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "mkdir -p %s", g_szUpdateUnpackFolder);
    hw_execute_process_wait(szComm);
-   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s", g_szUpdateUnpackFolder);
+   snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s 2>/dev/null", g_szUpdateUnpackFolder);
    hw_execute_process_wait(szComm);
    if ( 0 < strlen(g_szUpdateUnpackFolder) )
    {
@@ -801,13 +814,7 @@ void _step_copy_and_extract_zip()
       hw_execute_bash_command(szComm, NULL);
    }
 
-   char* pExt = strstr(g_szUpdateZipFileName, ".upd");
-   if ( NULL != pExt )
-   {
-      pExt[0] = 0;
-      strcpy(pExt, ".zip");
-   }
-   hardware_sleep_ms(300);
+   hardware_sleep_ms(100);
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "unzip %s%s -d %s", FOLDER_UPDATES, g_szUpdateZipFileName, g_szUpdateUnpackFolder);
    //hw_execute_process_wait(szComm);
    hw_execute_process(szComm, 0, szOutput, sizeof(szOutput)/sizeof(szOutput[0]));
@@ -875,9 +882,6 @@ int main(int argc, char *argv[])
    g_szUpdateZipFileName[0] = 0;
    g_szUpdateUnpackFolder[0] = 0;
 
-   g_bIsController = (bool) hardware_is_station();
-   log_line("Executing update for %s...", g_bIsController?"controller":"vehicle");
-
    if ( (argc > 1) && (argv[argc-1][0] != 0) )
    {
       if ( ! _download_update(argv[argc-1]) )
@@ -887,24 +891,19 @@ int main(int argc, char *argv[])
          return -1;       
       }
    }
-   else
+   else if ( ! _find_update_zip_file() )
    {
-      if ( ! _find_update_zip_file() )
-      {
-         if ( g_bIsController )
-            log_line("There is no update update archive on the USB stick.");
-         else
-            log_line("There is no update update archive on the Ruby main folder.");
+      log_line("There is no update update archive on the USB stick.");
 
-         _write_return_code(-1, "No update found");
-         return -1;
-      }
+      _write_return_code(-1, "No update found");
+      return -1;
    }
+
    _write_return_code(0, "Unpacking update");
 
-   hardware_sleep_ms(500);
+   hardware_sleep_ms(300);
    _step_copy_and_extract_zip();
-   hardware_sleep_ms(500);
+   hardware_sleep_ms(300);
   
    _write_return_code(0, "Checking update content");
 
@@ -918,10 +917,10 @@ int main(int argc, char *argv[])
    if ( _replace_runtime_binary_files() < 0 )
       return -1;
 
-   hardware_sleep_ms(500);
+   hardware_sleep_ms(300);
    if ( _copy_update_binary_files() < 0 )
       return -1;
-   hardware_sleep_ms(500);
+   hardware_sleep_ms(300);
 
    _write_return_code(0, "Updating resources");
 
@@ -929,13 +928,11 @@ int main(int argc, char *argv[])
       return -1;
 
    _copy_plugin_files();
-
    _copy_config_files();
 
    _write_return_code(0, "Updating drivers");
 
    _copy_update_drivers();
-
 
    g_TimeNow = get_current_timestamp_ms();
 
@@ -946,22 +943,21 @@ int main(int argc, char *argv[])
 
    _write_return_code(0, "Executing update pre config");
 
-   if( access( "ruby_update", R_OK ) != -1 )
+   if ( bIsOnyx )
+   {
+      if( access( "onyxfpv_update", R_OK ) != -1 )
+         hw_execute_process_wait("./onyxfpv_update -pre");
+   }
+   else if( access( "ruby_update", R_OK ) != -1 )
       hw_execute_process_wait("./ruby_update -pre");
 
    _write_return_code(0, "Finishing up");
 
-   if ( ! g_bIsController )
-      hw_execute_bash_command("rm -rf ruby_update*.zip", NULL);
+   log_line("Update controller finished.");
 
-   if ( g_bIsController )
-      log_line("Update controller finished.");
-   else
-      log_line("Update vehicle finished.");
-
-   _write_return_code(0, "Finished Successfully");
-   for( int i=0; i<10; i++ )
-      hardware_sleep_ms(200);
+   _write_return_code(0, "Finished Successfully. Please wait.");
+   for( int i=0; i<5; i++ )
+      hardware_sleep_ms(300);
    _write_return_code(1, "Completed. Please wait.");
    hw_execute_process_wait("sync");
    log_line("Process finished.");

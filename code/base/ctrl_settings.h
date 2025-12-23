@@ -86,6 +86,17 @@ typedef struct
    int iDbgPingGraphs;
    int iEnableDebugStats;
    int iWaitFullFrameForOutput;
+
+   int iRecordOSD;
+   int iRecordSTR;
+   int iRecordSTRFramerate;
+   int iRecordSTRTime;
+   int iRecordSTRHome;
+   int iRecordSTRGPS;
+   int iRecordSTRAlt;
+   int iRecordSTRRSSI;
+   int iRecordSTRVoltage;
+   int iRecordSTRBitrate;
 } ControllerSettings;
 
 int save_ControllerSettings();

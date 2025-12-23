@@ -69,7 +69,7 @@ void hardware_i2c_reset_enumerated_flag()
 void hardware_i2c_log_devices()
 {
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    if ( ! s_iI2CDeviceSettingsLoaded )
       hardware_i2c_load_device_settings();
@@ -118,7 +118,7 @@ void hardware_i2c_log_devices()
    log_line("[Hardware] -----------------------------------------");
 }
 
-void hardware_i2c_enumerate_busses()
+void hardware_i2c_enumerate_busses(int iConsoleLog)
 {
    if ( 0 != s_iHardwareI2CBussesEnumerated )
    {
@@ -136,7 +136,7 @@ void hardware_i2c_enumerate_busses()
    char szBuff[256];
    int iEnumerateCount = 4;
    #if defined (HW_PLATFORM_RADXA)
-   iEnumerateCount = 6;
+   iEnumerateCount = 7;
    #endif
    for( int i=0; i<iEnumerateCount; i++ )
    {
@@ -193,11 +193,14 @@ void hardware_i2c_enumerate_busses()
 #endif
    log_line("[Hardware]: Found %d I2C busses.", s_iHardwareI2CBusCount);
 
+   if ( 1 == iConsoleLog )
+      printf("Ruby: Found %d I2C busses. Enumerating I2C devices...\n", s_iHardwareI2CBusCount);
+
    int countDevicesTotal = 0;
 
 #ifdef HW_CAPABILITY_I2C
    u32 uBoardType = hardware_getBoardType();
-   char szOutput[1024];
+   char szOutput[2048];
    for( int i=0; i<s_iHardwareI2CBusCount; i++ )
    {
       for( int k=0; k<128; k++ )
@@ -228,7 +231,7 @@ void hardware_i2c_enumerate_busses()
             log_line("[Hardware]: Pi4: Searching for device on bus %d at address: 0x%02X", s_HardwareI2CBusInfo[i].nBusNumber, addrStart);
          }
 
-         sprintf( szBuff, "i2cdetect -y %d 0x%02X 0x%02X | tr '\n' ' ' | sed -e 's/[^0-9a-fA-F]/ /g' -e 's/^ *//g' -e 's/ *$//g' | tr -s ' ' | sed $'s/ /\\\n/g'", s_HardwareI2CBusInfo[i].nBusNumber, addrStart, addrEnd);
+         snprintf( szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "i2cdetect -y %d 0x%02X 0x%02X | tr '\n' ' ' | sed -e 's/[^0-9a-fA-F]/ /g' -e 's/^ *//g' -e 's/ *$//g' | tr -s ' ' | sed $'s/ /\\\n/g'", s_HardwareI2CBusInfo[i].nBusNumber, addrStart, addrEnd);
          hw_execute_bash_command_raw_silent(szBuff, szOutput);
 
          if ( 0 == szOutput[0] )
@@ -243,15 +246,21 @@ void hardware_i2c_enumerate_busses()
             count++;
             if ( count <= toSkip )
               continue;
-            long l = strtol(szWord,NULL, 16);
+            long l = strtol(szWord, NULL, 16);
             if ( l >= 16*(k+1) )
               break;
-            if ( l >= addrStart && l <= addrEnd && l >= 0 && l < 128 )
+            if ( (l >= addrStart) && (l <= addrEnd) && (l >= 0) && (l < 128) )
             {
                s_HardwareI2CBusInfo[i].devices[l] = 1;
                char szDeviceName2[256];
                hardware_i2c_get_device_name(l, szDeviceName2);
-               log_line("[Hardware]: Found I2C Device on bus i2c-%d at address 0x%02X, device type: %s", s_HardwareI2CBusInfo[i].nBusNumber, l, szDeviceName2);
+               log_line("[Hardware]: Found I2C device on bus I2C-%d at address 0x%02X, device type: %s", s_HardwareI2CBusInfo[i].nBusNumber, (int)l, szDeviceName2);
+               if ( 1 == iConsoleLog )
+               if ( hardware_is_known_i2c_device((u8)l) )
+               {
+                  printf("Ruby: Found I2C device on bus I2C-%d at address 0x%02X, device type: %s\n", s_HardwareI2CBusInfo[i].nBusNumber, (int)l, szDeviceName2);
+                  fflush(stdout);
+               }
                if ( hardware_is_known_i2c_device((u8)l) )
                   s_iKnownDevicesFound++;
 
@@ -291,6 +300,8 @@ void hardware_i2c_enumerate_busses()
    }
 #endif
    log_line("[Hardware]: Found a total of %d I2C devices on all busses.", countDevicesTotal);
+   if ( 1 == iConsoleLog )
+      printf("Ruby: Found a total of %d I2C devices.\n", countDevicesTotal);
 }
 
 int hardware_i2c_get_found_count_known_devices()
@@ -319,7 +330,7 @@ int hardware_i2c_has_device_id(u8 deviceAddress)
 {
    #if defined (HW_CAPABILITY_I2C)
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    if ( (deviceAddress >= 128) || (deviceAddress < 8) )
       return 0;
@@ -337,7 +348,7 @@ int hardware_i2c_get_device_bus_number(u8 deviceAddress)
 {
    #if defined (HW_CAPABILITY_I2C)
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    if ( deviceAddress >= 128 )
       return -1;
@@ -354,10 +365,12 @@ int hardware_i2c_get_device_bus_number(u8 deviceAddress)
 int hardware_is_known_i2c_device(u8 deviceAddress)
 {
    #if defined (HW_CAPABILITY_I2C)
+   #if defined (HW_PLATFORM_RASPBERRY)
    if ( (deviceAddress == I2C_DEVICE_ADDRESS_CAMERA_HDMI) ||
         (deviceAddress == I2C_DEVICE_ADDRESS_CAMERA_CSI) ||
         (deviceAddress == I2C_DEVICE_ADDRESS_CAMERA_VEYE) )
      return 1;
+   #endif
 
    if ( (deviceAddress == I2C_DEVICE_ADDRESS_INA219_1) ||
         (deviceAddress == I2C_DEVICE_ADDRESS_INA219_2) )
@@ -387,8 +400,10 @@ void hardware_i2c_get_device_name(u8 deviceAddress, char* szOutput)
    #if defined (HW_CAPABILITY_I2C)
    if ( deviceAddress == I2C_DEVICE_ADDRESS_CAMERA_HDMI )
       strcpy(szOutput, I2C_DEVICE_NAME_CAMERA_HDMI);
+   #if defined (HW_PLATFORM_RASPBERRY)
    if ( deviceAddress == I2C_DEVICE_ADDRESS_CAMERA_CSI )
       strcpy(szOutput, I2C_DEVICE_NAME_CAMERA_CSI);
+   #endif
    if ( deviceAddress == I2C_DEVICE_ADDRESS_CAMERA_VEYE )
       strcpy(szOutput, I2C_DEVICE_NAME_CAMERA_VEYE);
 
@@ -416,7 +431,7 @@ int hardware_i2c_save_device_settings()
 {
    #if defined (HW_CAPABILITY_I2C)
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    char szFile[MAX_FILE_PATH_SIZE];
    strcpy(szFile, FOLDER_CONFIG);
@@ -459,7 +474,7 @@ int hardware_i2c_load_device_settings()
 {
    #if defined (HW_CAPABILITY_I2C)
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    char szFile[MAX_FILE_PATH_SIZE];
    strcpy(szFile, FOLDER_CONFIG);
@@ -589,7 +604,7 @@ int hardware_i2c_get_pico_extender_version()
 {
    #if defined (HW_CAPABILITY_I2C)
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    for( int i=0; i<s_iHardwareI2CBusCount; i++ )
       if ( 1 == s_HardwareI2CBusInfo[i].devices[I2C_DEVICE_ADDRESS_PICO_EXTENDER] )
@@ -602,7 +617,7 @@ t_i2c_device_settings* hardware_i2c_get_device_settings(u8 i2cAddress)
 {
    #if defined (HW_CAPABILITY_I2C)
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    if ( ! s_iI2CDeviceSettingsLoaded )
       hardware_i2c_load_device_settings();
@@ -624,7 +639,7 @@ t_i2c_device_settings* hardware_i2c_add_device_settings(u8 i2cAddress)
 {
    #if defined (HW_CAPABILITY_I2C)
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    if ( ! s_iI2CDeviceSettingsLoaded )
       hardware_i2c_load_device_settings();
@@ -638,6 +653,7 @@ t_i2c_device_settings* hardware_i2c_add_device_settings(u8 i2cAddress)
 
    log_line("[Hardware]: Adding settings for I2C device address: 0x%02X; current I2C devices count: %d", i2cAddress, s_listI2CDevicesSettings );
 
+   #if defined (HW_PLATFORM_RASPBERRY)
    if ( i2cAddress == I2C_DEVICE_ADDRESS_CAMERA_CSI )
    {
       strcpy(s_listI2CDevicesSettings[s_iCountI2CDevicesSettings].szDeviceName, I2C_DEVICE_NAME_CAMERA_CSI);
@@ -653,6 +669,7 @@ t_i2c_device_settings* hardware_i2c_add_device_settings(u8 i2cAddress)
       s_iCountI2CDevicesSettings++;
       return &(s_listI2CDevicesSettings[s_iCountI2CDevicesSettings-1]);
    }
+   #endif
 
    if ( i2cAddress == I2C_DEVICE_ADDRESS_CAMERA_HDMI )
    {
@@ -768,7 +785,7 @@ void hardware_i2c_update_device_info(u8 i2cAddress)
 {
    #if defined (HW_CAPABILITY_I2C)
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    if ( ! s_iI2CDeviceSettingsLoaded )
       hardware_i2c_load_device_settings();
@@ -935,7 +952,7 @@ void hardware_i2c_check_and_update_device_settings()
    int iUpdatedI2CSettings = 0;
 
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    if ( ! s_iI2CDeviceSettingsLoaded )
       hardware_i2c_load_device_settings();
@@ -997,7 +1014,7 @@ int hardware_i2c_has_current_sensor()
 {
    #if defined(HW_CAPABILITY_I2C)
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    if ( ! s_iI2CDeviceSettingsLoaded )
       hardware_i2c_load_device_settings();
@@ -1013,7 +1030,7 @@ int hardware_i2c_has_external_extenders()
 {
    #if defined(HW_CAPABILITY_I2C)
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    if ( ! s_iI2CDeviceSettingsLoaded )
       hardware_i2c_load_device_settings();
@@ -1029,7 +1046,7 @@ int hardware_i2c_has_external_extenders_rotary_encoders()
 {
    #if defined(HW_CAPABILITY_I2C)
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    if ( ! s_iI2CDeviceSettingsLoaded )
       hardware_i2c_load_device_settings();
@@ -1050,7 +1067,7 @@ int hardware_i2c_has_external_extenders_buttons()
 {
    #if defined(HW_CAPABILITY_I2C)
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    if ( ! s_iI2CDeviceSettingsLoaded )
       hardware_i2c_load_device_settings();
@@ -1069,7 +1086,7 @@ int hardware_i2c_has_external_extenders_rcin()
 {
    #if defined(HW_CAPABILITY_I2C)
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    if ( ! s_iI2CDeviceSettingsLoaded )
       hardware_i2c_load_device_settings();
@@ -1090,7 +1107,7 @@ int hardware_i2c_has_oled_screen()
 {
    #if defined(HW_CAPABILITY_I2C)
    if ( 0 == s_iHardwareI2CBussesEnumerated )
-      hardware_i2c_enumerate_busses();
+      hardware_i2c_enumerate_busses(0);
 
    if ( ! s_iI2CDeviceSettingsLoaded )
       hardware_i2c_load_device_settings();

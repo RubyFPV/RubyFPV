@@ -395,9 +395,9 @@ void MenuVehicleRadioLink::addMenuItemsDataRates()
    }
    else
    {
-      for( int i=0; i<getDataRatesCount(); i++ )
+      for( int i=0; i<getLegacyDataRatesCount(); i++ )
       {
-         str_getDataRateDescription(getDataRatesBPS()[i], 0, szBuff);
+         str_getDataRateDescription(getLegacyDataRatesBPS()[i], 0, szBuff);
          if ( (!(g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS)) ||
               (m_iVehicleRadioLink != 0) )
             snprintf(szText, sizeof(szText)/sizeof(szText[0]), "%s", szBuff);
@@ -409,7 +409,7 @@ void MenuVehicleRadioLink::addMenuItemsDataRates()
                snprintf(szText, sizeof(szText)/sizeof(szText[0]), "%s Q: N/A", szBuff);
          }
          m_pItemsSelect[3]->addSelection(szText);
-         if ( g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[m_iVehicleRadioLink] == getDataRatesBPS()[i] )
+         if ( g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[m_iVehicleRadioLink] == getLegacyDataRatesBPS()[i] )
             iSelectedIndex = i+1;
       }
    }
@@ -439,11 +439,11 @@ void MenuVehicleRadioLink::addMenuItemsDataRates()
    }
    else
    {
-      for( int i=0; i<getDataRatesCount(); i++ )
+      for( int i=0; i<getLegacyDataRatesCount(); i++ )
       {
-         str_getDataRateDescription(getDataRatesBPS()[i], 0, szBuff);
+         str_getDataRateDescription(getLegacyDataRatesBPS()[i], 0, szBuff);
          m_pItemsSelect[5]->addSelection(szBuff);
-         if ( g_pCurrentModel->radioLinksParams.downlink_datarate_data_bps[m_iVehicleRadioLink] == getDataRatesBPS()[i] )
+         if ( g_pCurrentModel->radioLinksParams.downlink_datarate_data_bps[m_iVehicleRadioLink] == getLegacyDataRatesBPS()[i] )
             iSelectedIndex = i+2;
       }
    }
@@ -474,11 +474,11 @@ void MenuVehicleRadioLink::addMenuItemsDataRates()
    }
    else
    {
-      for( int i=0; i<getDataRatesCount(); i++ )
+      for( int i=0; i<getLegacyDataRatesCount(); i++ )
       {
-         str_getDataRateDescription(getDataRatesBPS()[i], 0, szBuff);
+         str_getDataRateDescription(getLegacyDataRatesBPS()[i], 0, szBuff);
          m_pItemsSelect[6]->addSelection(szBuff);
-         if ( g_pCurrentModel->radioLinksParams.uplink_datarate_data_bps[m_iVehicleRadioLink] == getDataRatesBPS()[i] )
+         if ( g_pCurrentModel->radioLinksParams.uplink_datarate_data_bps[m_iVehicleRadioLink] == getLegacyDataRatesBPS()[i] )
             iSelectedIndex = i+2;
       }
    }
@@ -610,13 +610,13 @@ void MenuVehicleRadioLink::Render()
 int MenuVehicleRadioLink::convertMCSRateToLegacyRate(int iMCSRate, bool bIsHT40)
 {
    int iRealDataRate = getRealDataRateFromMCSRate(iMCSRate, false);
-   for( int i=0; i<getDataRatesCount(); i++ )
+   for( int i=0; i<getLegacyDataRatesCount(); i++ )
    {
-      int iLegacyRate = getDataRatesBPS()[i];
+      int iLegacyRate = getLegacyDataRatesBPS()[i];
       if ( (iLegacyRate*11)/10 >= iRealDataRate  )
          return iLegacyRate;
    }
-   int iMaxLegacyRate = getDataRatesBPS()[getDataRatesCount()-1];
+   int iMaxLegacyRate = getLegacyDataRatesBPS()[getLegacyDataRatesCount()-1];
    return iMaxLegacyRate;
 }
 
@@ -773,7 +773,7 @@ void MenuVehicleRadioLink::sendRadioLinkConfig(int iRadioLink)
          if ( bNewIsUsingMCS )
             newRadioLinkParams.downlink_datarate_video_bps[iRadioLink] = -indexRate;
          else
-            newRadioLinkParams.downlink_datarate_video_bps[iRadioLink] = getDataRatesBPS()[indexRate-1];
+            newRadioLinkParams.downlink_datarate_video_bps[iRadioLink] = getLegacyDataRatesBPS()[indexRate-1];
       }
    }
 
@@ -842,7 +842,7 @@ void MenuVehicleRadioLink::sendRadioLinkConfig(int iRadioLink)
          if ( bNewIsUsingMCS )
             newRadioLinkParams.downlink_datarate_data_bps[iRadioLink] = -indexRate+1;
          else
-            newRadioLinkParams.downlink_datarate_data_bps[iRadioLink] = getDataRatesBPS()[indexRate-2];
+            newRadioLinkParams.downlink_datarate_data_bps[iRadioLink] = getLegacyDataRatesBPS()[indexRate-2];
       }
    }
 
@@ -870,7 +870,7 @@ void MenuVehicleRadioLink::sendRadioLinkConfig(int iRadioLink)
          if ( bNewIsUsingMCS )
             newRadioLinkParams.uplink_datarate_data_bps[iRadioLink] = -indexRate+1;
          else
-            newRadioLinkParams.uplink_datarate_data_bps[iRadioLink] = getDataRatesBPS()[indexRate-2];
+            newRadioLinkParams.uplink_datarate_data_bps[iRadioLink] = getLegacyDataRatesBPS()[indexRate-2];
       }
    }
 
@@ -910,12 +910,12 @@ void MenuVehicleRadioLink::sendRadioLinkConfigParams(type_radio_links_parameters
       log_line("MenuVehicleRadioLink: Max video bitrate on new radio config: %.2f Mbps", (float) uMaxVideoBitrate/1000.0/1000.0);
       for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
       {
-         if ( 0 == g_pCurrentModel->video_link_profiles[i].bitrate_fixed_bps )
+         if ( 0 == g_pCurrentModel->video_link_profiles[i].uTargetVideoBitrateBPS )
             continue;
-         if ( g_pCurrentModel->video_link_profiles[i].bitrate_fixed_bps > uMaxVideoBitrate )
+         if ( g_pCurrentModel->video_link_profiles[i].uTargetVideoBitrateBPS > uMaxVideoBitrate )
          {
             log_line("MenuVehicleRadioLink: Must decrease video bitrate (%.2f Mbps) for video profile %s to max allowed on current links: %.2f Mbps",
-               (float)g_pCurrentModel->video_link_profiles[i].bitrate_fixed_bps/1000.0/1000.0,
+               (float)g_pCurrentModel->video_link_profiles[i].uTargetVideoBitrateBPS/1000.0/1000.0,
                str_get_video_profile_name(i),
                (float)uMaxVideoBitrate/1000.0/1000.0);
             uVideoBitrateToSet = uMaxVideoBitrate;
@@ -933,8 +933,8 @@ void MenuVehicleRadioLink::sendRadioLinkConfigParams(type_radio_links_parameters
 
          for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
          {
-            if ( 0 != profiles[i].bitrate_fixed_bps )
-               profiles[i].bitrate_fixed_bps = uVideoBitrateToSet;
+            if ( 0 != profiles[i].uTargetVideoBitrateBPS )
+               profiles[i].uTargetVideoBitrateBPS = uVideoBitrateToSet;
          }
 
          if ( handle_commands_send_to_vehicle(COMMAND_ID_SET_VIDEO_PARAMETERS, 0, (u8*)&paramsNew, sizeof(video_parameters_t), (u8*)&profiles, MAX_VIDEO_LINK_PROFILES * sizeof(type_video_link_profile)) )

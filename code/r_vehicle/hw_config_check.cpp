@@ -139,7 +139,7 @@ bool _check_update_hardware_one_interface_after_and_before(Model* pModel)
             pModel->radioLinksParams.link_frequency_khz[0] = DEFAULT_FREQUENCY58;
 
          pModel->resetRadioLinkDataRatesAndFlags(0);
-         pModel->setDefaultVideoBitrate();
+         pModel->setVideoProfilesDefaultVideoBitrates();
       }
    }
    else
@@ -152,7 +152,7 @@ bool _check_update_hardware_one_interface_after_and_before(Model* pModel)
          pModel->radioLinksParams.link_capabilities_flags[0] |= RADIO_HW_CAPABILITY_FLAG_HIGH_CAPACITY | RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO;
          pModel->radioLinksParams.link_capabilities_flags[0] &= ~RADIO_HW_CAPABILITY_FLAG_SERIAL_LINK;
       
-         pModel->setDefaultVideoBitrate();
+         pModel->setVideoProfilesDefaultVideoBitrates();
       }
    }
    // Populate radio interfaces radio flags and rates from radio links radio flags and rates
@@ -252,7 +252,7 @@ bool _check_update_hardware_one_interface_after_multiple_before(Model* pModel)
          pModel->radioLinksParams.link_capabilities_flags[0] |= RADIO_HW_CAPABILITY_FLAG_HIGH_CAPACITY | RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO;
          pModel->radioLinksParams.link_capabilities_flags[0] &= ~RADIO_HW_CAPABILITY_FLAG_SERIAL_LINK;
       }
-      pModel->setDefaultVideoBitrate();
+      pModel->setVideoProfilesDefaultVideoBitrates();
       log_line("[HW Radio Check] Radio hardware check: Updated radio link and radio interface based on current hardware radio interface. Completed.");
       return true;
    }
@@ -331,7 +331,7 @@ void _add_new_radio_link_for_hw_radio_interface(int iInterfaceIndex, Model* pMod
       pModel->radioLinksParams.link_capabilities_flags[iRadioLink] |= RADIO_HW_CAPABILITY_FLAG_HIGH_CAPACITY | RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO;
       pModel->radioLinksParams.link_capabilities_flags[iRadioLink] &= ~RADIO_HW_CAPABILITY_FLAG_SERIAL_LINK;
    }
-   pModel->setDefaultVideoBitrate();
+   pModel->setVideoProfilesDefaultVideoBitrates();
 
    if ( 0 == iRadioLink )
    {

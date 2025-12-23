@@ -904,15 +904,19 @@ void alarms_add_from_local(u32 uAlarms, u32 uFlags1, u32 uFlags2)
 
       if ( uAlarms & ALARM_ID_CONTROLLER_PAIRING_COMPLETED )
       {
-         log_line("Adding warning for pairing with vehicle id %u ...", uFlags1);
+         log_line("Adding warning for pairing with vehicle id %u (SW version %d.%d)...", uFlags1, (uFlags2 >> 8) & 0xFF, uFlags2 & 0xFF);
          Model* pModel = findModelWithId(uFlags1, 71);
+         char szBuff[256];
          if ( NULL == pModel )
-            warnings_add(0, "Paired with a unknown vehicle.", g_idIconController);
+         {
+            sprintf(szBuff, L("Paired with a unknown vehicle (SW version %d.%d)"), (uFlags2 >> 8) & 0xFF, uFlags2 & 0xFF);
+            warnings_add(0, szBuff, g_idIconController);
+         }
          else
          {
-            log_line("Paired with %s, VID: %u", pModel->getLongName(), pModel->uVehicleId);
+            log_line("Paired with %s, VID: %u (SW version %d.%d)", pModel->getLongName(), pModel->uVehicleId, (uFlags2 >> 8) & 0xFF, uFlags2 & 0xFF);
             char szBuff[256];
-            sprintf(szBuff, "Paired with %s", pModel->getLongName());
+            sprintf(szBuff, "Paired with %s (SW version %d.%d)", pModel->getLongName(), (uFlags2 >> 8) & 0xFF, uFlags2 & 0xFF);
             warnings_add(0, szBuff, g_idIconController);
 
             int iIndexRuntime = -1;

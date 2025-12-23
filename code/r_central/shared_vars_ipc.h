@@ -25,10 +25,8 @@ extern shared_mem_ctrl_ping_stats g_SMDbgPingStats;
 
 extern controller_runtime_info g_SMControllerRTInfo;
 extern controller_runtime_info* g_pSMControllerRTInfo;
-extern controller_debug_runtime_info g_SMControllerDebugRTInfo;
-extern controller_debug_runtime_info* g_pSMControllerDebugRTInfo;
-extern vehicle_runtime_info g_SMVehicleRTInfo;
-extern vehicle_runtime_info* g_pSMVehicleRTInfo;
+extern controller_debug_video_runtime_info g_SMControllerDebugVideoRTInfo;
+extern controller_debug_video_runtime_info* g_pSMControllerDebugVideoRTInfo;
 
 extern t_packet_header_rc_info_downstream* g_pSM_DownstreamInfoRC; // RC Info received on ground from vehicle
 extern t_packet_header_rc_info_downstream g_SM_DownstreamInfoRC;

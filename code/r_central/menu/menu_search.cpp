@@ -77,9 +77,9 @@ MenuSearch::MenuSearch(void)
    m_pModelOriginal = g_pCurrentModel;
 
    if ( NULL != g_pCurrentModel )
-      log_line("Search open: has a current model: VID %u, name: [%s]", g_pCurrentModel->uVehicleId, g_pCurrentModel->getLongName());
+      log_line("MenuSearch open: has a current model: VID %u, name: [%s]", g_pCurrentModel->uVehicleId, g_pCurrentModel->getLongName());
    else
-      log_line("Search open: does not have a current model.");
+      log_line("MenuSearch open: does not have a current model.");
 
    for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
    {
@@ -1142,15 +1142,16 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
       return;
 
    if ( NULL != m_pModelOriginal )
-      log_line("Search: had an initial model when opened search menu: VID %u, name: [%s]", m_pModelOriginal->uVehicleId, m_pModelOriginal->getLongName());
+      log_line("MenuSearch: had an initial model when opened search menu: VID %u, name: [%s]", m_pModelOriginal->uVehicleId, m_pModelOriginal->getLongName());
    else
-      log_line("Search: did not had an initial model when opened search menu.");
+      log_line("MenuSearch: did not had an initial model when opened search menu.");
 
    if ( NULL != g_pCurrentModel )
-      log_line("Search: has a current model: VID %u, name: [%s]", g_pCurrentModel->uVehicleId, g_pCurrentModel->getLongName());
+      log_line("MenuSearch: has a current model: VID %u, name: [%s]", g_pCurrentModel->uVehicleId, g_pCurrentModel->getLongName());
    else
-      log_line("Search: does not have a current model.");
+      log_line("MenuSearch: does not have a current model.");
 
+   log_line("Search: First pairing done? %s", g_bFirstModelPairingDone?"Yes":"No");
    // Skip
    if ( 0 == returnValue )
    {
@@ -1166,24 +1167,24 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
 
    if ( NULL != m_pModelOriginal )
    {
-      log_line("Save current original model, vehicle id: %u, it's controller id: %u. Received vehicle id while searching: %u",
+      log_line("MenuSearch: Save current original model, vehicle id: %u, it's controller id: %u. Received vehicle id while searching: %u",
          m_pModelOriginal->uVehicleId, m_pModelOriginal->uControllerId,
          g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId );
 
       saveControllerModel(m_pModelOriginal);
    }
    else
-      log_line("No original model, do not save it.");
+      log_line("MenuSearch: No original model, do not save it.");
 
    bool bIsNew = false;
    if( ! ruby_is_first_pairing_done() )
    {
-      log_line("First pairing was not completed before. Deleting all models.");
+      log_line("MenuSearch: First pairing was not completed before. Deleting all models.");
       deleteAllModels();
       bIsNew = true;
    }
    else
-      log_line("First pairing was already completed.");
+      log_line("MenuSearch: First pairing was already completed.");
 
    if ( ! controllerHasModelWithId(g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId) )
       bIsNew = true;
@@ -1196,15 +1197,15 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
          bIsNew = true;
    } 
    if ( bIsNew )
-      log_line("Search: The found vehicle VID %u is new (not on controller).", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId);
+      log_line("MenuSearch: The found vehicle VID %u is new (not on controller).", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId);
    else
-      log_line("Search: The found vehicle VID %u (is spectator: %s) already exists on controller.", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId, pExistingModel->is_spectator?"yes":"no");
+      log_line("MenuSearch: The found vehicle VID %u (is spectator: %s) already exists on controller.", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId, pExistingModel->is_spectator?"yes":"no");
    
    // Connect as Spectator
 
    if ( 1 == returnValue )
    {
-      log_line("Pressed add as spectator. Current total spectator vehicles: %d.", getControllerModelsSpectatorCount());
+      log_line("MenuSearch: Pressed add as spectator. Current total spectator vehicles: %d.", getControllerModelsSpectatorCount());
       
       if ( pExistingModel != NULL)
       {
@@ -1230,7 +1231,7 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
       if ( bIsNew )
          onModelAdded(pModel->uVehicleId);
       onMainVehicleChanged(true);
-      log_line("Added vehicle id: %u as spectator.", pModel->uVehicleId);
+      log_line("MenuSearch: Added vehicle id: %u as spectator.", pModel->uVehicleId);
       pairing_start_normal();
       m_bDidConnectToAVehicle = true;
       m_bMustSwitchBack = false;
@@ -1243,14 +1244,14 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
 
    if ( 2 == returnValue )
    {
-      log_line("Pressed add as controller. Current total controller vehicles: %d.", getControllerModelsCount());
+      log_line("MenuSearch: Pressed add as controller. Current total controller vehicles: %d.", getControllerModelsCount());
      
       if ( pExistingModel != NULL)
       {
-         log_line("There is already an existing model for VID %u, model's software ver: %d.%d b-%d", pExistingModel->uVehicleId, get_sw_version_major(pExistingModel), get_sw_version_minor(pExistingModel), get_sw_version_build(pExistingModel));
+         log_line("MenuSearch: There is already an existing model for VID %u, model's software ver: %d.%d b-%d", pExistingModel->uVehicleId, get_sw_version_major(pExistingModel), get_sw_version_minor(pExistingModel), get_sw_version_build(pExistingModel));
          if ( pExistingModel->is_spectator || modelIsInSpectatorList(pExistingModel->uVehicleId) )
          {
-            log_line("Delete exiting spectator model for this VID %u", pExistingModel->uVehicleId);
+            log_line("MenuSearch: Delete exiting spectator model for this VID %u", pExistingModel->uVehicleId);
             deleteModel(pExistingModel);
             bIsNew = true;
          }
@@ -1259,9 +1260,9 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
       Model* pModel = NULL;
       if ( bIsNew )
       {
-         log_line("Search: Adding a new vehicle model as controller");
-         log_line("Creating a vehicle model for VID: %u ...", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId);
-         pModel = addNewModel((g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.rubyVersion>>4) &0x0F, (g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.rubyVersion & 0x0F));
+         log_line("MenuSearch: Adding a new vehicle model as controller");
+         log_line("MenuSearch: Creating a vehicle model for VID: %u ...", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId);
+         pModel = addNewModel(g_SearchVehicleRuntimeInfo.uVehicleId, (g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.rubyVersion>>4) & 0x0F, (g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.rubyVersion & 0x0F));
       }
       else
       {
@@ -1269,11 +1270,11 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
          if ( NULL == pModel )
          {
             bIsNew = true;
-            log_line("Creating a vehicle model for VID: %u ...", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId);
-            pModel = addNewModel((g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.rubyVersion>>4) &0x0F, (g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.rubyVersion & 0x0F));
+            log_line("MenuSearch: Creating a vehicle model for VID: %u ...", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId);
+            pModel = addNewModel(g_SearchVehicleRuntimeInfo.uVehicleId, (g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.rubyVersion>>4) &0x0F, (g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.rubyVersion & 0x0F));
          }
          else
-            log_line("Search: Found existing controller vehicle model for VID %u.", pModel->uVehicleId);
+            log_line("MenuSearch: Found existing controller vehicle model for VID %u.", pModel->uVehicleId);
       }
       pModel->populateFromVehicleTelemetryData_v6(&(g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended));
       pModel->is_spectator = false;

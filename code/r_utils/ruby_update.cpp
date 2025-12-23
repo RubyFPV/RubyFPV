@@ -95,6 +95,100 @@ void update_openipc_cpu(Model* pModel)
 }
 
 
+void do_update_to_117()
+{
+   log_line("Doing update to 11.7");
+ 
+   if ( ! s_isVehicle )
+   {
+      load_ControllerSettings();
+      ControllerSettings* pCS = get_ControllerSettings();
+      pCS->nGraphVideoRefreshInterval = DEFAULT_OSD_RADIO_GRAPH_REFRESH_PERIOD_MS;
+      pCS->iRenderFPS = 15;
+      save_ControllerSettings();
+      load_Preferences();
+      Preferences* pP = get_Preferences();
+      pP->iMenusStacked = 1;
+      save_Preferences();
+   }
+
+   Model* pModel = getCurrentModel();
+   if ( NULL == pModel )
+      return;
+
+   pModel->osd_params.iRadioInterfacesGraphRefreshIntervalMs = DEFAULT_OSD_RADIO_GRAPH_REFRESH_PERIOD_MS;
+
+   for( int i=0; i<MODEL_MAX_OSD_SCREENS; i++ )
+   {
+      if ( pModel->osd_params.osd_layout_preset[i] >= OSD_PRESET_DEFAULT )
+         pModel->osd_params.osd_flags2[i] |= OSD_FLAG2_SHOW_VIDEO_FRAMES_STATS;
+      if ( pModel->osd_params.osd_flags2[i] & OSD_FLAG2_SHOW_STATS_VIDEO )
+      {
+         pModel->osd_params.osd_flags2[i] &= ~OSD_FLAG2_SHOW_STATS_VIDEO;
+         pModel->osd_params.osd_flags2[i] |= OSD_FLAG2_SHOW_VIDEO_FRAMES_STATS;
+      }
+   }
+
+   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
+   {
+      pModel->video_link_profiles[i].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
+      pModel->video_link_profiles[i].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HQ<<8);
+      pModel->video_link_profiles[i].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_HQ;
+      pModel->video_link_profiles[i].iBlockECs = DEFAULT_VIDEO_BLOCK_ECS_HQ;
+      pModel->convertECPercentageToData(&(pModel->video_link_profiles[i]));
+
+      pModel->video_link_profiles[i].iKeyframeMS = DEFAULT_VIDEO_KEYFRAME_AUTO;
+      pModel->video_link_profiles[i].uProfileFlags &= ~VIDEO_PROFILE_FLAGS_MASK_NOISE; // zero noise
+
+      pModel->video_link_profiles[i].uProfileFlags |= VIDEO_PROFILE_FLAG_USE_HIGHER_DATARATE;
+      pModel->video_link_profiles[i].uProfileFlags &= ~VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK;
+      pModel->video_link_profiles[i].uProfileFlags |= (((u32)0x01) << VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK_SHIFT);
+
+      pModel->video_link_profiles[i].iIPQuantizationDelta = DEFAULT_VIDEO_H264_IPQUANTIZATION_DELTA;
+   }
+
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].iKeyframeMS = DEFAULT_VIDEO_KEYFRAME_AUTO_HP;
+   pModel->video_link_profiles[VIDEO_PROFILE_LONG_RANGE].iKeyframeMS = DEFAULT_VIDEO_KEYFRAME_AUTO_LR;
+
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uProfileFlags &= ~VIDEO_PROFILE_FLAGS_MASK_NOISE;
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uProfileFlags |= 1; // 3d noise
+
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileFlags |= VIDEO_PROFILE_FLAG_USE_HIGHER_DATARATE;
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileFlags &= ~VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK;
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileFlags |= (((u32)0x02) << VIDEO_PROFILE_FLAGS_HIGHER_DATARATE_MASK_SHIFT);
+
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].iIPQuantizationDelta = DEFAULT_VIDEO_H264_IPQUANTIZATION_DELTA_HQ;
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].iIPQuantizationDelta = DEFAULT_VIDEO_H264_IPQUANTIZATION_DELTA_HP;
+   pModel->video_link_profiles[VIDEO_PROFILE_LONG_RANGE].iIPQuantizationDelta = DEFAULT_VIDEO_H264_IPQUANTIZATION_DELTA_LR;
+
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HQ<<8);
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
+   pModel->video_link_profiles[VIDEO_PROFILE_USER].uProfileEncodingFlags &= ~(VIDEO_PROFILE_ENCODING_FLAG_MAX_RETRANSMISSION_WINDOW_MASK);
+   pModel->video_link_profiles[VIDEO_PROFILE_USER].uProfileEncodingFlags |= (DEFAULT_VIDEO_RETRANS_MS5_HP<<8);
+
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_HQ;
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].iBlockECs = DEFAULT_VIDEO_BLOCK_ECS_HQ;
+
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_HP;
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].iBlockECs = DEFAULT_VIDEO_BLOCK_ECS_HP;
+
+   pModel->video_link_profiles[VIDEO_PROFILE_LONG_RANGE].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_LR;
+   pModel->video_link_profiles[VIDEO_PROFILE_LONG_RANGE].iBlockECs = DEFAULT_VIDEO_BLOCK_ECS_LR;
+
+   pModel->video_link_profiles[VIDEO_PROFILE_LONG_RANGE].uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_LINK;
+   pModel->video_link_profiles[VIDEO_PROFILE_LONG_RANGE].uProfileEncodingFlags &= ~VIDEO_PROFILE_ENCODING_FLAG_USE_MEDIUM_ADAPTIVE_VIDEO;
+
+   for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
+   {
+      pModel->convertECPercentageToData(&(pModel->video_link_profiles[i]));
+   }
+
+   log_line("Updated model VID %u (%s) to v11.7", pModel->uVehicleId, pModel->getLongName());
+}
+
+
 void do_update_to_116()
 {
    log_line("Doing update to 11.6");
@@ -137,7 +231,7 @@ void do_update_to_116()
    }
 
    pModel->radioLinksParams.uGlobalRadioLinksFlags &= ~(MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS);
-   pModel->radioRuntimeCapabilities.uFlagsRuntimeCapab = 0;
+   pModel->radioRuntimeCapabilities.uFlagsRuntimeCapab &= ~MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED;
 
    pModel->resetProcessesParams();
    pModel->resetAdaptiveVideoParams(-1);
@@ -147,6 +241,7 @@ void do_update_to_116()
 
    // Must be done after radio links updates so max video bitrate for each video profile is computed correctly
    pModel->resetVideoLinkProfiles();
+   pModel->validateVideoProfilesMaxVideoBitrate();
 
    pModel->telemetry_params.flags = TELEMETRY_FLAGS_REQUEST_DATA_STREAMS | TELEMETRY_FLAGS_SPECTATOR_ENABLE;
    pModel->telemetry_params.flags |= TELEMETRY_FLAGS_ALLOW_ANY_VEHICLE_SYSID;
@@ -284,13 +379,13 @@ void do_update_to_113()
 
    for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
    {
-      pModel->video_link_profiles[i].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE;
+      pModel->video_link_profiles[i].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE;
       if ( ((hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_PIZERO) ||
            ((hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_PIZEROW) ||
            hardware_board_is_goke(hardware_getBoardType()) )
-         pModel->video_link_profiles[i].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_PI_ZERO;
+         pModel->video_link_profiles[i].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_PI_ZERO;
       if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
-         pModel->video_link_profiles[i].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
+         pModel->video_link_profiles[i].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
    }
 
 
@@ -666,16 +761,16 @@ void do_update_to_104()
 
    for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
    {
-      pModel->video_link_profiles[i].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE;
+      pModel->video_link_profiles[i].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE;
       if ( ((hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_PIZERO) ||
            ((hardware_getBoardType() & BOARD_TYPE_MASK) == BOARD_TYPE_PIZEROW) ||
            hardware_board_is_goke(hardware_getBoardType()) )
-         pModel->video_link_profiles[i].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_PI_ZERO;
+         pModel->video_link_profiles[i].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_PI_ZERO;
       if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
-         pModel->video_link_profiles[i].bitrate_fixed_bps = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
+         pModel->video_link_profiles[i].uTargetVideoBitrateBPS = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
    }
 
-   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].bitrate_fixed_bps = DEFAULT_HP_VIDEO_BITRATE;
+   pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uTargetVideoBitrateBPS = DEFAULT_HP_VIDEO_BITRATE;
    
    pModel->validateRadioSettings();
 
@@ -881,6 +976,8 @@ int main(int argc, char *argv[])
       do_update_to_115();
    if ( (iMajor < 11) || (iMajor == 11 && iMinor <= 6) )
       do_update_to_116();
+   if ( (iMajor < 11) || (iMajor == 11 && iMinor <= 7) )
+      do_update_to_117();
 
    saveCurrentModel();
 
@@ -917,6 +1014,5 @@ int main(int argc, char *argv[])
    #endif
    
    log_line("Update finished.");
-   hardware_release();
    return (0);
 } 

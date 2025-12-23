@@ -83,7 +83,7 @@ typedef struct
 
 void hardware_i2c_reset_enumerated_flag();
 void hardware_i2c_log_devices();
-void hardware_i2c_enumerate_busses();
+void hardware_i2c_enumerate_busses(int iConsoleLog);
 int hardware_i2c_get_busses_count();
 int hardware_i2c_get_found_count_known_devices();
 int hardware_i2c_get_found_count_configurable_devices();

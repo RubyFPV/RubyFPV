@@ -56,7 +56,7 @@ u32 s_uNegociateRadioCurrentTestRadioFlags = 0;
 int s_iNegociateRadioCurrentTestDataRate = 0;
 int s_iNegociateRadioCurrentTestTxPowerMw = 0;
 
-void _negociate_radio_link_start()
+void _negociate_radio_link_on_start()
 {
    if ( ! s_bIsNegociatingRadioLinks )
       log_line("[NegociateRadioLink] Started negociation.");
@@ -80,47 +80,25 @@ void _negociate_radio_link_cleanup()
       s_uOriginalNegociateRadioVideoBitrate = 0;
    }
 }
-
-void _negociate_radio_link_end(bool bApply, u32 uRadioFlagsToApply, int iDataRateToApply, int iTxPowerMwToApply, type_radio_runtime_capabilities_parameters* pRadioRuntimeCapab)
+void _negociate_radio_link_save_model(bool bSucceeded, type_radio_runtime_capabilities_parameters* pRadioRuntimeCapab)
 {
-   if ( ! s_bIsNegociatingRadioLinks )
-      return;
-
-   log_line("[NegociateRadioLink] Ending. Apply changes: %s", bApply?"yes":"no");
-
-   s_uLastNegociateRadioTestIndex = 0xFF;
-   s_uLastNegociateRadioTestCommand = 0;
-   s_iLastNegociateRadioTestTxPower = 0;
-   s_uTimeStartOfNegociatingRadioLinks = 0;
-   s_uTimeLastNegociateRadioLinksReceivedCommand = 0;
-
-   _negociate_radio_link_cleanup();
-
-   if ( ! bApply )
-   {
-      log_line("[NegociateRadioLink] Ended negociation.");
-      return;
-   }
-   
-   if ( (0 == iDataRateToApply) && (0 == iTxPowerMwToApply) && (0 == uRadioFlagsToApply) )
-      log_line("[NegociateRadioLink] Ending with no changes to apply.");
-   else
-   {
-      log_line("[NegociateRadioLink] Apply final negociated params to model: %d datarate, %d tx power mw, radio flags: %s",
-         iDataRateToApply, iTxPowerMwToApply, str_get_radio_frame_flags_description2(uRadioFlagsToApply));
-      g_pCurrentModel->radioLinksParams.link_radio_flags[0] = uRadioFlagsToApply;
-   }
-
+   u8 uFlagsRuntimeCapab = g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab;
    if ( NULL != pRadioRuntimeCapab )
    {
       log_line("[NegociateRadioLink] Save final runtime capability frame flags: %s", str_get_radio_frame_flags_description2(pRadioRuntimeCapab->uSupportedMCSFlags));
-      u8 uFlagsRuntimeCapab = g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab;
       memcpy(&g_pCurrentModel->radioRuntimeCapabilities, pRadioRuntimeCapab, sizeof(type_radio_runtime_capabilities_parameters));
+   }
+   if ( bSucceeded )
+   {
       g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab = uFlagsRuntimeCapab | MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED;
-      g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab &= ~(MODEL_RUNTIME_RADIO_CAPAB_FLAG_DIRTY);
+      g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags |= MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS;
+   }
+   else
+   {
+      g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab = uFlagsRuntimeCapab & (~MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED);
+      g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags &= ~MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS;
    }
 
-   g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags |= MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS;
    g_pCurrentModel->validateRadioSettings();
    saveCurrentModel();
 
@@ -140,8 +118,41 @@ void _negociate_radio_link_end(bool bApply, u32 uRadioFlagsToApply, int iDataRat
       g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
    if ( NULL != g_pProcessStats )
       g_pProcessStats->lastActiveTime = get_current_timestamp_ms();
-  
-   log_line("[NegociateRadioLink] Ended negociation and applied new settings if any.");
+
+}
+
+void _negociate_radio_link_end(const char* szReason, bool bApply, u32 uRadioFlagsToApply, int iDataRateToApply, int iTxPowerMwToApply, type_radio_runtime_capabilities_parameters* pRadioRuntimeCapab)
+{
+   if ( ! s_bIsNegociatingRadioLinks )
+      return;
+
+   log_line("[NegociateRadioLink] Ending. Reason: %s, Apply changes: %s", szReason, bApply?"yes":"no");
+
+   s_uLastNegociateRadioTestIndex = 0xFF;
+   s_uLastNegociateRadioTestCommand = 0;
+   s_iLastNegociateRadioTestTxPower = 0;
+   s_uTimeStartOfNegociatingRadioLinks = 0;
+   s_uTimeLastNegociateRadioLinksReceivedCommand = 0;
+
+   if ( bApply )
+   {
+      if ( (0 == iDataRateToApply) && (0 == iTxPowerMwToApply) && (0 == uRadioFlagsToApply) )
+         log_line("[NegociateRadioLink] Ending with no changes to apply.");
+      else
+      {
+         log_line("[NegociateRadioLink] Apply final negociated params to model: %d datarate, %d tx power mw, radio flags: %s",
+            iDataRateToApply, iTxPowerMwToApply, str_get_radio_frame_flags_description2(uRadioFlagsToApply));
+         g_pCurrentModel->radioLinksParams.link_radio_flags[0] = uRadioFlagsToApply;
+      }
+   }
+
+   _negociate_radio_link_save_model(bApply, pRadioRuntimeCapab);
+   _negociate_radio_link_cleanup();
+
+   if ( ! bApply )
+      log_line("[NegociateRadioLink] Ended negociation.");
+   else
+      log_line("[NegociateRadioLink] Ended negociation and applied new settings if any.");
 }
 
 int negociate_radio_process_received_radio_link_messages(u8* pPacketBuffer)
@@ -203,7 +214,7 @@ int negociate_radio_process_received_radio_link_messages(u8* pPacketBuffer)
       if ( uCommand == NEGOCIATE_RADIO_TEST_PARAMS )
       {
          if ( ! s_bIsNegociatingRadioLinks )
-            _negociate_radio_link_start();
+            _negociate_radio_link_on_start();
 
          s_uNegociateRadioCurrentTestRadioFlags = uRadioFlags | RADIO_FLAGS_FRAME_TYPE_DATA;
          s_iNegociateRadioCurrentTestDataRate = iDatarate;
@@ -223,7 +234,7 @@ int negociate_radio_process_received_radio_link_messages(u8* pPacketBuffer)
          {
             log_line("[NegociateRadioLink] Received valid apply negociated radio params, %d bytes", pPH->total_length);
             type_radio_runtime_capabilities_parameters* pRadioCapab = (type_radio_runtime_capabilities_parameters*)pTmp;
-            _negociate_radio_link_end(true, uRadioFlags | RADIO_FLAGS_FRAME_TYPE_DATA, iDatarate, iTxPowerMw, pRadioCapab);
+            _negociate_radio_link_end("Recv apply from controller", true, uRadioFlags | RADIO_FLAGS_FRAME_TYPE_DATA, iDatarate, iTxPowerMw, pRadioCapab);
          }
       }
   
@@ -253,38 +264,18 @@ int negociate_radio_process_received_radio_link_messages(u8* pPacketBuffer)
    if ( uCommand == NEGOCIATE_RADIO_END_TESTS )
    {
       u8 uCanceled = pPacketBuffer[sizeof(t_packet_header) + 2*sizeof(u8)];
-      log_line("[NegociateRadioLink] Received message from controller to end negociate radio links tests. Canceled? %d", uCanceled);
+      log_line("[NegociateRadioLink] Received message from controller to end negociate radio links tests. Canceled? %s", uCanceled?"yes":"no");
       _negociate_radio_link_cleanup();
 
       t_packet_header PH;
 
       if ( uCanceled )
-      if ( g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE )
       {
-         u8 uFlagsRuntimeCapab = g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab;
-         g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab = uFlagsRuntimeCapab & (~MODEL_RUNTIME_RADIO_CAPAB_FLAG_COMPUTED);
-         g_pCurrentModel->radioRuntimeCapabilities.uFlagsRuntimeCapab &= ~MODEL_RUNTIME_RADIO_CAPAB_FLAG_DIRTY;
-         g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags &= ~MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS;
-
-         g_pCurrentModel->validateRadioSettings();
-         saveCurrentModel();
-         
-         log_line("[NegociateRadioLink] Notify other processes to reload model, has negociated radio: %s",
-            (g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_HAS_NEGOCIATED_LINKS)?"yes":"no");
-         radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_LOCAL_CONTROL_MODEL_CHANGED, STREAM_ID_DATA);
-         PH.vehicle_id_src = PACKET_COMPONENT_RUBY | (MODEL_CHANGED_GENERIC<<8);
-         PH.total_length = sizeof(t_packet_header);
-
-         ruby_ipc_channel_send_message(s_fIPCRouterToTelemetry, (u8*)&PH, PH.total_length);
-         ruby_ipc_channel_send_message(s_fIPCRouterToCommands, (u8*)&PH, PH.total_length);
-         if ( g_pCurrentModel->rc_params.rc_enabled )
-            ruby_ipc_channel_send_message(s_fIPCRouterToRC, (u8*)&PH, PH.total_length);
-                  
-         if ( NULL != g_pProcessStats )
-            g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
-         if ( NULL != g_pProcessStats )
-            g_pProcessStats->lastActiveTime = get_current_timestamp_ms();
+         if ( g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE )
+            _negociate_radio_link_save_model(false, NULL);
       }
+      else
+         _negociate_radio_link_save_model(true, NULL);
 
       radio_packet_init(&PH, PACKET_COMPONENT_RUBY, PACKET_TYPE_NEGOCIATE_RADIO_LINKS, STREAM_ID_DATA);
       PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
@@ -334,7 +325,7 @@ void negociate_radio_periodic_loop()
    if ( (g_TimeNow > s_uTimeStartOfNegociatingRadioLinks + 60*2*1000) || (g_TimeNow > s_uTimeLastNegociateRadioLinksReceivedCommand + 12000) )
    {
       log_line("[NegociateRadioLink] Trigger end due to timeout (no progress received from controller).");
-      _negociate_radio_link_end(false, 0,0,0, NULL);
+      _negociate_radio_link_end("Timeout from controller", false, 0,0,0, NULL);
    }
 }
 
