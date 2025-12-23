@@ -88,11 +88,6 @@ void MenuQuickMenu::addItems()
 
    Preferences* pP = get_Preferences();
    
-   //m_iIndexController =
-   //addMenuItem(new MenuItem(L("Take Picture")));
-   //addMenuItem(new MenuItem(L("Video Recording")));
-   //addMenuItem(new MenuItem(L("Toggle OSD Off")));
-
    m_pItemAction.clear();
 
    int m_index = 0;
@@ -188,20 +183,7 @@ void MenuQuickMenu::addItems()
       m_index = addMenuItem(new MenuItem(L("PIT Mode")));
       m_pItemAction[m_index] = MenuQuickMenu::PITMode;
    }
-
-   
-   // m_pMenuItems[m_ItemsCount-1]->setExtraHeight(m_sfMenuPaddingY);
-   // char szBuff[256];
-   // char szBuff2[64];
-   // getSystemVersionString(szBuff2, (SYSTEM_SW_VERSION_MAJOR<<8) | SYSTEM_SW_VERSION_MINOR);
-   // sprintf(szBuff, "Version %s (b-%d)", szBuff2, SYSTEM_SW_BUILD_NUMBER);
-   //
-   // addMenuItem(new MenuItemText(szBuff, true, 0.01 * Menu::getScaleFactor()));
-   // sprintf(szBuff, "Running on: %s", str_get_hardware_board_name_short(hardware_getBoardType()));
-   // addMenuItem(new MenuItemText(szBuff, true, 0.01 * Menu::getScaleFactor()));
 }
-
-
 
 void MenuQuickMenu::Render()
 {
@@ -213,40 +195,6 @@ void MenuQuickMenu::Render()
       y += RenderItem(i,y);
 
    RenderEnd(yEnd);
-
-//    RenderPrepare();
-//
-//    if ( Menu::getRenderMode() != 1 )
-//       m_RenderHeight -= 1.14 * g_pRenderEngine->textHeight(g_idFontMenu);
-//
-//    float yTop = RenderFrameAndTitle();
-//    float y = yTop;
-//
-//    if ( Menu::getRenderMode() != 1 )
-//       m_RenderHeight += 1.14 * g_pRenderEngine->textHeight(g_idFontMenu);
-//
-//    bool bTmp1 = m_bEnableScrolling;
-//    bool bTmp2 = m_bHasScrolling;
-//    m_bEnableScrolling = false;
-//    m_bHasScrolling = false;
-//
-//    int iItem = 0;
-//    float yTopItems = m_RenderYPos - 0.02*m_sfMenuPaddingY - 1.2*g_pRenderEngine->textHeight(g_idFontMenu) - 1.5*m_sfMenuPaddingY;
-//    yTopItems += RenderItem(iItem, yTopItems);
-//    iItem++;
-//    //yTopItems += RenderItem(iItem, yTopItems);
-//    //iItem++;
-//
-//    m_bEnableScrolling = bTmp1;
-//    m_bHasScrolling = bTmp2;
-//
-//    for(; iItem<m_ItemsCount; iItem++ )
-//    {
-//       if ( iItem == m_ItemsCount-2 )
-//          y += 0.5*m_sfMenuPaddingY;
-//       y += RenderItem(iItem,y);
-//    }
-//    RenderEnd(yTop);
 }
 
 void MenuQuickMenu::onSelectItem()
@@ -276,13 +224,9 @@ void MenuQuickMenu::onSelectItem()
          executeQuickActionOSDSize();
          break;
       case TakePicture:
-         //warnings_add(0, "QuickMenu TakePicture");
-         //log_line("QuickMenu TakePicture.");
          executeQuickActionTakePicture();
          break;
       case VideoRecording:
-         //warnings_add(0, "QuickMenu VideoRecording");
-         //log_line("QuickMenu VideoRecording.");
          executeQuickActionRecord();
          break;
       case ToggleOSD:
@@ -330,137 +274,7 @@ void MenuQuickMenu::onSelectItem()
          executeQuickActionSwitchPITMode();
          break;
    }
-   // if ( m_iIndexController == m_SelectedIndex )
-   //    add_menu_to_stack(new MenuController());
 
    menu_discard_all();
 }
-
-
-/*
-void executeQuickActions()
-{
-   Preferences* p = get_Preferences();
-   if ( NULL == p )
-      return;
-   if ( g_bIsReinit || g_bSearching )
-      return;
-   if ( NULL == g_pCurrentModel )
-   {
-      Popup* p = new Popup("You must be connected to a vehicle to execute Quick Actions.", 0.1,0.8, 0.54, 5);
-      p->setIconId(g_idIconError, get_Color_IconError());
-      popups_add_topmost(p);
-      return;
-   }
-
-   log_force_full_log();
-
-   if ( keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA1  )
-      log_line("Pressed button QA1");
-   if ( keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA2  )
-      log_line("Pressed button QA2");
-   if ( keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA3  )
-      log_line("Pressed button QA3");
-
-   log_line("Current assigned QA actions: button1: %d, button2: %d, button3: %d",
-    p->iActionQuickButton1,p->iActionQuickButton2,p->iActionQuickButton3);
-
-   log_regular_mode();
-
-
-   if ( ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA1) && quickActionOSDSize == p->iActionQuickButton1) ||
-        ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA2) && quickActionOSDSize == p->iActionQuickButton2) ||
-        ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA3) && quickActionOSDSize == p->iActionQuickButton3) )
-   {
-      if ( ! quickActionCheckVehicle("change OSD size") )
-         return;
-      p->iScaleOSD++;
-      if ( p->iScaleOSD > 3 )
-         p->iScaleOSD = -1;
-      save_Preferences();
-      osd_apply_preferences();
-      return;
-   }
-
-
-   #ifdef FEATURE_ENABLE_RC
-   if ( NULL != g_pCurrentModel )
-   if ( ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA1) && quickActionRCEnable == p->iActionQuickButton1) ||
-        ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA2) && quickActionRCEnable == p->iActionQuickButton2) ||
-        ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA3) && quickActionRCEnable == p->iActionQuickButton3) )
-   {
-      if ( (NULL != g_pCurrentModel) && g_pCurrentModel->is_spectator )
-      {
-         warnings_add(0, "Can't enable RC while in spectator mode.");
-         return;
-      }
-      if ( ! quickActionCheckVehicle("enable/disable the RC link output") )
-         return;
-
-      rc_parameters_t params;
-      memcpy(&params, &g_pCurrentModel->rc_params, sizeof(rc_parameters_t));
-
-      if ( params.flags & RC_FLAGS_OUTPUT_ENABLED )
-         params.flags &= (~RC_FLAGS_OUTPUT_ENABLED);
-      else
-         params.flags |= RC_FLAGS_OUTPUT_ENABLED;
-      handle_commands_abandon_command();
-      handle_commands_send_to_vehicle(COMMAND_ID_SET_RC_PARAMS, 0, (u8*)&params, sizeof(rc_parameters_t));
-      return;
-   }
-   #endif
-
-   if ( ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA1) && quickActionCameraProfileSwitch == p->iActionQuickButton1) ||
-        ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA2) && quickActionCameraProfileSwitch == p->iActionQuickButton2) ||
-        ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA3) && quickActionCameraProfileSwitch == p->iActionQuickButton3) )
-   {
-      if ( g_pCurrentModel->is_spectator )
-      {
-         warnings_add(0, "Can't switch camera profile for spectator vehicles.");
-         return;
-      }
-      if ( handle_commands_is_command_in_progress() )
-      {
-         return;
-      }
-
-      int iProfileOrg = g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].iCurrentProfile;
-      int iProfile = iProfileOrg;
-      camera_profile_parameters_t* pProfile1 = &(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iProfile]);
-      iProfile++;
-      if ( iProfile >= MODEL_CAMERA_PROFILES-1 )
-         iProfile = 0;
-
-      camera_profile_parameters_t* pProfile2 = &(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iProfile]);
-
-      //char szBuff[64];
-      //sprintf(szBuff, "Switching to camera profile %s", model_getCameraProfileName(iProfile));
-      //warnings_add(g_pCurrentModel->uVehicleId, szBuff);
-
-      g_pCurrentModel->log_camera_profiles_differences(pProfile1, pProfile2, iProfileOrg, iProfile);
-
-      handle_commands_send_to_vehicle(COMMAND_ID_SET_CAMERA_PROFILE, iProfile, NULL, 0);
-      return;
-   }
-
-   if ( ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA1) && quickActionRotaryFunction == p->iActionQuickButton1) ||
-        ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA2) && quickActionRotaryFunction == p->iActionQuickButton2) ||
-        ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA3) && quickActionRotaryFunction == p->iActionQuickButton3) )
-   {
-      g_pControllerSettings->nRotaryEncoderFunction++;
-      if ( g_pControllerSettings->nRotaryEncoderFunction > 2 )
-         g_pControllerSettings->nRotaryEncoderFunction = 1;
-      save_ControllerSettings();
-      if ( 0 == g_pControllerSettings->nRotaryEncoderFunction )
-         warnings_add(0, "Rotary Encoder function changed to: None");
-      if ( 1 == g_pControllerSettings->nRotaryEncoderFunction )
-         warnings_add(0, "Rotary Encoder function changed to: Menu Navigation");
-      if ( 2 == g_pControllerSettings->nRotaryEncoderFunction )
-         warnings_add(0, "Rotary Encoder function changed to: Camera Adjustment");
-
-      return;
-   }
-
-}
-*/
 

@@ -55,24 +55,6 @@ MenuQuickMenuSettings::MenuQuickMenuSettings(void)
 
    addSeparator();
 
-   /*
-   m_pItemsSelect[c]->addSelection(L("None"));
-   m_pItemsSelect[c]->addSelection(L("Cycle OSD screen"));
-   m_pItemsSelect[c]->addSelection(L("Cycle OSD size"));
-   m_pItemsSelect[c]->addSelection(L("Take Picture"));
-   m_pItemsSelect[c]->addSelection(L("Video Recording"));
-   m_pItemsSelect[c]->addSelection(L("Toggle OSD Off"));
-   m_pItemsSelect[c]->addSelection(L("Toggle Stats Off"));
-   m_pItemsSelect[c]->addSelection(L("Toggle All Off"));
-   m_pItemsSelect[c]->addSelection(L("Relay Switch"));
-   m_pItemsSelect[c]->addSelection(L("Switch Camera Profile"));
-   m_pItemsSelect[c]->addSelection(L("RC Output On/Off"));
-   m_pItemsSelect[c]->addSelection(L("Rotary Encoder Function"));
-   m_pItemsSelect[c]->addSelection(L("Freeze OSD"));
-   m_pItemsSelect[c]->addSelection(L("Cycle Favorite Vehicles"));
-   m_pItemsSelect[c]->addSelection(L("PIT Mode"));
-      */
-
    m_pItemsSelect[3] = new MenuItemSelect(L("Take Picture"), L("Take Picture."));
    m_pItemsSelect[3]->addSelection(L("Disabled"));
    m_pItemsSelect[3]->addSelection(L("Enabled"));
@@ -85,7 +67,7 @@ MenuQuickMenuSettings::MenuQuickMenuSettings(void)
    m_pItemsSelect[4]->setUseMultiViewLayout();
    m_IndexVideoRecording = addMenuItem( m_pItemsSelect[4]);
 
-   m_pItemsSelect[1] = new MenuItemSelect(L("Cycle OSD screen"), L("Cycle OSD screen prifle."));
+   m_pItemsSelect[1] = new MenuItemSelect(L("Cycle OSD screen"), L("Cycle OSD screen profile."));
    m_pItemsSelect[1]->addSelection(L("Disabled"));
    m_pItemsSelect[1]->addSelection(L("Enabled"));
    m_pItemsSelect[1]->setUseMultiViewLayout();
@@ -103,13 +85,13 @@ MenuQuickMenuSettings::MenuQuickMenuSettings(void)
    m_pItemsSelect[5]->setUseMultiViewLayout();
    m_IndexToggleOSD = addMenuItem( m_pItemsSelect[5]);
 
-   m_pItemsSelect[6] = new MenuItemSelect(L("Toggle Stats"), L("Toggle Stats on/off."));
+   m_pItemsSelect[6] = new MenuItemSelect(L("Toggle Stats"), L("Toggle the Statistics on/off."));
    m_pItemsSelect[6]->addSelection(L("Disabled"));
    m_pItemsSelect[6]->addSelection(L("Enabled"));
    m_pItemsSelect[6]->setUseMultiViewLayout();
    m_IndexToggleStatsOff = addMenuItem( m_pItemsSelect[6]);
 
-   m_pItemsSelect[7] = new MenuItemSelect(L("Toggle All"), L("Toggle All OSD and Stats on/off."));
+   m_pItemsSelect[7] = new MenuItemSelect(L("Toggle All"), L("Toggle All OSD and Statistics on/off."));
    m_pItemsSelect[7]->addSelection(L("Disabled"));
    m_pItemsSelect[7]->addSelection(L("Enabled"));
    m_pItemsSelect[7]->setUseMultiViewLayout();
@@ -128,7 +110,7 @@ MenuQuickMenuSettings::MenuQuickMenuSettings(void)
    m_IndexSwitchCameraProfile = addMenuItem( m_pItemsSelect[9]);
 
     #ifdef FEATURE_ENABLE_RC
-   m_pItemsSelect[10] = new MenuItemSelect(L("RC Output On/Off"), L("Toggle RC Output On/Off."));
+   m_pItemsSelect[10] = new MenuItemSelect(L("RC Output On/Off"), L("Toggle RC Output on/off."));
    m_pItemsSelect[10]->addSelection(L("Disabled"));
    m_pItemsSelect[10]->addSelection(L("Enabled"));
    m_pItemsSelect[10]->setUseMultiViewLayout();
@@ -153,7 +135,7 @@ MenuQuickMenuSettings::MenuQuickMenuSettings(void)
    m_pItemsSelect[13]->setUseMultiViewLayout();
    m_IndexCycleFavoriteVehicles = addMenuItem( m_pItemsSelect[13]);
 
-   m_pItemsSelect[14] = new MenuItemSelect(L("PIT Mode"), L("PIT Mode Enable/Disable."));
+   m_pItemsSelect[14] = new MenuItemSelect(L("PIT Mode"), L("PIT Mode enable/disable."));
    m_pItemsSelect[14]->addSelection(L("Disabled"));
    m_pItemsSelect[14]->addSelection(L("Enabled"));
    m_pItemsSelect[14]->setUseMultiViewLayout();
