@@ -139,6 +139,7 @@ void reset_Preferences()
    #endif
 
    s_Preferences.iShowCompactMenus = 1;
+   s_Preferences.uEnabledQuickMenu = 0xFFFFFFFF;
 }
 
 int save_Preferences()
@@ -215,6 +216,7 @@ int save_Preferences()
    fprintf(fd, "%d %d\n", s_Preferences.iOSDFontBold, s_Preferences.iMenuFontBold);
    fprintf(fd, "%d %d %d\n", s_Preferences.iMSPOSDSize, s_Preferences.iMSPOSDDeltaX, s_Preferences.iMSPOSDDeltaY);
    fprintf(fd, "%d\n", s_Preferences.iShowCompactMenus);
+   fprintf(fd, "%u\n", s_Preferences.uEnabledQuickMenu);
    fclose(fd);
    log_line("Saved preferences to file: %s", szFile);
    return 1;
@@ -440,6 +442,9 @@ int load_Preferences()
    {
       s_Preferences.iShowCompactMenus = 1;
    }
+
+   if ( bOk && 1 != fscanf(fd, "%u", &s_Preferences.uEnabledQuickMenu) )
+      s_Preferences.uEnabledQuickMenu = 0xFFFFFFFF;
 
    // ----------------------------------------------------
    // End reading file;

@@ -34,6 +34,7 @@
 #include "menu_objects.h"
 #include "menu_root.h"
 #include "menu_search.h"
+#include "menu_quick_menu.h"
 #include "../../renderer/render_engine.h"
 #include "osd_common.h"
 #include "osd_ahi.h"
@@ -616,6 +617,18 @@ void menu_loop_parse_input_events()
       }
       else 
          g_pMenuStack[g_iMenuStackTopIndex-1]->onSelectItem();
+   }
+
+   //Quick Menu displayed at root after pressing either plus/minus
+   if (( 0 == g_iMenuStackTopIndex ) &&
+      (( keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_PLUS ) ||  ( keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_MINUS )))
+   {
+      log_line("[Menu] (loop %d) Pressed [QuickMenu] Key", menu_get_loop_counter()%1000);
+      load_Preferences();
+      Preferences* pP = get_Preferences();
+      if (pP->uEnabledQuickMenu != 0)
+         add_menu_to_stack(new MenuQuickMenu());
+      return;
    }
 
    if ( keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_BACK )
