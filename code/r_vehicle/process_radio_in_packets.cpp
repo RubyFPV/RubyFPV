@@ -373,7 +373,7 @@ void process_received_single_radio_packet(int iRadioInterface, u8* pData, int da
 
    if ( (uPacketFlags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_RC )
    {
-      if ( g_pCurrentModel->rc_params.rc_enabled )
+      if ( g_bReceivedPairingRequest && g_pCurrentModel->rc_params.rc_enabled )
          ruby_ipc_channel_send_message(s_fIPCRouterToRC, pData, dataLength);
       return;
    }

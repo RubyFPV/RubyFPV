@@ -1174,6 +1174,7 @@ void controllerInterfacesEnumJoysticks()
 {
    log_line("ControllerInterfacesSettings: Enumerating joysticks interfaces...");
    bool bNewInterfacesDetected = false;
+   bool bInterfacesRemoved = false;
 
    hardware_enum_joystick_interfaces();
    for( int i=0; i<hardware_get_joystick_interfaces_count(); i++ )
@@ -1234,9 +1235,44 @@ void controllerInterfacesEnumJoysticks()
       }
    }
 
-   log_line("ControllerInterfacesSettings: Finished enumerating joysticks interfaces. New found? %s", bNewInterfacesDetected?"yes":"no");
+   // Remove missing ones 
+   for( int j=0; j<s_CIS.inputInterfacesCount; j++ )
+   {
+      bool bHardwareFound = false;
 
-   if ( bNewInterfacesDetected )
+      for( int i=0; i<hardware_get_joystick_interfaces_count(); i++ )
+      {
+         hw_joystick_info_t* pJoystick = hardware_get_joystick_info(i);
+         if ( NULL == pJoystick )
+            continue;
+
+         if ( 0 != strcmp(pJoystick->szName, s_CIS.inputInterfaces[j].szInterfaceName) )
+            continue;
+         if ( pJoystick->uId != s_CIS.inputInterfaces[j].uId )
+            continue;
+         if ( pJoystick->countAxes != s_CIS.inputInterfaces[j].countAxes )
+            continue;
+         if ( pJoystick->countButtons != s_CIS.inputInterfaces[j].countButtons )
+            continue;
+         s_CIS.inputInterfaces[j].currentHardwareIndex = i;
+         bHardwareFound = true;
+         break;
+      }
+
+      if ( ! bHardwareFound )
+      {
+         bInterfacesRemoved = true;
+         for( int i=j; i<s_CIS.inputInterfacesCount-1; i++ )
+         {
+            memcpy( &s_CIS.inputInterfaces[i], &s_CIS.inputInterfaces[i+1], sizeof(t_ControllerInputInterface));
+         }
+         s_CIS.inputInterfacesCount--;
+      }
+   }
+
+   log_line("ControllerInterfacesSettings: Finished enumerating joysticks interfaces. New found? %s, removed any? %s", bNewInterfacesDetected?"yes":"no", bInterfacesRemoved?"yes":"no");
+
+   if ( bNewInterfacesDetected || bInterfacesRemoved )
       save_ControllerInterfacesSettings();
 }
 

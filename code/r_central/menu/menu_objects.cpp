@@ -1803,11 +1803,20 @@ void Menu::onMoveRight(bool bIgnoreReversion)
 
 void Menu::onFocusedItemChanged()
 {
-   if ( (0 < m_ItemsCount) && (m_SelectedIndex >= 0) && (m_SelectedIndex < m_ItemsCount) )
-   if ( NULL != m_pMenuItems[m_SelectedIndex] )
-   if ( ! m_pMenuItems[m_SelectedIndex]->isHidden() )
-      setTooltip( m_pMenuItems[m_SelectedIndex]->getTooltip() );
+   if ( 0 == m_ItemsCount )
+      return;
+   if ( (m_SelectedIndex < 0) || (m_SelectedIndex >= m_ItemsCount) )
+      return;
 
+   while ( (m_SelectedIndex < m_ItemsCount) && (NULL != m_pMenuItems[m_SelectedIndex]) && ( ( ! m_pMenuItems[m_SelectedIndex]->isSelectable() ) || m_pMenuItems[m_SelectedIndex]->isHidden()) )
+      m_SelectedIndex++;
+
+   if ( m_SelectedIndex == m_ItemsCount )
+      m_SelectedIndex = m_ItemsCount-1;
+   if ( m_SelectedIndex < 0 )
+      m_SelectedIndex = 0;
+
+   setTooltip( m_pMenuItems[m_SelectedIndex]->getTooltip() );
    updateScrollingOnSelectionChange();
 }
 

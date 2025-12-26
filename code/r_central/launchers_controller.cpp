@@ -52,7 +52,6 @@ void controller_launch_router(bool bSearchMode, int iFirmwareType)
       log_line("Controller router process already running. Do nothing.");
       return;
    }
-   ControllerSettings* pCS = get_ControllerSettings();
 
    char szParams[256];
    char szPrefix[256];
@@ -63,33 +62,33 @@ void controller_launch_router(bool bSearchMode, int iFirmwareType)
    
       if ( (g_iSearchSiKAirDataRate >= 0) && (iFirmwareType == MODEL_FIRMWARE_TYPE_RUBY) )
       {
-         if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityRouter > 100) )
-            sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityRouter - 120);
+         if ( g_pControllerSettings->iPrioritiesAdjustment && (g_pControllerSettings->iThreadPriorityRouter > 100) )
+            sprintf(szPrefix, "nice -n %d", g_pControllerSettings->iThreadPriorityRouter - 120);
          sprintf(szParams, "-search %d -sik %d %d %d %d",
             g_iSearchFrequency, g_iSearchSiKAirDataRate, g_iSearchSiKECC, g_iSearchSiKLBT, g_iSearchSiKMCSTR);
       }
       else
       {
-         if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityRouter > 100) )
-            sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityRouter - 120);
+         if ( g_pControllerSettings->iPrioritiesAdjustment && (g_pControllerSettings->iThreadPriorityRouter > 100) )
+            sprintf(szPrefix, "nice -n %d", g_pControllerSettings->iThreadPriorityRouter - 120);
          sprintf(szParams, "-search %d -firmware %d", g_iSearchFrequency, iFirmwareType);
       }
    }
    else
    {
-      if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityRouter > 100) )
-         sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityRouter - 120);    
+      if ( g_pControllerSettings->iPrioritiesAdjustment && (g_pControllerSettings->iThreadPriorityRouter > 100) )
+         sprintf(szPrefix, "nice -n %d", g_pControllerSettings->iThreadPriorityRouter - 120);    
       #ifdef HW_CAPABILITY_IONICE
-      if ( pCS->iPrioritiesAdjustment && (pCS->ioNiceRouter > 0) )
+      if ( g_pControllerSettings->iPrioritiesAdjustment && (g_pControllerSettings->ioNiceRouter > 0) )
       {
-         sprintf(szPrefix, "ionice -c 1 -n %d", pCS->ioNiceRouter);
-         if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityRouter > 100) )
-            sprintf(szPrefix, "ionice -c 1 -n %d nice -n %d", pCS->ioNiceRouter, pCS->iThreadPriorityRouter - 120);
+         sprintf(szPrefix, "ionice -c 1 -n %d", g_pControllerSettings->ioNiceRouter);
+         if ( g_pControllerSettings->iPrioritiesAdjustment && (g_pControllerSettings->iThreadPriorityRouter > 100) )
+            sprintf(szPrefix, "ionice -c 1 -n %d nice -n %d", g_pControllerSettings->ioNiceRouter, g_pControllerSettings->iThreadPriorityRouter - 120);
       }
       #endif
    }
 
-   if ( ! pCS->iPrioritiesAdjustment )
+   if ( ! g_pControllerSettings->iPrioritiesAdjustment )
       szPrefix[0] = 0;
 
    hw_execute_ruby_process(szPrefix, "ruby_rt_station", szParams, NULL);
@@ -110,9 +109,8 @@ void controller_launch_rx_telemetry()
    }
    char szPrefix[32];
    szPrefix[0] = 0;
-   ControllerSettings* pCS = get_ControllerSettings();
-   if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityOthers > 100) )
-      sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityOthers - 120);
+   if ( g_pControllerSettings->iPrioritiesAdjustment && (g_pControllerSettings->iThreadPriorityOthers > 100) )
+      sprintf(szPrefix, "nice -n %d", g_pControllerSettings->iThreadPriorityOthers - 120);
    hw_execute_ruby_process(szPrefix, "ruby_rx_telemetry", NULL, NULL);
 }
 
@@ -137,18 +135,16 @@ void controller_launch_tx_rc()
    if ( g_bSearching )
       sprintf(szParams, "-search");
 
-   ControllerSettings* pCS = get_ControllerSettings();
-
-   if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityRC > 100) )
-      sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityRC - 120);
+   if ( g_pControllerSettings->iPrioritiesAdjustment && (g_pControllerSettings->iThreadPriorityRC > 100) )
+      sprintf(szPrefix, "nice -n %d", g_pControllerSettings->iThreadPriorityRC - 120);
 
    #ifdef HW_CAPABILITY_IONICE
-   if ( pCS->iPrioritiesAdjustment && (NULL != g_pCurrentModel) )
+   if ( g_pControllerSettings->iPrioritiesAdjustment && (NULL != g_pCurrentModel) )
    if ( DEFAULT_IO_PRIORITY_RC > 0 )
    {
       sprintf(szPrefix, "ionice -c 1 -n %d", DEFAULT_IO_PRIORITY_RC);
-      if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityRC > 100) )
-         sprintf(szPrefix, "ionice -c 1 -n %d nice -n %d", DEFAULT_IO_PRIORITY_RC, pCS->iThreadPriorityRC - 120);
+      if ( g_pControllerSettings->iPrioritiesAdjustment && (g_pControllerSettings->iThreadPriorityRC > 100) )
+         sprintf(szPrefix, "ionice -c 1 -n %d nice -n %d", DEFAULT_IO_PRIORITY_RC, g_pControllerSettings->iThreadPriorityRC - 120);
    }
    #endif
 
@@ -251,13 +247,11 @@ const char* controller_validate_radio_settings(Model* pModel, u32* pVehicleNICFr
 
 void controller_start_i2c()
 {
-   ControllerSettings* pCS = get_ControllerSettings();
-
    char szPrefix[64];
    szPrefix[0] = 0;
 
-   if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityOthers > 100) )
-      sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityOthers - 120);
+   if ( g_pControllerSettings->iPrioritiesAdjustment && (g_pControllerSettings->iThreadPriorityOthers > 100) )
+      sprintf(szPrefix, "nice -n %d", g_pControllerSettings->iThreadPriorityOthers - 120);
    hw_execute_ruby_process(szPrefix, "ruby_i2c", NULL, NULL);
 }
 

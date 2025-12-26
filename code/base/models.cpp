@@ -4170,7 +4170,7 @@ void Model::resetOSDFlags(int iScreen)
       osd_params.osd_flags3[i] = 0;
       osd_params.instruments_flags[i] = 0;
       // OSD and stats font sizes:
-      osd_params.osd_preferences[i] = (((u32)2)<<16) | ((u32)2);
+      osd_params.osd_preferences[i] = (((u32)3)<<16) | ((u32)3);
       // OSD stats transparency:
       osd_params.osd_preferences[i] |= ((u32)1)<<20;
       // OSD transparency:
@@ -6480,9 +6480,12 @@ void Model::setTelemetryTypeAndPort(int iTelemetryType, int iSerialPort, int iSe
       }
    }
 
-   if ( (iTelemetryType <= 0) || (iSerialPort < 0) || (iSerialSpeed <= 0) )
+   if ( iTelemetryType == 0 )
    {
-      log_line("Model: No new telemetry type or port to set.");
+      telemetry_params.fc_telemetry_type = TELEMETRY_TYPE_NONE;
+      log_line("Model: Set telemetry type to none.");
+      if ( (iSerialPort == 0x0F) || (iSerialSpeed == 0) )
+         log_line("Model: Clear serial port set for telemetry.");
       return;
    }
    

@@ -35,7 +35,7 @@ class MenuControllerJoystick: public Menu
       bool m_bIsCalibratingAxes;
       bool m_bCalibrationComplete;
       bool m_bCalibrationCanceled;
-      int m_topTextHeight;
+      float m_fTopTextHeight;
 
       Popup* m_pPopupCal;
       int axesCalMinValue[MAX_JOYSTICK_AXES];

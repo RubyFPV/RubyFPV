@@ -145,7 +145,7 @@ static int s_iLongOperationCounter = 0;
 void signal_start_long_op()
 {
    s_iLongOperationCounter++;
-   if ( 1 == s_iLongOperationCounter )
+   if ( (! g_bQuit) && (1 == s_iLongOperationCounter) )
    {
       t_packet_header PH;
       radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_LOCAL_CONTROL_LONG_TASK, STREAM_ID_DATA);
@@ -169,7 +169,7 @@ void signal_end_long_op()
    if ( s_iLongOperationCounter <= 0 )
       return;
    s_iLongOperationCounter--;
-   if ( 0 == s_iLongOperationCounter )
+   if ( (! g_bQuit) && (0 == s_iLongOperationCounter) )
    {
       t_packet_header PH;
       radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_LOCAL_CONTROL_LONG_TASK, STREAM_ID_DATA);
@@ -1628,7 +1628,6 @@ void _main_loop2()
    bool bReadAnyCameraFrameData = false;
    u32 uLastCameraReadDuration = 0;
    u32 uLastVideoFrameSendVideoDuration = 0;
-   u32 uLastVideoFrameReadAndSendVideoDuration = 0;
    u32 uLastVideoFrameSendOtherDuration = 0;
    u32 uLastVideoFrameReadAndSendAllDuration = 0;
    u32 uTimeStartFrame = g_TimeNow;
@@ -1689,7 +1688,6 @@ void _main_loop2()
 
          g_TimeNow = get_current_timestamp_ms();
          uLastVideoFrameSendVideoDuration = g_TimeNow - uTime;
-         uLastVideoFrameReadAndSendVideoDuration = g_TimeNow - uTimeStartFrame;
 
          g_pProcessStats->uLoopCounter4 = g_TimeNow - uTmp;
          g_pProcessStats->uLoopCounter5 = g_iDbgCamHistSendCount[g_iDbgCamHistBuffIndex];

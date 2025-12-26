@@ -11,9 +11,9 @@
         * Redistributions in binary form (partially or complete) must reproduce
         the above copyright notice, this list of conditions and the following disclaimer
         in the documentation and/or other materials provided with the distribution.
-         * Copyright info and developer info must be preserved as is in the user
+        * Copyright info and developer info must be preserved as is in the user
         interface, additions could be made to that info.
-       * Neither the name of the organization nor the
+        * Neither the name of the organization nor the
         names of its contributors may be used to endorse or promote products
         derived from this software without specific prior written permission.
         * Military use is not permitted.
@@ -67,9 +67,28 @@ MenuControllerPeripherals::MenuControllerPeripherals(void)
    m_IndexWait = -1;
    m_nSearchI2CDeviceAddress = 0;
    m_bShownUSBWarning = false;
-   char szBuff[64];
+   m_uLastTimeCheckedJoysticks = g_TimeNow;
+   addItems();
+}
 
-   addMenuItem(new MenuItemSection(L("Serial Ports")));
+
+void MenuControllerPeripherals::onShow()
+{
+   int iTmp = getSelectedMenuItemIndex();
+   m_uLastTimeCheckedJoysticks = g_TimeNow;
+   addItems();
+
+   Menu::onShow();
+
+   if ( iTmp >= 0 )
+      m_SelectedIndex = iTmp;
+   onFocusedItemChanged();
+}
+
+void MenuControllerPeripherals::addItems()
+{
+   int iTmp = getSelectedMenuItemIndex();
+   removeAllItems();
 
    for( int i=0; i<10; i++ )
    {
@@ -81,20 +100,24 @@ MenuControllerPeripherals::MenuControllerPeripherals(void)
    {
       m_IndexI2CDevices[i] = -1;
    }
+   m_iCountJoysticks = 0;
 
+   char szBuff[128];
 
    hardware_i2c_load_device_settings();
    load_ControllerInterfacesSettings();
    load_ControllerSettings();
-   ControllerSettings* pcs = get_ControllerSettings();
    ControllerInterfacesSettings* pCI = get_ControllerInterfacesSettings();
    m_iSerialBuiltInOptionsCount = 0;
 
-   if ( (NULL == pcs) || (NULL == pCI) )
+   if ( NULL == pCI )
    {
       log_softerror_and_alarm("Failed to get pointer to controller settings structure");
       return;
    }
+
+   addMenuItem(new MenuItemSection(L("Serial Ports")));
+
    for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
       hw_serial_port_info_t* pInfo = hardware_get_serial_port_info(i);
@@ -162,20 +185,20 @@ MenuControllerPeripherals::MenuControllerPeripherals(void)
       addMenuItem( new MenuItemLegend("Info","No joysticks, gamepads or RC transmitters detected.", 0) );
    else
    {
-      int nCountAdded = 0;
+      m_iCountJoysticks = 0;
       for( int i=0; i<pCI->inputInterfacesCount; i++ )
       {
          t_ControllerInputInterface* pCII = controllerInterfacesGetAt(i);
          if ( NULL == pCII )
             continue;
-         nCountAdded++;
-         m_IndexJoysticks[i] = addMenuItem( new MenuItem(pCII->szInterfaceName) );
+         m_iCountJoysticks++;
+         m_IndexJoysticks[i] = addMenuItem( new MenuItem(pCII->szInterfaceName, L("Configure and/or calibrate this input device.") ) );
          m_pMenuItems[m_IndexJoysticks[i]]->showArrow();
 
          if ( ! pCII->bCalibrated )
             m_pMenuItems[m_IndexJoysticks[i]]->setExtraHeight(1.4*g_pRenderEngine->getMessageHeight(s_szMenuJoystickNotCalibrated, MENU_TEXTLINE_SPACING, getUsableWidth(), g_idFontMenu));
       }
-      if ( 0 == nCountAdded )
+      if ( 0 == m_iCountJoysticks )
          addMenuItem( new MenuItemLegend("Info", "No joysticks, gamepads or RC transmitters detected.", 0) );
    }
 
@@ -191,11 +214,19 @@ MenuControllerPeripherals::MenuControllerPeripherals(void)
    }
    else
       addI2CDevices();
-}
 
-void MenuControllerPeripherals::addItems()
-{
+   if ( iTmp >= 0 )
+   {
+      m_SelectedIndex = iTmp;
+      onFocusedItemChanged();
+   }
+   if ( m_SelectedIndex >= m_ItemsCount )
+   {
+      m_SelectedIndex = m_ItemsCount-1;
+      onFocusedItemChanged();
+   }
 
+   valuesToUI();
 }
 
 void MenuControllerPeripherals::valuesToUI()
@@ -285,9 +316,10 @@ void MenuControllerPeripherals::valuesToUI()
    }
 }
 
-void MenuControllerPeripherals::onShow()
+void MenuControllerPeripherals::onReturnFromChild(int iChildMenuId, int returnValue)
 {
-   Menu::onShow();
+   Menu::onReturnFromChild(iChildMenuId, returnValue);
+   addItems();
 }
 
 bool MenuControllerPeripherals::periodicLoop()
@@ -319,7 +351,22 @@ bool MenuControllerPeripherals::periodicLoop()
    }
 
    if ( s_bFirstTimeI2CDetectionMenuPeripheralsDone )
+   {
+      if ( menu_is_menu_on_top(this) && ( ! menu_has_children(this)) )
+      if ( g_TimeNow > m_uLastTimeCheckedJoysticks + 500 )
+      {
+         log_line("MenuControllerPeripherals: Check for joystick hardware changes...");
+         m_uLastTimeCheckedJoysticks = g_TimeNow;
+         controllerInterfacesEnumJoysticks();
+         ControllerInterfacesSettings* pCI = get_ControllerInterfacesSettings();
+         if ( pCI->inputInterfacesCount != m_iCountJoysticks )
+         {
+            addItems();
+            onFocusedItemChanged();
+         }
+      }
       return false;
+   }
 
    if ( (NULL == m_pItemWait) || (m_nSearchI2CDeviceAddress == 128) )
       return false;
@@ -405,12 +452,12 @@ void MenuControllerPeripherals::Render()
       for( int j=0; j<pCI->inputInterfacesCount; j++ )
       {
          t_ControllerInputInterface* pCII = controllerInterfacesGetAt(j);
-         if ( i == m_IndexJoysticks[j] && (!pCII->bCalibrated ) )
+         if ( (NULL != pCII) && (i == m_IndexJoysticks[j]) && (!pCII->bCalibrated ) )
          {
             g_pRenderEngine->setColors(get_Color_MenuText());
-            y += 0.3 * (1+MENU_TEXTLINE_SPACING)*g_pRenderEngine->textHeight(g_idFontMenu);
-            y += g_pRenderEngine->drawMessageLines(m_xPos+m_sfMenuPaddingX + 0.01*m_sfMenuPaddingX, y, s_szMenuJoystickNotCalibrated, MENU_TEXTLINE_SPACING, getUsableWidth(), g_idFontMenu);
-            y += 0.5 * (1+MENU_TEXTLINE_SPACING)*g_pRenderEngine->textHeight(g_idFontMenu);
+            float yTmp = y - m_pMenuItems[i]->getExtraHeight() +  0.3 * (1+MENU_TEXTLINE_SPACING)*g_pRenderEngine->textHeight(g_idFontMenu);
+            g_pRenderEngine->drawMessageLines(m_xPos+m_sfMenuPaddingX + 0.01*m_sfMenuPaddingX, yTmp, s_szMenuJoystickNotCalibrated, MENU_TEXTLINE_SPACING, getUsableWidth(), g_idFontMenu);
+            break;
          }
       }
    }
@@ -424,9 +471,8 @@ void MenuControllerPeripherals::onSelectItem()
    if ( (-1 == m_SelectedIndex) || (m_pMenuItems[m_SelectedIndex]->isEditing()) )
       return;
 
-   ControllerSettings* pCS = get_ControllerSettings();
    ControllerInterfacesSettings* pCI = get_ControllerInterfacesSettings();
-   if ( NULL == pCS || NULL == pCI)
+   if ( NULL == pCI)
    {
       log_softerror_and_alarm("Failed to get pointer to controller settings structure");
       return;

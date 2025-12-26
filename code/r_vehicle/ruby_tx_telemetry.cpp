@@ -379,7 +379,7 @@ void _send_rc_data_to_FC()
       return;
    if ( telemetry_get_serial_port_file() < 0 )
       return;
-   if ( NULL == s_pPHDownstreamInfoRC )
+   if ( (NULL == s_pPHDownstreamInfoRC) || (! g_bReceivedPairingRequest) )
       return;
    if ( g_TimeNow < g_TimeStart + 1000 )
       return;
@@ -653,6 +653,8 @@ bool try_read_messages_from_router()
       if ( NULL != g_pCurrentModel )
          g_pCurrentModel->onControllerIdUpdated(pPH->vehicle_id_src);
       g_uControllerId = pPH->vehicle_id_src;
+      g_bReceivedPairingRequest = true;
+      log_line("State is paired now.");
       return true;
    }
  
@@ -1613,7 +1615,7 @@ void _main_loop()
          maxMsgToRead--;
 
       if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MAVLINK )
-      if ( g_pCurrentModel->rc_params.rc_enabled )
+      if ( g_pCurrentModel->rc_params.rc_enabled && g_bReceivedPairingRequest )
       if ( g_pCurrentModel->rc_params.flags & RC_FLAGS_OUTPUT_ENABLED )
       {
          if ( iSleepTime > 10 )

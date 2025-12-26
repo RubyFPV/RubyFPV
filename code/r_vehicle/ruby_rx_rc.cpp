@@ -303,8 +303,10 @@ int r_start_rx_rc(int argc, char *argv[])
          maxMsgToRead--;
          t_packet_header* pPH = (t_packet_header*)&s_BufferRCFromRouter[0];
          if ( ! radio_packet_check_crc(s_BufferRCFromRouter, pPH->total_length) )
+         {
+            log_softerror_and_alarm("Read IPC from router, wrong CRC packet type: %s", str_get_packet_type(pPH->packet_type));
             continue;
- 
+         }
          if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_RUBY )
          if ( pPH->packet_type == PACKET_TYPE_RUBY_PAIRING_REQUEST )
          {
@@ -320,11 +322,12 @@ int r_start_rx_rc(int argc, char *argv[])
 
             log_line("Pairing request: Currently stored controller ID: %u / %u", g_uControllerId, sModelVehicle.uControllerId);
             log_line("Received pairing request from router (received resend count: %u). From CID %u to VID %u (%s). Developer mode: %s. Updating local model.",
-               uResendCount, pPH->vehicle_id_src, pPH->vehicle_id_dest, (pPH->vehicle_id_dest == sModelVehicle.uVehicleId)?"self":"not self", (g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE)?"on":"off");
+               uResendCount, pPH->vehicle_id_src, pPH->vehicle_id_dest, (pPH->vehicle_id_dest == sModelVehicle.uVehicleId)?"self":"not self", (sModelVehicle.uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE)?"on":"off");
 
             g_uControllerId = pPH->vehicle_id_src;
-
             sModelVehicle.uControllerId = pPH->vehicle_id_src;
+            g_bReceivedPairingRequest = true;
+            log_line("State is paired now.");
          }
 
          if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_LOCAL_CONTROL )
@@ -364,7 +367,7 @@ int r_start_rx_rc(int argc, char *argv[])
             g_pProcessStats->lastIPCIncomingTime = g_TimeNow;
 
          #ifdef FEATURE_ENABLE_RC
-         if ( pPH->packet_type == PACKET_TYPE_RC_FULL_FRAME )
+         if ( g_bReceivedPairingRequest && (pPH->packet_type == PACKET_TYPE_RC_FULL_FRAME) )
             process_data_rc_full_frame(s_BufferRCFromRouter, pPH->total_length);
          #endif
       }
@@ -372,6 +375,8 @@ int r_start_rx_rc(int argc, char *argv[])
       #ifdef FEATURE_ENABLE_RC
       bool bIsFailSafeNow = false;
 
+      if ( ! g_bReceivedPairingRequest )
+         bIsFailSafeNow = true;
       if ( sModelVehicle.rc_params.rc_enabled )
       if ( !(s_LastReceivedRCFrame.flags & RC_FULL_FRAME_FLAGS_HAS_INPUT) )
       {
@@ -385,6 +390,7 @@ int r_start_rx_rc(int argc, char *argv[])
          //log_line("RC timeout failsafe %d ms", sModelVehicle.rc_params.rc_failsafe_timeout_ms);
          bIsFailSafeNow = true;
       }
+
       if ( bIsFailSafeNow )
       {
          if ( 0 == s_pPHDownstreamInfoRC->is_failsafe )
@@ -413,6 +419,7 @@ int r_start_rx_rc(int argc, char *argv[])
             g_pProcessStats->uAverageLoopTimeMs = g_pProcessStats->uTotalLoopTime / g_pProcessStats->uLoopCounter;
       }
    }
+
    log_line("Stopping...");
    
    shared_mem_rc_downstream_info_close(s_pPHDownstreamInfoRC);

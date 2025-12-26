@@ -858,7 +858,7 @@ void RenderEngineRaw::drawRect(float xPos, float yPos, float fWidth, float fHeig
 
    fbg_enable_alpha(m_pFBG, m_bEnableAlphaBlending?1:0);
 
-   if ( x >= m_iRenderWidth || y >= m_iRenderHeight)
+   if ( (x >= m_iRenderWidth) || (y >= m_iRenderHeight) )
       return;
 
    if ( x+w <= 0 || y+h <= 0 )
@@ -882,7 +882,7 @@ void RenderEngineRaw::drawRect(float xPos, float yPos, float fWidth, float fHeig
    if ( w <= 0 || h <= 0 )
       return;
 
-   if ( 0 != m_ColorFill[3] )
+   if ( m_ColorFill[3] > 2 )
    {
       if ( m_bEnableAlphaBlending )
          fbg_recta(m_pFBG, x,y, w,h, m_ColorFill[0], m_ColorFill[1], m_ColorFill[2], m_ColorFill[3]);
@@ -947,7 +947,7 @@ void RenderEngineRaw::drawRoundRect(float xPos, float yPos, float fWidth, float 
    if ( (w < 6.0*m_fPixelWidth) || (h < 6.0*m_fPixelHeight) )
       return;
 
-   if ( 0 != m_ColorFill[3] )
+   if ( m_ColorFill[3] > 2 )
    {
       if ( m_bEnableAlphaBlending )
          fbg_recta(m_pFBG, x+3,y, w-5,h, m_ColorFill[0], m_ColorFill[1], m_ColorFill[2], m_ColorFill[3]);
@@ -967,7 +967,7 @@ void RenderEngineRaw::drawRoundRect(float xPos, float yPos, float fWidth, float 
         (m_ColorStroke[1] != m_ColorFill[1]) ||
         (m_ColorStroke[2] != m_ColorFill[2]) ||
         (m_ColorStroke[3] != m_ColorFill[3]))
-   if ( m_ColorStroke[3] > 0 && m_fStrokeSizePx >= 0.9 )
+   if ( (m_ColorStroke[3] > 2) && (m_fStrokeSizePx >= 0.9) )
    {
       fbg_hline(m_pFBG, x+3,y,w-6, m_ColorStroke[0], m_ColorStroke[1], m_ColorStroke[2], m_ColorStroke[3]);
       fbg_hline(m_pFBG, x+1,y+1, 2, m_ColorStroke[0], m_ColorStroke[1], m_ColorStroke[2], m_ColorStroke[3]);

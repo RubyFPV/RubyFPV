@@ -757,9 +757,6 @@ bool _find_update_partial_zip_filename(const char* szPartialName, char* szOutput
 
 bool _find_update_zip_file()
 {
-   char szComm[MAX_FILE_PATH_SIZE];
-   char szOutput[1024];
-
    g_szUpdateZipFileFullPath[0] = 0;
    g_szUpdateZipFileName[0] = 0;
 

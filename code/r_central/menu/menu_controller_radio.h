@@ -11,7 +11,7 @@ class MenuControllerRadio: public Menu
       virtual void onShow();
       virtual void valuesToUI();
       virtual bool periodicLoop();
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
 
    private:

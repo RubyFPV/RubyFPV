@@ -107,46 +107,52 @@ void populate_rc_data( t_packet_header_rc_full_frame_upstream* pPHRCF )
 }
 
 
-bool handle_joysticks()
+bool _check_open_joystick()
 {
+   if ( (NULL != s_pCII) && (NULL != s_pJoystick) && hardware_is_joystick_opened(s_pCII->currentHardwareIndex) )
+      return true;
+
+   if ( g_TimeNow < g_TimeLastJoystickCheck + 1000 + g_iJoystickCheckFailureCount*100 )
+      return false;
+
+   g_TimeLastJoystickCheck = g_TimeNow;
+   g_iJoystickCheckFailureCount++;
+
    ControllerInterfacesSettings* pCI = get_ControllerInterfacesSettings();
+   controllerInterfacesEnumJoysticks();
 
-   if ( NULL == s_pCII || NULL == s_pJoystick || (!hardware_is_joystick_opened(s_pCII->currentHardwareIndex)) )
-   {
-      if ( g_TimeNow < g_TimeLastJoystickCheck + 1000 + g_iJoystickCheckFailureCount*100 )
-         return false;
-
-      g_iJoystickCheckFailureCount++;
-      g_TimeLastJoystickCheck = g_TimeNow;
+   if ( 0 == pCI->inputInterfacesCount )
       controllerInterfacesEnumJoysticks();
+   if ( 0 == pCI->inputInterfacesCount )
+      return false;
 
-      if ( 0 == pCI->inputInterfacesCount )
-         controllerInterfacesEnumJoysticks();
-      if ( 0 == pCI->inputInterfacesCount )
-         return false;
-
-      for( int i=0; i<pCI->inputInterfacesCount; i++ )
+   for( int i=0; i<pCI->inputInterfacesCount; i++ )
+   {
+      t_ControllerInputInterface* pCII = controllerInterfacesGetAt(i);
+      if ( NULL == pCII )
+         continue;
+      if ( (NULL != g_pCurrentModel) && (pCII->uId == g_pCurrentModel->rc_params.hid_id) )
       {
-         t_ControllerInputInterface* pCII = controllerInterfacesGetAt(i);
-         if ( NULL == pCII )
-            continue;
-         if ( NULL != g_pCurrentModel && (pCII->uId == g_pCurrentModel->rc_params.hid_id) )
-         {
-            s_pCII = controllerInterfacesGetAt(i);
-            break;
-         }
+         s_pCII = controllerInterfacesGetAt(i);
+         break;
       }
-      if ( NULL != s_pCII )
-         s_pJoystick = hardware_get_joystick_info(s_pCII->currentHardwareIndex);
-      if ( NULL != s_pJoystick )
-      {
-         if ( 0 == hardware_open_joystick(s_pCII->currentHardwareIndex) )
-            s_pJoystick = NULL;
-      }
-      return false;  
+   }
+   if ( NULL != s_pCII )
+      s_pJoystick = hardware_get_joystick_info(s_pCII->currentHardwareIndex);
+   if ( NULL != s_pJoystick )
+   {
+      if ( 0 == hardware_open_joystick(s_pCII->currentHardwareIndex) )
+         s_pJoystick = NULL;
    }
 
-   if ( NULL == s_pJoystick || NULL == s_pCII )
+   if ( (NULL != s_pJoystick) && (NULL != s_pCII) )
+      return true;
+   return false;
+}
+
+bool handle_joysticks()
+{
+   if ( ! _check_open_joystick() )
       return false;
    
    int countEvents = hardware_read_joystick(s_pCII->currentHardwareIndex, 5);
@@ -245,7 +251,7 @@ void handle_sigint(int sig)
    g_bQuit = true;
 } 
 
-int main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
@@ -462,8 +468,6 @@ int main (int argc, char *argv[])
       memcpy(buffer+sizeof(t_packet_header), (u8*)&g_PHRCFUpstream, sizeof(t_packet_header_rc_full_frame_upstream));
       radio_packet_compute_crc(buffer, gPH.total_length);
       ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, gPH.total_length);
-      //log_line("sending rc frame index: %d", g_PHRCFUpstream.rc_frame_index);
-
       #endif
 
       _update_loop_info(tTime0);

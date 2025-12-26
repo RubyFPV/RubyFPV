@@ -277,6 +277,16 @@ void MenuVehicleSimpleSetup::addRegularItems()
       m_pItemsSelect[0]->setSelection(2);
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MSP )
       m_pItemsSelect[0]->setSelection(3);
+
+   if ( m_bSearchingTelemetry )
+   {
+      if ( m_iSearchTelemetryType == -1 )
+         m_pItemsSelect[0]->setSelection(0);
+      else if ( m_iSearchTelemetryType == 0 )
+         m_pItemsSelect[0]->setSelection(3);
+      else if ( m_iSearchTelemetryType == 1 )
+         m_pItemsSelect[0]->setSelection(1);
+   }
    
    if ( m_bPairingSetup || m_bTelemetrySetup )
       m_pItemsSelect[0]->setExtraHeight(fVSpacing);
@@ -307,7 +317,15 @@ void MenuVehicleSimpleSetup::addRegularItems()
       m_pItemsSelect[1]->setIsEditable();
    m_iIndexTelemetryPort = addMenuItem(m_pItemsSelect[1]);
 
-   m_pItemsSelect[1]->setSelectedIndex( 1 + m_iCurrentSerialPortIndexUsedForTelemetry );
+   m_pItemsSelect[1]->setSelectedIndex(1 + m_iCurrentSerialPortIndexUsedForTelemetry);
+
+   if ( m_bSearchingTelemetry )
+   {
+      if ( -1 == m_iSearchTelemetryPort )
+         m_pItemsSelect[1]->setSelectedIndex(0);
+      else
+         m_pItemsSelect[1]->setSelectedIndex(m_iSearchTelemetryPort);
+   }
 
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_NONE )
       m_pItemsSelect[1]->setEnabled(false);
@@ -572,18 +590,20 @@ void MenuVehicleSimpleSetup::renderSearch()
 {
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
 
-   float yPos = m_RenderYPos + m_RenderTitleHeight;
+   float yPosTop = m_RenderYPos + m_RenderTitleHeight + height_text * 1.5;
+   // OSD layout menu item present?
    if ( NULL != m_pItemsSelect[2] )
-     yPos = m_pItemsSelect[2]->getItemRenderYPos();
+     yPosTop = m_pItemsSelect[2]->getItemRenderYPos() + height_text * 1.5;
+   // Telemetry type menu item present?
    else if ( NULL != m_pItemsSelect[0] )
-     yPos = m_pItemsSelect[0]->getItemRenderYPos();
-   yPos += height_text*1.5;
+     yPosTop = m_pItemsSelect[0]->getItemRenderYPos() - height_text;
 
-   float xPos = m_RenderXPos + m_sfMenuPaddingX;
-   float fWidth = m_RenderWidth - 2*m_sfMenuPaddingX ;
-   float fHeight = (m_RenderYPos + m_RenderHeight - m_RenderFooterHeight - m_sfMenuPaddingY) - yPos;
+   float xPos = m_RenderXPos;
+   float yPos = yPosTop;
+   float fWidth = m_RenderWidth;
+   float fHeight = (m_RenderHeight - m_RenderFooterHeight) - (yPos - m_RenderYPos);
 
-   float fAlpha = g_pRenderEngine->setGlobalAlfa(0.9);
+   float fAlpha = g_pRenderEngine->setGlobalAlfa(0.6);
    bool bAlpha = g_pRenderEngine->isAlphaBlendingEnabled();
    g_pRenderEngine->enableAlphaBlending();
    g_pRenderEngine->setColors(get_Color_MenuBg());
@@ -615,9 +635,10 @@ void MenuVehicleSimpleSetup::renderSearch()
 
    yPos += height_text*1.5;
 
-   int iTotalSteps = g_pCurrentModel->hardwareInterfacesInfo.serial_port_count * 2 * 2;
+   int iTotalSteps = g_pCurrentModel->hardwareInterfacesInfo.serial_port_count * 2 * 2 + 1;
    int iCurrentStep = m_iSearchTelemetryPort * 4 + m_iSearchTelemetrySpeed * 2 + m_iSearchTelemetryType;
-
+   if ( (m_iSearchTelemetryPort < 0) || (m_iSearchTelemetrySpeed < 0) || (m_iSearchTelemetryType < 0) )
+      iCurrentStep = iTotalSteps-1;
    g_pRenderEngine->setStroke(get_Color_MenuText());
    g_pRenderEngine->setFill(0,0,0,0);
    g_pRenderEngine->drawRoundRect(xPos + fWidth*0.25, yPos, fWidth-0.5*fWidth, height_text, 0.01*Menu::getMenuPaddingY());
@@ -660,6 +681,7 @@ void MenuVehicleSimpleSetup::Render()
 bool MenuVehicleSimpleSetup::periodicLoop()
 {
    Menu::periodicLoop();
+
    if ( ! m_bSearchingTelemetry )
       return false;
 
@@ -684,6 +706,7 @@ bool MenuVehicleSimpleSetup::periodicLoop()
       {
          log_line("MenuVehicleSimpleSetup: Received vehicle FC telemetry.");
          m_bSearchingTelemetry = false;
+         m_uTimeStartCurrentTelemetrySearch = 0;
          enableBackAction();
          m_SelectedIndex = m_iIndexMenuOk;
          send_pause_adaptive_to_router(0);
@@ -694,6 +717,19 @@ bool MenuVehicleSimpleSetup::periodicLoop()
 
    if ( g_TimeNow < m_uTimeStartCurrentTelemetrySearch+2000 )
       return true;
+
+   // Switch to next params combination
+
+   if ( (m_iSearchTelemetryPort == -1) && (m_iSearchTelemetryType == -1) && (m_iSearchTelemetrySpeed == -1) )
+   {
+      m_bSearchingTelemetry = false;
+      m_uTimeStartCurrentTelemetrySearch = 0;
+      enableBackAction();
+      m_SelectedIndex = m_iIndexMenuOk;
+      send_pause_adaptive_to_router(0);
+      addItems();
+      return true;
+   }
 
    m_iSearchTelemetryType++;
    if ( m_iSearchTelemetryType >= 2 )
@@ -706,16 +742,14 @@ bool MenuVehicleSimpleSetup::periodicLoop()
          m_iSearchTelemetryPort++;
          if ( m_iSearchTelemetryPort >= g_pCurrentModel->hardwareInterfacesInfo.serial_port_count )
          {
-            // Finished all options
-            m_bSearchingTelemetry = false;
-            enableBackAction();
-            m_SelectedIndex = m_iIndexMenuOk;
-            send_pause_adaptive_to_router(0);
-            addItems();
-            return true;
+            // Finished all options, nothing found. Disable telemetry
+            m_iSearchTelemetryType = -1;
+            m_iSearchTelemetryPort = -1;
+            m_iSearchTelemetrySpeed = -1;
          }
       }
    }
+
    m_uTimeStartCurrentTelemetrySearch = g_TimeNow;
    sendTelemetrySearchToVehicle();
    return true;
@@ -740,13 +774,18 @@ void MenuVehicleSimpleSetup::sendTelemetrySearchToVehicle()
    uParam = (u8)TELEMETRY_TYPE_MSP;
    if ( 1 == m_iSearchTelemetryType )
       uParam = (u8)TELEMETRY_TYPE_MAVLINK;
+   if ( -1 == m_iSearchTelemetryType )
+      uParam = 0;
    uParam &= 0x0F;
 
-   uParam |= (((u32)(iSerialPortsOrder[m_iSearchTelemetryPort])) & 0x0F) << 4;
+   if ( m_iSearchTelemetryPort >= 0 )
+      uParam |= (((u32)(iSerialPortsOrder[m_iSearchTelemetryPort])) & 0x0F) << 4;
+   else
+      uParam |= 0xF0;
 
    if ( m_iSearchTelemetrySpeed == 0 )
       uParam |= ((u32)(57600)) << 8;
-   else
+   else if ( m_iSearchTelemetrySpeed == 1 )
       uParam |= ((u32)(115200)) << 8;
    if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_TELEMETRY_TYPE_AND_PORT, uParam, NULL, 0) )
       valuesToUI();
