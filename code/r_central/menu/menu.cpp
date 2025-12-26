@@ -619,7 +619,7 @@ void menu_loop_parse_input_events()
          g_pMenuStack[g_iMenuStackTopIndex-1]->onSelectItem();
    }
 
-   //Quick Menu displayed at root after pressing either plus/minus
+   // Quick Menu displayed at root after pressing either plus/minus if no menu is on screen
    if (( 0 == g_iMenuStackTopIndex ) &&
       (( keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_PLUS ) ||  ( keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_MINUS )))
    {
@@ -627,8 +627,10 @@ void menu_loop_parse_input_events()
       load_Preferences();
       Preferences* pP = get_Preferences();
       if (pP->uEnabledQuickMenu != 0)
+      {
          add_menu_to_stack(new MenuQuickMenu());
-      return;
+         return;
+      }
    }
 
    if ( keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_BACK )

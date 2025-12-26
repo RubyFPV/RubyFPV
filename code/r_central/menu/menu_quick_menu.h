@@ -33,8 +33,7 @@ class MenuQuickMenu: public Menu
 
 
    private:
-      std::map<int,t_quick_menu_actions>    m_pItemAction;
+      std::map<int,t_quick_menu_actions> m_pItemAction;
 
       void  addItems();
-
 };

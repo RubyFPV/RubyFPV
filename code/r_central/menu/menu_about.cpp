@@ -128,7 +128,7 @@ MenuAbout::MenuAbout(void)
    addTopLine("---");
    addTopLine(" ");
    addTopLine(L("Ruby system developed by: Petru Soroaga"));
-   addTopLine(L("Main contributors: Liuli Xia, Ning"));
+   addTopLine(L("Main contributors: Jessica Severin, Liuli Xia, Ning"));
    addTopLine("");
    
    if ( (NULL != g_pCurrentModel) && g_pCurrentModel->isRunningOnOpenIPCHardware() )

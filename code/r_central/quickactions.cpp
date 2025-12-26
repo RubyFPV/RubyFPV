@@ -28,6 +28,8 @@
     ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    Code contribution by: Jessica Severin
 */
 
 #include "../base/base.h"
@@ -434,7 +436,7 @@ void executeQuickActionToggleRCEnabled()
 {
    if ( (NULL != g_pCurrentModel) && g_pCurrentModel->is_spectator )
    {
-      warnings_add(0, "Can't enable RC while in spectator mode.");
+      warnings_add(0, L("Can't enable RC while in spectator mode."));
       return;
    }
    if ( ! quickActionCheckVehicle("enable/disable the RC link output") )
@@ -456,7 +458,7 @@ void executeQuickActionCameraProfileSwitch()
 {
    if ( g_pCurrentModel->is_spectator )
    {
-      warnings_add(0, "Can't switch camera profile for spectator vehicles.");
+      warnings_add(0, L("Can't switch camera profile for spectator vehicles."));
       return;
    }
    if ( handle_commands_is_command_in_progress() )

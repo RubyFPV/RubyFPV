@@ -28,6 +28,8 @@
     ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    Code contribution by: Jessica Severin
 */
 
 #include "menu.h"
@@ -42,10 +44,12 @@
 MenuQuickMenuSettings::MenuQuickMenuSettings(void)
 :Menu(MENU_ID_QUICK_MENU_SETTINGS, L("Quick Menu Settings"), NULL)
 {
-   m_Width = 0.42;
+   m_Width = 0.38;
    m_yPos = 0.28;
    m_xPos = menu_get_XStartPos(m_Width);
 
+   addTopLine(L("Quick menu can be accessed using the +/- keys directly, when no other menu is openend. This allows to quickly access and execute Quick Actions."));
+   addTopLine(L("Configure which Quick Actions should apear on the Quick Actions menu:"));
    m_pItemsSelect[0] = new MenuItemSelect(L("Quick Menu"), L("Enable,  Disable or Customize which quick-actions are displayed in the Quick Menu. Customization can start from all disabled and activate a few, or all enabled and deactivate a few"));
    m_pItemsSelect[0]->addSelection(L("Disabled"));
    m_pItemsSelect[0]->addSelection(L("Enabled"));

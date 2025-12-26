@@ -439,11 +439,9 @@ int load_Preferences()
    }
 
    if ( bOk && (1 != fscanf(fd, "%d", &s_Preferences.iShowCompactMenus)) )
-   {
       s_Preferences.iShowCompactMenus = 1;
-   }
 
-   if ( bOk && 1 != fscanf(fd, "%u", &s_Preferences.uEnabledQuickMenu) )
+   if ( bOk && (1 != fscanf(fd, "%u", &s_Preferences.uEnabledQuickMenu)) )
       s_Preferences.uEnabledQuickMenu = 0xFFFFFFFF;
 
    // ----------------------------------------------------
