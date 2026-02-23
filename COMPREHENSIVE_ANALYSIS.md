@@ -98,21 +98,27 @@ u32 channels58[] = {
 
 ### 3.2 Channel Width & Modulation
 
-**20 MHz Channel (Standard):**
+**20 MHz Channel (Standard - RTL8812EU2 ONLY):**
 - Uses standard WiFi CCK/OFDM rates: 6, 12, 24, 36, 48 Mbps (legacy)
 - HT-MCS 0-7: 6.5 - 65 Mbps (20 MHz)
 - Better range, more resistant to interference
+- **RTL8812EU2 (EU2 variant) does NOT support 40 MHz - driver limitation**
 
-**40 MHz Channel (if supported):**
-- Flag: `RADIO_FLAG_HT40` (defined in `radioflags.h`)
-- HT-MCS 0-15: 13.5 - 150 Mbps (40 MHz)
-- Double bandwidth = higher capacity but more interference susceptible
+**40 MHz Channel (NOT supported on RTL8812EU2):**
+- ⚠️ **Unsupported by RTL8812EU2 driver**
+- Flag: `RADIO_FLAG_HT40` (defined in `radioflags.h`, but not usable on EU2)
+- Would support HT-MCS 0-15: 13.5 - 150 Mbps (40 MHz)
+- Your setup: **20 MHz only** (max throughput: ~65 Mbps HT-MCS7)
 
-**Enhancements:**
+**Enhancements (May vary by driver):**
 ```c
 #define RADIO_FLAG_SGI      (((u32)0x01)<<9)   // Short Guard Interval (+11% throughput)
 #define RADIO_FLAG_STBC     (((u32)0x01)<<10)  // Space-Time Block Coding (diversity)
 #define RADIO_FLAG_LDPC     (((u32)0x01)<<11)  // Low-Density Parity-Check (error correction)
+
+// Note: RTL8812EU2 driver support varies by firmware version
+// SGI often enabled by default on 20 MHz channels
+// STBC/LDPC support depends on driver/firmware
 ```
 
 ### 3.3 TX Power Levels at 5.8 GHz
@@ -130,17 +136,19 @@ Archer RTL8812AU-AF1:      {1, 2, 5, 15, 40, 70, 95, 110, 130, 150} mW
 - UI Power Levels (mW): 1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900, 1000 mW
 - **TX Booster (4W):** 1mW → 150mW, 10mW → 500mW, 50mW → 2200mW, 100mW → 4000mW (external booster)
 
-### 3.4 5.8 GHz Regulatory & Performance
+### 3.4 5.8 GHz Regulatory & Performance (RTL8812EU2)
 
 **Typical Flight Range (without booster):**
 - **Line of Sight (LoS), good antenna:** 5-10 km
 - **Optimal frequency:** 5800 MHz (center of FPV band)
 - **Interference Avoidance:** Auto-scan other channels if WiFi detected
 
-**Capacity @ 5.8 GHz:**
+**Capacity @ 5.8 GHz (20 MHz Channel Only):**
 - **Legacy 54 Mbps:** ~40 Mbps real throughput (video only, no overhead)
-- **HT-MCS15 (150 Mbps):** ~100 Mbps real throughput (with FEC/headers)
+- **HT-MCS7 (65 Mbps - Max on 20 MHz):** ~50 Mbps real throughput (no 40 MHz support)
+- **HT-MCS15 (150 Mbps):** ⚠️ NOT available (requires 40 MHz, unsupported on EU2)
 - **Required for HD video:** 10-20 Mbps (H.264 bitrate) + 5-10 Mbps (FEC overhead)
+- **Your actual max:** ~50 Mbps usable (20 MHz, HT-MCS7)
 
 ---
 
@@ -484,11 +492,11 @@ _main_loop2() iteration:
 
 ### 8.3 Throughput Calculations
 
-**5.8 GHz, HT-MCS12 (legacy 48 Mbps equivalent):**
+**5.8 GHz, HT-MCS7 (20 MHz, MAX on RTL8812EU2):**
 ```
-Physical rate: 48 Mbps
+Physical rate: 65 Mbps (20 MHz, no 40 MHz support on EU2)
 Frame overhead: ~10% (MAC + radiotap)
-Usable throughput: ~43 Mbps
+Usable throughput: ~58 Mbps
 
 Ruby packet overhead:
   ├─ Radiotap header: ~36 bytes
@@ -500,16 +508,23 @@ Per 1400-byte video packet:
   Efficiency: 1400 / (1400 + 84) = 94%
   
 Overall video throughput:
-  43 Mbps × 94% = 40.4 Mbps usable for video
+  58 Mbps × 94% = 54.5 Mbps usable for video
+  
+Actual headroom for 1080p30 @ 8 Mbps + 25% FEC:
+  Required: 10 Mbps
+  Available: 54.5 Mbps
+  Margin: 44.5 Mbps (plenty of headroom)
 ```
 
-**Video bitrate @ 1080p30fps (H.264):**
+**Video bitrate @ 1080p30fps (H.264) - Your Setup:**
 ```
 Uncompressed 1080p30: 1920×1080×1.5 bytes×30 = ~2.5 Gbps
 H.264 compression ratio: 1:50 to 1:100 typical
-H.264 bitrate: 5-20 Mbps (quality dependent)
+H.264 bitrate: 5-15 Mbps (typical, good quality on 20 MHz)
 
-+ FEC overhead (25%): 6-25 Mbps total on air
++ FEC overhead (25%): 6-19 Mbps total on air
+  Constraint: 54.5 Mbps available
+  ✓ Can easily fit 15 Mbps video + 25% FEC
 ```
 
 ---
