@@ -8,7 +8,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 typedef struct
 {
@@ -19,13 +19,13 @@ typedef struct
    u32 (*pFunctionCoreRequestCapab)(void);
    const char* (*pFunctionCoreGetName)(void);
    const char* (*pFunctionCoreGetUID)(void);
-   
+
    char szFile[256];
    char szName[128];
    char szGUID[128];
 
 } CorePluginRuntimeInfo;
-   
+
 typedef struct
 {
    char szName[64];
@@ -52,5 +52,5 @@ char* get_CorePluginName(int iPluginIndex);
 char* get_CorePluginGUID(int iPluginIndex);
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

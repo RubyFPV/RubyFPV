@@ -81,7 +81,7 @@ void preprocess_radio_out_packet(u8* pPacketBuffer, int iPacketLength, bool bIsE
       if ( pPH->packet_type == PACKET_TYPE_RUBY_TELEMETRY_EXTENDED )
       {
          t_packet_header_ruby_telemetry_extended_v6* pPHRTE = (t_packet_header_ruby_telemetry_extended_v6*) (pPacketBuffer + sizeof(t_packet_header));
-         
+
          g_iVehicleSOCTemperatureC = pPHRTE->temperatureC;
          pPHRTE->downlink_tx_video_bitrate_bps = g_pProcessorTxVideo->getCurrentVideoBitrateAverageLastMs(500);
          pPHRTE->downlink_tx_video_all_bitrate_bps = g_pProcessorTxVideo->getCurrentTotalVideoBitrateAverageLastMs(500);
@@ -117,7 +117,7 @@ void preprocess_radio_out_packet(u8* pPacketBuffer, int iPacketLength, bool bIsE
                pPHRTE->uplink_rssi_snr[i] = 0xFF;
 
             pPHRTE->uplink_link_quality[i] = g_SM_RadioStats.radio_interfaces[i].rxQuality;
-            
+
             if ( hardware_radio_index_is_wifi_radio(i))
             {
                if ( g_TimeLastReceivedFastRadioPacketFromController < g_TimeNow-TIMEOUT_LINK_TO_CONTROLLER_LOST )
@@ -161,7 +161,7 @@ void preprocess_radio_out_packet(u8* pPacketBuffer, int iPacketLength, bool bIsE
             pPHRTE->uExtraRubyFlags |= FLAG_RUBY_TELEMETRY_EXTRA_FLAGS_IS_IN_TX_PIT_MODE_HOT;
          else
             pPHRTE->uExtraRubyFlags &= ~FLAG_RUBY_TELEMETRY_EXTRA_FLAGS_IS_IN_TX_PIT_MODE_HOT;
-         
+
          // Update tx powers info
          for( int iLink=0; iLink<g_pCurrentModel->radioLinksParams.links_count; iLink++ )
          {
@@ -184,7 +184,7 @@ void preprocess_radio_out_packet(u8* pPacketBuffer, int iPacketLength, bool bIsE
                          imWPower = tx_powers_get_mw_boosted_value_from_mw(imWPower, true, false);
                       else if ( g_pCurrentModel->radioInterfacesParams.interface_capabilities_flags[iInt] & RADIO_HW_CAPABILITY_FLAG_HAS_BOOSTER_4W )
                          imWPower = tx_powers_get_mw_boosted_value_from_mw(imWPower, false, true);
-                      
+
                       if ( iRawTxPower < 0 )
                          imWPower = -imWPower;
                       pPHRTE->iTxPowers[iLink] = imWPower;
@@ -195,7 +195,7 @@ void preprocess_radio_out_packet(u8* pPacketBuffer, int iPacketLength, bool bIsE
          }
 
          // Update extra info: retransmissions
-         
+
          if ( pPHRTE->extraSize > 0 )
          if ( pPHRTE->extraSize == sizeof(t_packet_header_ruby_telemetry_extended_extra_info_retransmissions) )
          if ( pPH->total_length == (sizeof(t_packet_header) + sizeof(t_packet_header_ruby_telemetry_extended_v6) + sizeof(t_packet_header_ruby_telemetry_extended_extra_info_retransmissions)) )

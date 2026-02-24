@@ -10,12 +10,12 @@
 
 bool quit = false;
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    quit = true;
-} 
-  
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -25,12 +25,12 @@ int main(int argc, char *argv[])
       return -1;
    }
    setpriority(PRIO_PROCESS, 0, -10);
-   
+
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
 
-   log_init("TX_TEST_PORT"); 
+   log_init("TX_TEST_PORT");
    log_enable_stdout();
 
    radio_init_link_structures();
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
    if ( 0 == radio_write_raw_ieee_packet(0, rawPacket, totalLength, 0) )
       printf("Failed to write to radio interface.\n");
 
-   hardware_sleep_ms(50);   
+   hardware_sleep_ms(50);
    radio_close_interface_for_write(0);
    printf("\nSent %d bytes on port: %d\n", PH.total_length, port);
    return (0);

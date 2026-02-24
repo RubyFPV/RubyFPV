@@ -240,7 +240,7 @@ float osd_setScaleOSD(int nValue)
    else
      fOSDScale = fOSDScale + (((float)nValue)-2.0)/5.0;
    sfScaleOSD = fOSDScale;
-   return sfScaleOSD; 
+   return sfScaleOSD;
 }
 
 float osd_getScaleOSDStats() { return sfScaleOSDStats; }
@@ -251,8 +251,8 @@ float osd_setScaleOSDStats(int nValue)
      sfScaleOSDStats = sfScaleOSDStats + 0.15 * ((float)nValue-3.0);
    else
      sfScaleOSDStats = sfScaleOSDStats - 0.18 * (3.0 - (float)nValue);
-   
-   return sfScaleOSDStats; 
+
+   return sfScaleOSDStats;
 }
 
 void osd_setOSDOutlineThickness(float fValue) { sfOSDOutlineThickness = fValue; }
@@ -427,7 +427,7 @@ void osd_set_colors_text(const double* pColorText)
    g_pRenderEngine->setColors(pColorText);
    const double* pc = get_Color_OSDTextOutline();
    g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], pc[3]);
-   g_pRenderEngine->setStrokeSize(sfOSDOutlineThickness); 
+   g_pRenderEngine->setStrokeSize(sfOSDOutlineThickness);
 }
 
 void osd_set_colors_alpha(float alpha)
@@ -493,7 +493,7 @@ float osd_course_to(double lat1, double long1, double lat2, double long2)
     a2 = atan2(a1, a2);
     if (a2 < 0.0) a2 += 2.0*3.141592653589793;
     return a2*180.0/3.141592653589793;
-    
+
     /*
     double dlon = long2 - long1;
     double x = cos(lat2)*sin(dlon);
@@ -557,7 +557,7 @@ float osd_show_value_centered(float x, float y, const char* szValue, u32 fontId)
    float w = g_pRenderEngine->textWidth(fontId, szValue);
 
    g_pRenderEngine->drawText(x-0.5*w,y, fontId, szValue);
-   
+
    return w;
 }
 
@@ -614,7 +614,7 @@ float osd_show_video_profile_mode(float xPos, float yPos, u32 uFontId, bool bLef
    float fWidth = 0;
    char szBuff[64];
    szBuff[0] = 0;
-   
+
    Model* pActiveModel = osd_get_current_data_source_vehicle_model();
    u32 uActiveVehicleId = osd_get_current_data_source_vehicle_id();
    shared_mem_video_stream_stats* pVDS = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, uActiveVehicleId);
@@ -622,7 +622,7 @@ float osd_show_video_profile_mode(float xPos, float yPos, u32 uFontId, bool bLef
       return 0.0;
 
    strcpy(szBuff, str_get_video_profile_name(pVDS->PHVS.uCurrentVideoLinkProfile));
-   
+
    if ( pVDS->iAdaptiveVideoLevelNow > 0 )
    {
       if ( pVDS->bIsOnLowestAdaptiveLevel )
@@ -641,18 +641,18 @@ float osd_show_video_profile_mode(float xPos, float yPos, u32 uFontId, bool bLef
    }
    else if ( pVDS->PHVS.uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_IS_ON_LOWER_BITRATE )
       strcat(szBuff, "-");
-     
+
    if ( pVDS->uCurrentVideoProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ONE_WAY_FIXED_VIDEO )
       strcat(szBuff, "-1Way");
    if (((pVDS->PHVS.uVideoStreamIndexAndType >> 4) & 0x0F) == VIDEO_TYPE_H265 )
       strcat(szBuff, " H265");
-   
+
    fWidth = g_pRenderEngine->textWidth(uFontId, szBuff);
 
    if ( bLeft )
       g_pRenderEngine->drawTextLeft(xPos, yPos,uFontId, szBuff);
    else
-      g_pRenderEngine->drawText(xPos, yPos, uFontId, szBuff);    
+      g_pRenderEngine->drawText(xPos, yPos, uFontId, szBuff);
    return fWidth;
 }
 
@@ -686,7 +686,7 @@ float osd_render_relay(float xCenter, float yBottom, bool bHorizontal)
    float fHeight = height_text_small*2.0 + height_text_small + 2.0*fPaddingY;
    float fWidth = 0.0;
    float yPos = yBottom-fHeight;
-   
+
    Model *pRelayedModel = findModelWithId(g_pCurrentModel->relay_params.uRelayedVehicleId, 30);
    if ( (NULL == pRelayedModel) || (pRelayedModel->uVehicleId == g_pCurrentModel->uVehicleId) )
    {
@@ -721,7 +721,7 @@ float osd_render_relay(float xCenter, float yBottom, bool bHorizontal)
 
    float fWidthTextMain = g_pRenderEngine->textWidth(g_idFontOSDSmall, szTextMain);
    float fWidthTextRelay = g_pRenderEngine->textWidth(g_idFontOSDSmall, szTextRelay);
-   
+
    float fWidthLeft = fWidthName1;
    if ( fWidthTextMain > fWidthLeft )
       fWidthLeft = fWidthTextMain;
@@ -729,7 +729,7 @@ float osd_render_relay(float xCenter, float yBottom, bool bHorizontal)
    float fWidthRight = fWidthName2;
    if ( fWidthTextRelay > fWidthRight )
       fWidthRight = fWidthTextRelay;
-   
+
    float xLeft = xCenter - fWidthLeft - 2.0 * fPaddingX;
    float xRight = xCenter + fWidthRight + 2.0 * fPaddingX;
 
@@ -776,7 +776,7 @@ float osd_render_relay(float xCenter, float yBottom, bool bHorizontal)
       g_pRenderEngine->setFill(pCA[0],pCA[1],pCA[2],pCA[3]);
       g_pRenderEngine->drawRoundRect(xCenter, yPos, xRight-xCenter, fHeight, 0.01);
    }
- 
+
    osd_set_colors();
    float fInactiveAlpha = 0.7;
 
@@ -831,7 +831,7 @@ float osd_render_relay(float xCenter, float yBottom, bool bHorizontal)
       osd_set_colors();
       g_pRenderEngine->drawText(xCenter + fPaddingX, yPos, g_idFontOSDSmall, szName2);
    }
- 
+
    yPos += height_text_small;
 
    float fRadius = height_text_small*0.34;
@@ -849,7 +849,7 @@ float osd_render_relay(float xCenter, float yBottom, bool bHorizontal)
       const double* pc = get_Color_IconSucces();
       g_pRenderEngine->setFill(pc[0], pc[1], pc[2], pc[3]);
       g_pRenderEngine->fillCircle(fxHighlight - height_text_small/g_pRenderEngine->getAspectRatio(), yPos + height_text_small*0.5, fRadius);
-   
+
       g_pRenderEngine->setGlobalAlfa(fa);
       osd_set_colors();
    }
@@ -886,7 +886,7 @@ void osd_set_current_layout_index_and_source_model(Model* pModel, int iLayout)
    if ( NULL == pModel )
       return;
    /*
-   int k=0; 
+   int k=0;
    while ( (k < 10) && (! (pModel->osd_params.osd_flags2[s_iCurrentOSDScreenIndex] & OSD_FLAG2_LAYOUT_ENABLED)) )
    {
       k++;

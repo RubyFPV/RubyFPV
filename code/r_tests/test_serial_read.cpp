@@ -37,12 +37,12 @@ unsigned char reverse(unsigned char b)
    return b;
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    bQuit = true;
-} 
-  
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -59,14 +59,14 @@ int main(int argc, char *argv[])
    int baudRate = 115200;
    //int fSerial = open ("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NDELAY );
    int fSerial = open ("/dev/ttyUSB0", O_RDWR | O_NOCTTY );
-   
+
    if ( -1 == fSerial )
    {
       log_softerror_and_alarm("Failed to open serial port %s", "/dev/ttyUSB0");
       return -1;
    }
-  
- 
+
+
 
    struct termios options;
    tcgetattr(fSerial, &options);
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
    //options.c_cflag |= CSTOPB; // 1 stop bit
    options.c_cflag &= ~CRTSCTS; // no RTS/CTS Flow Control
    //options.c_cflag |= CREAD | CLOCAL; // Set local mode on
-   
+
    //options.c_lflag &= ~ECHO; // no echo
    //options.c_lflag &= ~ECHOE; // no echo
    //options.c_lflag &= ~ECHONL; // no echo
@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
       struct timeval to;
       to.tv_sec = 0;
       to.tv_usec = 10000; // 10 ms
-      fd_set readset;   
+      fd_set readset;
       FD_ZERO(&readset);
       FD_SET(fSerial, &readset);
       int res = select(fSerial+1, &readset, NULL, NULL, &to);

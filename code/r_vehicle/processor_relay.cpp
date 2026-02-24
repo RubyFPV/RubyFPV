@@ -79,7 +79,7 @@ void relay_init_and_set_rx_info_stats(type_uplink_rx_info_stats* pUplinkStats)
 void relay_process_received_single_radio_packet_from_controller_to_relayed_vehicle(int iRadioInterfaceIndex, u8* pBufferData, int iBufferLength)
 {
    t_packet_header* pPH = (t_packet_header*)pBufferData;
-        
+
    if ( pPH->packet_type == PACKET_TYPE_RUBY_PING_CLOCK )
       s_uLastLocalRadioLinkUsedForPingToRelayedVehicle = (u8) g_pCurrentModel->radioInterfacesParams.interface_link_id[iRadioInterfaceIndex];
 
@@ -157,8 +157,8 @@ void relay_process_received_radio_packet_from_relayed_vehicle(int iRadioLink, in
    if ( g_pCurrentModel->relay_params.uRelayCapabilitiesFlags & RELAY_CAPABILITY_TRANSPORT_COMMANDS )
    if ( (uPacketFlags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_COMMANDS )
       bPacketContainsDataToForward = true;
-  
-   
+
+
    // Ruby telemetry and FC telemetry is always forwarded on the relay link
    if ( (uPacketFlags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_TELEMETRY )
    if ( (uPacketType == PACKET_TYPE_RUBY_TELEMETRY_EXTENDED) ||
@@ -188,7 +188,7 @@ void relay_on_relay_params_changed()
       return;
 
    log_line("[Relay] Processing notification that relay link or vehicle id was updated by user...");
-   
+
    if ( g_pCurrentModel->relay_params.uRelayedVehicleId != s_uLastReceivedRelayedVehicleID )
    {
       log_line("[Relay] Relayed VID changed from %u to %u, reset relay state.", s_uLastReceivedRelayedVehicleID, g_pCurrentModel->relay_params.uRelayedVehicleId);
@@ -215,7 +215,7 @@ void relay_on_relay_params_changed()
 
       log_line("[Relay] Relaying is enabled on radio link %d, mark it as relay link.", iRelayRadioLink+1);
       g_pCurrentModel->radioLinksParams.link_capabilities_flags[iRelayRadioLink] |= RADIO_HW_CAPABILITY_FLAG_USED_FOR_RELAY;
-      
+
       for( int i=0; i<g_pCurrentModel->radioInterfacesParams.interfaces_count; i++ )
       {
          if ( g_pCurrentModel->radioInterfacesParams.interface_link_id[i] != iRelayRadioLink )
@@ -235,7 +235,7 @@ void relay_on_relay_params_changed()
    }
 
    saveCurrentModel();
-   
+
    log_line("[Relay] Notify other processes to reload model (relay params changed)");
    t_packet_header PH;
    radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_LOCAL_CONTROL_MODEL_CHANGED, STREAM_ID_DATA);
@@ -246,7 +246,7 @@ void relay_on_relay_params_changed()
    ruby_ipc_channel_send_message(s_fIPCRouterToCommands, (u8*)&PH, PH.total_length);
    if ( g_pCurrentModel->rc_params.uRCFlags & RC_FLAGS_ENABLED )
       ruby_ipc_channel_send_message(s_fIPCRouterToRC, (u8*)&PH, PH.total_length);
-         
+
    if ( NULL != g_pProcessStats )
       g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
    if ( NULL != g_pProcessStats )
@@ -298,7 +298,7 @@ void relay_send_packet_to_controller(u8* pBufferData, int iBufferLength)
       uPacketType = pPH->packet_type;
       uSourceVehicleId = pPH->vehicle_id_src;
       uStreamId = (pPH->stream_packet_idx)>>PACKET_FLAGS_MASK_SHIFT_STREAM_INDEX;
-      
+
       if ( uPacketType == PACKET_TYPE_RUBY_PAIRING_CONFIRMATION )
          bContainsPairConfirmation = true;
 
@@ -313,7 +313,7 @@ void relay_send_packet_to_controller(u8* pBufferData, int iBufferLength)
    if ( uSourceVehicleId != g_pCurrentModel->relay_params.uRelayedVehicleId )
    {
       return;
-   } 
+   }
    // Send packet on all radio links to controller (that are not set as relay links)
 
    bool bPacketSent = false;
@@ -322,7 +322,7 @@ void relay_send_packet_to_controller(u8* pBufferData, int iBufferLength)
    {
       if ( g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId == iRadioLinkId )
          continue;
-        
+
       if ( g_pCurrentModel->radioLinksParams.link_capabilities_flags[iRadioLinkId] & RADIO_HW_CAPABILITY_FLAG_DISABLED )
          continue;
 
@@ -351,7 +351,7 @@ void relay_send_packet_to_controller(u8* pBufferData, int iBufferLength)
          continue;
       if ( !(g_pCurrentModel->radioInterfacesParams.interface_capabilities_flags[iRadioInterfaceIndex] & RADIO_HW_CAPABILITY_FLAG_CAN_TX) )
          continue;
-      
+
       int nRateTx = g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[iRadioLinkId];
       radio_set_out_datarate(nRateTx, uPacketType, g_TimeNow);
 
@@ -364,7 +364,7 @@ void relay_send_packet_to_controller(u8* pBufferData, int iBufferLength)
       int totalLength = radio_build_new_raw_ieee_packet(iRadioLinkId, s_RadioRawPacketRelayed, pBufferData, iBufferLength, RADIO_PORT_ROUTER_DOWNLINK, 0);
 
       if ( (totalLength >0) && radio_write_raw_ieee_packet(iRadioInterfaceIndex, s_RadioRawPacketRelayed, totalLength, 0) )
-      {           
+      {
          bPacketSent = true;
          g_SM_RadioStats.radio_links[iRadioLinkId].totalTxPackets++;
          g_SM_RadioStats.radio_links[iRadioLinkId].totalTxBytes += iBufferLength;
@@ -410,10 +410,10 @@ void _relay_send_single_packet_to_relayed_vehicle(u8* pBufferData, int iBufferLe
    }
 
    t_packet_header* pPH = (t_packet_header*)pBufferData;
-   
+
    u32 uRelayedVehicleId = pPH->vehicle_id_dest;
    u32 uStreamId = (pPH->stream_packet_idx)>>PACKET_FLAGS_MASK_SHIFT_STREAM_INDEX;
-   
+
    if ( (uStreamId < 0) || (uStreamId >= MAX_RADIO_STREAMS) )
       uStreamId = 0;
 
@@ -486,7 +486,7 @@ void _relay_send_single_packet_to_relayed_vehicle(u8* pBufferData, int iBufferLe
       int totalLength = radio_build_new_raw_ieee_packet(iRadioLinkId, s_RadioRawPacketRelayed, pBufferData, iBufferLength, RADIO_PORT_ROUTER_UPLINK, 0);
 
       if ( (totalLength > 0) && radio_write_raw_ieee_packet(iRadioInterfaceIndex, s_RadioRawPacketRelayed, totalLength, 0) )
-      {           
+      {
          bPacketSent = true;
          g_SM_RadioStats.radio_links[iRadioLinkId].totalTxPackets++;
          g_SM_RadioStats.radio_links[iRadioLinkId].totalTxBytes += iBufferLength;
@@ -508,7 +508,7 @@ void _relay_send_single_packet_to_relayed_vehicle(u8* pBufferData, int iBufferLe
 int relay_send_outgoing_radio_packets_to_relayed_vehicle()
 {
    int iCountSent = 0;
-   
+
    while ( packets_queue_has_packets(&g_QueueRelayRadioPacketsOutToRelayedVehicle) )
    {
       int iPacketLength = -1;
@@ -536,7 +536,7 @@ bool relay_current_vehicle_must_send_own_video_feeds()
       }
       return false;
    }
-   
+
    bMustSendOwnVideo = relay_vehicle_must_forward_own_video(g_pCurrentModel);
 
    if ( bMustSendOwnVideo != sl_bCurrentRelayModeMustSentOwnVideoFeed )

@@ -16,7 +16,7 @@
 #define BUILD_BUG_ON_ZERO(e) (sizeof(struct { int:-!!(e); }))
 #define BUILD_BUG_ON_NULL(e) ((void *)sizeof(struct { int:-!!(e); }))
 #endif
-  
+
 #define __must_be_array(a)      BUILD_BUG_ON_ZERO(__same_type((a), &(a)[0]))
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))
 
@@ -84,7 +84,7 @@ static const struct ieee80211_radiotap_namespace radiotap_ns_default = {
  .n_bits = ARRAY_SIZE(rtap_namespace_sizes),
  .align_size = rtap_namespace_sizes,
 };
- 
+
 
 int ieee80211_radiotap_iterator_init(struct ieee80211_radiotap_iterator *iterator, struct ieee80211_radiotap_header *radiotap_header, int max_length)
 {
@@ -159,10 +159,10 @@ int ieee80211_radiotap_iterator_next(
   [IEEE80211_RADIOTAP_DATA_RETRIES] = 0x11
   //[18] = 0x11,
   //[IEEE80211_RADIOTAP_MCS] = 0x13
-		
+
 	};
 
-	
+
 
 	while (iterator->arg_index < sizeof(rt_sizes)) {
 		int hit = 0;
@@ -171,7 +171,7 @@ int ieee80211_radiotap_iterator_next(
 		if (!(iterator->bitmap_shifter & 1))
 			goto next_entry;
 
-	
+
 		pad = (((ulong)iterator->arg) -
 			((ulong)iterator->rtheader)) &
 			((rt_sizes[iterator->arg_index] >> 4) - 1);
@@ -180,14 +180,14 @@ int ieee80211_radiotap_iterator_next(
 			iterator->arg +=
 				(rt_sizes[iterator->arg_index] >> 4) - pad;
 
-		
+
 		iterator->this_arg_index = iterator->arg_index;
 		iterator->this_arg = iterator->arg;
 		hit = 1;
 
 		iterator->arg += rt_sizes[iterator->arg_index] & 0x0f;
 
-		
+
 
 		if (((ulong)iterator->arg - (ulong)iterator->rtheader) >
 		    iterator->max_length)
@@ -196,21 +196,21 @@ int ieee80211_radiotap_iterator_next(
 	next_entry:
 		iterator->arg_index++;
 		if (unlikely((iterator->arg_index & 31) == 0)) {
-			
+
 			if (iterator->bitmap_shifter & 1) {
-				
+
 				iterator->bitmap_shifter =
 				    le32_to_cpu(*iterator->next_bitmap);
 				iterator->next_bitmap++;
 			} else {
-				
+
 				iterator->arg_index = sizeof(rt_sizes);
 			}
-		} else { 
+		} else {
 			iterator->bitmap_shifter >>= 1;
 		}
 
-		
+
 		if (hit)
 			return 0;
 	}
@@ -354,5 +354,5 @@ extern int ieee80211_radiotap_iterator_next(struct ieee80211_radiotap_iterator *
 
   if (hit)
    return 0;
- } 
+ }
 }

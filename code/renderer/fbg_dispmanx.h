@@ -27,7 +27,7 @@
 */
 #ifdef __cplusplus
 extern "C" {
-#endif  
+#endif
 
 #ifndef FB_GRAPHICS_DISPMANX_H
 #define FB_GRAPHICS_DISPMANX_H
@@ -105,4 +105,4 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif // __cplusplus  
+#endif // __cplusplus

@@ -82,7 +82,7 @@ void update_atheros_card_datarate(Model* pModel, int iInterfaceIndex, int iDataR
       return;
    }
    log_line("Must update Atheros/RaLink radio interface %d datarate from %d to %d bps.", iInterfaceIndex+1, pRadioHWInfo->iCurrentDataRateBPS, iDataRateBPS );
-   
+
    radio_rx_pause_interface(iInterfaceIndex, "Update Atheros datarate");
    radio_tx_pause_radio_interface(iInterfaceIndex, "Update Atheros datarate");
 
@@ -121,7 +121,7 @@ void update_atheros_card_datarate(Model* pModel, int iInterfaceIndex, int iDataR
       radio_open_interface_for_write(iInterfaceIndex);
 
    hardware_save_radio_info();
-   
+
    uTimeNow = get_current_timestamp_ms();
    if ( NULL != pProcessStats )
    {

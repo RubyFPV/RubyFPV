@@ -341,7 +341,7 @@ u32 getRealDataRateFromRadioDataRate(int dataRateBPS, u32 uRadioFlags, int iIsDo
    u32 iMultiply = 1;
    if ( uRadioFlags & RADIO_FLAG_HT40 )
       iMultiply = 2;
-   
+
    if ( -100 == dataRateBPS )
    {
       if ( (uRadioFlags & RADIO_FLAGS_USE_MCS_DATARATES) )

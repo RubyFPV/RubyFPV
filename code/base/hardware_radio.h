@@ -82,7 +82,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 typedef struct
 {
@@ -255,5 +255,5 @@ radio_hw_info_t* hardware_get_radio_info_for_usb_port(const char* szUSBPort);
 radio_hw_info_t* hardware_get_radio_info_from_mac(const char* szMAC);
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

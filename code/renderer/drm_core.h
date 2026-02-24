@@ -5,11 +5,11 @@
 #include <unistd.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
-#include <drm_fourcc.h> 
+#include <drm_fourcc.h>
 
 #ifdef __cplusplus
 extern "C" {
-#endif  
+#endif
 
 typedef struct
 {
@@ -49,7 +49,7 @@ typedef struct
    type_drm_object_info objInfoConnector;
    drmModeModeInfo targetModeInfo;
    uint32_t uModeIdBlob;
-   
+
    drmModeEncoder* pEncoder;
 
    drmModeCrtc* pOriginalCRTc;
@@ -96,7 +96,7 @@ void ruby_drm_set_video_source_size(int iWidth, int iHeight);
 void ruby_drm_enable_vsync(int iEnableVSync);
 
 #ifdef __cplusplus
-}  
+}
 #endif
 
 #endif

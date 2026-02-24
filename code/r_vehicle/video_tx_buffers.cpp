@@ -163,7 +163,7 @@ bool VideoTxPacketsBuffer::init(Model* pModel)
    m_uNextVideoBlockIndexToGenerate = 0;
    m_uNextVideoBlockPacketIndexToGenerate = 0;
    updateVideoHeader(pModel);
-   
+
    m_iTempVideoBufferFilledBytes = 0;
    m_iNextBufferIndexToFill = 0;
    m_iNextBufferPacketIndexToFill = 0;
@@ -185,7 +185,7 @@ bool VideoTxPacketsBuffer::uninit()
       return true;
 
    log_line("[VideoTxBuffer] Uninitialize video Tx buffer instance number %d.", m_iInstanceIndex+1);
-   
+
    m_bInitialized = false;
    return true;
 }
@@ -194,7 +194,7 @@ void VideoTxPacketsBuffer::discardBuffer()
 {
    m_uNextVideoBlockIndexToGenerate = 0;
    m_uNextVideoBlockPacketIndexToGenerate = 0;
-   
+
    m_iTempVideoBufferFilledBytes = 0;
    m_iNextBufferIndexToFill = 0;
    m_iNextBufferPacketIndexToFill = 0;
@@ -302,7 +302,7 @@ void VideoTxPacketsBuffer::_fillVideoPacketHeaders(int iBufferIndex, int iPacket
 
    int iVideoProfile = g_pCurrentModel->video_params.iCurrentVideoProfile;
    m_pLastPacketHeaderVideoFilledIn->uCurrentVideoLinkProfile = iVideoProfile;
-   
+
    if ( adaptive_video_is_on_lower_video_bitrate() )
       m_pLastPacketHeaderVideoFilledIn->uVideoStatusFlags2 |= VIDEO_STATUS_FLAGS2_IS_ON_LOWER_BITRATE;
    else
@@ -310,7 +310,7 @@ void VideoTxPacketsBuffer::_fillVideoPacketHeaders(int iBufferIndex, int iPacket
 
    m_pLastPacketHeaderVideoFilledIn->uVideoStatusFlags2 &= ~(VIDEO_STATUS_FLAGS2_IS_NAL_I | VIDEO_STATUS_FLAGS2_IS_NAL_P | VIDEO_STATUS_FLAGS2_IS_NAL_O | VIDEO_STATUS_FLAGS2_IS_NAL_END);
    m_pLastPacketHeaderVideoFilledIn->uVideoStatusFlags2 |= m_uTempNALPresenceFlags;
-   
+
    if ( bIsLastPacket )
       m_pLastPacketHeaderVideoFilledIn->uVideoStatusFlags2 |= VIDEO_STATUS_FLAGS2_IS_NAL_END;
 
@@ -378,7 +378,7 @@ void VideoTxPacketsBuffer::_fillVideoPacketHeaders(int iBufferIndex, int iPacket
    }
    if ( bIsECPacket )
       return;
-   
+
    //---------------------------------------------
    // Update packet header video segment important
 
@@ -395,7 +395,7 @@ void VideoTxPacketsBuffer::setLastFrameTimers(u32 uTimeReadCamera, u32 uTimeSend
    if ( uTimeExpectedSendVideoTime > 0xFF ) uTimeExpectedSendVideoTime = 0xFF;
    if ( uTimeSendOthers > 0x0F ) uTimeSendOthers = 0x0F;
    if ( uTotalProcessingTime > 0xFF ) uTotalProcessingTime = 0xFF;
-   
+
    m_uLastFrameTimers = (uTimeReadCamera & 0x0F) |
       ((uTimeSendOthers & 0x0F) << 4) |
       ((uTimeSendVideo & 0xFF) << 8) |
@@ -481,7 +481,7 @@ void VideoTxPacketsBuffer::updateVideoHeader(Model* pModel)
       m_PacketHeaderVideo.uCurrentBlockPacketSize = m_uNextBlockPacketSize;
       m_uLastAppliedECSchemeDataPackets = m_uNextBlockDataPackets;
       m_uLastAppliedECSchemeECPackets = m_uNextBlockECPackets;
-      
+
       m_iUsableRawVideoDataSize = m_PacketHeaderVideo.uCurrentBlockPacketSize - sizeof(t_packet_header_video_segment_important);
 
       #if defined (HW_PLATFORM_OPENIPC_CAMERA)
@@ -503,7 +503,7 @@ void VideoTxPacketsBuffer::updateVideoHeader(Model* pModel)
       m_PacketHeaderVideo.uVideoStreamIndexAndType = 0 | (VIDEO_TYPE_H264<<4);
       log_line("[VideoTxBuffer] Set video header as H264 stream");
    }
-   
+
    m_PacketHeaderVideo.uCurrentVideoLinkProfile = iVideoProfile;
    m_PacketHeaderVideo.uStreamInfoFlags = 0;
    m_PacketHeaderVideo.uStreamInfo = 0;
@@ -560,7 +560,7 @@ void VideoTxPacketsBuffer::appendDataToCurrentFrame(u8* pVideoData, int iDataSiz
       m_PacketHeaderVideo.uCurrentBlockECPackets = m_uNextBlockECPackets;
       m_uLastAppliedECSchemeDataPackets = m_uNextBlockDataPackets;
       m_uLastAppliedECSchemeECPackets = m_uNextBlockECPackets;
-      
+
       #if defined (HW_PLATFORM_OPENIPC_CAMERA)
       hardware_camera_maj_update_nal_size(g_pCurrentModel);
       #endif
@@ -843,7 +843,7 @@ void VideoTxPacketsBuffer::_sendPacket(int iBufferIndex, int iPacketIndex, u32 u
    /*
    t_packet_header_video_segment* pPHVS = pCurrentVideoPacketHeader;
    t_packet_header* pPH = pCurrentPacketHeader;
-      log_line("DBG %c%d [%u/%02d of %02d] sch %d/%d, framep %d/%d, EOF in %d+%d, NAL %s%s-%s%s%s, eof?%d", 
+      log_line("DBG %c%d [%u/%02d of %02d] sch %d/%d, framep %d/%d, EOF in %d+%d, NAL %s%s-%s%s%s, eof?%d",
           (pPH->packet_flags & PACKET_FLAGS_BIT_RETRANSMITED)?'r':'f',
           pPHVS->uH264FrameIndex, pPHVS->uCurrentBlockIndex, pPHVS->uCurrentBlockPacketIndex,
           pPHVS->uCurrentBlockDataPackets + pPHVS->uCurrentBlockECPackets,
@@ -888,7 +888,7 @@ void VideoTxPacketsBuffer::_sendPacket(int iBufferIndex, int iPacketIndex, u32 u
 
    static u32 s_uLastTimeCheckTxTimes = 0;
    static u32 s_uTotalTxTimeMicros = 0;
-   
+
    s_uTotalTxTimeMicros += m_uLastSentVideoPacketDurationMicros;
    if ( g_TimeNow >= s_uLastTimeCheckTxTimes + 100 )
    {

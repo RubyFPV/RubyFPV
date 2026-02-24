@@ -205,7 +205,7 @@ const char* L(const char* szString)
        uHashIndex = uHashIndex % STRINGS_HASH_SIZE;
        iColCount++;
    }
-   
+
    if ( (NULL == pLocalized) || (-1 == iStringTableIndex) || ( 0 != strcmp(pStringsTable[iStringTableIndex].szEnglish, szString)) ||
       (strlen(szString) != strlen(pStringsTable[iStringTableIndex].szEnglish)) )
    {

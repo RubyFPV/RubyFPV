@@ -47,7 +47,7 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
    char szBuff[256];
    sprintf(szBuff, L("OSD Statistics Panels (%s)"), str_get_osd_screen_name(g_pCurrentModel->osd_params.iCurrentOSDScreen));
    setTitle(szBuff);
-   
+
    m_IndexDevStatsVideo = -1;
    m_IndexDevVehicleVideoBitrateHistory = -1;
    m_IndexDevStatsRadio = -1;
@@ -60,7 +60,7 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
    m_IndexStatsVideoH264FramesInfo = -1;
    m_IndexRadioRxDbgPingStats = -1;
 
-   m_pItemsSelect[0] = new MenuItemSelect(L("Font Size"), L("Increase/decrease OSD font size for stats windows for current OSD screen."));  
+   m_pItemsSelect[0] = new MenuItemSelect(L("Font Size"), L("Increase/decrease OSD font size for stats windows for current OSD screen."));
    m_pItemsSelect[0]->addSelection(L("Smallest"));
    m_pItemsSelect[0]->addSelection(L("Smaller"));
    m_pItemsSelect[0]->addSelection(L("Small"));
@@ -71,7 +71,7 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
    m_pItemsSelect[0]->setIsEditable();
    m_IndexFontSize = addMenuItem(m_pItemsSelect[0]);
 
-   m_pItemsSelect[21] = new MenuItemSelect(L("Transparency"), L("Change how transparent the statistics background is."));  
+   m_pItemsSelect[21] = new MenuItemSelect(L("Transparency"), L("Change how transparent the statistics background is."));
    m_pItemsSelect[21]->addSelection(L("Max"));
    m_pItemsSelect[21]->addSelection(L("Medium"));
    m_pItemsSelect[21]->addSelection(L("Normal"));
@@ -80,7 +80,7 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
    m_IndexTransparency = addMenuItem(m_pItemsSelect[21]);
 
 
-   m_pItemsSelect[7] = new MenuItemSelect(L("Stats panels layout"), L("Changes the layout of the statistics panels."));  
+   m_pItemsSelect[7] = new MenuItemSelect(L("Stats panels layout"), L("Changes the layout of the statistics panels."));
    m_pItemsSelect[7]->addSelection(L("Auto (Left)"));
    m_pItemsSelect[7]->addSelection(L("Auto (Right)"));
    m_pItemsSelect[7]->addSelection(L("Auto (Top)"));
@@ -96,13 +96,13 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
 
    addSeparator();
 
-   m_pItemsSelect[1] = new MenuItemSelect(L("Radio: Links stats"), L("Show statistics about the radio links health."));  
+   m_pItemsSelect[1] = new MenuItemSelect(L("Radio: Links stats"), L("Show statistics about the radio links health."));
    m_pItemsSelect[1]->addSelection(L("Off"));
    m_pItemsSelect[1]->addSelection(L("On"));
    m_pItemsSelect[1]->setUseMultiViewLayout();
    m_IndexStatsRadioLinks = addMenuItem(m_pItemsSelect[1]);
 
-   m_pItemsSelect[2] = new MenuItemSelect(L("Radio: Interfaces stats"), L("Show statistics about the radio interfaces present on the controller and how they perform."));  
+   m_pItemsSelect[2] = new MenuItemSelect(L("Radio: Interfaces stats"), L("Show statistics about the radio interfaces present on the controller and how they perform."));
    m_pItemsSelect[2]->addSelection(L("Off"));
    m_pItemsSelect[2]->addSelection(L("Minimal"));
    m_pItemsSelect[2]->addSelection(L("Compact"));
@@ -110,14 +110,14 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
    m_pItemsSelect[2]->setIsEditable();
    m_IndexStatsRadioInterfaces = addMenuItem(m_pItemsSelect[2]);
 
-   m_pItemsSelect[17] = new MenuItemSelect(L("    Displayed Radio Cards"), L("Choose what radio cards statistics to see: from controller radio cards or vehicle radio cards or both."));  
+   m_pItemsSelect[17] = new MenuItemSelect(L("    Displayed Radio Cards"), L("Choose what radio cards statistics to see: from controller radio cards or vehicle radio cards or both."));
    m_pItemsSelect[17]->addSelection(L("Controller Only"));
    m_pItemsSelect[17]->addSelection(L("Controller & Vehicle"));
    m_pItemsSelect[17]->setIsEditable();
    m_IndexVehicleRadioRxStats = addMenuItem(m_pItemsSelect[17]);
 
 
-   m_pItemsSelect[8] = new MenuItemSelect(L("    Graphs Resolution"), L("The resolution of the graphs, in miliseconds / bar."));  
+   m_pItemsSelect[8] = new MenuItemSelect(L("    Graphs Resolution"), L("The resolution of the graphs, in miliseconds / bar."));
    m_pItemsSelect[8]->addSelection("10 ms/bar");
    m_pItemsSelect[8]->addSelection("20 ms/bar");
    m_pItemsSelect[8]->addSelection("50 ms/bar");
@@ -206,20 +206,20 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
 
    addSeparator();
 
-   m_pItemsSelect[35] = new MenuItemSelect(L("Video Frame Stats"), L("Show statistics about the video stream frames and video stream quality."));  
+   m_pItemsSelect[35] = new MenuItemSelect(L("Video Frame Stats"), L("Show statistics about the video stream frames and video stream quality."));
    m_pItemsSelect[35]->addSelection(L("Off"));
    m_pItemsSelect[35]->addSelection(L("On"));
    m_pItemsSelect[35]->setUseMultiViewLayout();
    m_IndexVideoFramesStats = addMenuItem(m_pItemsSelect[35]);
 
 
-   m_pItemsSelect[3] = new MenuItemSelect(L("Video: Stream Stats"), L("Show statistics about the video stream rx & decode process and stream quality."));  
+   m_pItemsSelect[3] = new MenuItemSelect(L("Video: Stream Stats"), L("Show statistics about the video stream rx & decode process and stream quality."));
    m_pItemsSelect[3]->addSelection(L("Off"));
    m_pItemsSelect[3]->addSelection(L("On"));
    m_pItemsSelect[3]->setUseMultiViewLayout();
    m_IndexStatsDecode = addMenuItem(m_pItemsSelect[3]);
 
-   m_pItemsSelect[4] = new MenuItemSelect(L("    Display Style"), L("Selects the style and how much information to show in the video stream stats."));  
+   m_pItemsSelect[4] = new MenuItemSelect(L("    Display Style"), L("Selects the style and how much information to show in the video stream stats."));
    m_pItemsSelect[4]->addSelection(L("Minimal"));
    m_pItemsSelect[4]->addSelection(L("Compact"));
    m_pItemsSelect[4]->addSelection(L("Normal"));
@@ -227,7 +227,7 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
    m_pItemsSelect[4]->setIsEditable();
    m_IndexStatsVideoExtended = addMenuItem(m_pItemsSelect[4]);
 
-   m_pItemsSelect[9] = new MenuItemSelect(L("    Graphs Resolution"), L("The resolution of the graphs, in miliseconds / bar."));  
+   m_pItemsSelect[9] = new MenuItemSelect(L("    Graphs Resolution"), L("The resolution of the graphs, in miliseconds / bar."));
    m_pItemsSelect[9]->addSelection("10 ms/bar");
    m_pItemsSelect[9]->addSelection("20 ms/bar");
    m_pItemsSelect[9]->addSelection("50 ms/bar");
@@ -239,13 +239,13 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
 
    if ( g_pControllerSettings->iDeveloperMode )
    {
-      m_pItemsSelect[13] = new MenuItemSelect(L("    Show snapshot on retransmissions"), L("Shows a snapshot of buffers and state when a video block is discarded."));  
+      m_pItemsSelect[13] = new MenuItemSelect(L("    Show snapshot on retransmissions"), L("Shows a snapshot of buffers and state when a video block is discarded."));
       m_pItemsSelect[13]->addSelection(L("Off"));
       m_pItemsSelect[13]->addSelection(L("On"));
       m_pItemsSelect[13]->setTextColor(get_Color_Dev());
       m_IndexSnapshot = addMenuItem(m_pItemsSelect[13]);
 
-      m_pItemsSelect[22] = new MenuItemSelect(L("    Snapshot closes on"), L("Select how the snapshot window is closed."));  
+      m_pItemsSelect[22] = new MenuItemSelect(L("    Snapshot closes on"), L("Select how the snapshot window is closed."));
       m_pItemsSelect[22]->addSelection(L("Back Key"));
       m_pItemsSelect[22]->addSelection(L("Timeout Period"));
       m_pItemsSelect[22]->addSelection(L("Next Snapshot"));
@@ -266,7 +266,7 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
    m_IndexDevVehicleVideoBitrateHistory = addMenuItem(m_pItemsSelect[19]);
 
 
-   m_pItemsSelect[33] = new MenuItemSelect(L("    Graphs Resolution"), L("The resolution of the graphs, in miliseconds / bar."));  
+   m_pItemsSelect[33] = new MenuItemSelect(L("    Graphs Resolution"), L("The resolution of the graphs, in miliseconds / bar."));
    m_pItemsSelect[33]->addSelection("500 ms/bar");
    m_pItemsSelect[33]->addSelection("200 ms/bar");
    m_pItemsSelect[33]->addSelection("100 ms/bar");
@@ -282,7 +282,7 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
       m_pItemsSelect[23]->setUseMultiViewLayout();
       m_pItemsSelect[23]->setTextColor(get_Color_Dev());
       m_IndexStatsVideoH264FramesInfo = addMenuItem(m_pItemsSelect[23]);
-      
+
       m_pItemsSelect[10] = new MenuItemSelect(L("Video: Retransmissions Stats"), L("Shows the extended developer video retransmissions stats."));
       m_pItemsSelect[10]->addSelection(L("Off"));
       m_pItemsSelect[10]->addSelection(L("On"));
@@ -303,13 +303,13 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
    m_IndexVehicleDevStats = -1;
    if ( g_pControllerSettings->iDeveloperMode )
    {
-      m_pItemsSelect[34] = new MenuItemSelect(L("Vehicle Dev Stats"), L("Show developer statistics from vehicle state."));  
+      m_pItemsSelect[34] = new MenuItemSelect(L("Vehicle Dev Stats"), L("Show developer statistics from vehicle state."));
       m_pItemsSelect[34]->addSelection(L("Off"));
       m_pItemsSelect[34]->addSelection(L("On"));
       m_pItemsSelect[34]->setUseMultiViewLayout();
       m_IndexVehicleDevStats = addMenuItem(m_pItemsSelect[34]);
    }
-   m_pItemsSelect[26] = new MenuItemSelect(L("Audio: Decoding Stats"), L("Show statistics about the audio decoding process and quality."));  
+   m_pItemsSelect[26] = new MenuItemSelect(L("Audio: Decoding Stats"), L("Show statistics about the audio decoding process and quality."));
    m_pItemsSelect[26]->addSelection(L("Off"));
    m_pItemsSelect[26]->addSelection(L("On"));
    m_pItemsSelect[26]->setUseMultiViewLayout();
@@ -321,7 +321,7 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
    m_pItemsSelect[25]->setUseMultiViewLayout();
    m_IndexTelemetryStats = addMenuItem(m_pItemsSelect[25]);
 
-   m_pItemsSelect[6] = new MenuItemSelect(L("RC: Vehicle Stats"), L("Show statistics received from vehicle about the RC link status and health."));  
+   m_pItemsSelect[6] = new MenuItemSelect(L("RC: Vehicle Stats"), L("Show statistics received from vehicle about the RC link status and health."));
    m_pItemsSelect[6]->addSelection(L("Off"));
    m_pItemsSelect[6]->addSelection(L("On"));
    m_pItemsSelect[6]->setUseMultiViewLayout();
@@ -330,7 +330,7 @@ MenuVehicleOSDStats::MenuVehicleOSDStats(void)
    m_pMenuItems[m_IndexStatsRC]->setEnabled(false);
    #endif
 
-   m_pItemsSelect[5] = new MenuItemSelect(L("Efficiency Stats"), L("Show statistics about power usage efficiency."));  
+   m_pItemsSelect[5] = new MenuItemSelect(L("Efficiency Stats"), L("Show statistics about power usage efficiency."));
    m_pItemsSelect[5]->addSelection(L("Off"));
    m_pItemsSelect[5]->addSelection(L("On"));
    m_pItemsSelect[5]->setUseMultiViewLayout();
@@ -350,7 +350,7 @@ void MenuVehicleOSDStats::valuesToUI()
    m_pItemsSelect[21]->setSelectedIndex(((g_pCurrentModel->osd_params.osd_preferences[iScreenIndex])>>20) & 0x0F);
    m_pItemsSelect[1]->setSelection((g_pCurrentModel->osd_params.osd_flags2[iScreenIndex] & OSD_FLAG2_SHOW_STATS_RADIO_LINKS)?1:0);
    m_pItemsSelect[32]->setSelection((g_pCurrentModel->osd_params.osd_flags3[iScreenIndex] & OSD_FLAG3_LAYOUT_STATS_AUTO_WIDGETS_MARGINS)?1:0);
-   
+
    if ( ! (g_pCurrentModel->osd_params.osd_flags2[iScreenIndex] & OSD_FLAG2_SHOW_STATS_RADIO_INTERFACES) )
       m_pItemsSelect[2]->setSelection(0);
    else if ( g_pCurrentModel->osd_params.osd_flags2[iScreenIndex] & OSD_FLAG2_SHOW_MINIMAL_RADIO_INTERFACES_STATS )
@@ -402,7 +402,7 @@ void MenuVehicleOSDStats::valuesToUI()
 
    m_pItemsSelect[27]->setSelectedIndex((g_pCurrentModel->osd_params.osd_flags3[iScreenIndex] & OSD_FLAG3_SHOW_RADIO_RX_HISTORY_CONTROLLER)?1:0);
    m_pItemsSelect[28]->setSelectedIndex((g_pCurrentModel->osd_params.osd_flags3[iScreenIndex] & OSD_FLAG3_SHOW_RADIO_RX_HISTORY_VEHICLE)?1:0);
-   
+
    if ( m_pItemsSelect[27]->getSelectedIndex() == 0 )
       m_pItemsSelect[29]->setEnabled(false);
    else
@@ -425,7 +425,7 @@ void MenuVehicleOSDStats::valuesToUI()
       {
          if ( g_pControllerSettings->uShowBigRxHistoryInterface & (1<<i) )
             m_pItemsSelect[29]->setSelectedIndex(i+hardware_get_radio_interfaces_count());
-      }   
+      }
    }
 
    m_pItemsSelect[30]->setSelectedIndex(0);
@@ -440,7 +440,7 @@ void MenuVehicleOSDStats::valuesToUI()
       {
          if ( g_pControllerSettings->uShowBigRxHistoryInterface & ((1<<i)<<16) )
             m_pItemsSelect[30]->setSelectedIndex(i+g_pCurrentModel->radioInterfacesParams.interfaces_count);
-      }   
+      }
    }
 
    m_pItemsSelect[25]->setSelectedIndex((g_pCurrentModel->osd_params.osd_flags2[iScreenIndex] & OSD_FLAG2_SHOW_TELEMETRY_STATS)?1:0);
@@ -549,7 +549,7 @@ void MenuVehicleOSDStats::valuesToUI()
       m_pItemsSelect[7]->setSelectedIndex(2);
    else if ( g_pCurrentModel->osd_params.osd_preferences[iScreenIndex] & OSD_PREFERENCES_BIT_FLAG_ARANGE_STATS_WINDOWS_BOTTOM )
       m_pItemsSelect[7]->setSelectedIndex(3);
-   else   
+   else
       m_pItemsSelect[7]->setSelectedIndex(0);
 
    if ( -1 != m_IndexVehicleDevStats )
@@ -600,7 +600,7 @@ void MenuVehicleOSDStats::onSelectItem()
    int iScreenIndex = g_pCurrentModel->osd_params.iCurrentOSDScreen;
 
    g_bChangedOSDStatsFontSize = false;
-   
+
    if ( m_IndexFontSize == m_SelectedIndex )
    {
       params.osd_preferences[iScreenIndex] &= ~(0x0F0000);
@@ -676,7 +676,7 @@ void MenuVehicleOSDStats::onSelectItem()
          params.osd_flags2[iScreenIndex] |= OSD_FLAG2_SHOW_VEHICLE_RADIO_INTERFACES_STATS;
 
       params.osd_layout_preset[iScreenIndex] = OSD_PRESET_CUSTOM;
-      sendToVehicle = true;    
+      sendToVehicle = true;
    }
 
    if ( m_IndexRadioRefreshInterval == m_SelectedIndex )
@@ -743,7 +743,7 @@ void MenuVehicleOSDStats::onSelectItem()
          g_pControllerSettings->uShowBigRxHistoryInterface |= (1<<16);
          g_pControllerSettings->uShowBigRxHistoryInterface |= (1<<(index-g_pCurrentModel->radioInterfacesParams.interfaces_count))<<16;
       }
-      
+
       save_ControllerSettings();
       valuesToUI();
       return;
@@ -755,7 +755,7 @@ void MenuVehicleOSDStats::onSelectItem()
       save_ControllerSettings();
       valuesToUI();
       send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
-      return;      
+      return;
    }
 
    if ( m_IndexVideoRefreshInterval == m_SelectedIndex )
@@ -830,7 +830,7 @@ void MenuVehicleOSDStats::onSelectItem()
          save_ControllerSettings();
       }
       params.osd_layout_preset[iScreenIndex] = OSD_PRESET_CUSTOM;
-      sendToVehicle = true;    
+      sendToVehicle = true;
    }
 
 
@@ -908,7 +908,7 @@ void MenuVehicleOSDStats::onSelectItem()
       params.osd_layout_preset[iScreenIndex] = OSD_PRESET_CUSTOM;
       sendToVehicle = true;
    }
-   
+
    if ( -1 != m_IndexVehicleDevStats )
    if ( g_pControllerSettings->iDeveloperMode )
    if ( m_IndexVehicleDevStats == m_SelectedIndex )
@@ -940,7 +940,7 @@ void MenuVehicleOSDStats::onSelectItem()
    {
       telemetry_parameters_t params;
       memcpy(&params, &g_pCurrentModel->telemetry_params, sizeof(telemetry_parameters_t));
-   
+
       int iIndex = m_pItemsSelect[33]->getSelectedIndex();
       if ( 0 == iIndex )
          params.iVideoBitrateHistoryGraphSampleInterval = 500;
@@ -950,7 +950,7 @@ void MenuVehicleOSDStats::onSelectItem()
          params.iVideoBitrateHistoryGraphSampleInterval = 100;
       if ( 3 == iIndex )
          params.iVideoBitrateHistoryGraphSampleInterval = 50;
-  
+
       if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_TELEMETRY_PARAMETERS, 0, (u8*)&params, sizeof(telemetry_parameters_t)) )
          valuesToUI();
       return;
@@ -970,8 +970,8 @@ void MenuVehicleOSDStats::onSelectItem()
       else
          g_pCurrentModel->uDeveloperFlags |= DEVELOPER_FLAGS_BIT_SEND_BACK_VEHICLE_TX_GAP;
       if ( ! handle_commands_send_developer_flags(g_pCurrentModel->uDeveloperFlags) )
-         valuesToUI();  
-      return;    
+         valuesToUI();
+      return;
    }
 
 

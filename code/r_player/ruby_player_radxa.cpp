@@ -141,7 +141,7 @@ void _do_player_mode()
 {
    ControllerSettings* pCS = get_ControllerSettings();
 
-   ruby_drm_core_wait_for_display_connected(); 
+   ruby_drm_core_wait_for_display_connected();
    if ( hdmi_enum_modes() < 0 )
    {
       log_error_and_alarm("Failed to enumerate HDMI modes. Exit player.");
@@ -212,7 +212,7 @@ void _do_player_mode()
       nRead = fread(uBuffer, 1, iToRead, fp);
       if ( nRead <= 0 )
          break;
-      
+
       // Detect end of a NAL
       u8* pTmp = &(uBuffer[0]);
       for( int i=0; i<nRead; i++ )
@@ -318,7 +318,7 @@ void* _thread_consume_pipe_buffer(void *param)
       int iRes = mpp_feed_data_to_decoder(&(g_uPipeBuffer[g_iPipeBufferReadPos]), iSize);
       if ( iRes > 10 )
          log_line("[Thread] Stalled consuming %d bytes at pos %d (write pos: %d), stall for %d ms", iSize, g_iPipeBufferReadPos, g_iPipeBufferWritePos, iRes);
-      
+
       if ( mpp_get_clear_stream_changed_flag() )
          g_iPipeBufferReadPos = g_iPipeBufferWritePos;
       else
@@ -351,7 +351,7 @@ void _do_stream_mode_pipe()
       log_error_and_alarm("Failed to enumerate HDMI modes. Exit pipe player.");
       return;
    }
-   
+
    int iHDMIIndex = hdmi_load_current_mode();
    if ( iHDMIIndex < 0 )
       iHDMIIndex = hdmi_get_best_resolution_index_for(DEFAULT_RADXA_DISPLAY_WIDTH, DEFAULT_RADXA_DISPLAY_HEIGHT, DEFAULT_RADXA_DISPLAY_REFRESH);
@@ -407,7 +407,7 @@ void _do_stream_mode_pipe()
       {
          iSizeToRead = PIPE_BUFFER_SIZE - g_iPipeBufferWritePos;
       }
-      nRead = read(readfd, &(g_uPipeBuffer[g_iPipeBufferWritePos]), iSizeToRead); 
+      nRead = read(readfd, &(g_uPipeBuffer[g_iPipeBufferWritePos]), iSizeToRead);
       if ( nRead <= 0 )
       {
          if ( ! bAnyInputEver )
@@ -444,12 +444,12 @@ void _do_stream_mode_pipe()
          log_line("Start receiving video stream data through pipe (%d bytes)", nRead);
          bAnyInputEver = true;
       }
-      
+
       int iNewWritePos = g_iPipeBufferWritePos + nRead;
       if ( iNewWritePos >= PIPE_BUFFER_SIZE )
          iNewWritePos = 0;
       g_iPipeBufferWritePos = iNewWritePos;
-      
+
       iTotalRead += nRead;
       if ( (iCount % 10) == 0 )
       {
@@ -487,7 +487,7 @@ void _do_stream_mode_pipe()
       if ( iSelectResult <= 0 )
          continue;
 
-      nRead = read(readfd, g_uPipeBuffer, PIPE_BUFFER_SIZE); 
+      nRead = read(readfd, g_uPipeBuffer, PIPE_BUFFER_SIZE);
       if ( (nRead < 0) || g_bQuit )
       {
          if ( nRead < 0 )
@@ -594,7 +594,7 @@ void _do_stream_mode_sm()
    int iHDMIIndex = hdmi_load_current_mode();
    if ( iHDMIIndex < 0 )
       iHDMIIndex = hdmi_get_best_resolution_index_for(DEFAULT_RADXA_DISPLAY_WIDTH, DEFAULT_RADXA_DISPLAY_HEIGHT, DEFAULT_RADXA_DISPLAY_REFRESH);
-   
+
    log_line("HDMI mode to use: %d (%d x %d @ %d)", iHDMIIndex, hdmi_get_current_resolution_width(), hdmi_get_current_resolution_height(), hdmi_get_current_resolution_refresh() );
    ruby_drm_core_init(1, DRM_FORMAT_NV12, hdmi_get_current_resolution_width(), hdmi_get_current_resolution_height(), hdmi_get_current_resolution_refresh());
 
@@ -616,7 +616,7 @@ void _do_stream_mode_sm()
    if( fdSMem < 0 )
    {
       log_softerror_and_alarm("Failed to open shared memory for read: %s, error: %d %s", SM_STREAMER_NAME, errno, strerror(errno));
-      
+
       if ( NULL != s_pSemaphoreSMData )
            sem_close(s_pSemaphoreSMData);
       s_pSemaphoreSMData = NULL;
@@ -624,7 +624,7 @@ void _do_stream_mode_sm()
       ruby_drm_core_uninit();
       return;
    }
-   
+
    pSMem = (unsigned char*) mmap(NULL, SM_STREAMER_SIZE, PROT_READ, MAP_SHARED, fdSMem, 0);
    if ( (pSMem == MAP_FAILED) || (pSMem == NULL) )
    {
@@ -641,7 +641,7 @@ void _do_stream_mode_sm()
       ruby_drm_core_uninit();
       return;
    }
-   close(fdSMem); 
+   close(fdSMem);
    log_line("Mapped shared mem: %s", SM_STREAMER_NAME);
 
    mpp_enable_vsync(pCS->iHDMIVSync?true:false);
@@ -653,7 +653,7 @@ void _do_stream_mode_sm()
    int iTotalRead = 0;
    bool bAnyInputEver = false;
    u32 uTimeStartReceivingStream = 0;
-  
+
    while ( !g_bQuit )
    {
       u32* pTmp1 = (u32*)pSMem;
@@ -717,7 +717,7 @@ void _do_stream_mode_sm()
                uBytesToRead += uBytesToRead2;
             }
          }
-      } 
+      }
       if ( g_bQuit )
          break;
 
@@ -810,7 +810,7 @@ void _do_stream_mode_udp()
       log_error_and_alarm("Failed to create socket");
       mpp_uninit();
       ruby_drm_core_uninit();
-      return;    
+      return;
    }
 
    /*
@@ -821,7 +821,7 @@ void _do_stream_mode_udp()
       log_error_and_alarm("Failed to set socket options");
       ruby_drm_core_uninit();
       mpp_uninit();
-      return;    
+      return;
    }
    */
 
@@ -836,7 +836,7 @@ void _do_stream_mode_udp()
       log_error_and_alarm("Failed to bind socket on port %d", DEFAULT_LOCAL_VIDEO_PLAYER_UDP_PORT);
       mpp_uninit();
       ruby_drm_core_uninit();
-      return;    
+      return;
    }
 
    log_line("Opened input video stream udp socket on port %d", DEFAULT_LOCAL_VIDEO_PLAYER_UDP_PORT);
@@ -872,7 +872,7 @@ void _do_stream_mode_udp()
       if( 0 == FD_ISSET(iSock, &readset) )
          continue;
 
-      
+
       socklen_t  recvLen = 0;
       struct sockaddr_in addrClient;
       int iRecv = recvfrom(iSock, uBuffer, 2048, MSG_WAITALL, (sockaddr*)&addrClient, &recvLen);
@@ -894,7 +894,7 @@ void _do_stream_mode_udp()
          //log_line("No read data. Continue");
          //continue;
       }
-      
+
 
       if ( ! bAnyInputEver )
       {
@@ -926,8 +926,8 @@ void _do_stream_mode_udp()
    ruby_drm_core_uninit();
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d", sig);
    g_bQuit = true;
 }
@@ -1086,7 +1086,7 @@ int main(int argc, char *argv[])
       }
       pid_t pid = getpid();
       if ( 0 != sched_setaffinity(pid, sizeof(cpuSet), &cpuSet) )
-         log_line("Failed to set affinities for the entire process, error: %d (%s)", errno, strerror(errno)); 
+         log_line("Failed to set affinities for the entire process, error: %d (%s)", errno, strerror(errno));
       else
          log_line("Did set affinities for the entire process, to mask: %d", g_uCPUAffinityMask);
 
@@ -1111,7 +1111,7 @@ int main(int argc, char *argv[])
       log_softerror_and_alarm("Failed to open shared mem for process watchdog for writing: %s", SHARED_MEM_WATCHDOG_MPP_PLAYER);
    else
       log_line("Opened shared mem for process watchdog for writing (%s).", SHARED_MEM_WATCHDOG_MPP_PLAYER);
- 
+
    if ( g_bPlayFile )
       log_line("Running mode: play file: [%s] [%d FPS] [exit on end: %s] [playing intro: %s]", g_szPlayFileName, g_iFileFPS, g_bExitOnEnd?"yes":"no", g_bPlayingIntro?"yes":"no");
    if ( g_bPlayStreamPipe )

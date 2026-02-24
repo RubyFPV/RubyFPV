@@ -11,7 +11,7 @@ class MenuControllerJoystick: public Menu
    public:
       MenuControllerJoystick(int joystickIndex);
       virtual ~MenuControllerJoystick();
-      virtual void onShow(); 
+      virtual void onShow();
       virtual bool periodicLoop();
       virtual void Render();
       virtual void valuesToUI();

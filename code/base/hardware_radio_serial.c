@@ -142,7 +142,7 @@ int hardware_radio_serial_parse_and_add_from_serial_ports_config()
       iCountAdded += hardware_radio_serial_add_radio_interface_for_port(pSerialPortInfo);
    }
    log_line("[HW-RS] Parsed serial ports. Added %d hardware radio serial interfaces.", iCountAdded);
-   
+
    if ( iCountAdded > 0 )
    {
       hardware_save_radio_info();
@@ -166,7 +166,7 @@ int hardware_radio_serial_open_for_read_write(int iHWRadioInterfaceIndex)
    }
 
    hw_serial_port_info_t* pSerialPort = hardware_get_serial_port_info_from_serial_port_name(pRadioInfo->szDriver);
-  
+
    if ( NULL == pSerialPort )
    {
       log_error_and_alarm("[HW-RS] Open: Failed to find serial port configuration for serial radio %s.", pRadioInfo->szDriver);

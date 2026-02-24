@@ -8,7 +8,7 @@ class MenuItemText: public MenuItem
      MenuItemText(const char* title, bool bUseSmallText);
      MenuItemText(const char* title, bool bUseSmallText, float fMargin);
      virtual ~MenuItemText();
-     
+
      void setSmallText();
      virtual bool isSelectable();
      void makeSelectable();

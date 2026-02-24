@@ -14,7 +14,7 @@ class MenuVehicleOSDElements: public Menu
       virtual void Render();
       virtual void onShow();
       virtual void onSelectItem();
-            
+
    private:
       int m_IndexOSDOrientation, m_IndexShowBg;
       int m_IndexDistance, m_IndexAltitude, m_IndexSpeed, m_IndexHome, m_IndexHomeInvert, m_IndexHomeRotate;
@@ -30,7 +30,7 @@ class MenuVehicleOSDElements: public Menu
       int m_IndexControllerCPU;
       int m_IndexControllerVoltage;
       int m_IndexRadioLinksNumbers;
-      
+
       MenuItemSlider* m_pItemsSlider[50];
       MenuItemSelect* m_pItemsSelect[50];
       MenuItemRange* m_pItemsRange[50];

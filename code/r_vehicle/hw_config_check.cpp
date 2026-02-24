@@ -38,7 +38,7 @@
 
 static bool s_bHWCheckDefault24Used = false;
 static bool s_bHWCheckDefault58Used = false;
-   
+
 
 void log_full_current_radio_configuration(Model* pModel)
 {
@@ -49,7 +49,7 @@ void log_full_current_radio_configuration(Model* pModel)
       if ( NULL == pRadioInfo )
          continue;
       log_line("* Radio HW Interface %d: MAC: %s, name: %s, driver str: %s, driver id: %d (%s), radio type: %d (%s), card model: %s",
-         i+1, pRadioInfo->szMAC, pRadioInfo->szName, pRadioInfo->szDriver, 
+         i+1, pRadioInfo->szMAC, pRadioInfo->szName, pRadioInfo->szDriver,
          pRadioInfo->iRadioDriver, str_get_radio_driver_description(pRadioInfo->iRadioDriver),
          pRadioInfo->iRadioType, str_get_radio_type_description(pRadioInfo->iRadioType),
          str_get_radio_card_model_string(pRadioInfo->iCardModel));
@@ -81,7 +81,7 @@ bool _check_update_hardware_one_interface_after_and_before(Model* pModel)
 
    log_line("[HW Radio Check] Radio hardware check: The single radio interface has changed in the system. Updating system to the new one.");
    log_line("[HW Radio Check] Radio HW Interface 1: MAC: %s, name: %s, driver str: %s, driver id: %d (%s), radio type: %d (%s), card model: %s",
-         pRadioHWInfo->szMAC, pRadioHWInfo->szName, pRadioHWInfo->szDriver, 
+         pRadioHWInfo->szMAC, pRadioHWInfo->szName, pRadioHWInfo->szDriver,
          pRadioHWInfo->iRadioDriver, str_get_radio_driver_description(pRadioHWInfo->iRadioDriver),
          pRadioHWInfo->iRadioType, str_get_radio_type_description(pRadioHWInfo->iRadioType),
          str_get_radio_card_model_string(pRadioHWInfo->iCardModel));
@@ -151,7 +151,7 @@ bool _check_update_hardware_one_interface_after_and_before(Model* pModel)
          pModel->radioInterfacesParams.interface_capabilities_flags[0] &= ~RADIO_HW_CAPABILITY_FLAG_SERIAL_LINK;
          pModel->radioLinksParams.link_capabilities_flags[0] |= RADIO_HW_CAPABILITY_FLAG_HIGH_CAPACITY | RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO;
          pModel->radioLinksParams.link_capabilities_flags[0] &= ~RADIO_HW_CAPABILITY_FLAG_SERIAL_LINK;
-      
+
          pModel->setVideoProfilesDefaultVideoBitrates();
       }
    }
@@ -217,7 +217,7 @@ bool _check_update_hardware_one_interface_after_multiple_before(Model* pModel)
       // Move it to first in the list of radio links and make sure it can be used for data and video
 
       pModel->copy_radio_link_params(iRadioLinkIndex, 0);
-      
+
       pModel->radioLinksParams.link_capabilities_flags[0] = RADIO_HW_CAPABILITY_FLAG_CAN_RX | RADIO_HW_CAPABILITY_FLAG_CAN_TX;
       pModel->radioLinksParams.link_capabilities_flags[0] |= RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO | RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_DATA;
       pModel->radioLinksParams.links_count = 1;
@@ -234,7 +234,7 @@ bool _check_update_hardware_one_interface_after_multiple_before(Model* pModel)
       pModel->radioInterfacesParams.interface_supported_bands[0] = pRadioInfo->supportedBands;
       if ( pRadioInfo->isSupported )
          pModel->radioInterfacesParams.interface_radiotype_and_driver[0] = pModel->radioInterfacesParams.interface_radiotype_and_driver[0] | 0xFF0000;
-      
+
       strncpy(pModel->radioInterfacesParams.interface_szMAC[0], pRadioInfo->szMAC, MAX_MAC_LENGTH-1 );
       pModel->radioInterfacesParams.interface_szMAC[0][MAX_MAC_LENGTH-1] = 0;
       strncpy(pModel->radioInterfacesParams.interface_szPort[0], pRadioInfo->szUSBPort, MAX_RADIO_PORT_NAME_LENGTH-1);
@@ -267,7 +267,7 @@ bool _check_update_hardware_one_interface_after_multiple_before(Model* pModel)
    // Move it to first in the list of radio links and make sure it can be used for data and video
 
    pModel->copy_radio_link_params(iRadioLinkIndex, 0);
- 
+
    pModel->radioLinksParams.link_capabilities_flags[0] = RADIO_HW_CAPABILITY_FLAG_CAN_RX | RADIO_HW_CAPABILITY_FLAG_CAN_TX;
    pModel->radioLinksParams.link_capabilities_flags[0] |= RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO | RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_DATA;
    pModel->radioLinksParams.links_count = 1;
@@ -281,7 +281,7 @@ bool _check_update_hardware_one_interface_after_multiple_before(Model* pModel)
    pModel->radioInterfacesParams.interface_supported_bands[0] = pRadioInfo->supportedBands;
    if ( pRadioInfo->isSupported )
       pModel->radioInterfacesParams.interface_radiotype_and_driver[0] = pModel->radioInterfacesParams.interface_radiotype_and_driver[0] | 0xFF0000;
-      
+
    strncpy(pModel->radioInterfacesParams.interface_szMAC[0], pRadioInfo->szMAC, MAX_MAC_LENGTH-1 );
    pModel->radioInterfacesParams.interface_szMAC[0][MAX_MAC_LENGTH-1] = 0;
    strncpy(pModel->radioInterfacesParams.interface_szPort[0], pRadioInfo->szUSBPort, MAX_RADIO_PORT_NAME_LENGTH-1);
@@ -306,9 +306,9 @@ void _add_new_radio_link_for_hw_radio_interface(int iInterfaceIndex, Model* pMod
       log_softerror_and_alarm("[HW Radio Check] Failed to add a new radio link in the current model for HW radio interface %d. Can't get radio info.", iInterfaceIndex+1);
       return;
    }
-   
+
    log_line("[HW Radio Check] Adding a new radio link in the current model for hardware radio interface %d (%s) [%s]...", iInterfaceIndex+1, pRadioHWInfo->szName, pRadioHWInfo->szMAC);
-   
+
    if ( pModel->radioInterfacesParams.interface_link_id[iInterfaceIndex] != -1 )
    {
       log_softerror_and_alarm("[HW Radio Check] Tried to add a new radio link to radio interface %d which is already assigned to radio link %d.",
@@ -319,7 +319,7 @@ void _add_new_radio_link_for_hw_radio_interface(int iInterfaceIndex, Model* pMod
    // Add a new radio link
 
    int iRadioLink = pModel->radioLinksParams.links_count;
-   
+
    pModel->radioLinksParams.link_frequency_khz[iRadioLink] = 0;
    pModel->resetRadioLinkDataRatesAndFlags(iRadioLink);
    if ( hardware_radio_index_is_wifi_radio(iInterfaceIndex) )
@@ -377,7 +377,7 @@ void _add_new_radio_link_for_hw_radio_interface(int iInterfaceIndex, Model* pMod
 
    pModel->radioInterfacesParams.interface_link_id[iInterfaceIndex] = iRadioLink;
    pModel->radioInterfacesParams.interface_supported_radio_flags[iInterfaceIndex] = RADIO_FLAGS_FRAME_TYPE_DATA | RADIO_FLAGS_USE_LEGACY_DATARATES | RADIO_FLAGS_USE_MCS_DATARATES | RADIO_FLAG_HT40;
-   
+
    // Assign a frequency to the new radio link and the radio interface
 
    //if ( ! hardware_radio_is_sik_radio(pRadioHWInfo) )
@@ -388,19 +388,19 @@ void _add_new_radio_link_for_hw_radio_interface(int iInterfaceIndex, Model* pMod
       pModel->radioLinksParams.link_frequency_khz[iRadioLink] = DEFAULT_FREQUENCY;
       if ( pModel->radioInterfacesParams.interface_supported_bands[iInterfaceIndex] & RADIO_HW_SUPPORTED_BAND_58 )
          pModel->radioLinksParams.link_frequency_khz[iRadioLink] = DEFAULT_FREQUENCY58;
-         
+
       if ( s_bHWCheckDefault58Used && pModel->radioLinksParams.link_frequency_khz[iRadioLink] == DEFAULT_FREQUENCY58 )
          pModel->radioLinksParams.link_frequency_khz[iRadioLink] = DEFAULT_FREQUENCY58_2;
       if ( s_bHWCheckDefault24Used && pModel->radioLinksParams.link_frequency_khz[iRadioLink] == DEFAULT_FREQUENCY )
          pModel->radioLinksParams.link_frequency_khz[iRadioLink] = DEFAULT_FREQUENCY_2;
-      
+
       pModel->radioInterfacesParams.interface_current_frequency_khz[iInterfaceIndex] = pModel->radioLinksParams.link_frequency_khz[iRadioLink];
    }
    else
       log_line("[HW Radio Check] New radio link is serial. Use adapter frequency for the radio link frequency.");
 
    pModel->radioLinksParams.links_count++;
-   log_line("[HW Radio Check] Added a new model radio link (radio link %d) for hardware radio interface %d [%s], on %s", 
+   log_line("[HW Radio Check] Added a new model radio link (radio link %d) for hardware radio interface %d [%s], on %s",
       pModel->radioLinksParams.links_count,
       iInterfaceIndex+1, pRadioHWInfo->szMAC, str_format_frequency(pModel->radioLinksParams.link_frequency_khz[pModel->radioLinksParams.links_count-1]));
 }
@@ -481,7 +481,7 @@ bool check_update_hardware_nics_vehicle(Model* pModel)
       for( int k=iRadioLink; k<pModel->radioLinksParams.links_count-1; k++ )
       {
          pModel->copy_radio_link_params(k+1, k);
-         
+
          for( int card=0; card<pModel->radioInterfacesParams.interfaces_count; card++ )
             if ( pModel->radioInterfacesParams.interface_link_id[card] == k+1 )
                pModel->radioInterfacesParams.interface_link_id[card] = k;
@@ -558,7 +558,7 @@ bool check_update_hardware_nics_vehicle(Model* pModel)
             }
             break;
          }
-      } 
+      }
       if ( ! bMatched )
          log_line("[HW Radio Check] Hardware radio interface [%s] (on position %d) was not mached to any existing model radio interfaces.", pRadioInfo->szMAC, i+1);
    }
@@ -628,7 +628,7 @@ bool check_update_hardware_nics_vehicle(Model* pModel)
          pModel->radioInterfacesParams.interface_capabilities_flags[i] &= ~RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO;
          if ( pRadioInfo->iCardModel == CARD_MODEL_SERIAL_RADIO_ELRS )
             pModel->radioInterfacesParams.interface_capabilities_flags[i] |= RADIO_HW_CAPABILITY_FLAG_SERIAL_LINK_ELRS;
-         
+
          pModel->radioInterfacesParams.interface_current_frequency_khz[i] = pRadioInfo->uCurrentFrequencyKhz;
       }
 
@@ -693,7 +693,7 @@ bool check_update_hardware_nics_vehicle(Model* pModel)
       for( int k=iRadioLink; k<pModel->radioLinksParams.links_count-1; k++ )
       {
          pModel->copy_radio_link_params(k+1, k);
-         
+
          for( int card=0; card<pModel->radioInterfacesParams.interfaces_count; card++ )
             if ( pModel->radioInterfacesParams.interface_link_id[card] == k+1 )
                pModel->radioInterfacesParams.interface_link_id[card] = k;
@@ -758,7 +758,7 @@ bool check_update_hardware_nics_vehicle(Model* pModel)
    // Case: mix of new and removed radio interfaces
 
    log_line("[HW Radio Check] Some radio interfaces where removed and some new ones where added. Adding radio links for new radio interfaces...");
-   
+
    // Create radio links for the new cards
 
    for( int i=0; i<pModel->radioInterfacesParams.interfaces_count; i++ )

@@ -65,11 +65,11 @@ typedef enum MAVLINK_GPS_FIX_TYPE
    MAVLINK_GPS_FIX_TYPE_STATIC=7, /* Static fixed, typically used for base stations | */
    MAVLINK_GPS_FIX_TYPE_PPP=8, /* PPP, 3D position. | */
    MAVLINK_GPS_FIX_TYPE_ENUM_END=9, /*  | */
-} MAVLINK_GPS_FIX_TYPE; 
+} MAVLINK_GPS_FIX_TYPE;
 
 #ifdef __cplusplus
 extern "C" {
-#endif   
+#endif
 
 
 typedef unsigned int u32;
@@ -86,7 +86,7 @@ typedef struct
    u8  rssi_quality; // 0...100
    char vehicle_name[MAX_VEHICLE_NAME_LENGTH];
    u8  vehicle_type;
-             
+
    u8 uFCFlags; // bitmask with flags
    u8 flight_mode;
    u32 arm_time; // in miliseconds
@@ -166,5 +166,5 @@ typedef struct
 } ALIGN_STRUCT_SPEC_INFO vehicle_and_telemetry_info2_t;
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

@@ -57,7 +57,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 typedef struct
 {
@@ -113,5 +113,5 @@ int hardware_i2c_has_external_extenders_buttons();
 int hardware_i2c_has_external_extenders_rcin();
 int hardware_i2c_has_oled_screen();
 #ifdef __cplusplus
-}  
+}
 #endif

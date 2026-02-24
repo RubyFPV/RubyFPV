@@ -46,7 +46,7 @@ MenuPreferences::MenuPreferences(void)
 
    int c = 0;
 
-   m_pItemsSelect[8] = new MenuItemSelect(L("Display Units"), L("Changes how the OSD displays data: in metric system or imperial system."));  
+   m_pItemsSelect[8] = new MenuItemSelect(L("Display Units"), L("Changes how the OSD displays data: in metric system or imperial system."));
    m_pItemsSelect[8]->addSelection("Metric (km/h)");
    m_pItemsSelect[8]->addSelection("Metric (m/s)");
    m_pItemsSelect[8]->addSelection("Imperial (mi/h)");
@@ -54,19 +54,19 @@ MenuPreferences::MenuPreferences(void)
    m_pItemsSelect[8]->setIsEditable();
    m_IndexUnits = addMenuItem(m_pItemsSelect[8]);
 
-   m_pItemsSelect[9] = new MenuItemSelect(L("Persistent Messages"), L("Keep the various messages and warnings longer on the screen."));  
+   m_pItemsSelect[9] = new MenuItemSelect(L("Persistent Messages"), L("Keep the various messages and warnings longer on the screen."));
    m_pItemsSelect[9]->addSelection("No");
    m_pItemsSelect[9]->addSelection("Yes");
    m_pItemsSelect[9]->setIsEditable();
    m_IndexPersistentMessages = addMenuItem(m_pItemsSelect[9]);
 
-   m_pItemsSelect[11] = new MenuItemSelect("Log Messages Window", "Shows the log messages window.");  
+   m_pItemsSelect[11] = new MenuItemSelect("Log Messages Window", "Shows the log messages window.");
    m_pItemsSelect[11]->addSelection("Off");
    m_pItemsSelect[11]->addSelection("On New Content");
    m_pItemsSelect[11]->addSelection("Always On");
    m_pItemsSelect[11]->setIsEditable();
    m_IndexLogWindow = addMenuItem(m_pItemsSelect[11]);
-   
+
    c++;
 }
 

@@ -18,9 +18,9 @@ class MenuVehicleVideoBidirectional: public Menu
       virtual void Render();
       virtual void onItemValueChanged(int itemIndex);
       virtual void onItemEndEdit(int itemIndex);
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
-            
+
    private:
       int m_IndexOneWay;
       int m_IndexAdaptiveVideo;

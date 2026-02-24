@@ -10,13 +10,13 @@ class MenuControllerRadioInterfaces: public Menu
 {
    public:
       MenuControllerRadioInterfaces();
-      virtual void onShow(); 
+      virtual void onShow();
       virtual void Render();
       virtual void valuesToUI();
       virtual void onSelectItem();
 
    private:
-      
+
       MenuItemSelect* m_pItemsSelect[20];
       MenuItemSlider* m_pItemsSlider[20];
       MenuItemEdit*   m_pItemsEdit[20];

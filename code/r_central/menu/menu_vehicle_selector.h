@@ -11,7 +11,7 @@ class MenuVehicleSelector: public Menu
       virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onShow();
       virtual void onSelectItem();
-      
+
       int m_IndexSelectedVehicle;
       bool m_bSpectatorMode;
 

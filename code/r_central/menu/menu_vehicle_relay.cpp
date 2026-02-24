@@ -108,7 +108,7 @@ void MenuVehicleRelay::onShow()
    m_bIsConfigurable = true;
 
    sprintf(szBuff, "Selects the vehicle to relay using the currently active vehicle: %s.", g_pCurrentModel->getLongName());
-   m_pItemsSelect[0] = new MenuItemSelect(L("Vehicle To Relay"), szBuff);  
+   m_pItemsSelect[0] = new MenuItemSelect(L("Vehicle To Relay"), szBuff);
    m_pItemsSelect[0]->addSelection(L("None"));
    for( int i=0; i<getControllerModelsCount(); i++ )
    {
@@ -141,7 +141,7 @@ void MenuVehicleRelay::onShow()
 
    m_pItemsSelect[0]->setIsEditable();
    m_IndexVehicle = addMenuItem(m_pItemsSelect[0]);
-   
+
    m_pItemsSelect[1] = new MenuItemSelect("Relay Radio Link", "Selects which radio link from current vehicle to use to connect to the relayed vehicle.");
    m_pItemsSelect[1]->addSelection("None");
    m_pItemsSelect[1]->setIsEditable();
@@ -155,7 +155,7 @@ void MenuVehicleRelay::onShow()
    m_pItemsSelect[2]->setIsEditable();
    m_IndexRelayType = addMenuItem(m_pItemsSelect[2]);
 
-   m_pItemsSelect[3] = new MenuItemSelect("Relay Switching", "Selects the QA button to be used to switch between this vehicle and the relayed one or enable permanent relaying of the vehicle.");  
+   m_pItemsSelect[3] = new MenuItemSelect("Relay Switching", "Selects the QA button to be used to switch between this vehicle and the relayed one or enable permanent relaying of the vehicle.");
    m_pItemsSelect[3]->addSelection(L("Disabled"));
    m_pItemsSelect[3]->addSelection(L("QA Button 1"));
    m_pItemsSelect[3]->addSelection(L("QA Button 2"));
@@ -190,7 +190,7 @@ void MenuVehicleRelay::onShow()
 void MenuVehicleRelay::valuesToUI()
 {
    Preferences* pP = get_Preferences();
-   
+
    if ( (NULL == pP) || (!m_bIsConfigurable) )
       return;
 
@@ -218,7 +218,7 @@ void MenuVehicleRelay::valuesToUI()
          log_softerror_and_alarm("MenuVehicleRelay: valuestoUI: Relay checks failed. Disabling relaying.");
          type_relay_parameters params;
          memcpy((u8*)&params, &(g_pCurrentModel->relay_params), sizeof(type_relay_parameters));
-         g_pCurrentModel->resetRelayParamsToDefaults(&params); 
+         g_pCurrentModel->resetRelayParamsToDefaults(&params);
          handle_commands_send_to_vehicle(COMMAND_ID_SET_RELAY_PARAMETERS, 0, (u8*)&params, sizeof(type_relay_parameters));
       }
       else
@@ -312,11 +312,11 @@ void MenuVehicleRelay::valuesToUI()
 void MenuVehicleRelay::Render()
 {
    RenderPrepare();
-   float yTop = RenderFrameAndTitle(); 
+   float yTop = RenderFrameAndTitle();
 
    _drawHeader(yTop - m_fHeightHeader - 0.4*m_sfMenuPaddingY);
    float y = yTop;
- 
+
    for( int i=0; i<m_ItemsCount; i++ )
       y += RenderItem(i,y);
    RenderEnd(yTop);
@@ -331,7 +331,7 @@ void MenuVehicleRelay::_drawHeader(float yPos)
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
    float height_text_large = g_pRenderEngine->textHeight(g_idFontMenuLarge);
    float hPixel = g_pRenderEngine->getPixelHeight();
-   
+
    float fXStart = m_xPos + m_sfMenuPaddingX;
    float fXEnd = m_xPos + m_Width - 2.0 * m_sfMenuPaddingX;
    float fMarginY = 0.02;
@@ -345,7 +345,7 @@ void MenuVehicleRelay::_drawHeader(float yPos)
    u32 uIdIconVehicle = g_idIconDrone;
    if ( NULL != g_pCurrentModel )
       uIdIconVehicle = osd_getVehicleIcon( g_pCurrentModel->vehicle_type );
-   
+
    g_pRenderEngine->setColors(get_Color_MenuText());
    g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
 
@@ -392,11 +392,11 @@ void MenuVehicleRelay::_drawHeader(float yPos)
       if ( 0 == iLinkDrawCount )
          g_pRenderEngine->drawText(fXMidLine - 0.5*fW, yMidLine - height_text*1.1, g_idFontMenu, szBuff);
       else if ( 1 == iLinkDrawCount )
-         g_pRenderEngine->drawText(fXMidLine - 0.5*fW, yMidLine + 0.1*height_text, g_idFontMenu, szBuff);    
+         g_pRenderEngine->drawText(fXMidLine - 0.5*fW, yMidLine + 0.1*height_text, g_idFontMenu, szBuff);
 
       iLinkDrawCount++;
    }
-   
+
    xPos = fXMid - wIcon * 0.5;
 
    // ---------------------------------------------
@@ -423,7 +423,7 @@ void MenuVehicleRelay::_drawHeader(float yPos)
    if ( (g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId < 0) ||
         (g_pCurrentModel->relay_params.uRelayedVehicleId == 0) ||
         (g_pCurrentModel->relay_params.uRelayFrequencyKhz == 0) )
-   {   
+   {
       strcpy(szBuff, "No Relayed");
       float fW = g_pRenderEngine->textWidth(g_idFontMenu, szBuff);
       g_pRenderEngine->drawText(fXMidLine - 0.5*fW, yMidLine - height_text*0.9, g_idFontMenu, szBuff);
@@ -437,7 +437,7 @@ void MenuVehicleRelay::_drawHeader(float yPos)
    }
 /*
    Model* pRelayedModel = findModelWithId(g_pCurrentModel->relay_params.uRelayedVehicleId, 19);
-   
+
    if ( NULL == pRelayedModel )
    {
       strcpy(szBuff, "Invalid Relayed");
@@ -449,7 +449,7 @@ void MenuVehicleRelay::_drawHeader(float yPos)
       g_pRenderEngine->drawText(xPos + 0.5*fSpacing - 0.5*fW, yMidLine + height_text*0.1, g_idFontMenu, szBuff);
 
       xPos += fSpacing + 0.02/g_pRenderEngine->getAspectRatio();
-      g_pRenderEngine->drawIcon(xPos, yMidLine - hIcon*0.5, hIcon/g_pRenderEngine->getAspectRatio(), hIcon, g_idIconX);  
+      g_pRenderEngine->drawIcon(xPos, yMidLine - hIcon*0.5, hIcon/g_pRenderEngine->getAspectRatio(), hIcon, g_idIconX);
       return;
    }
 
@@ -489,7 +489,7 @@ void MenuVehicleRelay::_drawHeader(float yPos)
       g_pRenderEngine->drawText(xPos + 0.5*fSpacing - 0.5*fW, yMidLine + height_text*0.1, g_idFontMenu, szBuff);
    }
    xPos += fSpacing + 0.02/g_pRenderEngine->getAspectRatio();
-   
+
    g_pRenderEngine->drawIcon(xPos, yMidLine - 0.5*hIcon, hIcon/g_pRenderEngine->getAspectRatio(), hIcon, uIdIconVehicle);
 
    if ( NULL == pRelayedModel )
@@ -550,7 +550,7 @@ bool MenuVehicleRelay::_check_if_vehicle_can_be_relayed(u32 uVehicleId)
    if ( 0 == uFrequencyRelayedVehicle )
    {
       strcpy(m_szRelayError, "No usable radio links");
-      snprintf(m_szRelayError2, sizeof(m_szRelayError2)/sizeof(m_szRelayError2[0]), "Your %s has no usable high capacity radio links to connect to as a relayed node.", 
+      snprintf(m_szRelayError2, sizeof(m_szRelayError2)/sizeof(m_szRelayError2[0]), "Your %s has no usable high capacity radio links to connect to as a relayed node.",
          pRelayedModel->getLongName());
       return false;
    }
@@ -571,7 +571,7 @@ bool MenuVehicleRelay::_check_if_vehicle_can_be_relayed(u32 uVehicleId)
    if ( uMainControllerFreq == uFrequencyRelayedVehicle )
    {
       strcpy(m_szRelayError, "Conflicting frequencies");
-      snprintf(m_szRelayError2, sizeof(m_szRelayError2)/sizeof(m_szRelayError2[0]), "Your %s uses the same frequency (%s) as your controller and current vehicle (%s). You need first to connect to %s and change it's frequency or change the current vehicle frequency.", 
+      snprintf(m_szRelayError2, sizeof(m_szRelayError2)/sizeof(m_szRelayError2[0]), "Your %s uses the same frequency (%s) as your controller and current vehicle (%s). You need first to connect to %s and change it's frequency or change the current vehicle frequency.",
          szNameRelayedVehicle, szFreqRelayedVehicle, szFreqMainRelayVehicle, szNameRelayedVehicle);
       return false;
    }
@@ -598,7 +598,7 @@ bool MenuVehicleRelay::_check_if_vehicle_can_be_relayed(u32 uVehicleId)
 
       if ( g_pCurrentModel->radioLinksParams.link_capabilities_flags[iLink] & RADIO_HW_CAPABILITY_FLAG_DISABLED )
          continue;
-      
+
       u32 uLinkSupportedBands = 0;
       for( int i=0; i<g_pCurrentModel->radioInterfacesParams.interfaces_count; i++ )
       {
@@ -643,7 +643,7 @@ bool MenuVehicleRelay::_check_if_vehicle_can_be_relayed(u32 uVehicleId)
        (bVehicleLinkSupportsRelayedFrequency[i]?"Yes":"No"),
        (m_bCurrentVehicleRelayCapableLinks[i]?"Yes":"No"),
        bVehicleLinkConflictsFrequencies[i]?"no (main controller link freq)":"yes"
-       );  
+       );
    }
 
    if ( 0 == m_iCountCurrentVehicleRelayCapableLinks )
@@ -685,14 +685,14 @@ void MenuVehicleRelay::_onSelectedVehicle(int iVehicleIndex)
    {
       type_relay_parameters params;
       memcpy((u8*)&params, &(g_pCurrentModel->relay_params), sizeof(type_relay_parameters));
-      
+
       if ( (params.isRelayEnabledOnRadioLinkId >= 0) ||
            (params.uRelayedVehicleId != 0) ||
            (params.uRelayFrequencyKhz != 0) ||
            (params.uCurrentRelayMode != 0) )
       {
          g_pCurrentModel->resetRelayParamsToDefaults(&params);
-         
+
          if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_RELAY_PARAMETERS, 0, (u8*)&params, sizeof(type_relay_parameters)) )
             valuesToUI();
       }
@@ -761,7 +761,7 @@ void MenuVehicleRelay::_onSelectedVehicle(int iVehicleIndex)
 void MenuVehicleRelay::onSelectItem()
 {
    Preferences* pP = get_Preferences();
-   
+
    Menu::onSelectItem();
    if ( (-1 == m_SelectedIndex) || (m_pMenuItems[m_SelectedIndex]->isEditing()) )
       return;
@@ -900,7 +900,7 @@ void MenuVehicleRelay::onSelectItem()
       memcpy((u8*)&params, &(g_pCurrentModel->relay_params), sizeof(type_relay_parameters));
 
       params.uRelayCapabilitiesFlags &= ~(RELAY_CAPABILITY_TRANSPORT_TELEMETRY | RELAY_CAPABILITY_TRANSPORT_VIDEO | RELAY_CAPABILITY_TRANSPORT_COMMANDS);
-      
+
       if ( 0 == m_pItemsSelect[2]->getSelectedIndex() )
          params.uRelayCapabilitiesFlags |= RELAY_CAPABILITY_TRANSPORT_VIDEO;
       else if ( 1 == m_pItemsSelect[2]->getSelectedIndex() )
@@ -923,7 +923,7 @@ void MenuVehicleRelay::onSelectItem()
       params.uRelayCapabilitiesFlags &= (~RELAY_CAPABILITY_SWITCH_OSD);
       if ( 1 == m_pItemsSelect[4]->getSelectedIndex() )
          params.uRelayCapabilitiesFlags |= RELAY_CAPABILITY_SWITCH_OSD;
-      
+
       if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_RELAY_PARAMETERS, 0, (u8*)&params, sizeof(type_relay_parameters)) )
          valuesToUI();
       return;
@@ -937,7 +937,7 @@ void MenuVehicleRelay::onSelectItem()
       params.uRelayCapabilitiesFlags &= (~RELAY_CAPABILITY_MERGE_OSD);
       if ( 1 == m_pItemsSelect[5]->getSelectedIndex() )
          params.uRelayCapabilitiesFlags |= RELAY_CAPABILITY_MERGE_OSD;
-      
+
       if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_RELAY_PARAMETERS, 0, (u8*)&params, sizeof(type_relay_parameters)) )
          valuesToUI();
       return;

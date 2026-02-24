@@ -34,7 +34,7 @@
 #include "../base/config.h"
 #include "../base/models.h"
 #include "../base/utils.h"
-#include "../radio/fec.h" 
+#include "../radio/fec.h"
 #include "shared_vars.h"
 #include "generic_rx_ecbuffers.h"
 #include "timers.h"
@@ -147,7 +147,7 @@ void GenericRxECBuffers::_clearBuffers(const char* szReason)
    m_iTopBufferIndex = 0;
    m_iBottomBufferIndexToOutput = 0;
    m_iBottomPacketIndexToOutput = 0;
-   
+
    if ( NULL == m_pBlocks )
       return;
    for( int i=0; i<m_iMaxBlocks; i++ )
@@ -235,7 +235,7 @@ void GenericRxECBuffers::_computeECDataOnBlock(int iBufferIndex)
    for( int i=0; i<(int)m_missing_packets_count_for_ec; i++ )
    {
       int iPacketIndexToFix = m_ec_decode_missing_packets_indexes[i];
-      
+
       m_pBlocks[iBufferIndex].pPackets[iPacketIndexToFix]->bEmpty = false;
       m_pBlocks[iBufferIndex].pPackets[iPacketIndexToFix]->bOutputed = false;
       m_pBlocks[iBufferIndex].pPackets[iPacketIndexToFix]->bReconstructed = true;
@@ -266,7 +266,7 @@ void GenericRxECBuffers::checkAddPacket(u32 uBlockIndex, u32 uPacketIndex, u8* p
 
    // Top block is not empty
    // Non-empty buffers from now on
- 
+
    // On the current top block?
    if ( m_pBlocks[m_iTopBufferIndex].uBlockIndex == uBlockIndex )
    {
@@ -307,7 +307,7 @@ void GenericRxECBuffers::checkAddPacket(u32 uBlockIndex, u32 uPacketIndex, u8* p
    }
 
    // Future block packet
-   
+
    u32 uDiffBlocks = uBlockIndex - m_pBlocks[m_iTopBufferIndex].uBlockIndex;
    if ( uDiffBlocks >= (u32)m_iMaxBlocks - 1 )
    {
@@ -401,12 +401,12 @@ u8* GenericRxECBuffers::getMarkFirstPacketToOutput(int* piLength, u32* puBlockIn
    if ( iCount == 0 )
       log_softerror_and_alarm("[GenericRxEcBuffer] Tried to iterate past the rx-ec-buffer size (%d blocks)", m_iMaxBlocks);
 
-  
+
    if ( m_pBlocks[m_iBottomBufferIndexToOutput].bEmpty ||
         m_pBlocks[m_iBottomBufferIndexToOutput].pPackets[m_iBottomPacketIndexToOutput]->bEmpty ||
         m_pBlocks[m_iBottomBufferIndexToOutput].pPackets[m_iBottomPacketIndexToOutput]->bOutputed )
      return NULL;
-   
+
    if ( NULL != piLength )
       *piLength = m_pBlocks[m_iBottomBufferIndexToOutput].pPackets[m_iBottomPacketIndexToOutput]->iFilledBytes;
    if ( NULL != puBlockIndex )

@@ -144,16 +144,16 @@ void MenuItemLegend::Render(float xPos, float yPos, bool bSelected, float fWidth
 {
    m_RenderLastY = yPos;
    m_RenderLastX = xPos;
-      
+
    g_pRenderEngine->setColors(get_Color_MenuText());
 
    int iFont = g_idFontMenu;
    if ( m_bSmall )
       iFont = g_idFontMenuSmall;
 
-   g_pRenderEngine->drawText(xPos, yPos, iFont, m_pszTitle); 
+   g_pRenderEngine->drawText(xPos, yPos, iFont, m_pszTitle);
    //g_pRenderEngine->drawMessageLines(xPos, yPos, m_pszTitle, MENU_TEXTLINE_SPACING, m_RenderTitleWidth, iFont);
-      
+
    m_RenderTitleWidth = g_pRenderEngine->textWidth(iFont, m_pszTitle);
 
    xPos += m_RenderTitleWidth + Menu::getMenuPaddingX();

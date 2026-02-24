@@ -12,7 +12,7 @@ class MenuVehicleAlarms: public Menu
       virtual void valuesToUI();
       virtual void Render();
       virtual void onSelectItem();
-            
+
    private:
       MenuItemSlider* m_pItemsSlider[4];
       MenuItemSelect* m_pItemsSelect[14];

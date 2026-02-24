@@ -6,11 +6,11 @@ class MenuControllerRecording: public Menu
 {
    public:
       MenuControllerRecording();
-      virtual void onShow();     
+      virtual void onShow();
       virtual void Render();
       virtual void onSelectItem();
       virtual void valuesToUI();
-      
+
    private:
       MenuItemSelect* m_pItemsSelect[30];
       MenuItemSlider* m_pItemsSlider[5];

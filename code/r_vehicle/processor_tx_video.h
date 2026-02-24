@@ -20,7 +20,7 @@ class ProcessorTxVideo
 
       bool init();
       bool uninit();
-      
+
       void periodicLoop();
 
       u32 getCurrentVideoBitrate();
@@ -36,7 +36,7 @@ class ProcessorTxVideo
       int m_iInstanceIndex;
       int m_iVideoStreamIndex;
       int m_iCameraIndex;
-      
+
       u32 m_uIntervalMSComputeVideoBitrateSample;
       u32 m_uTimeLastVideoBitrateSampleTaken;
 

@@ -98,7 +98,7 @@ bool osd_widgets_load()
       log_line("No OSD widgets configuration file present (%s). Skipping OSD widgets.", szFile);
       return false;
    }
-   
+
    FILE* fd = fopen(szFile, "rb");
    if ( NULL == fd )
    {
@@ -108,10 +108,10 @@ bool osd_widgets_load()
       return false;
    }
 
-   
+
    if ( 1 != fscanf(fd, "%*s %d", &s_iListOSDWidgetsCount) )
    { bFailed = true;   s_iListOSDWidgetsCount = 0; }
-   
+
 
    for( int i=0; i<s_iListOSDWidgetsCount; i++ )
    {
@@ -223,7 +223,7 @@ bool osd_widgets_save()
          if ( szBuff[k] == ' ' )
             szBuff[k] = '*';
       fprintf(fd, "%u %d %s\n", s_ListOSDWidgets[i].info.uGUID, s_ListOSDWidgets[i].info.iVersion, szBuff);
-   
+
       int iCountModels = 0;
       for( int k=0; k<MAX_MODELS; k++ )
       {
@@ -251,7 +251,7 @@ bool osd_widgets_save()
                 fprintf(fd, "%d ", s_ListOSDWidgets[i].display_info[k][j].iParams[iParam]);
              fprintf(fd, "\n");
          }
-      }      
+      }
    }
    fclose(fd);
    return true;
@@ -272,7 +272,7 @@ int osd_widget_add_to_model(type_osd_widget* pWidget, u32 uVehicleId)
 {
    if ( (NULL == pWidget) || (0 == uVehicleId) || (MAX_U32 == uVehicleId) )
       return -1;
-   
+
    int iIndexFree = -1;
    for( int i=0; i<MAX_MODELS; i++ )
    {
@@ -326,7 +326,7 @@ int osd_widget_get_model_index(type_osd_widget* pWidget, u32 uVehicleId)
 {
    if ( (NULL == pWidget) || (0 == uVehicleId) || (MAX_U32 == uVehicleId) )
       return -1;
-   
+
    for( int i=0; i<MAX_MODELS; i++ )
    {
        if ( pWidget->display_info[i][0].uVehicleId == uVehicleId )

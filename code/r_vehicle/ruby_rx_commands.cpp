@@ -227,7 +227,7 @@ void populate_model_settings_buffer()
    sprintf(szComm, "rm -rf %s/model.tar*", FOLDER_RUBY_TEMP);
    hw_execute_bash_command(szComm, NULL);
    sprintf(szComm, "rm -rf %s/model.mdl", FOLDER_RUBY_TEMP);
-   hw_execute_bash_command(szComm, NULL); 
+   hw_execute_bash_command(szComm, NULL);
 }
 
 
@@ -241,7 +241,7 @@ void send_model_settings_to_controller()
       return;
    }
 
-   log_line("Queueing to router to send to controller all model settings. Compressed size: %d bytes", s_bufferModelSettingsLength); 
+   log_line("Queueing to router to send to controller all model settings. Compressed size: %d bytes", s_bufferModelSettingsLength);
    log_line("Queueing to router to send to controller tar model file. Total on time: %dm:%02ds, total mAh: %d", g_pCurrentModel->m_Stats.uCurrentOnTime/60, g_pCurrentModel->m_Stats.uCurrentOnTime%60, g_pCurrentModel->m_Stats.uCurrentTotalCurrent);
    log_line("Send radio messages, from VID %u to VID %u (%u)", g_pCurrentModel->uVehicleId, g_pCurrentModel->uControllerId, g_uControllerId);
 
@@ -270,8 +270,8 @@ void send_model_settings_to_controller()
    if ( NULL != g_pProcessStats )
       g_pProcessStats->lastActiveTime = get_current_timestamp_ms();
 
-   log_line("Sent to router all model settings (send unique id: %u). Total compressed size: %d bytes", s_uCommandsSettingsParamsUniqueCounter, s_bufferModelSettingsLength); 
-   
+   log_line("Sent to router all model settings (send unique id: %u). Total compressed size: %d bytes", s_uCommandsSettingsParamsUniqueCounter, s_bufferModelSettingsLength);
+
    int iSegmentSize = 150;
    int iCountSegments = s_bufferModelSettingsLength / iSegmentSize;
    if ( iCountSegments * iSegmentSize != s_bufferModelSettingsLength )
@@ -279,14 +279,14 @@ void send_model_settings_to_controller()
    int iPos = 0;
    int iSegment = 0;
    u8 uSegment[256];
-         
+
    uFlags = 1;
    while ( iPos < s_bufferModelSettingsLength )
    {
       int iSize = iSegmentSize;
       if ( iPos + iSize > s_bufferModelSettingsLength )
          iSize = s_bufferModelSettingsLength - iPos;
-      
+
       uSegment[0] = iSegment;
       uSegment[1] = iCountSegments;
       uSegment[2] = iSize;
@@ -296,7 +296,7 @@ void send_model_settings_to_controller()
       PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
       PH.vehicle_id_dest = g_pCurrentModel->uControllerId;
       PH.total_length = sizeof(t_packet_header) + 2*sizeof(u32) + sizeof(u8) + 3*sizeof(u8) + iSize;
-   
+
       memcpy(packet, (u8*)&PH, sizeof(t_packet_header));
       memcpy(packet + sizeof(t_packet_header), (u8*)&uStartFlag, sizeof(u32));
       memcpy(packet + sizeof(t_packet_header) + sizeof(u32), (u8*)&s_uCommandsSettingsParamsUniqueCounter, sizeof(u32));
@@ -311,8 +311,8 @@ void send_model_settings_to_controller()
          g_pProcessStats->lastActiveTime = get_current_timestamp_ms();
 
       log_line("Sent to router all model settings in small segments (send unique id: %u). Segment %d of %d, %d bytes",
-          s_uCommandsSettingsParamsUniqueCounter, iSegment+1, (int)uSegment[1], (int) uSegment[2]); 
-  
+          s_uCommandsSettingsParamsUniqueCounter, iSegment+1, (int)uSegment[1], (int) uSegment[2]);
+
       iSegment++;
       iPos += iSize;
    }
@@ -457,7 +457,7 @@ void setCommandReplyBufferExtra(u8* pData, int length, u8* pExtra, int extra)
       memcpy(lastRecvCommandReplyBuffer+length, pExtra, extra);
 }
 
- 
+
 void sendCommandReply(u8 responseFlags, int iResponseExtraParam, int delayMiliSec)
 {
    if ( lastRecvCommandType & COMMAND_TYPE_FLAG_NO_RESPONSE_NEEDED )
@@ -480,7 +480,7 @@ void sendCommandReply(u8 responseFlags, int iResponseExtraParam, int delayMiliSe
    PHCR.command_response_flags = lastRecvCommandResponseFlags;
    PHCR.command_response_param = iResponseExtraParam;
    PHCR.response_counter = s_CurrentResponseCounter;
-   
+
    u8 buffer[MAX_PACKET_TOTAL_SIZE];
    memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
    memcpy(buffer+sizeof(t_packet_header), (u8*)&PHCR, sizeof(t_packet_header_command_response));
@@ -642,7 +642,7 @@ void _process_received_uploaded_file()
       char szComm[128];
       sprintf(szComm, "rm -rf %s/core_plugins.zip 2>&1", FOLDER_RUBY_TEMP);
       hw_execute_bash_command(szComm, NULL);
-      
+
       char szFile[MAX_FILE_PATH_SIZE];
       strcpy(szFile, FOLDER_RUBY_TEMP);
       strcat(szFile, "core_plugins.zip");
@@ -801,7 +801,7 @@ bool process_command(u8* pBuffer, int length)
          char szComm[128];
          sprintf(szComm, "rm -rf %s%s", FOLDER_CONFIG, FILE_CONFIG_ENCRYPTION_PASS);
          hw_execute_bash_command(szComm, NULL);
-         rpp(); 
+         rpp();
          sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
 
          g_pCurrentModel->enc_flags = flags;
@@ -888,7 +888,7 @@ bool process_command(u8* pBuffer, int length)
 
    if ( uCommandType == COMMAND_ID_UPLOAD_FILE_SEGMENT )
    {
-      return _process_file_segment_upload_request( pBuffer, length);    
+      return _process_file_segment_upload_request( pBuffer, length);
    }
 
    if ( uCommandType == COMMAND_ID_CLEAR_LOGS )
@@ -932,10 +932,10 @@ bool process_command(u8* pBuffer, int length)
    {
       log_line("Received command to get core plugins info.");
       command_packet_core_plugins_response response;
-      
+
       load_CorePlugins(1);
       load_CorePluginsSettings();
-      
+
       response.iCountPlugins = get_CorePluginsCount();
       for( int i=0; i<response.iCountPlugins; i++ )
       {
@@ -1013,7 +1013,7 @@ bool process_command(u8* pBuffer, int length)
          g_pCurrentModel->processesPriorities.iFreqARM = 1200;
       else if ( (board_type == BOARD_TYPE_PI3BPLUS) || (board_type == BOARD_TYPE_PI4B) || (board_type == BOARD_TYPE_PI3APLUS) )
          g_pCurrentModel->processesPriorities.iFreqARM = 1400;
-      else if ( (board_type != BOARD_TYPE_PIZERO) && (board_type != BOARD_TYPE_PIZEROW) && (board_type != BOARD_TYPE_NONE) 
+      else if ( (board_type != BOARD_TYPE_PIZERO) && (board_type != BOARD_TYPE_PIZEROW) && (board_type != BOARD_TYPE_NONE)
                && (board_type != BOARD_TYPE_PI2B) && (board_type != BOARD_TYPE_PI2BV11) && (board_type != BOARD_TYPE_PI2BV12) )
          g_pCurrentModel->processesPriorities.iFreqARM = 1200;
       #endif
@@ -1022,7 +1022,7 @@ bool process_command(u8* pBuffer, int length)
       g_pCurrentModel->processesPriorities.iFreqARM = DEFAULT_FREQ_OPENIPC_SIGMASTAR;
       hardware_set_default_sigmastar_cpu_freq();
       #endif
-      
+
       g_pCurrentModel->processesPriorities.iFreqGPU = 400;
       g_pCurrentModel->processesPriorities.iOverVoltage = 3;
       saveCurrentModel();
@@ -1094,7 +1094,7 @@ bool process_command(u8* pBuffer, int length)
          hw_execute_bash_command_raw("cat /proc/device-tree/model", szOutput);
          strcat(szBuffer, "CPU: ");
          strcat(szBuffer, szOutput);
-         strcat(szBuffer, "#"); 
+         strcat(szBuffer, "#");
 
          szOutput[0] = 0;
          #ifdef HW_PLATFORM_RASPBERRY
@@ -1146,7 +1146,7 @@ bool process_command(u8* pBuffer, int length)
             szOutput[strlen(szOutput)-1] = 0;
          strcat(szBuffer, ", ruby_rt_vehicle: ");
          strcat(szBuffer, szOutput);
-         
+
          hw_execute_ruby_process_wait(NULL, "ruby_tx_telemetry", "-ver", szOutput, 1);
          if ( strlen(szOutput)> 0 )
          if ( szOutput[strlen(szOutput)-1] == 10 || szOutput[strlen(szOutput)-1] == 13 )
@@ -1179,7 +1179,7 @@ bool process_command(u8* pBuffer, int length)
          strcat(szBuffer, szOutput);
          #endif
 
-         strcat(szBuffer, " #");     
+         strcat(szBuffer, " #");
 
          strcat(szBuffer, "USB Devices: #");
          hw_execute_bash_command_raw("lsusb", szOutput);
@@ -1270,7 +1270,7 @@ bool process_command(u8* pBuffer, int length)
           hw_execute_bash_command(szComm, NULL);
           sprintf(szComm, "rm -rf %s/tmp_usb_info.txt 2>/dev/null", FOLDER_RUBY_TEMP);
           hw_execute_bash_command(szComm, NULL);
-          return true;       
+          return true;
       }
       szBuff2[0] = 0;
       iLen2 = fread(szBuff2, 1, 3000, fd);
@@ -1289,7 +1289,7 @@ bool process_command(u8* pBuffer, int length)
       log_line("Send reply of %d bytes to get USB info command.", iLen2);
       setCommandReplyBuffer((u8*)szBuff2, iLen2);
       sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 1, 0);
-      return true;       
+      return true;
    }
 
    if ( uCommandType == COMMAND_ID_GET_USB_INFO2 )
@@ -1302,7 +1302,7 @@ bool process_command(u8* pBuffer, int length)
 
       char szBuffUSB[3000];
       szBuffUSB[0] = 0;
-    
+
       DIR *d;
       struct dirent *dir;
       char szFile[512];
@@ -1424,7 +1424,7 @@ bool process_command(u8* pBuffer, int length)
           hw_execute_bash_command(szComm, NULL);
           sprintf(szComm, "rm -rf %s/tmp_usb_info2.txt 2>/dev/null", FOLDER_RUBY_TEMP);
           hw_execute_bash_command(szComm, NULL);
-          return true;       
+          return true;
       }
       szBuffUSB[0] = 0;
       iLen = fread(szBuffUSB, 1, 3000, fd);
@@ -1443,7 +1443,7 @@ bool process_command(u8* pBuffer, int length)
       log_line("Send reply of %d bytes to get USB info command.", iLen);
       setCommandReplyBuffer((u8*)szBuffUSB, iLen);
       sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 1, 0);
-      return true;       
+      return true;
    }
 
    if ( uCommandType == COMMAND_ID_GET_MEMORY_INFO )
@@ -1528,7 +1528,7 @@ bool process_command(u8* pBuffer, int length)
       char szBuffer[2048];
       char szOutput[1500];
       szBuffer[0] = 0;
-      
+
       FILE* fd = NULL;
       int iMajor = 0;
       int iMinor = 0;
@@ -1557,7 +1557,7 @@ bool process_command(u8* pBuffer, int length)
             fclose(fd);
          }
       }
-      
+
       char szFile[128];
       strcpy(szFile, FOLDER_CONFIG);
       strcat(szFile, FILE_INFO_LAST_UPDATE);
@@ -1612,7 +1612,7 @@ bool process_command(u8* pBuffer, int length)
       if ( NULL != g_pProcessStats )
          g_pProcessStats->lastActiveTime = get_current_timestamp_ms();
       #endif
-        
+
       #if defined (HW_PLATFORM_OPENIPC_CAMERA)
       hw_get_process_priority(VIDEO_RECORDER_COMMAND, szOutput);
       strcat(szBuffer, szOutput);
@@ -1667,7 +1667,7 @@ bool process_command(u8* pBuffer, int length)
 
       hw_execute_bash_command_raw("vcgencmd measure_volts core", szOutput);
       szOutput[strlen(szOutput)-1] = 0;
-      if ( szOutput[strlen(szOutput)-1] == 10 || 
+      if ( szOutput[strlen(szOutput)-1] == 10 ||
          szOutput[strlen(szOutput)-1] == 13 )
          szOutput[strlen(szOutput)-1] = 0;
 
@@ -1836,7 +1836,7 @@ bool process_command(u8* pBuffer, int length)
          g_pCurrentModel->radioInterfacesParams.iAutoControllerTxPower = 1;
       else
          g_pCurrentModel->radioInterfacesParams.iAutoControllerTxPower = 0;
-      
+
       saveCurrentModel();
       signalReloadModel(MODEL_CHANGED_GENERIC, 0);
       return true;
@@ -1900,7 +1900,7 @@ bool process_command(u8* pBuffer, int length)
       saveCurrentModel();
       if ( ! g_pCurrentModel->hasCamera() )
          return true;
-      
+
       _signalCameraParametersChanged(g_pCurrentModel->iCurrentCamera);
       return true;
    }
@@ -1911,7 +1911,7 @@ bool process_command(u8* pBuffer, int length)
       if ( (iCam < 0) || (iCam >= g_pCurrentModel->iCameraCount ) )
       {
          sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED, 0, 0);
-         return true;         
+         return true;
       }
       sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
 
@@ -1920,14 +1920,14 @@ bool process_command(u8* pBuffer, int length)
       if ( !hardware_hasCamera() )
          return true;
       _signalCameraParametersChanged(iCam);
-     
+
       return true;
    }
 
    if ( uCommandType == COMMAND_ID_FORCE_CAMERA_TYPE )
    {
       sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
-      int iCamType = (int)pPHC->command_param;      
+      int iCamType = (int)pPHC->command_param;
       g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].iForcedCameraType = iCamType;
       saveCurrentModel();
       signalReloadModel(0, 0);
@@ -1961,7 +1961,7 @@ bool process_command(u8* pBuffer, int length)
          log_softerror_and_alarm("Tried to change link frequency (to %s) for a relay link (radio link %u).", str_format_frequency(uNewFreq), uLinkIndex+1);
          freqIsOk = false;
       }
-      
+
       if ( ! freqIsOk )
       {
          for( int i=0; i<20; i++ )
@@ -2003,7 +2003,7 @@ bool process_command(u8* pBuffer, int length)
 
       if ( NULL != g_pProcessStats )
          g_pProcessStats->lastActiveTime = get_current_timestamp_ms();
-      
+
       if ( g_pCurrentModel->radioLinkIsSiKRadio(uLinkIndex) )
          signalReloadModel(MODEL_CHANGED_SIK_FREQUENCY, 0);
       else
@@ -2140,7 +2140,7 @@ bool process_command(u8* pBuffer, int length)
          if ( (g_pCurrentModel->radioInterfacesParams.interface_radiotype_and_driver[iRadioInterfaceId] & 0xFF) == RADIO_TYPE_ATHEROS )
             bIsAtheros = true;
          if ( (g_pCurrentModel->radioInterfacesParams.interface_radiotype_and_driver[iRadioInterfaceId] & 0xFF) == RADIO_TYPE_RALINK )
-            bIsAtheros = true; 
+            bIsAtheros = true;
       }
       if ( bIsAtheros )
       {
@@ -2156,7 +2156,7 @@ bool process_command(u8* pBuffer, int length)
          sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 5);
       return true;
    }
-   
+
    if ( uCommandType == COMMAND_ID_SET_RADIO_LINK_FLAGS )
    {
       if ( iParamsLength != (int)(2*sizeof(u32)+2*sizeof(int)) )
@@ -2182,12 +2182,12 @@ bool process_command(u8* pBuffer, int length)
       }
 
       char szBuffR[256];
-      str_get_radio_frame_flags_description(g_pCurrentModel->radioLinksParams.link_radio_flags_tx[linkIndex], szBuffR); 
+      str_get_radio_frame_flags_description(g_pCurrentModel->radioLinksParams.link_radio_flags_tx[linkIndex], szBuffR);
       log_line("Current radio link tx flags for radio link %d: %s, downlink datarates: %d/%d", (int)linkIndex+1, szBuffR, g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[linkIndex], g_pCurrentModel->radioLinksParams.downlink_datarate_data_bps[linkIndex]);
-      str_get_radio_frame_flags_description(g_pCurrentModel->radioLinksParams.link_radio_flags_rx[linkIndex], szBuffR); 
+      str_get_radio_frame_flags_description(g_pCurrentModel->radioLinksParams.link_radio_flags_rx[linkIndex], szBuffR);
       log_line("Current radio link rx flags for radio link %d: %s, uplink datarates: %d/%d", (int)linkIndex+1, szBuffR, g_pCurrentModel->radioLinksParams.uplink_datarate_video_bps[linkIndex], g_pCurrentModel->radioLinksParams.uplink_datarate_data_bps[linkIndex]);
 
-      str_get_radio_frame_flags_description(linkFlags, szBuffR); 
+      str_get_radio_frame_flags_description(linkFlags, szBuffR);
       log_line("Received new radio link flags for radio link %d: %s, datarates: %d/%d", (int)linkIndex+1, szBuffR, datarateVideo, datarateData);
 
       if ( g_pCurrentModel->radioLinkIsWiFiRadio(linkIndex) )
@@ -2197,7 +2197,7 @@ bool process_command(u8* pBuffer, int length)
          s_iRadioLinkIdChangeConfirmation = (int)linkIndex;
          memcpy(&s_LastGoodRadioLinksParams, &(g_pCurrentModel->radioLinksParams), sizeof(type_radio_links_parameters));
       }
- 
+
       g_pCurrentModel->radioLinksParams.link_radio_flags_tx[linkIndex] = linkFlags;
       g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[linkIndex] = datarateVideo;
       g_pCurrentModel->radioLinksParams.downlink_datarate_data_bps[linkIndex] = datarateData;
@@ -2417,7 +2417,7 @@ bool process_command(u8* pBuffer, int length)
    {
       type_alarms_parameters* params = (type_alarms_parameters*)(pBuffer + sizeof(t_packet_header)+sizeof(t_packet_header_command));
       memcpy(&g_pCurrentModel->alarms_params, params, sizeof(type_alarms_parameters));
-      
+
       log_line("Received alarms params. New motor alarm value: %d/%d",
          g_pCurrentModel->alarms_params.uAlarmMotorCurrentThreshold & (1<<7),
          g_pCurrentModel->alarms_params.uAlarmMotorCurrentThreshold & 0x7F );
@@ -2433,7 +2433,7 @@ bool process_command(u8* pBuffer, int length)
       static u32 s_uLastCommandIdSetOSDLayout = MAX_U32;
       if ( pPHC->command_counter == s_uLastCommandIdSetOSDLayout )
          return true;
-      
+
       s_uLastCommandIdSetOSDLayout = pPHC->command_counter;
 
       int nOSDIndex = pPHC->command_param;
@@ -2443,7 +2443,7 @@ bool process_command(u8* pBuffer, int length)
       saveCurrentModel();
       log_line("Saved received new active OSD layout layout: %d, enabled: %s", nOSDIndex, (g_pCurrentModel->osd_params.osd_flags2[nOSDIndex] & OSD_FLAG2_LAYOUT_ENABLED)?"yes":"no");
       signalReloadModel(MODEL_CHANGED_OSD_PARAMS, 0);
-      return true;    
+      return true;
    }
 
    if ( uCommandType == COMMAND_ID_SET_SERIAL_PORTS_INFO )
@@ -2466,7 +2466,7 @@ bool process_command(u8* pBuffer, int length)
          iCount = hardware_serial_get_ports_count();
 
       int iSiKPortToUpdate = -1;
-      int iSikPortSpeedToUse = -1;   
+      int iSikPortSpeedToUse = -1;
       for( int i=0; i<iCount; i++ )
       {
          hw_serial_port_info_t* pPortInfo = hardware_get_serial_port_info(i);
@@ -2492,7 +2492,7 @@ bool process_command(u8* pBuffer, int length)
       hardware_serial_save_configuration();
       saveCurrentModel();
       signalReloadModel(MODEL_CHANGED_SERIAL_PORTS, 0);
-      
+
       if ( -1 != iSiKPortToUpdate )
       {
          hw_serial_port_info_t* pPortInfo = hardware_get_serial_port_info(iSiKPortToUpdate);
@@ -2512,7 +2512,7 @@ bool process_command(u8* pBuffer, int length)
                      PH.vehicle_id_src = (u32)i;
                      PH.vehicle_id_dest = (u32)iSikPortSpeedToUse;
                      PH.total_length = sizeof(t_packet_header);
-                     
+
                      u8 buffer[MAX_PACKET_TOTAL_SIZE];
                      memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
                      ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, PH.total_length);
@@ -2527,7 +2527,7 @@ bool process_command(u8* pBuffer, int length)
             }
          }
       }
-      return true;      
+      return true;
    }
 
    if ( uCommandType == COMMAND_ID_SET_TELEMETRY_TYPE_AND_PORT )
@@ -2574,7 +2574,7 @@ bool process_command(u8* pBuffer, int length)
          for( int i=0; i<g_pCurrentModel->hardwareInterfacesInfo.serial_port_count; i++ )
          {
              u32 uPortTelemetryType = g_pCurrentModel->hardwareInterfacesInfo.serial_port_supported_and_usage[i] & 0xFF;
-             
+
              if ( g_pCurrentModel->hardwareInterfacesInfo.serial_port_supported_and_usage[i] & MODEL_SERIAL_PORT_BIT_SUPPORTED )
              if ( uPortTelemetryType == SERIAL_PORT_USAGE_TELEMETRY )
              {
@@ -2588,7 +2588,7 @@ bool process_command(u8* pBuffer, int length)
             for( int i=0; i<g_pCurrentModel->hardwareInterfacesInfo.serial_port_count; i++ )
             {
                u32 uPortUsage = g_pCurrentModel->hardwareInterfacesInfo.serial_port_supported_and_usage[i] & 0xFF;
-               
+
                if ( g_pCurrentModel->hardwareInterfacesInfo.serial_port_supported_and_usage[i] & MODEL_SERIAL_PORT_BIT_SUPPORTED )
                if ( uPortUsage == SERIAL_PORT_USAGE_NONE )
                {
@@ -2665,7 +2665,7 @@ bool process_command(u8* pBuffer, int length)
          sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED, 0, 0);
          return true;
       }
-         
+
       u32 vid = g_pCurrentModel->uVehicleId;
       u32 ctrlId = g_pCurrentModel->uControllerId;
       int boardType = g_pCurrentModel->hwCapabilities.uBoardType;
@@ -2716,7 +2716,7 @@ bool process_command(u8* pBuffer, int length)
       vehicle_stop_tx_router();
       vehicle_stop_audio_capture(g_pCurrentModel);
       if ( g_pCurrentModel->hasCamera() )
-         vehicle_stop_video_capture(g_pCurrentModel); 
+         vehicle_stop_video_capture(g_pCurrentModel);
 
       if ( g_pCurrentModel->audio_params.has_audio_device )
          vehicle_launch_audio_capture(g_pCurrentModel);
@@ -2790,7 +2790,7 @@ bool process_command(u8* pBuffer, int length)
 
          if ( 0 == s_ZIPParams_Model_BufferLength || s_ZIPParams_Model_BufferLength > MAX_PACKET_PAYLOAD )
          {
-            log_softerror_and_alarm("Invalid compressed model file size (%d). Skipping sending it to controller.", s_ZIPParams_Model_BufferLength); 
+            log_softerror_and_alarm("Invalid compressed model file size (%d). Skipping sending it to controller.", s_ZIPParams_Model_BufferLength);
             sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED, 0, 0);
             return true;
          }
@@ -2799,7 +2799,7 @@ bool process_command(u8* pBuffer, int length)
       setCommandReplyBuffer(s_ZIPParams_Model_Buffer, s_ZIPParams_Model_BufferLength);
       sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 1, 10);
       log_line("Sent back to router all model settings in one single command response. Total compressed size: %d bytes", s_ZIPParams_Model_BufferLength);
-      
+
       if ( bSendBackSmallSegments )
       {
          int iSegmentSize = 150;
@@ -2812,7 +2812,7 @@ bool process_command(u8* pBuffer, int length)
          int iCountSegments = s_ZIPParams_Model_BufferLength / iSegmentSize;
          if ( iCountSegments * iSegmentSize != s_ZIPParams_Model_BufferLength )
             iCountSegments++;
-            
+
          while ( iPos < s_ZIPParams_Model_BufferLength )
          {
             int iSize = iSegmentSize;
@@ -2826,11 +2826,11 @@ bool process_command(u8* pBuffer, int length)
             setCommandReplyBuffer(uSegment, iSize+4);
             sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 1, 10);
             log_line("Sent back to router model settings command response as small segment (%d of %d) size: %d bytes",
-               iSegment+1, iCountSegments, iSize);             
+               iSegment+1, iCountSegments, iSize);
             iSegment++;
             iPos += iSize;
          }
-      } 
+      }
 
       hardware_sleep_ms(10);
       _signalRouterSendVehicleSettings();
@@ -2874,8 +2874,8 @@ bool process_command(u8* pBuffer, int length)
       if ( iCountCards != *pData )
       {
          log_softerror_and_alarm("Received invalid params to set cards tx powers: count cards (%d) different than received buffer size (%d)", *pData, iParamsLength);
-         sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED_INVALID_PARAMS, 0, 0);  
-         return true;     
+         sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED_INVALID_PARAMS, 0, 0);
+         return true;
       }
       log_line("Received new tx power levels for %d cards:", iCountCards);
       for( int i=0; i<iCountCards; i++ )
@@ -3094,8 +3094,8 @@ void on_received_command(u8* pBuffer, int length)
    lastRecvCommandReplyBufferLength = 0;
 
    if ( ! process_command(pBuffer, length) )
-      sendCommandReply(COMMAND_RESPONSE_FLAGS_UNKNOWN_COMMAND, 0, 0); 
-   //log_line("Finished processing command.");   
+      sendCommandReply(COMMAND_RESPONSE_FLAGS_UNKNOWN_COMMAND, 0, 0);
+   //log_line("Finished processing command.");
 }
 
 void _periodic_loop()
@@ -3115,15 +3115,15 @@ void _periodic_loop()
          g_pCurrentModel->validateRadioSettings();
 
          char szBuffR[128];
-         str_get_radio_frame_flags_description(g_pCurrentModel->radioLinksParams.link_radio_flags_tx[s_iRadioLinkIdChangeConfirmation], szBuffR); 
+         str_get_radio_frame_flags_description(g_pCurrentModel->radioLinksParams.link_radio_flags_tx[s_iRadioLinkIdChangeConfirmation], szBuffR);
          log_line("Revert radio link tx flags for link %d to: %s, downlink datarates: %d/%d", s_iRadioLinkIdChangeConfirmation+1, szBuffR, g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[s_iRadioLinkIdChangeConfirmation], g_pCurrentModel->radioLinksParams.downlink_datarate_data_bps[s_iRadioLinkIdChangeConfirmation]);
-         str_get_radio_frame_flags_description(g_pCurrentModel->radioLinksParams.link_radio_flags_rx[s_iRadioLinkIdChangeConfirmation], szBuffR); 
+         str_get_radio_frame_flags_description(g_pCurrentModel->radioLinksParams.link_radio_flags_rx[s_iRadioLinkIdChangeConfirmation], szBuffR);
          log_line("Revert radio link rx flags for link %d to: %s, uplink datarates: %d/%d", s_iRadioLinkIdChangeConfirmation+1, szBuffR, g_pCurrentModel->radioLinksParams.uplink_datarate_video_bps[s_iRadioLinkIdChangeConfirmation], g_pCurrentModel->radioLinksParams.uplink_datarate_data_bps[s_iRadioLinkIdChangeConfirmation]);
-   
+
          saveCurrentModel();
 
          log_line("Radio link %d datarates now: %d/%d", s_iRadioLinkIdChangeConfirmation+1, g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[s_iRadioLinkIdChangeConfirmation], g_pCurrentModel->radioLinksParams.downlink_datarate_data_bps[s_iRadioLinkIdChangeConfirmation]);
-         
+
          signalReloadModel(MODEL_CHANGED_RADIO_LINK_FRAMES_FLAGS, s_iRadioLinkIdChangeConfirmation);
          s_iRadioLinkIdChangeConfirmation = -1;
       }
@@ -3133,13 +3133,13 @@ void _periodic_loop()
       process_sw_upload_check_timeout(g_TimeNow);
 }
 
-void handle_sigint_rcom(int sig) 
-{ 
+void handle_sigint_rcom(int sig)
+{
    log_line("--------------------------");
    log_line("Caught signal to stop: %d", sig);
    log_line("--------------------------");
    g_bQuit = true;
-} 
+}
 
 int r_start_commands_rx(int argc, char* argv[])
 {
@@ -3166,7 +3166,7 @@ int r_start_commands_rx(int argc, char* argv[])
    s_fIPCToRouter = ruby_open_ipc_channel_write_endpoint(IPC_CHANNEL_TYPE_COMMANDS_TO_ROUTER);
    if ( s_fIPCToRouter < 0 )
       return -1;
- 
+
    hardware_detectBoardAndSystemType();
    // Need to have i2c enumarated already so command reset/factory reset does not take a lot of time
    hardware_i2c_enumerate_busses(0);
@@ -3214,7 +3214,7 @@ int r_start_commands_rx(int argc, char* argv[])
    {
       log_error_and_alarm("Failed to open semaphore: %s", SEMAPHORE_STOP_VEHICLE_COMMANDS);
       pSemaphoreStop = NULL;
-   } 
+   }
 
    g_TimeNow = get_current_timestamp_ms();
    g_TimeStart = get_current_timestamp_ms();
@@ -3230,13 +3230,13 @@ int r_start_commands_rx(int argc, char* argv[])
       g_pProcessStats->lastRadioRxTime = g_TimeNow;
       g_pProcessStats->lastIPCIncomingTime = g_TimeNow;
       g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
-   } 
-  
+   }
+
    g_TimeLastPeriodicCheck = get_current_timestamp_ms();
- 
+
    int iSleepIntervalMS = 2;
 
-   while (!g_bQuit) 
+   while (!g_bQuit)
    {
       hardware_sleep_ms(iSleepIntervalMS);
       g_uLoopCounter++;

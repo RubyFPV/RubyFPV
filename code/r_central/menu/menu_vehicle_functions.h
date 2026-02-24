@@ -15,7 +15,7 @@ class MenuVehicleFunctions: public Menu
       virtual void Render();
       virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
-            
+
    private:
       void sendParams();
 

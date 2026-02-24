@@ -59,7 +59,7 @@ MenuInfoBooster::~MenuInfoBooster()
 
 
 void MenuInfoBooster::onShow()
-{      
+{
    Menu::onShow();
 }
 
@@ -68,7 +68,7 @@ void MenuInfoBooster::Render()
 {
    char szBuff[256];
 
-   RenderPrepare();   
+   RenderPrepare();
    float yTop = RenderFrameAndTitle();
    float w = m_RenderWidth-2.0*m_sfMenuPaddingX;
    float dx = 0.1*m_sfMenuPaddingX;
@@ -97,7 +97,7 @@ void MenuInfoBooster::Render()
    float h = g_pRenderEngine->getMessageHeight(szBuff, MENU_TEXTLINE_SPACING, getUsableWidth()-dx, g_idFontMenu);
    g_pRenderEngine->drawMessageLines(x+dx, y, szBuff, MENU_TEXTLINE_SPACING, getUsableWidth()-dx, g_idFontMenu);
    g_pRenderEngine->drawIcon(x, y, dx*0.7, dx*0.7*g_pRenderEngine->getAspectRatio(), g_idIconWarning);
-         
+
    y += h;
    y += m_sfMenuPaddingY;
 

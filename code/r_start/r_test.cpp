@@ -80,7 +80,7 @@ void _test_clock_resolution()
 
    int socket_server;
    struct sockaddr_in server_addr, client_addr;
- 
+
    socket_server = socket(AF_INET , SOCK_DGRAM, 0);
    if (socket_server == -1)
    {
@@ -89,11 +89,11 @@ void _test_clock_resolution()
 
    memset(&server_addr, 0, sizeof(server_addr));
    memset(&client_addr, 0, sizeof(client_addr));
-    
+
    server_addr.sin_family = AF_INET;
    server_addr.sin_addr.s_addr = INADDR_ANY;
    server_addr.sin_port = htons( 5555 );
- 
+
    client_addr.sin_family = AF_INET;
    client_addr.sin_addr.s_addr = INADDR_ANY;
    client_addr.sin_port = htons( 5555 );
@@ -120,7 +120,7 @@ void _test_clock_resolution()
       timePipeInput.tv_usec = iLoop*500; // x miliseconds timeout
 
       int selectResult = select(socket_server+1, &readset, NULL, NULL, &timePipeInput);
-      
+
       uTime2 = get_current_timestamp_ms();
       log_line("Select %d, %d ms, result: %d, diff: %u - %u = %u", iLoop, iLoop/2, selectResult, uTime2, uTime1, uTime2-uTime1);
       uTime1 = uTime2;
@@ -143,7 +143,7 @@ void _test_clock_resolution()
       timePipeInput.tv_usec = 0;
 
       int selectResult = select(socket_server+1, &readset, NULL, NULL, &timePipeInput);
-      
+
       uTime2 = get_current_timestamp_ms();
       log_line("Select no wait, %d result: %d, diff: %u - %u = %u", iLoop, selectResult, uTime2, uTime1, uTime2-uTime1);
       uTime1 = uTime2;
@@ -154,7 +154,7 @@ void _test_clock_resolution()
 void _test_speed(const char* szId)
 {
    u32 uTimeStart = get_current_timestamp_ms();
-   
+
    char* pArray = (char*)malloc(2005);
 
    int k = 0;

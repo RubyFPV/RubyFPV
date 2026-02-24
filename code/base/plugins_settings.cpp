@@ -323,7 +323,7 @@ int getPluginModelSettingsIndex(SinglePluginSettings* pPlugin, Model* pModel)
                pPlugin->nSettings[i][k][j] = pPlugin->nSettings[i+1][k][j];
          }
       }
-      pPlugin->nModels--;   
+      pPlugin->nModels--;
    }
 
    // Add the new vehicle in the list

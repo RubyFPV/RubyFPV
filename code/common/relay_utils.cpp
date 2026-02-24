@@ -209,7 +209,7 @@ bool relay_vehicle_must_forward_relayed_video(Model* pMainModel)
 {
    if ( NULL == pMainModel )
       return false;
-   
+
    if ( (pMainModel->relay_params.isRelayEnabledOnRadioLinkId < 0 ) || (0 == pMainModel->relay_params.uRelayedVehicleId) )
       return false;
 

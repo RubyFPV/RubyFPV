@@ -2,7 +2,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 
 void str_sanitize_modelname(char* szName);
@@ -75,5 +75,5 @@ char* str_format_relay_mode(u32 uRelayMode);
 char* str_format_firmware_type(u32 uFirmwareType);
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

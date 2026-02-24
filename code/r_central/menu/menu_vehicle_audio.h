@@ -15,7 +15,7 @@ class MenuVehicleAudio: public Menu
       virtual void onItemValueChanged(int itemIndex);
       virtual void onItemEndEdit(int itemIndex);
       virtual void valuesToUI();
-            
+
    private:
       void addItems();
       void sendParams(bool bOneWay);

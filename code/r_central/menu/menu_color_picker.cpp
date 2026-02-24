@@ -54,15 +54,15 @@ MenuColorPicker::MenuColorPicker(void)
    m_Width = 0.1;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.40;
 
-   m_pItemsRange[0] = new MenuItemRange("R:", "", 1, 255, 255, 1 );  
+   m_pItemsRange[0] = new MenuItemRange("R:", "", 1, 255, 255, 1 );
    m_pItemsRange[0]->setSufix("");
    m_IndexColor[0] = addMenuItem(m_pItemsRange[0]);
 
-   m_pItemsRange[1] = new MenuItemRange("G:", "", 1, 255, 255, 1 );  
+   m_pItemsRange[1] = new MenuItemRange("G:", "", 1, 255, 255, 1 );
    m_pItemsRange[1]->setSufix("");
    m_IndexColor[1] = addMenuItem(m_pItemsRange[1]);
 
-   m_pItemsRange[2] = new MenuItemRange("B:", "", 1, 255, 255, 1 );  
+   m_pItemsRange[2] = new MenuItemRange("B:", "", 1, 255, 255, 1 );
    m_pItemsRange[2]->setSufix("");
    m_IndexColor[2] = addMenuItem(m_pItemsRange[2]);
 
@@ -76,7 +76,7 @@ MenuColorPicker::~MenuColorPicker()
 void MenuColorPicker::valuesToUI()
 {
    Preferences* p = get_Preferences();
- 
+
    if ( m_ColorType == COLORPICKER_TYPE_OSD )
    {
       m_pItemsRange[0]->setCurrentValue(p->iColorOSD[0]);

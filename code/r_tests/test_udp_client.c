@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
     clientAddr.sin_family = AF_INET;                 /* Internet address family */
     clientAddr.sin_port = htons(clientPort);      /* client port */
 
-   if (inet_aton(serverIp , &clientAddr.sin_addr) == 0) 
+   if (inet_aton(serverIp , &clientAddr.sin_addr) == 0)
        DieWithError("Failed to convert server ip address.");
 
     printf("Sending and waiting for data on port %d", clientPort);
@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 
     recvString[recvStringLen] = '\0';
     printf("Received: %s\n", recvString);    /* Print the received string */
-    
+
     close(sock);
     exit(0);
 }

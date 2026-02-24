@@ -444,7 +444,7 @@ int hardware_i2c_save_device_settings()
    }
 
    fprintf(fd, "%s\n", HARDWARE_I2C_FILE_STAMP_ID);
-   
+
    fprintf(fd, "I2C_Device_Settings: %d\n", s_iCountI2CDevicesSettings );
    for( int i=0; i<s_iCountI2CDevicesSettings; i++ )
    {
@@ -662,7 +662,7 @@ t_i2c_device_settings* hardware_i2c_add_device_settings(u8 i2cAddress)
       s_listI2CDevicesSettings[s_iCountI2CDevicesSettings].uCapabilitiesFlags = 0;
       s_listI2CDevicesSettings[s_iCountI2CDevicesSettings].bConfigurable = 0;
       s_listI2CDevicesSettings[s_iCountI2CDevicesSettings].bEnabled = 1;
-      
+
       for( int k=0; k<MAX_I2C_DEVICE_SETTINGS; k++ )
          s_listI2CDevicesSettings[s_iCountI2CDevicesSettings].uParams[k] = 0;
 
@@ -870,7 +870,7 @@ int _hardware_i2c_check_and_update_extender_device_settings(u8 i2cAddress)
          log_softerror_and_alarm("[Hardware]: Received incorrect CRC on I2C command flags response.");
 
       u32 uFlags = ((u32)res1) | (((u32)res2)<<8);
-     
+
       if ( pDeviceInfo->uCapabilitiesFlags != uFlags )
       {
          log_line("[Hardware]: Got I2C device 0x%02X flags: %u. Different from old ones. Updating local info.", i2cAddress, uFlags);
@@ -909,7 +909,7 @@ int _hardware_i2c_check_and_update_extender_device_settings(u8 i2cAddress)
       }
       if ( res < 0 )
       {
-         log_softerror_and_alarm("[Hardware]: Failed to get I2C full response to get name command.");         
+         log_softerror_and_alarm("[Hardware]: Failed to get I2C full response to get name command.");
          continue;
       }
       if ( bufferIn[I2C_PROTOCOL_STRING_LENGTH] != base_compute_crc8(bufferIn,I2C_PROTOCOL_STRING_LENGTH) )
@@ -1100,7 +1100,7 @@ int hardware_i2c_has_external_extenders_rcin()
       }
    }
    #endif
-   return 0; 
+   return 0;
 }
 
 int hardware_i2c_has_oled_screen()
@@ -1118,5 +1118,5 @@ int hardware_i2c_has_oled_screen()
          return s_listI2CDevicesSettings[i].nI2CAddress;
    }
    #endif
-   return 0; 
+   return 0;
 }

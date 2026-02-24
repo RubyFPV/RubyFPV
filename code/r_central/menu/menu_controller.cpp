@@ -85,7 +85,7 @@ void MenuController::addItems()
 {
    removeAllItems();
    removeAllTopLines();
-   
+
    setTitle(L("Controller Settings"));
    m_IndexVideo = addMenuItem(new MenuItem(L("Audio & Video Output"), L("Change Audio and Video Output Settings (HDMI, USB Tethering, Audio output device)")));
    //m_pMenuItems[m_IndexVideo]->showArrow();
@@ -113,7 +113,7 @@ void MenuController::addItems()
    //m_pItemsSelect[2]->addSelection("Yes");
    //m_pItemsSelect[2]->setUseMultiViewLayout();
    //m_IndexShowVoltage = addMenuItem(m_pItemsSelect[2]);
-   
+
    m_IndexNetwork = addMenuItem(new MenuItem(L("Local Network Settings"), L("Change the local network settings on the controller (DHCP/Fixed IP)")));
    //m_pMenuItems[m_IndexNetwork]->showArrow();
 
@@ -168,7 +168,7 @@ void MenuController::onReturnFromChild(int iChildMenuId, int returnValue)
    Menu::onReturnFromChild(iChildMenuId, returnValue);
 
    log_line("MenuController: Returned from child id: %d, return value: %d", iChildMenuId, returnValue);
-   
+
    if ( (10 == iChildMenuId/1000) && (1 == returnValue) )
    {
       onEventReboot();
@@ -226,7 +226,7 @@ void MenuController::onSelectItem()
       add_menu_to_stack(new MenuControllerNetwork());
       return;
    }
-  
+
    if ( m_IndexCPU == m_SelectedIndex )
    {
       add_menu_to_stack(new MenuControllerExpert());
@@ -278,7 +278,7 @@ void MenuController::onSelectItem()
 
    if ( m_IndexButtons == m_SelectedIndex )
    {
-      add_menu_to_stack(new MenuButtons()); 
+      add_menu_to_stack(new MenuButtons());
       return;
    }
 
@@ -291,13 +291,13 @@ void MenuController::onSelectItem()
    /*
    if ( m_IndexPreferences == m_SelectedIndex )
    {
-      add_menu_to_stack(new MenuPreferences()); 
-      return;    
+      add_menu_to_stack(new MenuPreferences());
+      return;
    }
    */
    if ( m_IndexPreferencesUI == m_SelectedIndex )
    {
-      add_menu_to_stack(new MenuPreferencesUI()); 
+      add_menu_to_stack(new MenuPreferencesUI());
       return;
    }
 

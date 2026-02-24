@@ -102,11 +102,11 @@ void MenuConfirmationImport::onSelectItem()
 
          if ( ! load_ControllerInterfacesSettings() )
             save_ControllerInterfacesSettings();
-   
+
          hardware_reboot();
       }
       else
-         addMessage(L("Failed to import settings from USB memory stick."));         
+         addMessage(L("Failed to import settings from USB memory stick."));
       return;
    }
 }

@@ -64,7 +64,7 @@ void MenuVehicleRadioRuntimeCapabilities::onShow()
 
 void MenuVehicleRadioRuntimeCapabilities::valuesToUI()
 {
-   
+
 }
 
 void MenuVehicleRadioRuntimeCapabilities::Render()
@@ -258,7 +258,7 @@ void MenuVehicleRadioRuntimeCapabilities::Render()
          szMCSQ[0] = 0;
          szMCSPower[0] = 0;
       }
-      
+
       g_pRenderEngine->drawText(xPos, yPos, iFontId, szLegacy);
 
       if ( bShowRedPL )
@@ -267,7 +267,7 @@ void MenuVehicleRadioRuntimeCapabilities::Render()
          g_pRenderEngine->setColors(get_Color_IconWarning());
       else
          g_pRenderEngine->setColors(get_Color_MenuText());
-   
+
       float fwtext = g_pRenderEngine->textWidth(iFontId, szLegacyPower);
       g_pRenderEngine->drawTextLeft(xEndCol1, yPos, iFontId, szLegacyPower);
       g_pRenderEngine->setColors(get_Color_MenuText());
@@ -292,7 +292,7 @@ void MenuVehicleRadioRuntimeCapabilities::Render()
          g_pRenderEngine->setColors(get_Color_IconWarning());
       else
          g_pRenderEngine->setColors(get_Color_MenuText());
-   
+
       fwtext = g_pRenderEngine->textWidth(iFontId, szMCSPower);
       g_pRenderEngine->drawTextLeft(xEndCol2, yPos, iFontId, szMCSPower);
       g_pRenderEngine->setColors(get_Color_MenuText());

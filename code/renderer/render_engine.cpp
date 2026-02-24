@@ -71,7 +71,7 @@ RenderEngine* render_init_engine()
 
 bool render_engine_uses_raw_fonts()
 {
-   return s_bRenderEngineSupportsRawFonts;  
+   return s_bRenderEngineSupportsRawFonts;
 }
 
 void render_free_engine()
@@ -89,7 +89,7 @@ void render_engine_test()
 {
    printf("\nTest engine\n");
 }
-}  
+}
 
 RenderEngine* renderer_engine()
 {
@@ -228,7 +228,7 @@ float RenderEngine::setGlobalAlfa(float alfa)
    m_fGlobalAlfa = alfa;
    return f;
 }
- 
+
 float RenderEngine::getGlobalAlfa()
 {
    return m_fGlobalAlfa;
@@ -447,7 +447,7 @@ float RenderEngine::_get_raw_space_width(RenderEngineRawFont* pFont)
 
    return pFont->lineHeight*0.25*m_fPixelHeight + pFont->lineHeight * pFont->dxLetters * m_fPixelWidth;
 }
-   
+
 float RenderEngine::_get_raw_char_width(RenderEngineRawFont* pFont, int ch)
 {
    if ( NULL == pFont )
@@ -455,7 +455,7 @@ float RenderEngine::_get_raw_char_width(RenderEngineRawFont* pFont, int ch)
 
    if ( ch == ' ' )
       return _get_raw_space_width(pFont);
-   
+
    float fWidth = 0.0;
 
    if ( (ch >= pFont->charIdFirst) && (ch <= pFont->charIdLast) )
@@ -570,7 +570,7 @@ int RenderEngine::loadRawFont(int iFamilyId, const char* szFontFile, int iBold)
          fclose(fd);
          return 0;
       }
-     //printf("loaded char: %d %d %d %d %d\n", m_pFonts[m_iCountFonts]->chars[i].charId, 
+     //printf("loaded char: %d %d %d %d %d\n", m_pFonts[m_iCountFonts]->chars[i].charId,
      //         m_pFonts[m_iCountFonts]->chars[i].imgXOffset, m_pFonts[m_iCountFonts]->chars[i].imgYOffset, m_pFonts[m_iCountFonts]->chars[i].width, m_pFonts[m_iCountFonts]->chars[i].height );
    }
 
@@ -639,7 +639,7 @@ void RenderEngine::freeRawFont(u32 idFont)
 
 void RenderEngine::setFontOutlineColor(u32 idFont, u8 r, u8 g, u8 b, u8 a)
 {
- 
+
 }
 
 u32 RenderEngine::loadImage(const char* szFile)
@@ -675,7 +675,7 @@ void RenderEngine::changeImageHue(u32 uImageId, u8 r, u8 g, u8 b)
 
 }
 
-     
+
 void RenderEngine::startFrame()
 {
    if ( m_bStartedFrame  )
@@ -709,7 +709,7 @@ void RenderEngine::drawImage(float xPos, float yPos, float fWidth, float fHeight
 
 void RenderEngine::drawImageAlpha(float xPos, float yPos, float fWidth, float fHeight, u32 imageId, u8 uAlpha)
 {
- 
+
 }
 
 void RenderEngine::bltImage(float xPosDest, float yPosDest, float fWidthDest, float fHeightDest, int iSrcX, int iSrcY, int iSrcWidth, int iSrcHeight, u32 uImageId)
@@ -981,7 +981,7 @@ float RenderEngine::getMessageWidth(const char* text, float max_width, u32 fontI
       if ( (0 != szWord[0]) && (szWord[strlen(szWord)-1] == '\n') )
       {
          countLines++;
-         
+
          line_width = 0.0;
          countLineWords = 0;
       }
@@ -1058,7 +1058,7 @@ float RenderEngine::getMessageHeight(const char* text, float line_spacing_percen
          if ( 0 != countLines )
             height += fTextHeight*line_spacing_percent;
          countLines++;
-         
+
          line_width = 0.0;
          countLineWords = 0;
       }
@@ -1091,7 +1091,7 @@ float RenderEngine::drawMessageLines(float xPos, float yPos, const char* text, f
 
    float fTextHeight = textHeight(fontId);
    float fScale = 1.0;
- 
+
    m_uTextFontMixColor[0] = m_ColorFill[0];
    m_uTextFontMixColor[1] = m_ColorFill[1];
    m_uTextFontMixColor[2] = m_ColorFill[2];
@@ -1158,7 +1158,7 @@ float RenderEngine::drawMessageLines(float xPos, float yPos, const char* text, f
             outputBuffer[i++] = *szParse++;
          }
       }
-      
+
       if (strlen(outputBuffer) > 0)
          szWord = outputBuffer;
       if (NULL == szWord)
@@ -1198,7 +1198,7 @@ float RenderEngine::drawMessageLines(float xPos, float yPos, const char* text, f
             yTmp += fTextHeight*line_spacing_percent;
          }
          countLines++;
-         
+
          xTmp = xPos;
          line_width = fWidthWord;
          countLineWords = 1;
@@ -1222,7 +1222,7 @@ float RenderEngine::drawMessageLines(float xPos, float yPos, const char* text, f
             yTmp += fTextHeight*line_spacing_percent;
          }
          countLines++;
-         
+
          xTmp = xPos;
          line_width = 0;
          countLineWords = 0;
@@ -1263,7 +1263,7 @@ void RenderEngine::drawRoundRect(float xPos, float yPos, float fWidth, float fHe
 void RenderEngine::drawRoundRectMenu(float xPos, float yPos, float fWidth, float fHeight, float fCornerRadius)
 {
 }
-     
+
 void RenderEngine::drawTriangle(float x1, float y1, float x2, float y2, float x3, float y3)
 {
 }

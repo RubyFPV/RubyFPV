@@ -18,7 +18,7 @@ extern bool g_bQuit;
 extern bool g_bDebugState;
 
 extern Model* g_pCurrentModel;
-extern ControllerSettings* g_pControllerSettings; 
+extern ControllerSettings* g_pControllerSettings;
 extern ControllerInterfacesSettings* g_pControllerInterfaces;
 extern u32 g_uControllerId;
 

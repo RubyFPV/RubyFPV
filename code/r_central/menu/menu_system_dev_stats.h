@@ -7,7 +7,7 @@ class MenuSystemDevStats: public Menu
 {
    public:
       MenuSystemDevStats();
-      virtual void onShow(); 
+      virtual void onShow();
       virtual void Render();
       virtual void valuesToUI();
       virtual void onSelectItem();

@@ -17,7 +17,7 @@ bool quit = false;
 
 bool bSummary = false;
 bool bOnlyErrors = false;
-   
+
 fd_set g_Readset;
 
 u32 g_uStreamsLastPacketIndex[MAX_RADIO_STREAMS];
@@ -32,21 +32,21 @@ int g_iOnlyStreamId = -1;
 
 shared_mem_radio_stats g_SM_RadioStats;
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    quit = true;
-} 
+}
 
 void process_packet_summary( int iInterfaceIndex, u8* pBuffer, int iBufferLength)
 {
-   int bCRCOk = 0;   
-   int nPacketLength = packet_process_and_check(iInterfaceIndex, pBuffer, iBufferLength, &bCRCOk); 
-   
+   int bCRCOk = 0;
+   int nPacketLength = packet_process_and_check(iInterfaceIndex, pBuffer, iBufferLength, &bCRCOk);
+
    t_packet_header* pPH = (t_packet_header*)pBuffer;
 
    radio_stats_update_on_new_radio_packet_received(&g_SM_RadioStats, g_TimeNow, iInterfaceIndex, pBuffer, nPacketLength, 0, 1);
-       
+
    u32 packetIndex = (pPH->stream_packet_idx & PACKET_FLAGS_MASK_STREAM_PACKET_IDX);
    u32 uStreamId = pPH->stream_packet_idx >> PACKET_FLAGS_MASK_SHIFT_STREAM_INDEX;
 
@@ -60,7 +60,7 @@ void process_packet_summary( int iInterfaceIndex, u8* pBuffer, int iBufferLength
    }
 
    g_uStreamsLastPacketIndex[uStreamId] = packetIndex;
-   
+
    if ( get_current_timestamp_ms() < uSummaryLastUpdateTime + 1000 )
       return;
 
@@ -129,17 +129,17 @@ int process_packet_errors( int iInterfaceIndex, u8* pBuffer, int iBufferLength)
    //radio_hw_info_t* pNICInfo = hardware_get_radio_info(iInterfaceIndex);
 
    t_packet_header* pPH = (t_packet_header*)pBuffer;
-   int bCRCOk = 0;   
+   int bCRCOk = 0;
    int nPacketLength = packet_process_and_check(iInterfaceIndex, pBuffer, iBufferLength, &bCRCOk);
    radio_stats_update_on_new_radio_packet_received(&g_SM_RadioStats, g_TimeNow, iInterfaceIndex, pBuffer, nPacketLength, 0, 1);
 
    t_packet_header_video_segment* pPHVS = NULL;
    if ( pPH->packet_type == PACKET_TYPE_VIDEO_DATA )
       pPHVS = (t_packet_header_video_segment*) (pBuffer+sizeof(t_packet_header));
-   
+
    u32 packetIndex = (pPH->stream_packet_idx & PACKET_FLAGS_MASK_STREAM_PACKET_IDX);
    u32 uStreamId = pPH->stream_packet_idx >> PACKET_FLAGS_MASK_SHIFT_STREAM_INDEX;
-   
+
    u32 gap = 0;
    if ( g_uStreamsLastPacketIndex[uStreamId] != MAX_U32 )
       gap = packetIndex - g_uStreamsLastPacketIndex[uStreamId];
@@ -173,7 +173,7 @@ int process_packet_errors( int iInterfaceIndex, u8* pBuffer, int iBufferLength)
 void process_packet(int iInterfaceIndex )
 {
    int nLength = 0;
-   u8* pBuffer = radio_process_wlan_data_in(iInterfaceIndex, &nLength, NULL, g_TimeNow); 
+   u8* pBuffer = radio_process_wlan_data_in(iInterfaceIndex, &nLength, NULL, g_TimeNow);
    if ( NULL == pBuffer )
    {
       log_line("NULL receive buffer. Ignoring...");
@@ -182,14 +182,14 @@ void process_packet(int iInterfaceIndex )
    }
 
    while ( nLength > 0 )
-   { 
+   {
       int iMissingPackets = 0;
       if ( bSummary )
          process_packet_summary(iInterfaceIndex, pBuffer, nLength);
       if ( bOnlyErrors )
          iMissingPackets = process_packet_errors(iInterfaceIndex, pBuffer, nLength);
 
-      int bCRCOk = 0;   
+      int bCRCOk = 0;
       int nPacketLength = packet_process_and_check(iInterfaceIndex, pBuffer, nLength, &bCRCOk);
       if ( bCRCOk == 0 )
          log_softerror_and_alarm("Received packet with invalid CRC.");
@@ -201,7 +201,7 @@ void process_packet(int iInterfaceIndex )
          log_softerror_and_alarm("Received invalid packet module: %d", (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE));
       if ( (pPH->total_length != nLength) || (pPH->total_length < sizeof(t_packet_header)) )
          log_softerror_and_alarm("Received invalid packet size: %d, (total buffer: %d)", pPH->total_length, nLength);
-      
+
       u32 uStreamId = pPH->stream_packet_idx >> PACKET_FLAGS_MASK_SHIFT_STREAM_INDEX;
       g_uTotalRecvPackets++;
       g_uTotalRecvPacketsTypes[pPH->packet_type]++;
@@ -236,7 +236,7 @@ int try_read_packets(int iInterfaceIndex)
    struct timeval to;
    to.tv_sec = 0;
    to.tv_usec = miliSec*1000;
-            
+
    int maxfd = -1;
    FD_ZERO(&g_Readset);
    for(int i=0; i<hardware_get_radio_interfaces_count(); i++)
@@ -249,7 +249,7 @@ int try_read_packets(int iInterfaceIndex)
          FD_SET(pNICInfo->runtimeInterfaceInfoRx.selectable_fd, &g_Readset);
          if ( pNICInfo->runtimeInterfaceInfoRx.selectable_fd > maxfd )
             maxfd = pNICInfo->runtimeInterfaceInfoRx.selectable_fd;
-      } 
+      }
    }
 
    int nResult = select(maxfd+1, &g_Readset, NULL, NULL, &to);
@@ -264,14 +264,14 @@ int main(int argc, char *argv[])
       printf("\n-errors : show only errors and missing packets\n");
       return -1;
    }
-   
+
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
    char* szCard = argv[1];
    int iFreq = atoi(argv[2]);
    int port = atoi(argv[3]);
-   
+
    if ( strcmp(argv[argc-1], "-errors") == 0 )
       bOnlyErrors = true;
    else if ( strcmp(argv[argc-1], "-summary") == 0 )
@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
    log_line("Opened wlan interface for read and write.");
 
    //FILE* fd = fopen("out.bin", "w");
-   
+
    for( int i=0; i<MAX_RADIO_STREAMS; i++ )
    {
       g_uStreamsLastPacketIndex[i] = MAX_U32;
@@ -352,7 +352,7 @@ int main(int argc, char *argv[])
 
    log_line("Started. Waiting for data...");
    fflush(stdout);
-   
+
    while (!quit)
    {
       g_TimeNow = get_current_timestamp_ms();
@@ -362,7 +362,7 @@ int main(int argc, char *argv[])
 
       if( nResult > 0 )
          process_packet(iInterfaceIndex);
-     
+
       if ( (! bSummary) && (! bOnlyErrors) )
       {
          if ( nResult == 0 )

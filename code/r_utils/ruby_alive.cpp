@@ -101,10 +101,10 @@ void _check_cpu_watchdog(u32 uTimeNow, int iCounter)
 }
 
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    gbQuit = true;
-} 
+}
 
 int main(int argc, char *argv[])
 {
@@ -240,4 +240,4 @@ int main(int argc, char *argv[])
    power_leds(1);
    hardware_release();
    return (0);
-} 
+}

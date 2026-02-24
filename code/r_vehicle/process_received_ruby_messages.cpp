@@ -62,12 +62,12 @@ u32 s_uResendPairingConfirmationCounter = 0;
 int _process_received_ping_messages(int iInterfaceIndex, u8* pPacketBuffer)
 {
    t_packet_header* pPH = (t_packet_header*)pPacketBuffer;
-   
+
    if ( pPH->packet_type == PACKET_TYPE_RUBY_PING_CLOCK )
    if ( pPH->total_length >= sizeof(t_packet_header) + 5*sizeof(u8) )
    {
       u8 uLocalRadioLinkId = (u8) g_pCurrentModel->radioInterfacesParams.interface_link_id[iInterfaceIndex];
-      
+
       u8 uPingId = 0;
       u8 uSenderLocalRadioLinkId = 0;
       u8 uDummy1 = 0;
@@ -96,7 +96,7 @@ int _process_received_ping_messages(int iInterfaceIndex, u8* pPacketBuffer)
          send_packet_to_radio_interfaces(packet, PH.total_length, -1);
       else
          packets_queue_inject_packet_first(&g_QueueRadioPacketsOut, packet);
-      
+
       if ( g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId >= 0 )
       if ( (g_pCurrentModel->relay_params.uRelayedVehicleId != 0) && (g_pCurrentModel->relay_params.uRelayedVehicleId != g_pCurrentModel->uVehicleId) )
       {
@@ -109,7 +109,7 @@ int _process_received_ping_messages(int iInterfaceIndex, u8* pPacketBuffer)
          //else
          //   packets_queue_inject_packet_first(&g_QueueRadioPacketsOut, packet);
       }
-   
+
       u8 uPingFlags = pPacketBuffer[sizeof(t_packet_header) + 4 * sizeof(u8)];
       bool bOSDTelem = false;
       if ( uPingFlags & 0x01 )
@@ -125,7 +125,7 @@ int _process_received_ping_messages(int iInterfaceIndex, u8* pPacketBuffer)
          PH.total_length = sizeof(t_packet_header);
 
          memcpy(packet, (u8*)&PH, sizeof(t_packet_header));
-        
+
          // Forward to other components
          ruby_ipc_channel_send_message(s_fIPCRouterToTelemetry, packet, PH.total_length);
       }
@@ -362,7 +362,7 @@ int process_received_ruby_message_from_controller(int iInterfaceIndex, u8* pPack
       }
       return 0;
    }
-   
+
 
    if ( pPH->packet_type == PACKET_TYPE_NEGOCIATE_RADIO_LINKS )
       return negociate_radio_process_received_radio_link_messages(pPacketBuffer);

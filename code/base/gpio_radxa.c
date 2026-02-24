@@ -64,7 +64,7 @@ int GPIOExport(int pin)
       log_error_and_alarm("[GPIO] Export: Failed to get GPIO (%s) line %d, pin %d", chipname, linenumber, pin);
       return 0;
    }
-   
+
    gpiod_chip_close(chip);
    gpiod_line_release(line);
    log_line("[GPIO] Exported pin %d on chip %s, line %d", pin, chipname, linenumber);
@@ -136,7 +136,7 @@ int GPIODirection(int pin, int dir)
       log_error_and_alarm("[GPIO] Dir: Failed to get GPIO (%s) line, line number %d, pin %d", chipname, linenumber, pin);
       return 0;
    }
-   
+
    if ( dir == IN )
    {
       int mode = gpiod_line_request_input(line, "Ruby");
@@ -214,7 +214,7 @@ int GPIORead(int pin)
       log_error_and_alarm("[GPIO] Failed to get GPIO (%s) line %d pin %d", chipname, linenumber, pin);
       return 0;
    }
-   
+
    int mode = gpiod_line_request_input(line, "Ruby");
    if ( mode < 0 )
    {
@@ -254,7 +254,7 @@ int GPIOWrite(int pin, int value)
       log_error_and_alarm("[GPIO] Failed to get GPIO (%s) line %d pin %d", chipname, linenumber, pin);
       return 0;
   }
-   
+
    int mode = gpiod_line_request_output(line, "Ruby", 0);
    if( mode < 0 )
    {
@@ -324,7 +324,7 @@ int GPIOInitButtons()
       log_line("Failed to get GPIO access to pin QA2.");
       failed = 1;
    }
-   
+
    if (-1 == GPIOExport(GPIOGetPinQA3()))
    {
       log_line("Failed to get GPIO access to pin QA3.");
@@ -355,7 +355,7 @@ int GPIOInitButtons()
       log_line("Failed set GPIO configuration for pin Plus/Minus.");
       failed = 1;
    }
-   
+
    if (-1 == GPIODirection(GPIOGetPinQA1(), IN))
    {
       log_line("Failed set GPIO configuration for pin QA1.");
@@ -366,7 +366,7 @@ int GPIOInitButtons()
       log_line("Failed set GPIO configuration for pin QA2.");
       failed = 1;
    }
-   
+
    if (-1 == GPIODirection(GPIOGetPinQA3(), IN))
    {
       log_line("Failed set GPIO configuration for pin QA3.");

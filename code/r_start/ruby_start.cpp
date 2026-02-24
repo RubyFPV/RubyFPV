@@ -67,7 +67,7 @@
 #include "first_boot.h"
 #include "r_test.h"
 
-static sem_t* s_pSemaphoreStarted = NULL; 
+static sem_t* s_pSemaphoreStarted = NULL;
 
 static int s_iBootCount = 0;
 
@@ -297,7 +297,7 @@ void detectSystemType()
       log_line("Detected system as controller.");
       s_isVehicle = false;
    }
-   
+
    log_line("");
    log_line("===========================================================================");
    if ( s_isVehicle )
@@ -308,14 +308,14 @@ void detectSystemType()
    log_line("");
 
    FILE* fd = NULL;
-   
+
    #ifdef HW_PLATFORM_RASPBERRY
    fd = fopen("/boot/ruby_systype.txt", "w");
    #endif
    #ifdef HW_PLATFORM_RADXA
    fd = fopen("/config/ruby_systype.txt", "w");
    #endif
-   
+
    if ( NULL != fd )
    {
       if ( s_isVehicle )
@@ -443,7 +443,7 @@ bool _init_timestamp_and_boot_count()
    struct timespec t;
    clock_gettime(RUBY_HW_CLOCK_ID, &t);
    lStartTimeStamp_ms = t.tv_sec*1000LL + t.tv_nsec/1000LL/1000LL;
-   
+
    strcpy(szFile, FOLDER_CONFIG);
    strcat(szFile, FILE_CONFIG_BOOT_TIMESTAMP);
 
@@ -481,7 +481,7 @@ void _test_log(int argc, char *argv[])
    }
 
    log_line_forced_to_file("Test: Using initial message queue key id: %d", iKeyId);
-   
+
    /*
    hw_stop_process("ruby_logger");
 
@@ -503,7 +503,7 @@ void _test_log(int argc, char *argv[])
 
    logServiceKey = generate_msgqueue_key(iKeyId);
    log_line_forced_to_file("Test: Generated logger msgqueue key: 0x%X", logServiceKey);
-   
+
    logServiceMessageQueue = msgget(logServiceKey, S_IWUSR | S_IWGRP | S_IWOTH);
    if ( logServiceMessageQueue == -1 )
       log_line_forced_to_file("Test: Failed to get logger message queue id, error: %d, [%s]", errno,  strerror(errno));
@@ -612,12 +612,12 @@ void _check_power_levels_of_current_cards(radio_hw_info_t* pRadioInfoArrayPrev, 
             i+1, str_get_radio_card_model_string(pCRII->cardModel), (pCRII->cardModel > 0)?"autodetected":"user set");
          int iMaxRawPower = tx_powers_get_max_usable_power_raw_for_card(hardware_getBoardType(), pCRII->cardModel);
          log_line("Max raw power for radio card %d: %d, current raw power: %d", i+1, iMaxRawPower, pCRII->iRawPowerLevel);
-      
+
          if ( iMaxRawPower < iMaximumRawCanBeSet )
             iMaximumRawCanBeSet = iMaxRawPower;
       }
       log_line("Maximum raw power that can be set: %d", iMaximumRawCanBeSet);
-      
+
       for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
       {
          radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(i);
@@ -729,7 +729,7 @@ int _step_process_cmd_line(int argc, char* argv[])
       return 1;
    }
 
-   if ( (strcmp(argv[argc-1], "-initradio") == 0) || 
+   if ( (strcmp(argv[argc-1], "-initradio") == 0) ||
         (strcmp(argv[0], "-initradio") == 0) ||
         ((argc>1) && (strcmp(argv[1], "-initradio") == 0)) )
    {
@@ -780,7 +780,7 @@ int _step_find_console()
    char szFile[256];
    char *tty_name = ttyname(STDIN_FILENO);
    bool foundGoodConsole = false;
-  
+
    sprintf(szComm, "echo 'Ruby console to start in: [%s]' >> /tmp/ruby_boot.log", ((tty_name != NULL)?tty_name:"N/A"));
    hw_execute_bash_command_silent(szComm, NULL);
    printf("\nRuby: Start on console (%s)\n", ((tty_name != NULL)? tty_name:"N/A"));
@@ -820,7 +820,7 @@ int _step_find_console()
       fflush(stdout);
       return 0;
    }
-   
+
    sprintf(szComm, "echo 'Ruby check semaphore...' >> /tmp/ruby_boot.log");
    hw_execute_bash_command_silent(szComm, NULL);
    s_pSemaphoreStarted = sem_open("/RUBY_STARTED_SEMAPHORE", O_CREAT | O_EXCL, S_IWUSR | S_IRUSR, 0);
@@ -901,7 +901,7 @@ int _step_check_file_system()
    bool readWriteOk = false;
    int readWriteRetryCount = 0;
    FILE* fd = NULL;
-   
+
    #if defined (HW_PLATFORM_RADXA)
    hw_execute_bash_command("date -s 'next year'", NULL);
    hw_execute_bash_command("date -s 'next year'", NULL);
@@ -1176,7 +1176,7 @@ void _step_check_binaries_and_resources()
    hw_execute_bash_command_raw("uname -rn", szOutput);
    removeTrailingNewLines(szOutput);
    strcat(szInfo, ", ");
-   strcat(szInfo, szOutput);   
+   strcat(szInfo, szOutput);
 
    log_line(szInfo);
    printf(szInfo);
@@ -1233,13 +1233,13 @@ void _step_load_init_devices()
    hw_execute_bash_command_raw("lsmod", szOutput);
    strcat(szOutput, "\n*END*\n");
    log_line("Loaded Modules:");
-   log_line(szOutput);      
-      
+   log_line(szOutput);
+
    #ifdef HW_CAPABILITY_I2C
    hw_execute_bash_command_raw("i2cdetect -l", szOutput);
    strcat(szOutput, "\n*END*\n");
    log_line("I2C buses:");
-   log_line(szOutput);      
+   log_line(szOutput);
 
    log_line("Ruby: Finding external I2C devices add-ons...");
    printf("Ruby: Finding external I2C devices add-ons...\n");
@@ -1310,7 +1310,7 @@ void _step_enumerate_radios()
       printf("Ruby: %d of %d radio interfaces are supported on 2.4/5.8 Ghz bands\n", hardware_get_supported_radio_interfaces_count(), hardware_get_radio_interfaces_count());
       printf("\n");
       log_line("Ruby: %d of %d radio interfaces are supported on 2.4/5.8 Ghz bands", hardware_get_supported_radio_interfaces_count(), hardware_get_radio_interfaces_count());
-      fflush(stdout);   
+      fflush(stdout);
    }
    printf("Ruby: Finding SiK radio interfaces...\n");
    log_line("Ruby: Finding SiK radio interfaces...");
@@ -1328,7 +1328,7 @@ void _step_enumerate_radios()
    {
       printf("Ruby: %d SiK radio interfaces found.\n", hardware_radio_has_sik_radios());
       log_line("Ruby: %d SiK radio interfaces found.", hardware_radio_has_sik_radios());
-      fflush(stdout);    
+      fflush(stdout);
    }
 
    printf("Ruby: Finding serial radio interfaces...\n");
@@ -1367,7 +1367,7 @@ void _step_load_init_radios()
    {
       hardware_find_usb_radio_interfaces_info();
       hardware_radio_load_radio_modules(1);
-   } 
+   }
    hardware_sleep_ms(500);
 
    char szComm[256];
@@ -1379,7 +1379,7 @@ void _step_load_init_radios()
    int iWifiIndexToTry = 0;
 
    while ( iCount < iMaxWifiCardsToDetect*2 )
-   {      
+   {
       szOutput[0] = 0;
       hw_execute_bash_command_raw("lsmod | grep 88", szOutput);
       removeNewLines(szOutput);
@@ -1420,11 +1420,11 @@ void _step_load_init_radios()
             hardware_sleep_ms(2*DEFAULT_DELAY_WIFI_CHANGE);
          }
       }
-      
+
       log_line("Trying detect wifi cards (try %d)...", iCount);
       printf("Ruby: Trying to detect 2.4/5.8 Ghz cards...\n");
       fflush(stdout);
-      
+
       hardware_sleep_ms(500);
       for( int i=0; i<5; i++ )
       {
@@ -1479,7 +1479,7 @@ void _step_load_init_radios()
    else
    {
       log_line("Device does not have an ETH port.");
-      printf("Ruby: Device does not have an ETH port.\n");    
+      printf("Ruby: Device does not have an ETH port.\n");
    }
    fflush(stdout);
 
@@ -1494,12 +1494,12 @@ void _step_initialize_check_vehicle()
    log_line("Done doing initialization checks on vehicle.");
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    s_bQuit = true;
-} 
-  
+}
+
 int main(int argc, char *argv[])
 {
    if ( _step_process_cmd_line(argc, argv) )
@@ -1520,7 +1520,7 @@ int main(int argc, char *argv[])
       _reset_fast_reboot_counter();
 
    _log_oipc_boot_rotate();
-   
+
    #if defined(HW_PLATFORM_OPENIPC_CAMERA)
    for( int i=0; i<10; i++ )
    {
@@ -1561,7 +1561,7 @@ int main(int argc, char *argv[])
    if ( s_bIgnoreDrivers )
    {
       printf("\nRuby: Ignore drivers instalation\n");
-      fflush(stdout);    
+      fflush(stdout);
    }
 
    if ( _step_check_file_system() < 0 )
@@ -1576,7 +1576,7 @@ int main(int argc, char *argv[])
    //#if defined(HW_PLATFORM_RASPBERRY) || defined(HW_PLATFORM_RADXA)
    //initLocalizationData();
    //#endif
-   
+
    _log_oipc_boot_step("Done check files.");
 
    strcpy(szFile, FOLDER_CONFIG);
@@ -1625,7 +1625,7 @@ int main(int argc, char *argv[])
       hw_execute_bash_command(szComm, NULL);
       snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s* 2>/dev/null", FOLDER_CONFIG);
       hw_execute_bash_command(szComm, NULL);
-      
+
       hardware_writeBoardAndSystemType();
 
       strcpy(szFile, FOLDER_CONFIG);
@@ -1714,7 +1714,7 @@ int main(int argc, char *argv[])
    fflush(stdout);
 
    // Reenable serial ports that where used for SiK radio and now are just regular serial ports
-   
+
    bool bSerialPortsUpdated = false;
    for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
@@ -1918,7 +1918,7 @@ int main(int argc, char *argv[])
       }
       return 0;
    }
- 
+
    _log_oipc_boot_step("Check for hw changes...");
    printf("Ruby: Checking for HW changes...");
    log_line("Checking for HW changes...");
@@ -1956,7 +1956,7 @@ int main(int argc, char *argv[])
    _log_oipc_boot_step("Init IPC...");
    ruby_init_ipc_channels();
    _log_oipc_boot_step("Done init IPC.");
-   
+
    if ( s_isVehicle )
    {
       log_line("---------------------------------");
@@ -1993,7 +1993,7 @@ int main(int argc, char *argv[])
       }
    }
    hw_execute_ruby_process_wait(NULL, "ruby_start", szParams, NULL, 1);
-   
+
    log_line("Reloading hardware radio configuration after radio init step completed...");
    hardware_load_radio_info();
    _check_power_levels_of_current_cards(&sRadioInfoPrev[0], iHwRadiosCountPrev);
@@ -2001,9 +2001,9 @@ int main(int argc, char *argv[])
    printf("Ruby: Starting main process...\n");
    log_line("Starting main process...");
    fflush(stdout);
-   
+
    check_licences();
-   
+
    hw_execute_bash_command_raw("ls /sys/class/net/", szOutput);
    log_line("Network devices found: [%s]", szOutput);
 
@@ -2141,7 +2141,7 @@ int main(int argc, char *argv[])
       #ifdef HW_PLATFORM_RADXA
       hw_execute_ruby_process(NULL, "ruby_alive", NULL, NULL);
       #endif
-   
+
 
       hw_execute_ruby_process(NULL, "ruby_controller", NULL, NULL);
 
@@ -2149,13 +2149,13 @@ int main(int argc, char *argv[])
    }
 
    _log_oipc_boot_step("Done started processes.");
-   
+
    printf("Ruby: Started processes. Checking if all ok...\n");
    fflush(stdout);
 
    for( int i=0; i<10; i++ )
       hardware_sleep_ms(500);
-   
+
    log_line("Checking processes start...");
    if ( hw_process_exists("ruby_logger") )
       log_line("ruby_logger is started");
@@ -2198,7 +2198,7 @@ int main(int argc, char *argv[])
             log_line("ruby_rt_vehicle is started");
          else
             { log_error_and_alarm("ruby_rt_vehicle is not running"); bError = true; }
-           
+
          if ( hw_process_exists("ruby_tx_telemetry") )
             log_line("ruby_tx_telemetry is started");
          else
@@ -2218,7 +2218,7 @@ int main(int argc, char *argv[])
          }
          fflush(stdout);
          iCheckCount++;
-           
+
          for( int i=0; i<5; i++ )
             hardware_sleep_ms(500);
 

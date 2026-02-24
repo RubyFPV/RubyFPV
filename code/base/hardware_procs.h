@@ -2,7 +2,7 @@
 #include <pthread.h>
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 #define CORE_AFFINITY_RX_RADIO 0
 #define CORE_AFFINITY_AUDIO 4
@@ -66,5 +66,5 @@ void hw_set_current_thread_nice_priority(const char* szLogPrefix, int iNewRawPri
 void hw_set_current_proc_nice_priority(const char* szLogPrefix, int iNewRawPriority);
 
 #ifdef __cplusplus
-}  
+}
 #endif

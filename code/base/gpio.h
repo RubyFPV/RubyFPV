@@ -81,7 +81,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 int GPIOGetPinLedRed();
 int GPIOGetPinLedGreen();
@@ -109,5 +109,5 @@ int GPIOInitButtons();
 int GPIOGetButtonsPullDirection();
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

@@ -108,7 +108,7 @@ bool VideoRxPacketsBuffer::uninit()
       return true;
 
    log_line("[VideoRXBuffer] Uninitialize video Tx buffer instance number %d.", m_iInstanceIndex+1);
-   
+
    m_bInitialized = false;
    return true;
 }
@@ -178,7 +178,7 @@ void VideoRxPacketsBuffer::_empty_block_buffer_index(int iBufferIndex)
 }
 
 void VideoRxPacketsBuffer::_empty_buffers(const char* szReason, t_packet_header* pPH, t_packet_header_video_segment* pPHVS)
-{  
+{
    char szLog[256];
    if ( NULL == szReason )
       strcpy(szLog, "[VRXBuffers] Empty buffers: (no reason)");
@@ -315,7 +315,7 @@ void VideoRxPacketsBuffer::_check_do_ec_for_video_block(int iBufferIndex)
       t_packet_header_video_segment* pPHVSToFix = m_VideoBlocks[iBufferIndex].packets[iPacketIndexToFix].pPHVS;
       memcpy(pPHToFix, pPHGood, sizeof(t_packet_header));
       memcpy(pPHVSToFix, pPHVSGood, sizeof(t_packet_header_video_segment));
-      
+
       // Fix packet header
       pPHToFix->total_length = sizeof(t_packet_header) + sizeof(t_packet_header_video_segment) + pPHVSGood->uCurrentBlockPacketSize;
       pPHToFix->packet_flags &= ~PACKET_FLAGS_BIT_RETRANSMITED;
@@ -407,7 +407,7 @@ bool VideoRxPacketsBuffer::_add_video_packet_to_buffer(int iBufferIndex, u8* pPa
       log_line("[VRXBuffers] Start adding video packets to empty buffer. Adding [%u/%u] at buffer index %d",
          pPHVS->uCurrentBlockIndex, pPHVS->uCurrentBlockPacketIndex, m_iTopBufferIndex);
    m_bBuffersEmpty = false;
-   
+
    m_VideoBlocks[iBufferIndex].uReceivedTime = g_TimeNow;
 
    if ( pPHVS->uCurrentBlockPacketIndex < pPHVS->uCurrentBlockDataPackets )
@@ -428,9 +428,9 @@ bool VideoRxPacketsBuffer::_add_video_packet_to_buffer(int iBufferIndex, u8* pPa
    m_VideoBlocks[iBufferIndex].packets[pPHVS->uCurrentBlockPacketIndex].uReceivedTime = g_TimeNow;
    m_VideoBlocks[iBufferIndex].packets[pPHVS->uCurrentBlockPacketIndex].bEmpty = false;
    m_VideoBlocks[iBufferIndex].packets[pPHVS->uCurrentBlockPacketIndex].bReconstructed = false;
-   
+
    memcpy(m_VideoBlocks[iBufferIndex].packets[pPHVS->uCurrentBlockPacketIndex].pRawData, pPacket, iPacketLength);
-   
+
    // Set remaining empty space to 0 as EC uses the good video data packets too.
    if ( pPHVS->uCurrentBlockPacketIndex < pPHVS->uCurrentBlockDataPackets )
    {
@@ -611,18 +611,18 @@ int VideoRxPacketsBuffer::discardOldBlocks(u32 uCutOffTime)
       return 0;
 
    int iCountDiscarded = 0;
-   
+
    while ( m_VideoBlocks[m_iBottomBufferIndex].uVideoBlockIndex <= m_VideoBlocks[m_iTopBufferIndex].uVideoBlockIndex )
    {
       if ( (m_VideoBlocks[m_iBottomBufferIndex].uReceivedTime > uCutOffTime) ||
            (m_VideoBlocks[m_iBottomBufferIndex].uReceivedTime == 0) )
          break;
-      
+
       if ( iCountDiscarded < 3 )
          log_line("[VideoRXBuffer] Discard bottom buffer index: %d, video block id [f%d blk %u], fr has %d packets, blk has fr pkt %d to %d (recv time: %u ms ago, recv data/ec pckts: %d,%d, scheme: %d/%d), top buffer index: %d, video block id %u, max recv pckt index: %d",
             m_iBottomBufferIndex, m_VideoBlocks[m_iBottomBufferIndex].uH264FrameIndex, m_VideoBlocks[m_iBottomBufferIndex].uVideoBlockIndex,
-            m_VideoBlocks[m_iBottomBufferIndex].iTotalFramePackets, 
-            m_VideoBlocks[m_iBottomBufferIndex].iFramePacketStart, m_VideoBlocks[m_iBottomBufferIndex].iFramePacketEnd, 
+            m_VideoBlocks[m_iBottomBufferIndex].iTotalFramePackets,
+            m_VideoBlocks[m_iBottomBufferIndex].iFramePacketStart, m_VideoBlocks[m_iBottomBufferIndex].iFramePacketEnd,
             g_TimeNow - m_VideoBlocks[m_iBottomBufferIndex].uReceivedTime,
             m_VideoBlocks[m_iBottomBufferIndex].iRecvDataPackets, m_VideoBlocks[m_iBottomBufferIndex].iRecvECPackets,
             m_VideoBlocks[m_iBottomBufferIndex].iBlockDataPackets, m_VideoBlocks[m_iBottomBufferIndex].iBlockECPackets,
@@ -674,10 +674,10 @@ void VideoRxPacketsBuffer::advanceBottomPacketInBuffer()
 
    if ( m_iBottomBufferPacketIndex < m_VideoBlocks[m_iBottomBufferIndex].iBlockDataPackets )
       return;
-   
+
    u32 uVideoBlockIndex = m_VideoBlocks[m_iBottomBufferIndex].uVideoBlockIndex;
    _empty_block_buffer_index(m_iBottomBufferIndex);
-   
+
    if (m_iBottomBufferIndex == m_iTopBufferIndex )
       m_VideoBlocks[m_iBottomBufferIndex].uVideoBlockIndex = uVideoBlockIndex;
    m_iBottomBufferPacketIndex = 0;

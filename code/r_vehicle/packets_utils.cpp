@@ -172,7 +172,7 @@ void packet_utils_init()
    if ( (NULL == s_pSemaphoreSetTxPowerWrite) || (SEM_FAILED == s_pSemaphoreSetTxPowerWrite) )
    {
       log_error_and_alarm("Failed to create write semaphore: %s, try alternative.", SEMAPHORE_SET_RADIO_TX_POWER);
-      s_pSemaphoreSetTxPowerWrite = sem_open(SEMAPHORE_SET_RADIO_TX_POWER, O_CREAT, S_IWUSR | S_IRUSR, 0); 
+      s_pSemaphoreSetTxPowerWrite = sem_open(SEMAPHORE_SET_RADIO_TX_POWER, O_CREAT, S_IWUSR | S_IRUSR, 0);
       if ( (NULL == s_pSemaphoreSetTxPowerWrite) || (SEM_FAILED == s_pSemaphoreSetTxPowerWrite) )
       {
          log_error_and_alarm("Failed to create write semaphore: %s", SEMAPHORE_SET_RADIO_TX_POWER);
@@ -187,7 +187,7 @@ void packet_utils_init()
    if ( (NULL == s_pSemaphoreSetTxPowerRead) || (SEM_FAILED == s_pSemaphoreSetTxPowerRead) )
    {
       log_error_and_alarm("Failed to create read semaphore: %s, try alternative.", SEMAPHORE_SET_RADIO_TX_POWER);
-      s_pSemaphoreSetTxPowerRead = sem_open(SEMAPHORE_SET_RADIO_TX_POWER, O_CREAT, S_IWUSR | S_IRUSR, 0); 
+      s_pSemaphoreSetTxPowerRead = sem_open(SEMAPHORE_SET_RADIO_TX_POWER, O_CREAT, S_IWUSR | S_IRUSR, 0);
       if ( (NULL == s_pSemaphoreSetTxPowerRead) || (SEM_FAILED == s_pSemaphoreSetTxPowerRead) )
       {
          log_error_and_alarm("Failed to create read semaphore: %s", SEMAPHORE_SET_RADIO_TX_POWER);
@@ -310,7 +310,7 @@ u32 get_last_tx_minimum_video_radio_datarate_bps()
       radio_hw_info_t* pRadioInfo = hardware_get_radio_info(i);
       if ( (NULL == pRadioInfo) || (! pRadioInfo->isHighCapacityInterface) )
          continue;
-        
+
       int iRadioLink = g_SM_RadioStats.radio_interfaces[i].assignedVehicleRadioLinkId;
       if ( iRadioLink >= 0 )
       if ( getRealDataRateFromRadioDataRate(s_LastTxDataRatesVideo[i], g_pCurrentModel->radioLinksParams.link_radio_flags_tx[iRadioLink], 1) < nMinRate )
@@ -338,7 +338,7 @@ u32 get_last_tx_maximum_video_radio_datarate_bps()
       radio_hw_info_t* pRadioInfo = hardware_get_radio_info(i);
       if ( (NULL == pRadioInfo) || (! pRadioInfo->isHighCapacityInterface) )
          continue;
-        
+
       int iRadioLink = g_SM_RadioStats.radio_interfaces[i].assignedVehicleRadioLinkId;
       if ( iRadioLink >= 0 )
       if ( getRealDataRateFromRadioDataRate(s_LastTxDataRatesVideo[i], g_pCurrentModel->radioLinksParams.link_radio_flags_tx[iRadioLink], 1) > nMaxRate )
@@ -353,7 +353,7 @@ bool _check_update_tx_pit_mode()
 {
    bool bIsInTxPITMode = false;
    g_pCurrentModel->uModelRuntimeStatusFlags &= ~(MODEL_RUNTIME_STATUS_FLAG_IN_PIT_MODE | MODEL_RUNTIME_STATUS_FLAG_IN_PIT_MODE_TEMPERATURE);
-   
+
    // Manual PIT mode?
    if ( g_pCurrentModel->radioInterfacesParams.uFlagsRadioInterfaces & RADIO_INTERFACES_FLAGS_PIT_MODE_ENABLE )
    if ( g_pCurrentModel->radioInterfacesParams.uFlagsRadioInterfaces & RADIO_INTERFACES_FLAGS_PIT_MODE_ENABLE_MANUAL )
@@ -410,7 +410,7 @@ void compute_packet_tx_power_on_ieee(int iVehicleRadioLinkId, int iRadioInterfac
    int iRadioInterfaceRawTxPowerToUse = g_pCurrentModel->radioInterfacesParams.interface_raw_power[iRadioInterfaceIndex];
    if ( bIsInTxPITMode )
       iRadioInterfaceRawTxPowerToUse = tx_powers_convert_mw_to_raw(g_pCurrentModel->hwCapabilities.uBoardType, iRadioInterfacelModel, 5);
-   
+
    if ( negociate_radio_link_is_in_progress() && (iRadioInterfaceIndex == negociate_radio_link_get_current_test_interface()) && (negociate_radio_link_get_txpower_mw(iRadioInterfaceIndex) > 0) )
       iRadioInterfaceRawTxPowerToUse = -tx_powers_convert_mw_to_raw(g_pCurrentModel->hwCapabilities.uBoardType, iRadioInterfacelModel, negociate_radio_link_get_txpower_mw(iRadioInterfaceIndex));
    else if ( ! bIsInTxPITMode )
@@ -620,7 +620,7 @@ int _compute_packet_downlink_datarate(u8* pPacketData, int iVehicleRadioLink, in
             iDataRateTx = getDataRateShiftedByLevels(iDataRateTx, -1);
       }
       s_LastTxDataRatesData[iRadioInterfaceIndex] = iDataRateTx;
-      return iDataRateTx;       
+      return iDataRateTx;
    }
 
    // ------------------------------------
@@ -798,7 +798,7 @@ int _compute_packet_downlink_datarate_radioflags_tx_power(u8* pPacketData, int i
    }
 
    radio_set_frames_flags(uRadioFlags, g_TimeNow);
-   
+
    // Radio flags - end
    //--------------------------------------------
    // Datarates - begin
@@ -844,7 +844,7 @@ bool _send_packet_to_serial_radio_interface(int iLocalRadioLinkId, int iRadioInt
 {
    if ( (NULL == pPacketData) || (nPacketLength <= 0) || (NULL == g_pCurrentModel) )
       return false;
-   
+
    radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(iRadioInterfaceIndex);
    if ( NULL == pRadioHWInfo )
       return false;
@@ -852,14 +852,14 @@ bool _send_packet_to_serial_radio_interface(int iLocalRadioLinkId, int iRadioInt
    int iVehicleRadioLinkId = g_SM_RadioStats.radio_links[iLocalRadioLinkId].matchingVehicleRadioLinkId;
    if ( (iVehicleRadioLinkId < 0) || (iVehicleRadioLinkId >= g_pCurrentModel->radioLinksParams.links_count) )
       return false;
-   
+
    // Do not send packet if the link is overloaded
    int iAirRate = g_pCurrentModel->radioLinksParams.downlink_datarate_data_bps[iVehicleRadioLinkId] /8;
    if ( hardware_radio_index_is_sik_radio(iRadioInterfaceIndex) )
       iAirRate = hardware_radio_sik_get_air_baudrate_in_bytes(iRadioInterfaceIndex);
 
    s_LastTxDataRatesData[iRadioInterfaceIndex] = iAirRate*8;
-  
+
    t_packet_header* pPH = (t_packet_header*)pPacketData;
    if ( ! radio_can_send_packet_on_slow_link(iLocalRadioLinkId, pPH->packet_type, 0, g_TimeNow) )
       return false;
@@ -895,14 +895,14 @@ bool _send_packet_to_serial_radio_interface(int iLocalRadioLinkId, int iRadioInt
       log_softerror_and_alarm("Radio serial interface %d is not opened for write. Can't send packet on it.", iRadioInterfaceIndex+1);
       return false;
    }
-      
+
    int iWriteResult = radio_tx_send_serial_radio_packet(iRadioInterfaceIndex, (u8*)pPH, pPH->total_length);
    if ( iWriteResult > 0 )
-   {      
+   {
       int iTotalSent = pPH->total_length;
       if ( g_pCurrentModel->radioLinksParams.iSiKPacketSize > 0 )
          iTotalSent += sizeof(t_packet_header_short) * (int) (pPH->total_length / g_pCurrentModel->radioLinksParams.iSiKPacketSize);
-      
+
       u32 uStreamId = (pPH->stream_packet_idx) >> PACKET_FLAGS_MASK_SHIFT_STREAM_INDEX;
       radio_stats_update_on_packet_sent_on_radio_interface(&g_SM_RadioStats, g_TimeNow, iRadioInterfaceIndex, iTotalSent);
       radio_stats_update_on_packet_sent_on_radio_link(&g_SM_RadioStats, g_TimeNow, iLocalRadioLinkId, (int)uStreamId, pPH->total_length);
@@ -927,7 +927,7 @@ bool _send_packet_to_wifi_radio_interface(int iLocalRadioLinkId, int iRadioInter
    int iVehicleRadioLinkId = g_SM_RadioStats.radio_links[iLocalRadioLinkId].matchingVehicleRadioLinkId;
    if ( (iVehicleRadioLinkId < 0) || (iVehicleRadioLinkId >= g_pCurrentModel->radioLinksParams.links_count) )
       return false;
-   
+
    t_packet_header* pPH = (t_packet_header*)pPacketData;
    u32 uStreamId = (pPH->stream_packet_idx) >> PACKET_FLAGS_MASK_SHIFT_STREAM_INDEX;
 
@@ -973,7 +973,7 @@ bool _send_packet_to_wifi_radio_interface(int iLocalRadioLinkId, int iRadioInter
       iRepeatCount++;
 
    if ( radio_write_raw_ieee_packet(iRadioInterfaceIndex, s_RadioRawPacket, totalLength, iRepeatCount) )
-   {       
+   {
       radio_stats_update_on_packet_sent_on_radio_interface(&g_SM_RadioStats, g_TimeNow, iRadioInterfaceIndex, nPacketLength);
       radio_stats_set_tx_radio_datarate_for_packet(&g_SM_RadioStats, iRadioInterfaceIndex, iLocalRadioLinkId, iDataRateTx, bIsAudioVideoPacket?1:0);
 
@@ -1004,7 +1004,7 @@ int send_packet_to_radio_interfaces(u8* pPacketData, int nPacketLength, int iSen
    bool bHasCommandParamsZipResponse = false;
    bool bHasZipParamsPacket = false;
 
-   
+
    int iZipParamsPacketSize = 0;
    u32 uZipParamsUniqueIndex = 0;
    u8  uZipParamsFlags = 0;
@@ -1017,11 +1017,11 @@ int send_packet_to_radio_interfaces(u8* pPacketData, int nPacketLength, int iSen
    bool bIsLowCapacityLinkOnlyPacket = false;
    bool bIsPingPacket = false;
    int iPingOnLocalRadioLinkId = -1;
-   
+
    t_packet_header* pPHZipParams = NULL;
    t_packet_header_command_response* pPHCRZipParams = NULL;
    t_packet_header* pPH = (t_packet_header*)pPacketData;
-   
+
    if ( pPH->packet_flags_extended & PACKET_FLAGS_EXTENDED_BIT_SEND_ON_LOW_CAPACITY_LINK_ONLY )
       bIsLowCapacityLinkOnlyPacket = true;
    if ( pPH->packet_flags & PACKET_FLAGS_BIT_RETRANSMITED )
@@ -1087,7 +1087,7 @@ int send_packet_to_radio_interfaces(u8* pPacketData, int nPacketLength, int iSen
       }
    }
 
-   u32 uDestVehicleId = pPH->vehicle_id_dest;      
+   u32 uDestVehicleId = pPH->vehicle_id_dest;
    u32 uStreamId = (pPH->stream_packet_idx) >> PACKET_FLAGS_MASK_SHIFT_STREAM_INDEX;
 
    if ( pPH->packet_type != PACKET_TYPE_RUBY_PING_CLOCK )
@@ -1163,7 +1163,7 @@ int send_packet_to_radio_interfaces(u8* pPacketData, int nPacketLength, int iSen
          continue;
       if ( (! bIsAudioVideoPacket) && (!(g_pCurrentModel->radioInterfacesParams.interface_capabilities_flags[iRadioInterfaceIndex] & RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_DATA)) )
          continue;
-      
+
       if ( hardware_radio_index_is_serial_radio(iRadioInterfaceIndex) )
       {
          if ( (! bIsAudioVideoPacket) && (! bIsRetransmited) )
@@ -1173,9 +1173,9 @@ int send_packet_to_radio_interfaces(u8* pPacketData, int nPacketLength, int iSen
             if ( bHasZipParamsPacket )
             {
                if ( 0 == uZipParamsFlags )
-                  log_line("Sent radio packet: zip params packet (%d bytes) (transfer id %u) as single packet to SiK radio interface %d", iZipParamsPacketSize, uZipParamsUniqueIndex, iRadioInterfaceIndex+1 );  
+                  log_line("Sent radio packet: zip params packet (%d bytes) (transfer id %u) as single packet to SiK radio interface %d", iZipParamsPacketSize, uZipParamsUniqueIndex, iRadioInterfaceIndex+1 );
                else
-                  log_line("Sent radio packet: zip params packet (%d bytes) (transfer id %u) as small packets (%u of %u) to SiK radio interface %d", iZipParamsPacketSize, uZipParamsUniqueIndex, uZipParamsSegmentIndex, uZipParamsTotalSegments, iRadioInterfaceIndex+1 );  
+                  log_line("Sent radio packet: zip params packet (%d bytes) (transfer id %u) as small packets (%u of %u) to SiK radio interface %d", iZipParamsPacketSize, uZipParamsUniqueIndex, uZipParamsSegmentIndex, uZipParamsTotalSegments, iRadioInterfaceIndex+1 );
             }
          }
       }
@@ -1190,7 +1190,7 @@ int send_packet_to_radio_interfaces(u8* pPacketData, int nPacketLength, int iSen
             {
                if ( pPHZipParams->total_length > sizeof(t_packet_header) + 200 )
                   log_line("Sent radio packet: model zip params command response (%d bytes) as single zip file to radio interface %d, command index: %d, retry: %d",
-                     (int)(pPHZipParams->total_length - sizeof(t_packet_header) - sizeof(t_packet_header_command_response)), 
+                     (int)(pPHZipParams->total_length - sizeof(t_packet_header) - sizeof(t_packet_header_command_response)),
                      iRadioInterfaceIndex+1,
                      (int)pPHCRZipParams->origin_command_counter, (int)pPHCRZipParams->origin_command_resend_counter );
                else
@@ -1277,7 +1277,7 @@ int send_packet_to_radio_interfaces(u8* pPacketData, int nPacketLength, int iSen
 
    if ( NULL != g_pProcessStats )
       g_pProcessStats->lastRadioTxTime = g_TimeNow;
-   
+
 
    #ifdef LOG_RAW_TELEMETRY
    t_packet_header* pPH = (t_packet_header*) pPacketData;

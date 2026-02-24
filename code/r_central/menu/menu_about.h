@@ -9,7 +9,7 @@ class MenuAbout: public Menu
       virtual void Render();
       virtual void valuesToUI();
       virtual bool periodicLoop();
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
 
    private:

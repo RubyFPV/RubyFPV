@@ -203,8 +203,8 @@ u32 load_simple_config_fileU(const char* fileName, u32 defaultValue)
       log_softerror_and_alarm("Failed to load simple configuration from file: %s (invalid config file)",fileName);
       fclose(fd);
       return defaultValue;
-   }   
-   
+   }
+
    fclose(fd);
    log_line("Loaded value %u from file: %s", returnValue, fileName);
    return returnValue;
@@ -241,8 +241,8 @@ int load_simple_config_fileI(const char* fileName, int defaultValue)
       log_line("Saving a default value (%d) and file.", defaultValue);
       save_simple_config_fileI(fileName, defaultValue);
       return defaultValue;
-   }   
-   
+   }
+
    fclose(fd);
    return returnValue;
 }
@@ -368,7 +368,7 @@ void get_Ruby_UpdatedVersion(int* pMajor, int* pMinor)
    char szFile[MAX_FILE_PATH_SIZE];
    strcpy(szFile, FOLDER_CONFIG);
    strcat(szFile, FILE_INFO_LAST_UPDATE);
-   
+
    FILE* fd = fopen(szFile, "r");
    if ( NULL == fd )
       return;

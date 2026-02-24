@@ -52,7 +52,7 @@ void render_osd_layout_lean()
 {
    if ( (! g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry) || (NULL == g_pCurrentModel) )
       return;
-   
+
    Model* pActiveModel = osd_get_current_data_source_vehicle_model();
    Preferences* pP = get_Preferences();
 
@@ -101,7 +101,7 @@ void render_osd_layout_lean()
       osd_show_value_centered(xCell+xCellWidth/2, yLine2, szBuff, g_idFontOSD);
 
    xCell += xCellWidth;
-   
+
    double pC[4];
    memcpy(pC, get_Color_OSDText(), 4*sizeof(double));
 
@@ -137,12 +137,12 @@ void render_osd_layout_lean()
       strcat(szBuff, "NONE");
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_TIME) )
       strcat(szBuff, " 0:00");
-   
-   
+
+
    int sec = (g_pCurrentModel->m_Stats.uCurrentFlightTime)%60;
    int min = (g_pCurrentModel->m_Stats.uCurrentFlightTime)/60;
 
-   szBuff[0] = 0;   
+   szBuff[0] = 0;
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_FLIGHT_MODE) )
       strcat(szBuff, "NONE");
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_TIME) )
@@ -153,7 +153,7 @@ void render_osd_layout_lean()
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry )
    {
       u8 mode = g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.flight_mode & (~FLIGHT_MODE_ARMED);
-      szBuff[0] = 0;   
+      szBuff[0] = 0;
       if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_FLIGHT_MODE) )
          strcat(szBuff, model_getShortFlightMode(mode));
       if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_TIME) )
@@ -183,11 +183,11 @@ void render_osd_layout_lean()
    sprintf(szBuff, "LINK QUALITY %d%%", nQualityMain);
 
    bool bHasRubyRC = false;
-   
+
    if ( NULL != g_pCurrentModel )
    if ( (g_pCurrentModel->rc_params.uRCFlags & RC_FLAGS_ENABLED) && (!g_pCurrentModel->is_spectator) )
       bHasRubyRC = true;
- 
+
    if ( NULL != g_pCurrentModel && g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotRubyTelemetryInfo )
    {
       int val = 0;
@@ -346,7 +346,7 @@ void render_osd_layout_lean()
       strcpy(szBuff, "0");
       if ( NULL != g_pCurrentModel )
       if ( (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_GENERIC ||
-           (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE || 
+           (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE ||
            (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
            (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
       {
@@ -381,7 +381,7 @@ void render_osd_layout_lean()
       strcpy(szBuff, "0");
       if ( NULL != g_pCurrentModel )
       if ( (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_GENERIC ||
-           (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE || 
+           (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE ||
            (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
            (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
       {
@@ -426,14 +426,14 @@ void render_osd_layout_lean()
 
    if ( (NULL != pActiveModel) && (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) )
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_HOME ) )
-      osd_show_home(0.5-height_text_text, yBig, true, 1.0);   
+      osd_show_home(0.5-height_text_text, yBig, true, 1.0);
 }
 
 void render_osd_layout_lean_extended()
 {
    if ( ( ! g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry) || (NULL == g_pCurrentModel) )
       return;
-   
+
    Model* pActiveModel = osd_get_current_data_source_vehicle_model();
    Preferences* pP = get_Preferences();
 
@@ -592,7 +592,7 @@ void render_osd_layout_lean_extended()
       strcpy(szBuff, "0");
       if ( NULL != g_pCurrentModel )
       if ( (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_GENERIC ||
-           (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE || 
+           (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE ||
            (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
            (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
       {
@@ -626,7 +626,7 @@ void render_osd_layout_lean_extended()
       strcpy(szBuff, "0");
       if ( NULL != g_pCurrentModel )
       if ( (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_GENERIC ||
-           (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE || 
+           (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE ||
            (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
            (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
       {
@@ -724,11 +724,11 @@ void render_osd_layout_lean_extended()
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_RADIO_LINKS) )
    {
       bool bHasRubyRC = false;
-   
+
       if ( NULL != g_pCurrentModel )
       if ( (g_pCurrentModel->rc_params.uRCFlags & RC_FLAGS_ENABLED) && (!g_pCurrentModel->is_spectator) )
          bHasRubyRC = true;
- 
+
       if ( NULL != g_pCurrentModel && g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotRubyTelemetryInfo )
       {
          if ( bHasRubyRC )
@@ -763,12 +763,12 @@ void render_osd_layout_lean_extended()
       strcat(szBuff, "NONE");
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_TIME) )
       strcat(szBuff2, "0:00");
-   
+
    int sec = (g_pCurrentModel->m_Stats.uCurrentFlightTime)%60;
    int min = (g_pCurrentModel->m_Stats.uCurrentFlightTime)/60;
 
    szBuff[0] = 0;
-   szBuff2[0] = 0;   
+   szBuff2[0] = 0;
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_FLIGHT_MODE) )
       strcat(szBuff, "NONE");
    if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_TIME) )
@@ -779,8 +779,8 @@ void render_osd_layout_lean_extended()
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry )
    {
       u8 mode = g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.flight_mode & (~FLIGHT_MODE_ARMED);
-      szBuff[0] = 0; 
-      szBuff2[0] = 0;  
+      szBuff[0] = 0;
+      szBuff2[0] = 0;
       if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_FLIGHT_MODE) )
          strcat(szBuff, model_getShortFlightMode(mode));
       if ( s_bDebugOSDShowAll || (g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_TIME) )

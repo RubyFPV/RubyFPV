@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
                 /* Ignore init events. */
                 break;
         }
-        
+
         fflush(stdout);
     }
     printf("\nFinished reading events.\n");

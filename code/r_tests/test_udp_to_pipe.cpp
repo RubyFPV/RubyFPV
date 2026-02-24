@@ -7,7 +7,7 @@
 #include <sys/resource.h>
 #include <stdio.h>
 #include <sys/stat.h>
-#include <sys/socket.h> 
+#include <sys/socket.h>
 
 #define RUBY_PIPES_EXTRA_FLAGS O_NONBLOCK
 
@@ -33,12 +33,12 @@ int pipe_exists()
 }
 
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    bQuit = true;
-} 
-  
+}
+
 int main(int argc, char *argv[])
 {
    signal(SIGINT, handle_sigint);
@@ -74,10 +74,10 @@ int main(int argc, char *argv[])
    log_line("Pipe [%s] exists now.", szPipeName);
 
    g_iPipeFD = -1;
-   
+
    int socket_server, socket_client;
    struct sockaddr_in server_addr, client_addr;
-	
+
    socket_server = socket(AF_INET , SOCK_DGRAM, 0);
    if (socket_server == -1)
    {
@@ -87,11 +87,11 @@ int main(int argc, char *argv[])
 
    memset(&server_addr, 0, sizeof(server_addr));
    memset(&client_addr, 0, sizeof(client_addr));
-    
+
    server_addr.sin_family = AF_INET;
    server_addr.sin_addr.s_addr = INADDR_ANY;
    server_addr.sin_port = htons( udpport );
-	
+
    client_addr.sin_family = AF_INET;
    client_addr.sin_addr.s_addr = INADDR_ANY;
    client_addr.sin_port = htons( udpport );
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
    u32 uBytesRead = 0;
    u32 uBytesWritten = 0;
    u32 uLoopsPerSec = 0;
-   
+
    while (!bQuit)
    {
       uTimeNow = get_current_timestamp_ms();
@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
 
       u8 uBuffer[2025];
       socklen_t len = sizeof(client_addr);
-      int nRecv = recvfrom(socket_server, uBuffer, 1500, 
+      int nRecv = recvfrom(socket_server, uBuffer, 1500,
                 MSG_WAITALL, ( struct sockaddr *) &client_addr,
                 &len);
       //int nRecv = recv(socket_server, szBuff, 1024, )
@@ -174,9 +174,9 @@ int main(int argc, char *argv[])
          hardware_sleep_ms(10);
          if ( ! pipe_exists() )
             continue;
-       
+
          log_line("Pipe [%s] exists. Open it to write to it.", szPipeName);
-  
+
         g_iPipeFD = open(szPipeName, O_WRONLY | (RUBY_PIPES_EXTRA_FLAGS & (~O_NONBLOCK)));
         //g_iPipeFD = open(szPipeName, O_APPEND);
         if ( g_iPipeFD < 0 )

@@ -8,5 +8,5 @@ float plugin_osd_convertMeters(float m, int iTargetMeasureUnit);
 float plugin_osd_convertTemperature(float c, int iTargetMeasureUnit);
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

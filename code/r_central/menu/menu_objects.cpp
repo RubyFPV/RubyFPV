@@ -123,7 +123,7 @@ Menu::Menu(int id, const char* title, const char* subTitle)
 
    m_fExtraHeightStart = 0.0;
    m_fExtraHeightEnd = 0.0;
-   
+
    m_bDisableStacking = false;
    m_bDisableBackgroundAlpha = false;
    m_fAlfaWhenInBackground = MENU_ALFA_WHEN_IN_BG;
@@ -149,7 +149,7 @@ Menu::Menu(int id, const char* title, const char* subTitle)
    m_uOnShowTime = g_TimeNow;
    m_uOnChildAddTime = 0;
    m_uOnChildCloseTime = 0;
-   
+
    m_bIsAnimationInProgress = false;
    m_uAnimationStartTime = 0;
    m_uAnimationLastStepTime = 0;
@@ -277,11 +277,11 @@ void Menu::addTopLine(const char* szLine, float dx)
    strcpy(m_szTopLines[m_TopLinesCount], szLine);
 
    if ( strlen(m_szTopLines[m_TopLinesCount]) > 1 )
-   if ( m_szTopLines[m_TopLinesCount][strlen(m_szTopLines[m_TopLinesCount])-1] == 10 || 
+   if ( m_szTopLines[m_TopLinesCount][strlen(m_szTopLines[m_TopLinesCount])-1] == 10 ||
         m_szTopLines[m_TopLinesCount][strlen(m_szTopLines[m_TopLinesCount])-1] == 13 )
       m_szTopLines[m_TopLinesCount][strlen(m_szTopLines[m_TopLinesCount])-1] = 0;
    if ( strlen(m_szTopLines[m_TopLinesCount]) > 1 )
-   if ( m_szTopLines[m_TopLinesCount][strlen(m_szTopLines[m_TopLinesCount])-1] == 10 || 
+   if ( m_szTopLines[m_TopLinesCount][strlen(m_szTopLines[m_TopLinesCount])-1] == 10 ||
         m_szTopLines[m_TopLinesCount][strlen(m_szTopLines[m_TopLinesCount])-1] == 13 )
       m_szTopLines[m_TopLinesCount][strlen(m_szTopLines[m_TopLinesCount])-1] = 0;
 
@@ -321,7 +321,7 @@ void Menu::removeMenuItem(MenuItem* pItem)
          for( int k=i; k<m_ItemsCount-1; k++ )
          {
             m_pMenuItems[k] = m_pMenuItems[k+1];
-            m_bHasSeparatorAfter[k] = m_bHasSeparatorAfter[k+1];   
+            m_bHasSeparatorAfter[k] = m_bHasSeparatorAfter[k+1];
          }
          m_ItemsCount--;
          if ( m_SelectedIndex >= m_ItemsCount )
@@ -362,7 +362,7 @@ int Menu::insertMenuItem(MenuItem* pItem, int iPosition)
    for( int i=m_ItemsCount-1; i>= iPosition; i-- )
    {
       m_pMenuItems[i+1] = m_pMenuItems[i];
-      m_bHasSeparatorAfter[i+1] = m_bHasSeparatorAfter[i];   
+      m_bHasSeparatorAfter[i+1] = m_bHasSeparatorAfter[i];
    }
    m_pMenuItems[iPosition] = pItem;
    m_bHasSeparatorAfter[iPosition] = false;
@@ -467,14 +467,14 @@ void Menu::disableBackAction()
 
 void Menu::enableBackAction()
 {
-   m_bDisableBackAction = false; 
+   m_bDisableBackAction = false;
 }
 
 
 bool Menu::hasDisabledBackAction()
 {
    return m_bDisableBackAction;
-} 
+}
 
 float Menu::getRenderWidth()
 {
@@ -507,7 +507,7 @@ void Menu::onShow()
    if ( m_bDisableStacking )
       m_RenderXPos = m_xPos;
    log_line("[Menu] (loop %u) [%s] onShow (id: %d, title: %s, ptr: 0x%X): xPos: %.2f, xRenderPos: %.2f",
-      menu_get_loop_counter()%1000, m_bFirstShow? "first show":"not first show", 
+      menu_get_loop_counter()%1000, m_bFirstShow? "first show":"not first show",
       m_MenuId, m_szTitle, this, m_xPos, m_RenderXPos);
 
    m_bFirstShow = false;
@@ -571,7 +571,7 @@ float Menu::getUsableWidth()
       if ( pP->iMenuStyle == 1 )
          m_sfScaleFactor *= 1.2;
    }
-   
+
    m_RenderWidth *= m_sfScaleFactor;
 
    m_fRenderScrollBarsWidth = 0.015 * m_sfScaleFactor;
@@ -641,7 +641,7 @@ float Menu::_computeRenderMaxBottomFooterSize()
    {
       if ( (NULL == m_pMenuItems[i]) || (m_pMenuItems[i]->isHidden()) )
          continue;
-     
+
       if ( NULL != m_pMenuItems[i]->getTooltip() )
       {
          float fHTooltip = g_pRenderEngine->getMessageHeight(m_pMenuItems[i]->getTooltip(), MENU_TEXTLINE_SPACING, getUsableWidth(), g_idFontMenu);
@@ -675,7 +675,7 @@ void Menu::computeRenderSizes()
    }
 
    getUsableWidth(); // Computes m_RenderWidth
-   
+
    m_RenderHeight = m_Height;
    if ( m_siRenderMode == 1 )
       m_RenderHeight = 1.0;
@@ -689,11 +689,11 @@ void Menu::computeRenderSizes()
 
    m_RenderTotalHeight = _computeRenderTopHeaderSize();
    m_RenderTotalHeight += _computeRenderTopPartSize();
-  
+
    m_fRenderItemsStartYPos = m_RenderYPos + m_RenderTotalHeight;
-   
+
    m_fRenderItemsTotalHeight = 0.0;
-   
+
    for( int i=0; i<m_ItemsCount; i++ )
    {
       if ( (NULL == m_pMenuItems[i]) || (m_pMenuItems[i]->isHidden()) )
@@ -719,7 +719,7 @@ void Menu::computeRenderSizes()
 
    }
    m_RenderTotalHeight += 0.5*m_sfMenuPaddingY;
-   
+
    m_fRenderItemsVisibleHeight = m_fRenderItemsTotalHeight;
    m_fRenderItemsStopYPos = m_RenderYPos + m_RenderTotalHeight;
 
@@ -730,13 +730,13 @@ void Menu::computeRenderSizes()
 
    m_RenderTotalHeight += 0.4*m_sfMenuPaddingY;
    m_RenderTotalHeight += m_RenderMaxFooterHeight;
-   
+
    m_bHasScrolling = false;
    m_RenderHeight = m_RenderTotalHeight;
-   
+
 
    // Detect if scrolling is needed
-    
+
    if ( m_Height < 0.001 )
    {
        if ( m_bEnableScrolling )
@@ -754,7 +754,7 @@ void Menu::computeRenderSizes()
        }
 
        float fOverflowHeight = (m_RenderYPos + m_RenderTotalHeight) - 0.96;
-          
+
        // Just move up if possible
 
        if ( m_bHasScrolling )
@@ -777,7 +777,7 @@ void Menu::computeRenderSizes()
              m_RenderYPos -= dMoveUp;
              m_fRenderItemsStartYPos -= dMoveUp;
              m_fRenderItemsStopYPos -= dMoveUp;
-             
+
              fOverflowHeight -= dMoveUp;
           }
           if ( fOverflowHeight <= 0.001 )
@@ -798,7 +798,7 @@ void Menu::computeRenderSizes()
    m_RenderHeight -= m_RenderMaxFooterHeight;
    m_RenderHeight += m_RenderFooterHeight;
    m_RenderHeight += m_fExtraHeightEnd;
-   
+
    m_fSelectionWidth = 0;
 
    for( int i=0; i<m_ItemsCount; i++ )
@@ -850,7 +850,7 @@ void Menu::RenderPrepare()
 
    if ( ! m_bIsAnimationInProgress )
       return;
-   
+
    if ( m_bDisableStacking || (pP->iMenuStyle == 1) )
       return;
 
@@ -879,7 +879,7 @@ void Menu::Render()
 
    bool bAlpha = g_pRenderEngine->isAlphaBlendingEnabled();
    g_pRenderEngine->disableAlphaBlending();
-   
+
    float yTop = RenderFrameAndTitle();
    float yPos = yTop;
 
@@ -951,7 +951,7 @@ float Menu::RenderFrameAndTitle()
 
    g_pRenderEngine->drawRoundRect(m_RenderXPos, m_RenderYPos, m_RenderWidth + fExtraWidth, m_RenderHeight, MENU_ROUND_MARGIN*m_sfMenuPaddingY);
    g_pRenderEngine->drawLine(m_RenderXPos, m_RenderYPos + m_RenderHeaderHeight, m_RenderXPos + m_RenderWidth + fExtraWidth, m_RenderYPos + m_RenderHeaderHeight);
-   
+
    if ( 0 != m_szCurrentTooltip[0] )
       g_pRenderEngine->drawLine(m_RenderXPos, m_RenderYPos + m_RenderHeight - m_RenderFooterHeight, m_RenderXPos + m_RenderWidth + fExtraWidth, m_RenderYPos + m_RenderHeight - m_RenderFooterHeight);
 
@@ -971,7 +971,7 @@ float Menu::RenderFrameAndTitle()
    }
 
    // Render top lines
-   
+
    yPos = m_RenderYPos + m_RenderHeaderHeight + m_sfMenuPaddingY;
    yPos += m_fExtraHeightStart;
    for (int i=0; i<m_TopLinesCount; i++)
@@ -1008,7 +1008,7 @@ float Menu::RenderFrameAndTitle()
       float fScrollBarHeight = m_fRenderItemsStopYPos - m_fRenderItemsStartYPos - m_sfMenuPaddingY;
       float fScrollButtonHeight = fScrollBarHeight * (fScrollBarHeight/m_fRenderItemsTotalHeight);
       float xPos = m_RenderXPos + m_RenderWidth + fExtraWidth - fExtraWidth*0.8;
-      
+
       float yButton = 0.0;
       for( int k=0; k<m_iIndexFirstVisibleItem; k++ )
       {
@@ -1033,7 +1033,7 @@ float Menu::RenderFrameAndTitle()
       }
 
       yButton = yPos + yButton*(fScrollBarHeight/m_fRenderItemsTotalHeight);
-      
+
       if ( yButton + fScrollButtonHeight > m_fRenderItemsStopYPos )
          yButton = m_fRenderItemsStopYPos - fScrollButtonHeight;
 
@@ -1046,7 +1046,7 @@ float Menu::RenderFrameAndTitle()
       g_pRenderEngine->setColors(get_Color_MenuText());
       g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
       g_pRenderEngine->setFill(pC[0], pC[1], pC[2], 0.5);
-      
+
       g_pRenderEngine->drawRoundRect(xPos - 0.24*fExtraWidth, yButton, fExtraWidth*0.48, fScrollButtonHeight, MENU_ROUND_MARGIN*m_sfMenuPaddingY);
       g_pRenderEngine->setColors(get_Color_MenuText());
       g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
@@ -1136,7 +1136,7 @@ float Menu::RenderFrameAndTitleSticky()
       float fScrollBarHeight = m_fRenderItemsStopYPos - m_fRenderItemsStartYPos - m_sfMenuPaddingY;
       float fScrollButtonHeight = fScrollBarHeight * (fScrollBarHeight/m_fRenderItemsTotalHeight);
       float xPos = m_RenderXPos + m_RenderWidth + fExtraWidth - fExtraWidth*0.8;
-      
+
       float yButton = 0.0;
       for( int k=0; k<m_iIndexFirstVisibleItem; k++ )
       {
@@ -1161,7 +1161,7 @@ float Menu::RenderFrameAndTitleSticky()
       }
 
       yButton = yPos + yButton*(fScrollBarHeight/m_fRenderItemsTotalHeight);
-      
+
       if ( yButton + fScrollButtonHeight > m_fRenderItemsStopYPos )
          yButton = m_fRenderItemsStopYPos - fScrollButtonHeight;
 
@@ -1174,7 +1174,7 @@ float Menu::RenderFrameAndTitleSticky()
       g_pRenderEngine->setColors(get_Color_MenuText());
       g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
       g_pRenderEngine->setFill(pC[0], pC[1], pC[2], 0.5);
-      
+
       g_pRenderEngine->drawRoundRect(xPos - 0.24*fExtraWidth, yButton, fExtraWidth*0.48, fScrollButtonHeight, MENU_ROUND_MARGIN*m_sfMenuPaddingY);
       g_pRenderEngine->setColors(get_Color_MenuText());
       g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
@@ -1216,7 +1216,7 @@ float Menu::RenderItem(int index, float yPos, float dx)
       m_ThisRenderCycleStartRenderItemIndex = index;
    else if ( index < m_ThisRenderCycleStartRenderItemIndex )
       m_ThisRenderCycleStartRenderItemIndex = index;
-   
+
    if ( m_bHasScrolling )
    if ( -1 != m_ThisRenderCycleEndRenderItemIndex )
    if ( index > m_ThisRenderCycleEndRenderItemIndex )
@@ -1224,10 +1224,10 @@ float Menu::RenderItem(int index, float yPos, float dx)
 
    //dx += m_pMenuItems[index]->m_fMarginX;
    m_pMenuItems[index]->setLastRenderPos(m_RenderXPos + m_sfMenuPaddingX + dx + m_pMenuItems[index]->m_fMarginX, yPos);
-   
+
    float fHeightFont = g_pRenderEngine->textHeight(g_idFontMenu);
    float hItem = m_pMenuItems[index]->getItemHeight(getUsableWidth() - m_pMenuItems[index]->m_fMarginX);
-   
+
    float fTotalHeight = hItem;
    if ( m_bHasScrolling )
    if ( yPos + fTotalHeight > m_fRenderItemsStopYPos + 0.001 )
@@ -1279,7 +1279,7 @@ float Menu::RenderItem(int index, float yPos, float dx)
    }
 
    m_pMenuItems[index]->Render(m_RenderXPos + m_sfMenuPaddingX + dx, yPos, index == m_SelectedIndex, m_fSelectionWidth);
-   
+
    if ( m_bHasSeparatorAfter[index] && (!s_bMenuObjectsRenderEndItems) )
    {
       g_pRenderEngine->setColors(get_Color_MenuText());
@@ -1838,7 +1838,7 @@ void Menu::onReturnFromChild(int iChildMenuId, int returnValue)
 
    m_uOnChildAddTime = 0;
    m_uOnChildCloseTime = 0;
-      
+
    Preferences* pP = get_Preferences();
    if ( (NULL == pP) || (! pP->iMenusStacked) )
       return;
@@ -1860,16 +1860,16 @@ void Menu::onChildMenuAdd(Menu* pChildMenu)
 {
    log_line("[Menu] (loop %u) this menu %d-%d [%s]: add child menu: %d-%d [%s]",
       menu_get_loop_counter()%1000, m_MenuId%1000, m_MenuId/1000,
-      m_szTitle, 
+      m_szTitle,
       pChildMenu->m_MenuId%1000, pChildMenu->m_MenuId/1000,
       pChildMenu->m_szTitle);
 
    m_uOnChildAddTime = g_TimeNow;
    m_uOnChildCloseTime = 0;
    m_bInvalidated = true;
-   
+
    // Animate menus
-   
+
    m_bIsAnimationInProgress = false;
 
    Preferences* pP = get_Preferences();
@@ -1941,7 +1941,7 @@ void Menu::startAnimationOnChildMenuClosed()
       m_xPos, m_RenderXPos);
 
 }
-     
+
 bool Menu::checkIsArmed()
 {
    if ( g_VehiclesRuntimeInfo[g_iCurrentActiveVehicleRuntimeInfoIndex].bGotFCTelemetry )
@@ -1972,7 +1972,7 @@ void Menu::addMessageWithTitle(int iId, const char* szTitle, const char* szMessa
    pm->m_xPos = 0.32; pm->m_yPos = 0.4;
    pm->m_Width = 0.36;
    pm->m_bDisableStacking = true;
-   add_menu_to_stack(pm); 
+   add_menu_to_stack(pm);
 }
 
 void Menu::addMessage(const char* szMessage)
@@ -2010,7 +2010,7 @@ void Menu::addMessageWithTitleAndIcon(int iId, const char* szTitle, const char* 
    pm->m_Width = 0.36;
    pm->m_bDisableStacking = true;
    pm->setIconId(uIconId);
-   add_menu_to_stack(pm); 
+   add_menu_to_stack(pm);
 }
 
 bool Menu::checkCancelUpload()
@@ -2023,10 +2023,10 @@ bool Menu::checkCancelUpload()
       if ( iEvent == 0 )
          break;
       if ( iEvent == INPUT_EVENT_PRESS_BACK )
-         bBackPressed = true; 
+         bBackPressed = true;
       iCount--;
    }
-   
+
    if ( ! bBackPressed )
       return false;
 
@@ -2164,7 +2164,7 @@ static void * _thread_generate_upload(void *argument)
       hw_execute_bash_command(szComm, NULL);
    }
    */
-   
+
    if ( hardware_board_is_sigmastar(g_pCurrentModel->hwCapabilities.uBoardType) )
    {
       snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %smaj* %s 2>/dev/null", szFolderLocalUpdateBinaries, szPathTempUpload);
@@ -2178,7 +2178,7 @@ static void * _thread_generate_upload(void *argument)
    else
       sprintf(szComm, "tar -czf %s -C %s . 2>&1", szFullPathOutputArchive, szPathTempUpload);
    hw_execute_bash_command(szComm, NULL);
-   
+
    if ( 0 < strlen(szPathTempUpload) )
    {
       sprintf(szComm, "rm -rf %s*", szPathTempUpload);
@@ -2324,7 +2324,7 @@ bool Menu::uploadSoftware()
    }
    render_commands_set_custom_status(NULL);
 
-  
+
    log_line("Successfully sent software package to vehicle.");
    bool bProcessingFailed = false;
    char szProcessingError[256];
@@ -2350,7 +2350,7 @@ bool Menu::uploadSoftware()
       }
 
       try_read_messages_from_router(50);
-      
+
       bool bTimedOut = false;
       if ( g_TimeNow > uTimeStartProcessing + 1000*300 )
          bTimedOut = true;
@@ -2362,7 +2362,7 @@ bool Menu::uploadSoftware()
       {
          log_line("Update has timedout.");
          bProcessingFailed = true;
-         break;          
+         break;
       }
 
       if ( s_uOTAStatus == OTA_UPDATE_STATUS_START_PROCESSING )
@@ -2423,7 +2423,7 @@ bool Menu::uploadSoftware()
 
    g_nSucceededOTAUpdates++;
    g_bDidAnUpdate = true;
-   
+
    log_line("Upload software: wait for vehicle to reboot...");
    render_commands_set_custom_status("Waiting vehicle to reboot");
    if ( NULL != g_pCurrentModel )
@@ -2559,7 +2559,7 @@ MenuItemSelect* Menu::createMenuItemTxPowers(const char* szTitle, bool bAddAutoO
    const int* piPowerLevelsUIMw = tx_powers_get_ui_levels_mw(&iPowerLevelsCount);
 
    MenuItemSelect* pItem = new MenuItemSelect(szTitle, L("Sets the radio Tx power level."));
-   
+
    char szText[128];
    szText[0] = 0;
 
@@ -2621,7 +2621,7 @@ void Menu::selectMenuItemTxPowersValue(MenuItemSelect* pMenuItem, bool bHasAutoO
    if ( iMaxCurrentPowerMw > iMaxUsablePowerMw )
       iMaxCurrentPowerMw = iMaxUsablePowerMw;
    log_line("Menu: Select txpower item: Current max set tx power for all input cards: %d mw", iMaxCurrentPowerMw);
-   
+
    int iMinDiffMw = 10000;
    int iMinDiffMwIndexUI = -1;
    for( int i=0; i<iPowerLevelsUICount; i++ )
@@ -2649,9 +2649,9 @@ void Menu::selectMenuItemTxPowersValue(MenuItemSelect* pMenuItem, bool bHasAutoO
       pMenuItem->setSelectedIndex(iMinDiffMwIndexUI+1);
    else
       pMenuItem->setSelectedIndex(iMinDiffMwIndexUI);
-   
+
    bool bBigDeviation = false;
-   
+
    if ( iMinDiffMw > (piPowerLevelsUIMw[iMinDiffMwIndexUI] * MAX_TX_POWER_UI_DEVIATION_FROM_STANDARD) / 100 )
    //if ( piPowerLevelsUIMw[iMinDiffMwIndexUI] >= 20 )
       bBigDeviation = true;
@@ -2807,7 +2807,7 @@ bool Menu::_uploadVehicleUpdate(const char* szArchiveToUpload)
       bool bWaitAck = true;
       if ( (! pcpsp->is_last_block) && ((iPacketToSend % s_iAckFrequency) != 0 ) )
          bWaitAck = false;
-      
+
       if ( ! bWaitAck )
       {
          log_line("Send sw package block %d of %d", iPacketToSend + 1, nTotalPackets);

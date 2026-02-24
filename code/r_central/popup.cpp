@@ -76,7 +76,7 @@ void popups_add(Popup* p)
    if ( NULL == p )
    {
       log_softerror_and_alarm("Tried to add a NULL popup to the stack");
-      return;      
+      return;
    }
 
    log_line("Added popup: %s", p->getTitle());
@@ -101,7 +101,7 @@ void popups_add_bottom(Popup* p)
    if ( NULL == p )
    {
       log_softerror_and_alarm("Tried to add a NULL popup to the stack");
-      return;      
+      return;
    }
 
    for( int i=0; i<countPopupsBottom; i++ )
@@ -126,7 +126,7 @@ void popups_add_topmost(Popup* p)
    if ( NULL == p )
    {
       log_softerror_and_alarm("Tried to add a NULL popup to the stack");
-      return;      
+      return;
    }
 
    for( int i=0; i<countPopupsTopmost; i++ )
@@ -608,7 +608,7 @@ void Popup::setXPos(float xPos)
 void Popup::setYPos(float yPos)
 {
    m_yPos = yPos;
-   m_bInvalidated = true; 
+   m_bInvalidated = true;
 }
 
 void Popup::setBottomAlign(bool b)
@@ -648,7 +648,7 @@ void Popup::setBackgroundAlpha(float fAlpha)
 void Popup::setCustomPadding(float fPadding)
 {
    m_fPadding = fPadding;
-   
+
    m_fPaddingX = POPUP_MARGINS*g_pRenderEngine->textHeight(m_uIdFont)/g_pRenderEngine->getAspectRatio();
    m_fPaddingY = POPUP_MARGINS*g_pRenderEngine->textHeight(m_uIdFont);
 
@@ -715,7 +715,7 @@ void Popup::setIconId2(u32 idIcon2, const double* pColor2)
       m_ColorIcon2[0] = m_ColorIcon2[1] = m_ColorIcon2[2] = 0.0;
       m_ColorIcon2[3] = 1.0;
    }
-   m_bInvalidated = true; 
+   m_bInvalidated = true;
 }
 
 void Popup::invalidate()
@@ -797,7 +797,7 @@ void Popup::setLine(int iLine, const char* szLine)
    if ( NULL == szLine )
       return;
    if ( NULL != m_szLines[iLine] )
-      free(m_szLines[iLine]);  
+      free(m_szLines[iLine]);
 
    m_szLines[iLine] = (char*)malloc(strlen(szLine)+1);
    strcpy(m_szLines[iLine], szLine);
@@ -916,7 +916,7 @@ void Popup::computeSize()
    // Compute width
 
    float fMaxTextWidth = 0.0;
-      
+
    if ( m_fFixedWidth > 0.01 )
       fMaxTextWidth = m_fFixedWidth - 2.0 * m_fPaddingX;
    else
@@ -925,7 +925,7 @@ void Popup::computeSize()
       {
          //fMaxTextWidth = g_pRenderEngine->textWidth(m_uIdFont, m_szTitle);
          fMaxTextWidth = g_pRenderEngine->getMessageWidth(m_szTitle, m_fMaxWidth, m_uIdFont );
-      }  
+      }
       for (int i = 0; i<m_LinesCount; i++)
       {
          //float fTextWidth = g_pRenderEngine->textWidth(m_uIdFont, (const char*)(m_szLines[i]));
@@ -934,7 +934,7 @@ void Popup::computeSize()
          float fTextWidth = g_pRenderEngine->getMessageWidth((const char*)(m_szLines[i]), m_fMaxWidth, m_uIdFont);
          if ( m_bSmallLines )
             fTextWidth = g_pRenderEngine->getMessageWidth((const char*)(m_szLines[i]), m_fMaxWidth, g_idFontMenuSmall);
-         
+
          if ( fTextWidth > fMaxTextWidth )
             fMaxTextWidth = fTextWidth;
       }
@@ -947,7 +947,7 @@ void Popup::computeSize()
    // Compute height
 
    m_RenderHeight = 2.0 * m_fPaddingY;
-   
+
    if ( 0 != m_szTitle[0] )
    {
       float fHeight = g_pRenderEngine->getMessageHeight(m_szTitle, POPUP_LINE_SPACING, fMaxTextWidth, m_uIdFont);
@@ -957,7 +957,7 @@ void Popup::computeSize()
    for (int i = 0; i<m_LinesCount; i++)
    {
       m_RenderHeight += height_text*POPUP_LINE_SPACING;
-      
+
       float fHeight = g_pRenderEngine->getMessageHeight((const char*)(m_szLines[i]), POPUP_LINE_SPACING, fMaxTextWidth, m_uIdFont);
       if ( m_bSmallLines )
          fHeight = g_pRenderEngine->getMessageHeight((const char*)(m_szLines[i]), POPUP_LINE_SPACING, fMaxTextWidth, g_idFontMenuSmall);
@@ -1019,7 +1019,7 @@ void Popup::Render()
    colorBg[3] = colorBg[3] * m_fBackgroundAlpha;
    if ( colorBg[3] > 1.0 )
       colorBg[3] = 1.0;
-   
+
    if ( m_fBackgroundAlpha < 0.99 )
       g_pRenderEngine->setColors(colorBg);
    else
@@ -1027,7 +1027,7 @@ void Popup::Render()
       g_pRenderEngine->setColors(get_Color_PopupBg());
       g_pRenderEngine->setStroke(get_Color_PopupBorder());
    }
-   
+
    float fDeltaWidthIcons = computeIconsSizes();
    if ( ! m_bNoBackground )
       g_pRenderEngine->drawRoundRect(m_RenderXPos, m_RenderYPos, m_RenderWidth + fDeltaWidthIcons, m_RenderHeight, POPUP_ROUND_MARGIN);
@@ -1054,13 +1054,13 @@ void Popup::Render()
 
    float xTextStart = m_RenderXPos+m_fPaddingX;
    float yTextStart = m_RenderYPos+m_fPaddingY;
-   
+
    if ( 0 != m_idIcon2 )
    {
       if ( m_ColorIcon2[3] > 0.0001 )
          g_pRenderEngine->setColors(&m_ColorIcon2[0]);
       float yIcon = m_RenderYPos + 0.5*(m_RenderHeight - m_fIconHeight2);
-      g_pRenderEngine->drawIcon(xTextStart, yIcon, m_fIconWidth2, m_fIconHeight2, m_idIcon2);  
+      g_pRenderEngine->drawIcon(xTextStart, yIcon, m_fIconWidth2, m_fIconHeight2, m_idIcon2);
       xTextStart += m_fIconWidth2;
    }
 
@@ -1071,17 +1071,17 @@ void Popup::Render()
       if ( m_ColorIcon[3] > 0.0001 )
          g_pRenderEngine->setColors(&m_ColorIcon[0]);
       float yIcon = m_RenderYPos + 0.5*(m_RenderHeight - m_fIconHeight);
-      g_pRenderEngine->drawIcon(xTextStart, yIcon, m_fIconWidth, m_fIconHeight, m_idIcon);  
+      g_pRenderEngine->drawIcon(xTextStart, yIcon, m_fIconWidth, m_fIconHeight, m_idIcon);
       xTextStart += m_fIconWidth;
    }
 
    if ( (0 != m_idIcon) || (0 != m_idIcon2) )
       xTextStart += height_text*0.4;
-   
+
    g_pRenderEngine->setColors(get_Color_PopupText());
-   
+
    float fMaxTextWidth = m_RenderWidth - 2.0*m_fPaddingX;
-   
+
    if ( 0 != m_szTitle[0] )
    {
       float fHeightText = 0.0;
@@ -1096,7 +1096,7 @@ void Popup::Render()
          fHeightText = g_pRenderEngine->drawMessageLines(xTextStart, yTextStart, m_szTitle, POPUP_LINE_SPACING, fMaxTextWidth, m_uIdFont);
       yTextStart += fHeightText;
    }
-   
+
    for (int i = 0; i<m_LinesCount; i++)
    {
       yTextStart += height_text*POPUP_LINE_SPACING;

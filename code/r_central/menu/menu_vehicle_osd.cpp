@@ -90,7 +90,7 @@ void MenuVehicleOSD::addItems()
       m_IndexOSDController = addMenuItem( new MenuItem(L("OSD Size, Color, Fonts"), L("Sets colors, size and fonts for OSD.")));
       m_pMenuItems[m_IndexOSDController]->showArrow();
 
-      addMenuItem(new MenuItemSection(L("OSD Layouts and Settings"))); 
+      addMenuItem(new MenuItemSection(L("OSD Layouts and Settings")));
    }
 
    int iScreenIndex = g_pCurrentModel->osd_params.iCurrentOSDScreen;
@@ -105,14 +105,14 @@ void MenuVehicleOSD::addItems()
    m_IndexOSDScreen = addMenuItem(m_pItemsSelect[0]);
 
 
-   m_pItemsSelect[1] = new MenuItemSelect(L("Enabled"), L("Enables or disables this screen"));  
+   m_pItemsSelect[1] = new MenuItemSelect(L("Enabled"), L("Enables or disables this screen"));
    m_pItemsSelect[1]->addSelection(L("No"));
    m_pItemsSelect[1]->addSelection(L("Yes"));
    m_pItemsSelect[1]->addSelection(L("Only plugins"));
    m_pItemsSelect[1]->setIsEditable();
    m_IndexOSDEnabled = addMenuItem(m_pItemsSelect[1]);
 
-   m_pItemsSelect[7] = new MenuItemSelect(L("Layout"), L("Set the default layout of this OSD screen (what elements are shown on this screen)."));  
+   m_pItemsSelect[7] = new MenuItemSelect(L("Layout"), L("Set the default layout of this OSD screen (what elements are shown on this screen)."));
    m_pItemsSelect[7]->addSelection(L("No elements"));
    m_pItemsSelect[7]->addSelection(L("Minimal"));
    m_pItemsSelect[7]->addSelection(L("Compact"));
@@ -130,7 +130,7 @@ void MenuVehicleOSD::addItems()
 
    if ( ! m_bShowCompact )
    {
-      m_pItemsSelect[2] = new MenuItemSelect(L("Font Size"), L("Increase/decrease OSD font size for current screen."));  
+      m_pItemsSelect[2] = new MenuItemSelect(L("Font Size"), L("Increase/decrease OSD font size for current screen."));
       m_pItemsSelect[2]->addSelection(L("Smallest"));
       m_pItemsSelect[2]->addSelection(L("Smaller"));
       m_pItemsSelect[2]->addSelection(L("Small"));
@@ -142,14 +142,14 @@ void MenuVehicleOSD::addItems()
       m_pItemsSelect[2]->setIsEditable();
       m_IndexOSDFontSize = addMenuItem(m_pItemsSelect[2]);
 
-      m_pItemsSelect[4] = new MenuItemSelect(L("Background Type"), L("Change if and how the background behind OSD elements is shown."));  
+      m_pItemsSelect[4] = new MenuItemSelect(L("Background Type"), L("Change if and how the background behind OSD elements is shown."));
       m_pItemsSelect[4]->addSelection(L("None"));
       m_pItemsSelect[4]->addSelection(L("On text only"));
       m_pItemsSelect[4]->addSelection(L("As Bars"));
       m_pItemsSelect[4]->setIsEditable();
       m_IndexBgOnTexts = addMenuItem(m_pItemsSelect[4]);
 
-      m_pItemsSelect[3] = new MenuItemSelect(L("Background Transparency"), L("Change how transparent the OSD background is for current screen."));  
+      m_pItemsSelect[3] = new MenuItemSelect(L("Background Transparency"), L("Change how transparent the OSD background is for current screen."));
       m_pItemsSelect[3]->addSelection(L("Max"));
       m_pItemsSelect[3]->addSelection(L("Medium"));
       m_pItemsSelect[3]->addSelection(L("Normal"));
@@ -158,7 +158,7 @@ void MenuVehicleOSD::addItems()
       m_pItemsSelect[3]->setIsEditable();
       m_IndexOSDTransparency = addMenuItem(m_pItemsSelect[3]);
 
-      m_pItemsSelect[5] = new MenuItemSelect(L("Highlight Changing Elements"), L("Highlight when important OSD elements change (i.e. radio modulation schemes)."));  
+      m_pItemsSelect[5] = new MenuItemSelect(L("Highlight Changing Elements"), L("Highlight when important OSD elements change (i.e. radio modulation schemes)."));
       m_pItemsSelect[5]->addSelection(L("No"));
       m_pItemsSelect[5]->addSelection(L("Yes"));
       m_pItemsSelect[5]->setIsEditable();
@@ -167,7 +167,7 @@ void MenuVehicleOSD::addItems()
       if ( (g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MAVLINK) ||
            (g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_LTM) )
       {
-         m_pItemsSelect[6] = new MenuItemSelect(L("Don't show FC messages"), L("Do not show messages/texts from flight controller."));  
+         m_pItemsSelect[6] = new MenuItemSelect(L("Don't show FC messages"), L("Do not show messages/texts from flight controller."));
          m_pItemsSelect[6]->addSelection(L("No"));
          m_pItemsSelect[6]->addSelection(L("Yes"));
          m_pItemsSelect[6]->setIsEditable();
@@ -201,7 +201,7 @@ void MenuVehicleOSD::addItems()
    m_IndexOSDStats = addMenuItem(new MenuItem(L("Layout OSD Stats Windows"), L("Configure which statistics windows show up on current screen.")));
    m_pMenuItems[m_IndexOSDStats]->showArrow();
 
-   //m_IndexOSDReset = addMenuItem(new MenuItem("Reset OSD Screen", "Resets this OSD screen to default layout and style."));   
+   //m_IndexOSDReset = addMenuItem(new MenuItem("Reset OSD Screen", "Resets this OSD screen to default layout and style."));
 
    m_IndexShowFull = -1;
    if ( m_bShowCompact )
@@ -218,14 +218,14 @@ void MenuVehicleOSD::addItems()
 void MenuVehicleOSD::valuesToUI()
 {
    int iScreenIndex = g_pCurrentModel->osd_params.iCurrentOSDScreen;
-   
+
    if ( NULL != m_pItemsSelect[0] )
       m_pItemsSelect[0]->setSelectedIndex(iScreenIndex);
    if ( -1 != m_IndexOSDFontSize )
       m_pItemsSelect[2]->setSelectedIndex(g_pCurrentModel->osd_params.osd_preferences[iScreenIndex] & 0xFF);
    if ( -1 != m_IndexOSDTransparency )
       m_pItemsSelect[3]->setSelectedIndex(((g_pCurrentModel->osd_params.osd_preferences[iScreenIndex]) & OSD_PREFERENCES_OSD_TRANSPARENCY_BITMASK) >> OSD_PREFERENCES_OSD_TRANSPARENCY_SHIFT);
-   
+
    if ( -1 != m_IndexBgOnTexts )
    {
       m_pItemsSelect[4]->setSelectedIndex(0);
@@ -236,10 +236,10 @@ void MenuVehicleOSD::valuesToUI()
    }
    if ( -1 != m_IndexHighlightChangeElements )
       m_pItemsSelect[5]->setSelectedIndex((g_pCurrentModel->osd_params.osd_flags3[iScreenIndex] & OSD_FLAG3_HIGHLIGHT_CHANGING_ELEMENTS) ? 1:0);
-   
+
    if ( -1 != m_IndexDontShowFCMessages )
       m_pItemsSelect[6]->setSelectedIndex((g_pCurrentModel->osd_params.osd_preferences[iScreenIndex] & OSD_PREFERENCES_BIT_FLAG_DONT_SHOW_FC_MESSAGES) ? 1:0);
-   
+
    if ( -1 != m_IndexOSDLayout )
    {
       m_pItemsSelect[7]->setSelectedIndex(g_pCurrentModel->osd_params.osd_layout_preset[iScreenIndex]);
@@ -358,7 +358,7 @@ void MenuVehicleOSD::valuesToUI()
 void MenuVehicleOSD::onShow()
 {
    int iTmp = getSelectedMenuItemIndex();
-   
+
    addItems();
    Menu::onShow();
 
@@ -563,7 +563,7 @@ void MenuVehicleOSD::onSelectItem()
       g_pCurrentModel->resetOSDFlags(iScreenIndex);
       memcpy(&params, &(g_pCurrentModel->osd_params), sizeof(osd_parameters_t));
       memcpy(&(g_pCurrentModel->osd_params), &paramsTemp, sizeof(osd_parameters_t));
-      sendToVehicle = true;    
+      sendToVehicle = true;
    }
    */
 

@@ -126,7 +126,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
 {
    if ( NULL == g_pEngine || NULL == pTelemetryInfo )
       return;
-   
+
    //bool bUseWarningColor = false;
    //if ( pTelemetryInfo->ahi_warning_angle > 1 )
    //if ( fabs(pTelemetryInfo->roll) >= pTelemetryInfo->ahi_warning_angle ||
@@ -144,7 +144,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
 
    g_pEngine->setColors(g_pEngine->getColorOSDOutline());
    g_pEngine->setStrokeSize(pCurrentSettings->fOutlineThicknessPx);
-   g_pEngine->drawPolyLine(xt, yt, 3);    
+   g_pEngine->drawPolyLine(xt, yt, 3);
    g_pEngine->fillPolygon(xt, yt, 3);
 
    g_pEngine->setColors(g_pEngine->getColorOSDInstruments());
@@ -153,7 +153,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
       g_pEngine->setColors(g_pEngine->getColorOSDWarning());
 
    g_pEngine->setStrokeSize(0.0);
-   g_pEngine->drawPolyLine(xt, yt, 3);   
+   g_pEngine->drawPolyLine(xt, yt, 3);
    g_pEngine->fillPolygon(xt, yt, 3);
 
    u32 fontId = g_pEngine->getFontIdRegular();
@@ -173,7 +173,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
    float range = 45;
    float space_text = 0.006;
    float fRatioH = height_ladder / range;
-    
+
    int roll = -(pTelemetryInfo->roll);
    int pitch = pTelemetryInfo->pitch;
 
@@ -255,7 +255,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
          iAnglePitch++;
          continue;
       }
- 
+
       if ( (NULL != pCurrentSettings) && (pCurrentSettings->nSettingsValues[1] == 2) )
       if ( (iAnglePitch % 15) != 0 )
       {
@@ -334,5 +334,5 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
 }
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

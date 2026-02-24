@@ -45,7 +45,7 @@ class RenderEngineUI
      void setColors(const double* color, float fAlfaScale);
      void setFill(float r, float g, float b, float a);
      void setStroke(const double* color);
-     void setStroke(const double* color, float fStrokeSize); 
+     void setStroke(const double* color, float fStrokeSize);
      void setStroke(float r, float g, float b, float a);
      float getStrokeSize();
      void setStrokeSize(float fStrokeSize);

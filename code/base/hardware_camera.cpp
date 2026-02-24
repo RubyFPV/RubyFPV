@@ -61,7 +61,7 @@ int _hardware_get_camera_device_id_from_string(char* szDeviceId)
       return -1;
    if ( strlen(szDevId) < strlen("device id is")+3 )
       return -1;
-         
+
    int index = strlen(szDevId)-1;
    while ( (index >0) && (szDevId[index] == 10 || szDevId[index] == 13) )
       index--;
@@ -91,7 +91,7 @@ int _hardware_get_camera_hardware_version_from_string(char* szHardwareId)
       return -1;
    if ( strlen(szHWId) < strlen("hardware version is")+3 )
       return -1;
-         
+
    int index = strlen(szHWId)-1;
    while ( (index >0) && (szHWId[index] == 10 || szHWId[index] == 13) )
       index--;
@@ -138,7 +138,7 @@ u32 _hardware_detect_camera_type()
       {
          s_bDetectedCameraType = true;
          str_get_hardware_camera_type_string_to_string(s_uHardwareCameraType, szBuff);
-         log_line("[Hardware] Loaded camera type: %u (%s), has camera: %s, camera i2c bus: %d", 
+         log_line("[Hardware] Loaded camera type: %u (%s), has camera: %s, camera i2c bus: %d",
             s_uHardwareCameraType, szBuff, s_bHardwareHasCamera?"yes":"no", s_iHardwareCameraI2CBus);
          fclose(fd);
          return s_uHardwareCameraType;
@@ -146,7 +146,7 @@ u32 _hardware_detect_camera_type()
       log_softerror_and_alarm("[Hardware] Failed to parse camera type config file [%s]", szFile);
       fclose(fd);
    }
-   
+
    s_bHardwareHasCamera = 0;
    s_uHardwareCameraType = CAMERA_TYPE_NONE;
    s_iHardwareCameraI2CBus = -1;
@@ -156,7 +156,7 @@ u32 _hardware_detect_camera_type()
    char szComm[256];
 
    int retryCount = 3;
-    
+
    if ( access(FILE_FORCE_VEHICLE_NO_CAMERA, R_OK ) != -1 )
    {
       log_line("File %s present to force no camera.", FILE_FORCE_VEHICLE_NO_CAMERA);
@@ -173,7 +173,7 @@ u32 _hardware_detect_camera_type()
          s_uHardwareCameraType = CAMERA_TYPE_HDMI;
          break;
       }
-      
+
       if ( hardware_i2c_has_device_id(I2C_DEVICE_ADDRESS_CAMERA_VEYE) )
       {
          s_iHardwareCameraI2CBus =  hardware_i2c_get_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
@@ -190,7 +190,7 @@ u32 _hardware_detect_camera_type()
             hw_execute_bash_command_raw(szComm, szOutput);
             iDevId = _hardware_get_camera_device_id_from_string(szOutput);
          }
-  
+
          sprintf(szComm, "current_dir=$PWD; cd %s/; ./veye_mipi_i2c.sh -r -f hdver -b %d; cd $current_dir", VEYE_COMMANDS_FOLDER307, s_iHardwareCameraI2CBus);
          hw_execute_bash_command_raw(szComm, szOutput);
          int iHWId = _hardware_get_camera_hardware_version_from_string(szOutput);
@@ -200,7 +200,7 @@ u32 _hardware_detect_camera_type()
             hw_execute_bash_command_raw(szComm, szOutput);
             iHWId = _hardware_get_camera_hardware_version_from_string(szOutput);
          }
-  
+
          if ( (iDevId > 0) && (iDevId < 255) )
          {
             s_iHardwareCameraDevId = iDevId;
@@ -266,9 +266,9 @@ u32 _hardware_detect_camera_type()
             szBuff[sizeof(szBuff)/sizeof(szBuff[0])-1] = 0;
             removeTrailingNewLines(szBuff);
          }
-         
+
          log_line("Camera detection response string: %s", szBuff);
-         if ( NULL != strstr(szBuff, "detected=1") || 
+         if ( NULL != strstr(szBuff, "detected=1") ||
               NULL != strstr(szBuff, "detected=2") )
          {
             log_line("Hardware: CSI Camera detected.");
@@ -340,7 +340,7 @@ u32 hardware_getCameraType()
 {
    if ( ! s_bDetectedCameraType )
       _hardware_detect_camera_type();
-   return s_uHardwareCameraType;      
+   return s_uHardwareCameraType;
 }
 
 int hardware_getCameraI2CBus()

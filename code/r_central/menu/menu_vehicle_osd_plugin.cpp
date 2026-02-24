@@ -126,7 +126,7 @@ void MenuVehicleOSDPlugin::readPlugin()
          int min = osd_plugin_get_setting_minvalue(m_nPluginIndex,i);
          int max = osd_plugin_get_setting_maxvalue(m_nPluginIndex,i);
          int def = osd_plugin_get_setting_defaultvalue(m_nPluginIndex,i);
-         m_pItemsRange[i+1] = new MenuItemRange(szName, min, max, def, 1 );  
+         m_pItemsRange[i+1] = new MenuItemRange(szName, min, max, def, 1 );
          m_pItemsRange[i+1]->setSufix("");
          m_IndexSettings[i] = addMenuItem(m_pItemsRange[i+1]);
       }
@@ -169,7 +169,7 @@ void MenuVehicleOSDPlugin::valuesToUI()
    m_nPluginSettingsCount = osd_plugin_get_settings_count(m_nPluginIndex);
    if ( m_nPluginSettingsCount > MAX_PLUGIN_SETTINGS )
       m_nPluginSettingsCount = MAX_PLUGIN_SETTINGS;
-      
+
    for( int i=0; i<m_nPluginSettingsCount; i++ )
    {
       int type = osd_plugin_get_setting_type(m_nPluginIndex, i);
@@ -214,7 +214,7 @@ void MenuVehicleOSDPlugin::stopAction()
    m_bIsResizing = false;
    menu_setGlobalAlpha(m_fMenuOrgAlpha);
    osd_enable_rendering();
-   
+
    plugin_osd_t* pPlugin = osd_plugins_get(m_nPluginIndex);
    pPlugin->bBoundingBox = false;
    pPlugin->bHighlight = false;
@@ -267,7 +267,7 @@ void MenuVehicleOSDPlugin::onMinusAction()
 
       pPluginSettings->fXPos[iModelIndex][osdLayoutIndex] += PLUGIN_MOVE_MARGIN*0.5;
       pPluginSettings->fYPos[iModelIndex][osdLayoutIndex] += PLUGIN_MOVE_MARGIN*0.5/fAspect;
-   } 
+   }
 }
 
 void MenuVehicleOSDPlugin::onPlusAction()
@@ -322,7 +322,7 @@ void MenuVehicleOSDPlugin::onMoveUp(bool bIgnoreReversion)
          onMinusAction();
       else
          onPlusAction();
-     
+
       return;
    }
    Menu::onMoveUp(bIgnoreReversion);
@@ -338,7 +338,7 @@ void MenuVehicleOSDPlugin::onMoveDown(bool bIgnoreReversion)
          onPlusAction();
       else
          onMinusAction();
-     
+
       return;
    }
 

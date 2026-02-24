@@ -224,7 +224,7 @@ static XREF_T stereo_mode_map[] =
 };
 
 static const int stereo_mode_map_size = sizeof(stereo_mode_map)/sizeof(stereo_mode_map[0]);
- 
+
 // From camera ---------------------------------------------------------
 
 // Standard port setting for the camera component
@@ -574,13 +574,13 @@ void log_line_string(const char* szText, char* szValue)
    fflush(s_fdLog);
 }
 
-void handle_sigint(int sig) 
+void handle_sigint(int sig)
 {
    log_line_txt("--------------------------");
    log_line_txt("Received signal to quit");
    log_line_txt("--------------------------");
    s_bQuit = 1;
-}  
+}
 
 
 void openOutputPipe()
@@ -743,7 +743,7 @@ static void dump_status(RASPIVID_STATE *state)
               state->common_settings.height, state->common_settings.filename);
       log_line("Using camera %d, sensor mode %d", state->common_settings.cameraNum, state->common_settings.sensor_mode);
       if ( state->common_settings.gps )
-         log_line("GPS output %s", state->common_settings.gps ? "Enabled" : "Disabled"); 
+         log_line("GPS output %s", state->common_settings.gps ? "Enabled" : "Disabled");
       log_line("-----------------------------------------------\n");
    }
 
@@ -765,7 +765,7 @@ static void dump_status(RASPIVID_STATE *state)
 
    if (state->raw_output && s_bLog)
       log_line("Raw output enabled, format %s", raspicli_unmap_xref(state->raw_output_fmt, raw_output_fmt_map, raw_output_fmt_map_size));
-  
+
 
    if ( s_bLog )
    {
@@ -786,7 +786,7 @@ static void dump_status(RASPIVID_STATE *state)
            state->preview_parameters.wantFullScreenPreview ? "Yes" : "No");
       log_line("Preview window %d,%d,%d,%d Opacity %d", state->preview_parameters.previewWindow.x,
            state->preview_parameters.previewWindow.y, state->preview_parameters.previewWindow.width,
-           state->preview_parameters.previewWindow.height, state->preview_parameters.opacity); 
+           state->preview_parameters.previewWindow.height, state->preview_parameters.opacity);
       log_line("-----------------------------------------------");
    }
 
@@ -808,7 +808,7 @@ static void dump_status(RASPIVID_STATE *state)
       log_line("Flicker Avoid Mode '%s'", fl_mode);
       log_line("Metering Mode '%s', Colour Effect Enabled %s with U = %d, V = %d", metering_mode, state->camera_parameters.colourEffects.enable ? "Yes":"No", state->camera_parameters.colourEffects.u, state->camera_parameters.colourEffects.v);
       log_line("Rotation %d, hflip %s, vflip %s", state->camera_parameters.rotation, state->camera_parameters.hflip ? "Yes":"No",state->camera_parameters.vflip ? "Yes":"No");
-      log_line("ROI x %lf, y %f, w %f h %f", state->camera_parameters.roi.x, state->camera_parameters.roi.y, state->camera_parameters.roi.w, state->camera_parameters.roi.h); 
+      log_line("ROI x %lf, y %f, w %f h %f", state->camera_parameters.roi.x, state->camera_parameters.roi.y, state->camera_parameters.roi.w, state->camera_parameters.roi.h);
       log_line("-----------------------------------------------");
    }
 }
@@ -2475,7 +2475,7 @@ int open_com_msg_queue()
          IPC_CHANNEL_CSI_VIDEO_COMMANDS, errno, strerror(errno));
       return -1;
    }
-   
+
    log_line("[IPC] Opened IPC channel %d read endpoint: success, fd: %d",
       IPC_CHANNEL_CSI_VIDEO_COMMANDS, s_iMsgQueueCommands);
    return s_iMsgQueueCommands;
@@ -2498,7 +2498,7 @@ void _set_h264_quantization(RASPIVID_STATE* pState, u8 uCommandType, int uParam1
       log_softerror_and_alarm("Failed to get quant param min");
    else if ( s_bLog && s_iDebug )
        log_line("Current qant param min: %d", param_quant_min.value);
-         
+
    MMAL_PARAMETER_UINT32_T param_quant_max = {{ MMAL_PARAMETER_VIDEO_ENCODE_MAX_QUANT, sizeof(param_quant_max)}, 0};
    status = mmal_port_parameter_get(pState->encoder_component->output[0], &param_quant_max.hdr);
    if (status != MMAL_SUCCESS)
@@ -2570,7 +2570,7 @@ static void process_raspi_command(RASPIVID_STATE* pState, u8 uCmdCounter, u8 uCo
    if ( (uCommandType == 1) && (uParam1 < 100) )
    {
       log_line("Change BR: %d", uParam1);
-      raspicamcontrol_set_brightness(pState->camera_component, uParam1); 
+      raspicamcontrol_set_brightness(pState->camera_component, uParam1);
       return;
    }
    if ( (uCommandType == 2) && (uParam1 < 100) )
@@ -2610,7 +2610,7 @@ static void process_raspi_command(RASPIVID_STATE* pState, u8 uCmdCounter, u8 uCo
 
       // Set new framerate
       pState->framerate = uParam1;
-     
+
       MMAL_PARAMETER_FRAME_RATE_T param = {{ MMAL_PARAMETER_VIDEO_FRAME_RATE, sizeof(param)}, {pState->framerate, 1}};
       param.frame_rate.num = pState->framerate;
       param.frame_rate.den = 1;
@@ -2674,20 +2674,20 @@ static void process_raspi_command(RASPIVID_STATE* pState, u8 uCmdCounter, u8 uCo
       if ( pState->bitrate < 2500000 )
       {
          MMAL_STATUS_T statusMal;
-         
+
          statusMal = mmal_component_disable(pState->encoder_component);
          if ( statusMal != MMAL_SUCCESS )
             log_softerror_and_alarm("Failed to disable encoder component!");
 
          // Commit the port changes to the output port
-      
+
          pState->encoder_component->output[0]->format->bitrate = pState->bitrate;
          statusMal = mmal_port_format_commit(pState->encoder_component->output[0]);
          if (statusMal != MMAL_SUCCESS)
             log_softerror_and_alarm("Failed to commit the change in video bitrate!");
          else if ( s_bLog )
             log_line("Commited the change in video bitrate to %d", pState->bitrate);
-             
+
 
          statusMal = mmal_component_enable(pState->encoder_component);
          if ( statusMal != MMAL_SUCCESS )
@@ -2859,7 +2859,7 @@ static int wait_for_next_change(RASPIVID_STATE *state)
                 }
             }
          }
-         raspicamcontrol_set_brightness(state->camera_component, brightness_p); 
+         raspicamcontrol_set_brightness(state->camera_component, brightness_p);
          //int val = raspicamcontrol_get_brightness(state->camera_component);
          //int val = 0;
          //if ( s_bLog )
@@ -3035,7 +3035,7 @@ int main(int argc, const char **argv)
             CPU_SET(i, &cpuSet);
             iCore = i;
          }
-      }      
+      }
       if ( 0 != sched_setaffinity(pid, sizeof(cpuSet), &cpuSet) )
          log_line_int("RaspiCapture: Failed to set affinities, error:", errno);
       else
@@ -3164,7 +3164,7 @@ int main(int argc, const char **argv)
    else
    {
       log_line_txt("Starting component connection stage...");
-       
+
       camera_preview_port = state.camera_component->output[MMAL_CAMERA_PREVIEW_PORT];
       camera_video_port   = state.camera_component->output[MMAL_CAMERA_VIDEO_PORT];
       camera_still_port   = state.camera_component->output[MMAL_CAMERA_CAPTURE_PORT];
@@ -3184,7 +3184,7 @@ int main(int argc, const char **argv)
          if (state.raw_output)
          {
             log_line_txt("Connecting camera preview port to splitter input port");
-            
+
             // Connect camera to splitter
             status = connect_ports(camera_preview_port, splitter_input_port, &state.splitter_connection);
 
@@ -3197,7 +3197,7 @@ int main(int argc, const char **argv)
 
             log_line_txt("Connecting splitter preview port to preview input port");
             log_line_txt("Starting video preview");
-           
+
 
             // Connect splitter to preview
             status = connect_ports(splitter_preview_port, preview_input_port, &state.preview_connection);
@@ -3206,7 +3206,7 @@ int main(int argc, const char **argv)
          {
             log_line_txt("Connecting camera preview port to preview input port");
             log_line_txt("Starting video preview");
-            
+
             // Connect camera to preview
             status = connect_ports(camera_preview_port, preview_input_port, &state.preview_connection);
          }
@@ -3219,7 +3219,7 @@ int main(int argc, const char **argv)
          if (state.raw_output)
          {
             log_line_txt("Connecting camera preview port to splitter input port");
-           
+
             // Connect camera to splitter
             status = connect_ports(camera_preview_port, splitter_input_port, &state.splitter_connection);
 
@@ -3239,7 +3239,7 @@ int main(int argc, const char **argv)
       if (status == MMAL_SUCCESS)
       {
          log_line_txt("Connecting camera video port to encoder input port");
-          
+
          // Now connect the camera to the encoder
          status = connect_ports(camera_video_port, encoder_input_port, &state.encoder_connection);
 
@@ -3262,7 +3262,7 @@ int main(int argc, const char **argv)
             splitter_output_port->userdata = (struct MMAL_PORT_USERDATA_T *)&state.callback_data;
 
             log_line_txt("Enabling splitter output port");
-            
+
             // Enable the splitter output port and tell it its callback function
             status = mmal_port_enable(splitter_output_port, splitter_buffer_callback);
 
@@ -3273,12 +3273,12 @@ int main(int argc, const char **argv)
             }
          }
 
-         
+
          // Set up our userdata - this is passed though to the callback where we need the information.
          encoder_output_port->userdata = (struct MMAL_PORT_USERDATA_T *)&state.callback_data;
 
          log_line_txt("Enabling encoder output port");
-        
+
          // Enable the encoder output port and tell it its callback function
          status = mmal_port_enable(encoder_output_port, encoder_buffer_callback);
 
@@ -3295,7 +3295,7 @@ int main(int argc, const char **argv)
             int i;
 
             log_line_txt("Running in demo mode");
-            
+
             for (i=0; state.timeout == 0 || i<num_iterations; i++)
             {
                raspicamcontrol_cycle_test(state.camera_component);
@@ -3326,7 +3326,7 @@ int main(int argc, const char **argv)
                         vcos_log_error("Unable to send a buffer to encoder output port (%d)", q);
                   }
                }
- 
+
                int initialCapturing=state.bCapturing;
                while (running)
                {
@@ -3339,12 +3339,12 @@ int main(int argc, const char **argv)
                      // How to handle?
                   }
 
-                  
+
                   if (state.bCapturing)
                      log_line_txt("Starting video capture");
                   else
                      log_line_txt("Pausing video capture");
-               
+
 
                   if(state.splitWait)
                   {
@@ -3369,7 +3369,7 @@ int main(int argc, const char **argv)
                if ( ! running )
                    s_bQuit = 1;
             }
-            
+
                if (state.timeout)
                   vcos_sleep(state.timeout);
                else
@@ -3416,7 +3416,7 @@ error:
          log_line_txt("Closed output pipe.");
       }
 
-      
+
       /* Disable components */
       if (state.encoder_component)
          mmal_component_disable(state.encoder_component);

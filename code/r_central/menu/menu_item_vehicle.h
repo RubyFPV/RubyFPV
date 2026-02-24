@@ -16,7 +16,7 @@ class MenuItemVehicle: public MenuItem
      virtual float getItemHeight(float maxWidth);
      virtual float getTitleWidth(float maxWidth);
      virtual float getValueWidth(float maxWidth);
-     
+
      virtual void Render(float xPos, float yPos, bool bSelected, float fWidthSelection);
      virtual void RenderCondensed(float xPos, float yPos, bool bSelected, float fWidthSelection);
 

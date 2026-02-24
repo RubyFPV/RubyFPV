@@ -83,7 +83,7 @@ typedef enum COPTER_MODE
    COPTER_MODE_SMART_RTL=21, /*  | */
    COPTER_MODE_ENUM_END=22, /*  | */
 } COPTER_MODE;
-#endif 
+#endif
 
 #ifndef HAVE_ENUM_PLANE_MODE
 #define HAVE_ENUM_PLANE_MODE
@@ -112,7 +112,7 @@ typedef enum PLANE_MODE
    PLANE_MODE_QRTL=21, /*  | */
    PLANE_MODE_QAUTOTUNE=22, /*  | */
    PLANE_MODE_ENUM_END=23, /*  | */
-} PLANE_MODE; 
+} PLANE_MODE;
 #endif
 
 #ifndef HAVE_ENUM_ROVER_MODE
@@ -132,7 +132,7 @@ typedef enum ROVER_MODE
    ROVER_MODE_ENUM_END=17, /*  | */
 } ROVER_MODE;
 #endif
- 
+
 mavlink_status_t statusMav;
 mavlink_message_t msgMav;
 u32 s_vehicleMavId = 1;
@@ -169,7 +169,7 @@ void parse_telemetry_init(u32 vehicleMavId,  bool bShowLocalVerticalSpeed)
       s_szLastMessages[i][0] = 0;
       s_uLastMessagesTimes[i] = 0;
    }
-   
+
    s_iHeartbeatMsgCount = 0;
    s_iSystemMsgCount = 0;
 }
@@ -228,7 +228,7 @@ void _add_fc_message(char* szMessage)
    s_szLastMessages[s_iNextMessageIndex][FC_MESSAGE_MAX_LENGTH-1] = 0;
    s_uLastMessagesTimes[s_iNextMessageIndex] = get_current_timestamp_ms();
    s_iNextMessageIndex++;
-   
+
    if ( s_iNextMessageIndex >= MAX_FC_MESSAGES_HISTORY )
    {
       for( int i=0; i<MAX_FC_MESSAGES_HISTORY-1; i++ )
@@ -270,7 +270,7 @@ bool _check_add_fc_message(char* szMessage)
    }
 
    // If the duplicate message is too frequent, do not add it to the list
-   
+
    bool bMustDiscard = false;
 
    for( int i=0; i<s_iNextMessageIndex; i++ )
@@ -312,7 +312,7 @@ void _process_mav_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_
       return;
 
    switch (msgMav.msgid)
-   { 
+   {
       case MAVLINK_MSG_ID_STATUSTEXT:
          mavlink_msg_statustext_get_text(&msgMav, szBuff);
          if ( _check_add_fc_message(szBuff) )
@@ -332,7 +332,7 @@ void _process_mav_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_
          /*
          switch ( tmp8 )
          {
-            case 0: 
+            case 0:
             case 64:
             case 66:
             case 81:
@@ -445,7 +445,7 @@ void _process_mav_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_
          pdpfct->current = (imah<0)?0:(imah*10U);
          s_iSystemMsgCount++;
          break;
-      
+
       case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:
          pdpfct->altitude_abs = mavlink_msg_global_position_int_get_alt(&msgMav) / 10.0f + 100000;
          pdpfct->altitude = mavlink_msg_global_position_int_get_relative_alt(&msgMav) / 10.0f + 100000;
@@ -464,7 +464,7 @@ void _process_mav_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_
                   long alt = ((long)pdpfct->altitude) - 100000;
                   if ( get_current_timestamp_ms() > s_TimeLastMAVLink_Altitude )
                   {
-                     long dTime = get_current_timestamp_ms() - s_TimeLastMAVLink_Altitude; 
+                     long dTime = get_current_timestamp_ms() - s_TimeLastMAVLink_Altitude;
                      float vspeed = (float)(alt - s_LastMAVLink_Altitude)*1000.0/(float)dTime;
                      //log_line("alt: %d - %d, %d, %f, dt: %d", alt, s_LastMAVLink_Altitude, (long)vspeed, vspeed, dTime);
                      pdpfct->vspeed = (u32)(vspeed + 100000);
@@ -504,8 +504,8 @@ void _process_mav_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_
          s_bHasReceivedGPSInfo = true;
          break;
       }
-      
-      case MAVLINK_MSG_ID_VFR_HUD: 
+
+      case MAVLINK_MSG_ID_VFR_HUD:
          pdpfct->throttle = mavlink_msg_vfr_hud_get_throttle(&msgMav);
          if ( pdpfct->throttle > 200 )
             pdpfct->throttle = 0;
@@ -514,14 +514,14 @@ void _process_mav_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_
          //pdpfct->altitude = mavlink_msg_vfr_hud_get_alt(&msgMav)*100 + 100000;
 
          if ( ! s_bShowLocalVerticalSpeed )
-            pdpfct->vspeed = mavlink_msg_vfr_hud_get_climb(&msgMav)*100 + 100000; 
+            pdpfct->vspeed = mavlink_msg_vfr_hud_get_climb(&msgMav)*100 + 100000;
          pdpfct->hspeed = mavlink_msg_vfr_hud_get_groundspeed(&msgMav) * 100.0f + 100000;
 
          tmp32= mavlink_msg_vfr_hud_get_airspeed(&msgMav) * 100.0f + 100000;
          pdpfct->aspeed = tmp32;
          break;
 
-      case MAVLINK_MSG_ID_ATTITUDE: 
+      case MAVLINK_MSG_ID_ATTITUDE:
          pdpfct->uFCFlags |= FC_TELE_FLAGS_HAS_ATTITUDE;
          pdpfct->roll = (mavlink_msg_attitude_get_roll(&msgMav) + 3.141592653589793)*5700.2958;
          pdpfct->pitch = (mavlink_msg_attitude_get_pitch(&msgMav) + 3.141592653589793)*5700.2958;
@@ -529,7 +529,7 @@ void _process_mav_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_
 
       case MAVLINK_MSG_ID_RC_CHANNELS_RAW:
          tmpi = (int)((u8)mavlink_msg_rc_channels_raw_get_rssi(&msgMav));
-         
+
          if ( /*(tmpi != 255) &&*/ (NULL != pPHRTE) )
          {
             pdpfct->rc_rssi = (tmpi*100)/255;
@@ -555,7 +555,7 @@ void _process_mav_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_
 
       case MAVLINK_MSG_ID_RC_CHANNELS:
          tmpi = (int)((u8)mavlink_msg_rc_channels_get_rssi(&msgMav));
-         
+
          if ( /*(tmpi != 255) &&*/ (NULL != pPHRTE) )
          {
             pdpfct->rc_rssi = (tmpi*100)/255;
@@ -582,7 +582,7 @@ void _process_mav_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_
          s_MAVLinkRCChannels[10] = mavlink_msg_rc_channels_get_chan11_raw(&msgMav);
          s_MAVLinkRCChannels[11] = mavlink_msg_rc_channels_get_chan12_raw(&msgMav);
          s_MAVLinkRCChannels[12] = mavlink_msg_rc_channels_get_chan13_raw(&msgMav);
-         s_MAVLinkRCChannels[13] = mavlink_msg_rc_channels_get_chan14_raw(&msgMav);         
+         s_MAVLinkRCChannels[13] = mavlink_msg_rc_channels_get_chan14_raw(&msgMav);
          break;
 
       case MAVLINK_MSG_ID_RADIO_STATUS:
@@ -633,7 +633,7 @@ void _process_mav_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_
             uDir++;
             pdpfct->extra_info[7] = uDir >> 8;
             pdpfct->extra_info[8] = uDir & 0xFF;
-             
+
             u16 uSpeed = 100 * mavlink_msg_high_latency2_get_windspeed(&msgMav) / 5;
             uSpeed++;
             pdpfct->extra_info[9] = uSpeed >> 8;
@@ -708,7 +708,7 @@ void _process_mav_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_
          }
          */
          break;
-      
+
    }
 }
 

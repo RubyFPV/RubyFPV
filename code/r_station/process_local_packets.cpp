@@ -81,14 +81,14 @@ bool _switch_to_vehicle_radio_link(int iVehicleRadioLinkId)
       return false;
    if (  !(g_pCurrentModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLinkId] & RADIO_HW_CAPABILITY_FLAG_CAN_TX) )
       return false;
-   
+
    int iCountAssignableRadioInterfaces = controller_count_asignable_radio_interfaces_to_vehicle_radio_link(g_pCurrentModel, iVehicleRadioLinkId);
    if ( iCountAssignableRadioInterfaces < 1 )
       return false;
 
    // We must iterate local radio interfaces and switch one from a radio link to this radio link, if it supports this link
    // We must also update the radio state to reflect the new assigned radio links to local radio interfaces
-   
+
    bool bSwitched = false;
    for( int iInterface=0; iInterface<hardware_get_radio_interfaces_count(); iInterface++ )
    {
@@ -127,7 +127,7 @@ bool _switch_to_vehicle_radio_link(int iVehicleRadioLinkId)
          radio_utils_set_interface_frequency(g_pCurrentModel, iInterface, iVehicleRadioLinkId, uCurrentFrequencyKhz, g_pProcessStats, pP->iDebugWiFiChangeDelay);
          continue;
       }
-            
+
       radio_stats_set_card_current_frequency(&g_SM_RadioStats, iInterface, g_pCurrentModel->radioLinksParams.link_frequency_khz[iVehicleRadioLinkId]);
 
       int iLocalRadioLinkId = g_SM_RadioStats.radio_interfaces[iInterface].assignedLocalRadioLinkId;
@@ -137,7 +137,7 @@ bool _switch_to_vehicle_radio_link(int iVehicleRadioLinkId)
       // Update controller's main connect frequency too if needed
       if ( uCurrentFrequencyKhz == get_model_main_connect_frequency(g_pCurrentModel->uVehicleId) )
          set_model_main_connect_frequency(g_pCurrentModel->uVehicleId, g_pCurrentModel->radioLinksParams.link_frequency_khz[iVehicleRadioLinkId]);
-               
+
       bSwitched = true;
       break;
    }
@@ -192,7 +192,7 @@ void _compute_set_tx_power_settings_for_sik()
 
    if ( iSikRadioIndexToUpdate == -1 )
       return;
- 
+
    radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(iSikRadioIndexToUpdate);
    t_ControllerRadioInterfaceInfo* pCRII = controllerGetRadioCardInfo(pRadioHWInfo->szMAC);
    iSikNewPower = pCRII->iRawPowerLevel;
@@ -221,7 +221,7 @@ void _compute_set_tx_power_settings_for_sik()
    radio_links_close_and_mark_sik_interfaces_to_reopen();
    g_SiKRadiosState.bConfiguringToolInProgress = true;
    g_SiKRadiosState.uTimeStartConfiguring = g_TimeNow;
-      
+
    char szCommand[128];
    sprintf(szCommand, "rm -rf %s%s", FOLDER_RUBY_TEMP, FILE_TEMP_SIK_CONFIG_FINISHED);
    hw_execute_bash_command(szCommand, NULL);
@@ -286,7 +286,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, u8 uChangeT
    memcpy(&oldVideoParams, &(g_pCurrentModel->video_params), sizeof(video_parameters_t));
    memcpy(&(oldVideoLinkProfiles[0]), &(g_pCurrentModel->video_link_profiles[0]), MAX_VIDEO_LINK_PROFILES*sizeof(type_video_link_profile));
    memcpy(&oldOSDParams, &(g_pCurrentModel->osd_params), sizeof(osd_parameters_t));
-            
+
    u32 oldEFlags = g_pCurrentModel->enc_flags;
 
    if ( uChangeType == MODEL_CHANGED_RADIO_POWERS )
@@ -384,7 +384,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, u8 uChangeT
          adaptive_video_reset_state(g_pCurrentModel->uVehicleId);
       else
          adaptive_video_on_vehicle_video_params_changed(g_pCurrentModel->uVehicleId, &oldVideoParams, &(oldVideoLinkProfiles[0]));
-      
+
       rx_video_output_on_changed_video_params(&oldVideoParams, &oldVideoLinkProfiles[0], &(g_pCurrentModel->video_params), &(g_pCurrentModel->video_link_profiles[0]));
       log_line("Done processing received notification that video parameters have changed.");
       return;
@@ -393,7 +393,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, u8 uChangeT
    if ( uChangeType == MODEL_CHANGED_SIK_PACKET_SIZE )
    {
       log_line("Received notification from central that SiK packet size whas changed to: %d bytes", iExtraParam);
-      log_line("Current model new SiK packet size: %d", g_pCurrentModel->radioLinksParams.iSiKPacketSize); 
+      log_line("Current model new SiK packet size: %d", g_pCurrentModel->radioLinksParams.iSiKPacketSize);
       radio_tx_set_sik_packet_size(g_pCurrentModel->radioLinksParams.iSiKPacketSize);
       return;
    }
@@ -436,7 +436,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, u8 uChangeT
       // Update the radio state to reflect the new radio links
       if ( NULL != g_pSM_RadioStats )
          memcpy((u8*)g_pSM_RadioStats, (u8*)&g_SM_RadioStats, sizeof(shared_mem_radio_stats));
-   
+
       discardRetransmissionsInfoAndBuffersOnLengthyOp();
       return;
    }
@@ -452,11 +452,11 @@ void _process_local_notification_model_changed(t_packet_header* pPH, u8 uChangeT
    {
       int iLink = (pPH->vehicle_id_src >> 16) & 0xFF;
       log_line("Received notification that radio link flags where changed for radio link %d.", iLink+1);
-      
+
       log_line("Radio link %d new datarates: %d/%d", iLink+1, g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[iLink], g_pCurrentModel->radioLinksParams.downlink_datarate_data_bps[iLink]);
       log_line("Radio link %d new radio tx flags: %s", iLink+1, str_get_radio_frame_flags_description2(g_pCurrentModel->radioLinksParams.link_radio_flags_tx[iLink]));
       log_line("Radio link %d new radio rx flags: %s", iLink+1, str_get_radio_frame_flags_description2(g_pCurrentModel->radioLinksParams.link_radio_flags_rx[iLink]));
-   
+
       if( (NULL != g_pCurrentModel) && g_pCurrentModel->radioLinkIsSiKRadio(iLink) )
       {
          log_line("Radio flags or radio datarates changed on a SiK radio link (link %d).", iLink+1);
@@ -491,7 +491,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, u8 uChangeT
             g_pCurrentModel->radioLinksParams.uplink_datarate_data_bps[iRadioLink]);
 
       // If uplink data rate for an Atheros card has changed, update it.
-      
+
       for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
       {
          if ( g_SM_RadioStats.radio_interfaces[i].assignedVehicleRadioLinkId != iRadioLink )
@@ -521,7 +521,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, u8 uChangeT
 
       if ( NULL != g_pCurrentModel )
          radio_duplicate_detection_remove_data_for_all_except(g_pCurrentModel->uVehicleId);
-      
+
       // If relayed vehicle changed, or relay was disabled, remove runtime info for the relayed vehicle
 
       if ( (g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId < 0) || (oldRelayParams.uRelayedVehicleId != g_pCurrentModel->relay_params.uRelayedVehicleId) )
@@ -589,7 +589,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, u8 uChangeT
       _onModelChangedVideoCodec();
       return;
    }
-   
+
    if ( uChangeType == MODEL_CHANGED_RESET_TO_DEFAULTS )
    {
       log_line("Received local notification that current model was reset to defaults or factory reseted.");
@@ -666,7 +666,7 @@ void process_local_control_packet(u8* pPacketBuffer)
    {
       log_line("Received local notification that tx powers or auto tx cards have been updated.");
       load_ControllerInterfacesSettings();
-      load_ControllerSettings(); 
+      load_ControllerSettings();
       return;
    }
 
@@ -888,7 +888,7 @@ void process_local_control_packet(u8* pPacketBuffer)
       u32 uLinkId = *pI;
       pI++;
       u32 uNewFreq = *pI;
-               
+
       log_line("Received control packet from central that a vehicle radio link frequency changed (radio link %u new freq: %s)", uLinkId+1, str_format_frequency(uNewFreq));
       if ( NULL != g_pCurrentModel && (uLinkId < (u32)g_pCurrentModel->radioLinksParams.links_count) )
       {
@@ -902,7 +902,7 @@ void process_local_control_packet(u8* pPacketBuffer)
          discardRetransmissionsInfoAndBuffersOnLengthyOp();
       }
       hardware_save_radio_info();
-            
+
       log_line("Done processing control packet of frequency change.");
       return;
    }
@@ -945,7 +945,7 @@ void process_local_control_packet(u8* pPacketBuffer)
          iDefaultKeyframeIntervalMs = DEFAULT_VIDEO_KEYFRAME_INTERVAL_WHEN_RELAYING;
       log_line("Set current keyframe to %d ms for FPS %d for current vehicle (VID: %u)", iDefaultKeyframeIntervalMs, iCurrentFPS, g_pCurrentModel->uVehicleId);
       // To fix video_link_keyframe_set_current_level_to_request(g_pCurrentModel->uVehicleId, iDefaultKeyframeIntervalMs);
-      
+
       Model* pRelayedModel = findModelWithId(g_pCurrentModel->relay_params.uRelayedVehicleId, 102);
       if ( NULL != pRelayedModel )
       {
@@ -997,7 +997,7 @@ void process_local_control_packet(u8* pPacketBuffer)
          if ( NULL != pPort )
             memcpy(&oldSerialPorts[i], pPort, sizeof(hw_serial_port_info_t));
       }
-     
+
       hardware_serial_reload_ports_settings();
       load_ControllerSettings();
       g_pControllerSettings = get_ControllerSettings();
@@ -1020,7 +1020,7 @@ void process_local_control_packet(u8* pPacketBuffer)
       if ( g_pControllerSettings->iRadioBypassSocketBuffers != iOldSocketBuffers )
       {
          log_line("Radio bypass socket buffers changed. Reinit radio interfaces...");
-         reasign_radio_links(true);       
+         reasign_radio_links(true);
       }
 
       if ( NULL != g_pControllerSettings )
@@ -1058,7 +1058,7 @@ void process_local_control_packet(u8* pPacketBuffer)
             radio_links_close_and_mark_sik_interfaces_to_reopen();
             g_SiKRadiosState.bConfiguringToolInProgress = true;
             g_SiKRadiosState.uTimeStartConfiguring = g_TimeNow;
-            
+
             send_alarm_to_central(ALARM_ID_GENERIC_STATUS_UPDATE, ALARM_FLAG_GENERIC_STATUS_RECONFIGURING_RADIO_INTERFACE, 0);
 
             char szCommand[128];
@@ -1071,7 +1071,7 @@ void process_local_control_packet(u8* pPacketBuffer)
       }
 
       g_TimeNow = get_current_timestamp_ms();
-      
+
       if ( NULL != g_pControllerSettings )
       {
          log_line("Set new radio rx/tx threads raw priorities: %d/%d (adjustments enabled: %d)", g_pControllerSettings->iThreadPriorityRadioRx, g_pControllerSettings->iThreadPriorityRadioTx, g_pControllerSettings->iPrioritiesAdjustment);
@@ -1096,7 +1096,7 @@ void process_local_control_packet(u8* pPacketBuffer)
             break;
          g_pVideoProcessorRxList[i]->onControllerSettingsChanged();
       }
-      
+
       // Signal other components about the model change
       if ( pPH->vehicle_id_src == PACKET_COMPONENT_LOCAL_CONTROL )
       {

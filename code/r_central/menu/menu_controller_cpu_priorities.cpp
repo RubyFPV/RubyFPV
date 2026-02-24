@@ -50,7 +50,7 @@ MenuControllerCPUPriorities::MenuControllerCPUPriorities(void)
 {
    m_Width = 0.42;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.15;
-   
+
    float fSliderWidth = 0.12;
 
    for( int i=0; i<15; i++ )
@@ -123,7 +123,7 @@ void MenuControllerCPUPriorities::valuesToUI()
    m_pItemsSlider[5]->setCurrentValue(g_pControllerSettings->iThreadPriorityVideoRecording);
    m_pItemsSlider[6]->setCurrentValue(g_pControllerSettings->iThreadPriorityRC);
    m_pItemsSlider[7]->setCurrentValue(g_pControllerSettings->iThreadPriorityOthers);
-   
+
    m_pItemsSlider[10]->setCurrentValue(g_pControllerSettings->ioNiceRouter);
    m_pItemsSlider[11]->setCurrentValue(g_pControllerSettings->ioNiceRxVideo);
 
@@ -281,7 +281,7 @@ void MenuControllerCPUPriorities::onSelectItem()
       send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
       return;
    }
-   
+
 
    if ( m_iIndexPriorityCentral == m_SelectedIndex )
    {
@@ -381,7 +381,7 @@ void MenuControllerCPUPriorities::onSelectItem()
       add_menu_to_stack( new MenuInfoProcs(szOutput));
       return;
    }
-  
+
    if ( m_IndexResetPriorities == m_SelectedIndex )
    {
       reset_ControllerPriorities();

@@ -49,13 +49,13 @@ char g_szUpdateZipFileName[MAX_FILE_PATH_SIZE];
 char g_szUpdateUnpackFolder[MAX_FILE_PATH_SIZE];
 bool bIsOnyx = false;
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("--------------------------");
    log_line("Caught signal to stop: %d", sig);
    log_line("--------------------------");
    gbQuit = true;
-} 
+}
 
 void process_custom_commands_file()
 {
@@ -120,7 +120,7 @@ void process_custom_commands_file()
          {
             log_softerror_and_alarm("Invalid comand");
             continue;
-         }        
+         }
          char szCommand[1024];
          sprintf(szCommand, "%s", line);
          len = strlen(szCommand)-1;
@@ -133,7 +133,7 @@ void process_custom_commands_file()
          hw_execute_process_wait(szCommand);
       }
    }
-      
+
    fclose(fd);
    log_line("Done executing custom commands from file: %s", FILE_UPDATE_CMD_LIST);
 
@@ -149,7 +149,7 @@ long compute_file_sizes()
 
    lSize = get_filesize("ruby_central");
    if ( -1 == lSize )
-      return -1;    
+      return -1;
 
    lTotalSize += lSize;
 
@@ -269,7 +269,7 @@ int _replace_runtime_binary_files()
    log_line("ruby_rt_station: [%s]", szOutput);
    hw_execute_ruby_process_wait(NULL, "ruby_central", "-ver", szOutput, 1);
    log_line("ruby_central: [%s]", szOutput);
- 
+
    char szComm[MAX_FILE_PATH_SIZE];
    char szSrcBinariesFolder[MAX_FILE_PATH_SIZE];
    #ifdef HW_PLATFORM_RASPBERRY
@@ -386,7 +386,7 @@ int _replace_runtime_binary_files()
       hw_execute_ruby_process_wait(NULL, "ruby_central", "-ver", szOutput, 1);
       log_line("ruby_central: [%s]", szOutput);
    }
- 
+
 
    #ifdef HW_PLATFORM_RASPBERRY
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %sraspi* %s", szSrcBinariesFolder, FOLDER_BINARIES);
@@ -462,7 +462,7 @@ int _copy_update_binary_files()
 
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %sbin/", FOLDER_UPDATES);
    hw_execute_process_wait(szComm);
-   
+
    sprintf(szComm, "mkdir -p %sbin/", FOLDER_UPDATES);
    hw_execute_process_wait(szComm);
 
@@ -474,7 +474,7 @@ int _copy_update_binary_files()
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s%s*", FOLDER_UPDATES, SUBFOLDER_UPDATES_OIPC);
    hw_execute_process_wait(szComm);
    */
-   
+
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %sbin/* %sbin", g_szUpdateUnpackFolder, FOLDER_UPDATES);
    //hw_execute_process_wait(szComm);
    hw_execute_bash_command(szComm, NULL);
@@ -664,7 +664,7 @@ int _copy_update_drivers()
    char szDrivers[MAX_FILE_PATH_SIZE];
 
    snprintf(szDrivers, sizeof(szDrivers)/sizeof(szDrivers[0]), "%s%s*", g_szUpdateUnpackFolder, SUBFOLDER_UPDATES_DRIVERS);
-   
+
    char szComm[MAX_FILE_PATH_SIZE];
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "mkdir -p %s", FOLDER_DRIVERS);
    hw_execute_process_wait(szComm);
@@ -733,7 +733,7 @@ bool _find_update_partial_zip_filename(const char* szPartialName, char* szOutput
 
    if ( (0 == strlen(szOutput)) || (NULL == strstr(szOutput, szPartialName)) || (NULL != strstr(szOutput, "No such")) )
       return false;
-  
+
    int iLen = strlen(szOutput);
    for( int i=0; i<iLen; i++ )
    {
@@ -786,7 +786,7 @@ void _step_copy_and_extract_zip()
    sprintf(szComm, "chmod 777 %s 2>/dev/null", FOLDER_UPDATES);
    //hw_execute_process_wait(szComm);
    hw_execute_bash_command(szComm, NULL);
-   
+
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %s %s", g_szUpdateZipFileFullPath, FOLDER_UPDATES);
    //hw_execute_process_wait(szComm);
    hw_execute_bash_command(szComm, NULL);
@@ -796,7 +796,7 @@ void _step_copy_and_extract_zip()
 
    //------------------------------------------------------
    // Begin - Extract archive to a temp folder
-   
+
    strcpy(g_szUpdateUnpackFolder, FOLDER_RUBY_TEMP);
    strcat(g_szUpdateUnpackFolder, "tmpUpdate/");
 
@@ -863,7 +863,7 @@ int main(int argc, char *argv[])
       printf("%d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       return 0;
    }
-   
+
    log_init("RubyUpdateWorker");
 
    if ( argc > 1 )
@@ -885,7 +885,7 @@ int main(int argc, char *argv[])
       {
          log_softerror_and_alarm("Failed to download update from internet. Update url: (%s)", argv[argc-1]);
          _write_return_code(-11, "Failed to download the update.");
-         return -1;       
+         return -1;
       }
    }
    else if ( ! _find_update_zip_file() )
@@ -901,7 +901,7 @@ int main(int argc, char *argv[])
    hardware_sleep_ms(300);
    _step_copy_and_extract_zip();
    hardware_sleep_ms(300);
-  
+
    _write_return_code(0, "Checking update content");
 
    if ( ! _find_update_info_file() )
@@ -959,4 +959,4 @@ int main(int argc, char *argv[])
    hw_execute_process_wait("sync");
    log_line("Process finished.");
    return (0);
-} 
+}

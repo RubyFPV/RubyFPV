@@ -192,7 +192,7 @@ bool _check_radio_config(Model* pModel)
 
    log_line("[HW Radio Check] Full radio configuration before doing any changes:");
    log_full_current_radio_configuration(pModel);
-   
+
    if ( check_update_hardware_nics_vehicle(pModel) || recheck_disabled_radio_interfaces(pModel) )
    {
       pModel->resetRadioInterfacesRuntimeCapabilities(NULL);
@@ -227,7 +227,7 @@ bool _check_radio_config(Model* pModel)
    log_line("Start sequence: Checking radio interfaces cards models. %d hardware radio cards, %d model radio cards...", hardware_get_radio_interfaces_count(), pModel->radioInterfacesParams.interfaces_count);
    for( int i=0; i<pModel->radioInterfacesParams.interfaces_count; i++ )
       log_line("Start sequence: Vehicle model radio interface %d: MAC: %s, model: [%s]", i+1, pModel->radioInterfacesParams.interface_szMAC[i], str_get_radio_card_model_string(pModel->radioInterfacesParams.interface_card_model[i]));
-   
+
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
    {
       radio_hw_info_t* pRadioInfo = hardware_get_radio_info(i);
@@ -238,7 +238,7 @@ bool _check_radio_config(Model* pModel)
       }
       log_line("Start sequence: Hardware radio interface %d: %s, model: [%s]", i+1, pRadioInfo->szMAC, str_get_radio_card_model_string(pRadioInfo->iCardModel));
    }
-   
+
    for( int i=0; i<pModel->radioInterfacesParams.interfaces_count; i++ )
    {
        radio_hw_info_t* pRadioInfo = hardware_get_radio_info_from_mac(pModel->radioInterfacesParams.interface_szMAC[i]);
@@ -353,12 +353,12 @@ void try_open_process_stats()
    }
 }
 
-  
+
 void _launch_vehicle_processes(bool bWait)
 {
    hardware_sleep_ms(100);
    vehicle_launch_tx_telemetry(&modelVehicle);
-   
+
    hardware_sleep_ms(100);
    vehicle_launch_rx_commands(&modelVehicle);
 
@@ -387,7 +387,7 @@ void _restart_procs(bool bStopRouterToo)
    log_softerror_and_alarm("----------------------------------------------------");
    log_softerror_and_alarm("Stop and restart processes (stop router too? %s)...", bStopRouterToo?"yes":"no");
    log_softerror_and_alarm("----------------------------------------------------");
-   
+
    vehicle_stop_rx_commands();
    vehicle_stop_rx_rc();
    vehicle_stop_tx_telemetry();
@@ -467,7 +467,7 @@ void _restart_procs(bool bStopRouterToo)
    {
       log_error_and_alarm("Failed to open semaphore: %s", SEMAPHORE_RESTART_VEHICLE_PROCS);
       g_pSemaphoreRestart = NULL;
-   } 
+   }
 
    modelVehicle.reloadIfChanged(true);
 
@@ -531,11 +531,11 @@ bool _check_restrict_files()
    return true;
 }
 
-void handle_sigint_veh(int sig) 
-{ 
+void handle_sigint_veh(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    s_bQuit = true;
-} 
+}
 
 int r_start_vehicle(int argc, char *argv[])
 {
@@ -570,7 +570,7 @@ int r_start_vehicle(int argc, char *argv[])
       log_error_and_alarm("There are no radio interfaces (NICS/wlans) on this device.");
       return -1;
    }
-   
+
    ruby_clear_all_ipc_channels();
 
    u32 uBoardType = 0;
@@ -588,7 +588,7 @@ int r_start_vehicle(int argc, char *argv[])
 
    sprintf(szBuff, "rm -rf %s%s", FOLDER_RUBY_TEMP, FILE_TEMP_ALARM_ON);
    hw_execute_bash_command_silent(szBuff, NULL);
- 
+
    bool bMustSave = false;
 
    strcpy(szFile, FOLDER_CONFIG);
@@ -648,7 +648,7 @@ int r_start_vehicle(int argc, char *argv[])
        if ( modelVehicle.enableDHCP )
           bMustSave = true;
        modelVehicle.enableDHCP = false;
-   }    
+   }
    uBoardType = hardware_getBoardType();
    if ( (uBoardType & BOARD_TYPE_MASK) != (modelVehicle.hwCapabilities.uBoardType & BOARD_TYPE_MASK) )
    {
@@ -666,7 +666,7 @@ int r_start_vehicle(int argc, char *argv[])
    u32 alarmsOriginal = modelVehicle.alarms;
 
    // Check the file system for write access
-   
+
    log_line("Start sequence: Checking the file system for write access...");
 
    modelVehicle.alarms &= ~(ALARM_ID_VEHICLE_STORAGE_WRITE_ERRROR);
@@ -688,19 +688,19 @@ int r_start_vehicle(int argc, char *argv[])
    hardware_serial_init_ports();
 
    u32 telemetry_flags = modelVehicle.telemetry_params.flags;
-   
+
    modelVehicle.alarms &= (~ALARM_ID_UNSUPORTED_USB_SERIAL);
 
    if ( hardware_serial_has_unsupported_ports() )
       modelVehicle.alarms |= ALARM_ID_UNSUPORTED_USB_SERIAL;
-   
+
    if ( 0 == hardware_serial_get_ports_count() )
    {
       if ( modelVehicle.telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_NONE )
          bMustSave = true;
       modelVehicle.telemetry_params.fc_telemetry_type = TELEMETRY_TYPE_NONE;
    }
-   
+
    log_line("Start sequence: Rechecking model serial ports for changes based on current hardware serial ports...");
    if ( modelVehicle.populateVehicleSerialPorts() )
       bMustSave = true;
@@ -733,7 +733,7 @@ int r_start_vehicle(int argc, char *argv[])
    #endif
 
    #ifdef HW_PLATFORM_OPENIPC_CAMERA
-   
+
    modelVehicle.audio_params.has_audio_device = true;
    if ( hardware_board_has_audio_builtin(modelVehicle.hwCapabilities.uBoardType) )
    {
@@ -849,7 +849,7 @@ int r_start_vehicle(int argc, char *argv[])
    #ifdef HW_PLATFORM_RASPBERRY
    hw_execute_ruby_process(NULL, "ruby_alive", NULL, NULL);
    #endif
-   
+
    log_line("Launching processes...");
    _launch_vehicle_processes(true);
 
@@ -860,7 +860,7 @@ int r_start_vehicle(int argc, char *argv[])
    log_line("");
 
    log_line("Switch to watchdog state after a delay from start.");
-   
+
    if ( noWatchDog )
       log_line_watchdog("Watchdog is disabled");
    else
@@ -898,7 +898,7 @@ int r_start_vehicle(int argc, char *argv[])
    {
       log_error_and_alarm("Failed to open semaphore: %s", SEMAPHORE_RESTART_VEHICLE_PROCS);
       g_pSemaphoreRestart = NULL;
-   } 
+   }
 
    int iSkipCount = 0;
    while ( ! s_bQuit )
@@ -964,7 +964,7 @@ int r_start_vehicle(int argc, char *argv[])
 
          bool bCheckRadioFailSafe = false;
          if ( modelVehicle.uDeveloperFlags & DEVELOPER_FLAGS_BIT_RADIO_SILENCE_FAILSAFE )
-         if ( access(szFileArmed, R_OK) != -1 ) 
+         if ( access(szFileArmed, R_OK) != -1 )
             bCheckRadioFailSafe = true;
 
          if ( bCheckRadioFailSafe )
@@ -999,7 +999,7 @@ int r_start_vehicle(int argc, char *argv[])
 
       if ( (NULL == s_pProcessStatsRouter) || (NULL == s_pProcessStatsTelemetry) || (NULL == s_pProcessStatsCommands) || ((NULL == s_pProcessStatsRC) && (modelVehicle.rc_params.uRCFlags & RC_FLAGS_ENABLED)))
          try_open_process_stats();
-      
+
       bMustRestart = false;
 
       if ( NULL != s_pProcessStatsRouter )
@@ -1062,7 +1062,7 @@ int r_start_vehicle(int argc, char *argv[])
             bMustRestart = true;
          }
       }
-      
+
       if ( NULL != s_pProcessStatsCommands )
       {
          if ( (s_pProcessStatsCommands->lastActiveTime +3*maxTimeForProcessMs*4 + 4000 < g_TimeNow) && _check_restrict_files() )
@@ -1135,6 +1135,6 @@ int r_start_vehicle(int argc, char *argv[])
    shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_TELEMETRY_TX, s_pProcessStatsTelemetry);
    shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_COMMANDS_RX, s_pProcessStatsCommands);
    shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_RC_RX, s_pProcessStatsRC);
-     
+
    return 0;
 }

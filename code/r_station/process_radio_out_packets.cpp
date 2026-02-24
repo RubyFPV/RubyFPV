@@ -49,7 +49,7 @@ void preprocess_radio_out_packet(u8* pPacketBuffer, int iPacketLength)
       return;
 
    t_packet_header* pPH = (t_packet_header*)pPacketBuffer;
-      
+
    if ( pPH->packet_type == PACKET_TYPE_SIK_CONFIG )
    {
       u8 uVehicleLinkId = *(pPacketBuffer + sizeof(t_packet_header));

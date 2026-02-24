@@ -53,7 +53,7 @@ MenuConfirmationDeleteLogs::MenuConfirmationDeleteLogs(u32 uFreeSpaceMb, u32 uLo
    char szBuff[256];
    sprintf(szBuff, "Vehicle is running out of free storage space. %u Mb free storage available.", m_uFreeSpaceMb);
    addTopLine(szBuff);
-   
+
    if ( m_uLogSizeBytes >= 1000000 )
       sprintf(szBuff, "Vehicle logs take up %u Mb of storage.", m_uLogSizeBytes/1000/1000);
    else
@@ -93,7 +93,7 @@ void MenuConfirmationDeleteLogs::onSelectItem()
 
    if ( 1 == m_SelectedIndex )
    {
-      handle_commands_send_to_vehicle(COMMAND_ID_CLEAR_LOGS, 1, NULL, 0); 
+      handle_commands_send_to_vehicle(COMMAND_ID_CLEAR_LOGS, 1, NULL, 0);
       menu_stack_pop(0);
    }
 }

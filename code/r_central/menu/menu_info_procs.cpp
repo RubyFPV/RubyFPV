@@ -71,7 +71,7 @@ float MenuInfoProcs::_parseAddDbgProcsInfoLine(float yPos, const char* szDbgInfo
 {
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
 
-   float fTabStops[] = {0.0, 
+   float fTabStops[] = {0.0,
      0.12,
      0.15, 0.2, 0.25, 0.28, 0.33, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.73, 0.76};
 
@@ -111,7 +111,7 @@ float MenuInfoProcs::_parseAddDbgProcsInfoLine(float yPos, const char* szDbgInfo
 
 void MenuInfoProcs::Render()
 {
-   RenderPrepare();   
+   RenderPrepare();
    float yTop = RenderFrameAndTitle();
    float w = m_RenderWidth-2.0*m_sfMenuPaddingX;
    RenderItem(0,m_RenderYPos+m_RenderHeight-m_sfMenuPaddingY-m_pMenuItems[0]->getItemHeight(getUsableWidth()), w*0.48);

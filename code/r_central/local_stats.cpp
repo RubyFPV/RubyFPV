@@ -58,7 +58,7 @@ void local_stats_reset_vehicle_index(int iVehicleIndex)
    Model* pModel = findModelWithId(g_VehiclesRuntimeInfo[iVehicleIndex].uVehicleId, 11);
    if ( NULL == pModel )
       return;
-   
+
    pModel->m_Stats.uCurrentOnTime = 0;
    pModel->m_Stats.uCurrentFlightTime = 0; // seconds
    pModel->m_Stats.uCurrentFlightDistance = 0; // in 1/100 meters (cm)
@@ -73,7 +73,7 @@ void local_stats_reset_vehicle_index(int iVehicleIndex)
 void local_stats_reset_all()
 {
    log_line("Reseted all local stats for all vehicles.");
-   
+
    s_stats_u32LastTimeSecondsCheck = g_TimeNow;
 
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
@@ -109,7 +109,7 @@ void local_stats_on_disarm(u32 uVehicleId)
 }
 
 void local_stats_update_loop()
-{   
+{
    if ( (NULL == g_pCurrentModel) || (! pairing_isStarted()) )
       return;
 
@@ -140,7 +140,7 @@ void local_stats_update_loop()
       if ( g_TimeNow >= s_stats_u32LastTimeSecondsCheck + 1000 )
          g_VehiclesRuntimeInfo[i].pModel->updateStatsEverySecond(&(g_VehiclesRuntimeInfo[i].headerFCTelemetry));
    }
-   
+
    if ( g_TimeNow >= s_stats_u32LastTimeSecondsCheck + 1000 )
       s_stats_u32LastTimeSecondsCheck = g_TimeNow;
 }
@@ -165,7 +165,7 @@ bool load_temp_local_stats()
       log_softerror_and_alarm("Failed to load temporary local stats from file: %s (missing file)", szFile);
       char szComm[256];
       sprintf(szComm, "rm -rf %s%s 2>&1", FOLDER_CONFIG, FILE_TEMP_CONTROLLER_LOAD_LOCAL_STATS);
-      hw_execute_bash_command(szComm, NULL);  
+      hw_execute_bash_command(szComm, NULL);
       return false;
    }
 
@@ -202,7 +202,7 @@ bool load_temp_local_stats()
          if ( (!failed) && (4 != fscanf(fd, "%u %u %u %u", &(pModel->m_Stats.uCurrentMaxDistance), &(pModel->m_Stats.uCurrentMaxAltitude), &(pModel->m_Stats.uCurrentMaxCurrent), &(pModel->m_Stats.uCurrentMinVoltage))) )
             failed = 1;
       }
-      
+
       if ( failed )
       {
          local_stats_reset_all();
@@ -219,11 +219,11 @@ bool load_temp_local_stats()
 
    char szComm[128];
    sprintf(szComm, "rm -rf %s%s 2>&1", FOLDER_CONFIG, FILE_TEMP_CONTROLLER_LOAD_LOCAL_STATS);
-   hw_execute_bash_command(szComm, NULL);  
+   hw_execute_bash_command(szComm, NULL);
 
    if ( failed )
       return false;
-   return true;             
+   return true;
 }
 
 void save_temp_local_stats()
@@ -247,7 +247,7 @@ void save_temp_local_stats()
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
    {
       Model* pModel = g_VehiclesRuntimeInfo[i].pModel;
-      
+
       fprintf(fd, "%u %d %d\n", g_VehiclesRuntimeInfo[i].uVehicleId, (int)g_VehiclesRuntimeInfo[i].bIsArmed, (int)g_VehiclesRuntimeInfo[i].bHomeSet);
       fprintf(fd, "%f %f %f %f\n", g_VehiclesRuntimeInfo[i].fHomeLat, g_VehiclesRuntimeInfo[i].fHomeLon, g_VehiclesRuntimeInfo[i].fHomeLastLat, g_VehiclesRuntimeInfo[i].fHomeLastLon);
       if ( NULL == pModel )

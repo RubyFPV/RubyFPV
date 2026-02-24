@@ -18,7 +18,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 
 int ruby_init_ipc_channels();
@@ -36,5 +36,5 @@ u8* ruby_ipc_try_read_message(int iChannelUniqueId, u8* pTempBuffer, int* pTempB
 int ruby_ipc_get_read_continous_error_count();
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

@@ -2,7 +2,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 int hdmi_enum_modes();
 
@@ -29,5 +29,5 @@ int hdmi_set_current_resolution(int width, int height, int refresh);
 int hdmi_get_best_resolution_index_for(int iWidth, int iHeight, int iRefresh);
 
 #ifdef __cplusplus
-}  
+}
 #endif

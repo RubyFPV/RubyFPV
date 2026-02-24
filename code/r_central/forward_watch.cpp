@@ -87,7 +87,7 @@ void _forward_on_usb_device_detected()
          while ( (*pIP) == '.' || (*pIP >= '0' && (*pIP) <= '9') )
             pIP++;
          *pIP = 0;
-      }   
+      }
    }
    log_line("USB Device IP Address: %s", szIP);
 
@@ -104,7 +104,7 @@ void _forward_on_usb_device_detected()
       hw_execute_bash_command(szBuff, NULL);
    }
 
-   
+
    sprintf(szBuff, "touch %s%s", FOLDER_RUBY_TEMP, FILE_TEMP_USB_TETHERING_DEVICE);
    hw_execute_bash_command(szBuff, NULL);
    sprintf(szBuff, "echo \"%s\" > %s%s", szIP, FOLDER_RUBY_TEMP, FILE_TEMP_USB_TETHERING_DEVICE);
@@ -126,7 +126,7 @@ void _forward_on_usb_device_unplugged()
       strcpy(szSysType, "STATION");
 
    bool bHasETH = ((hardware_has_eth() != NULL)?true:false);
-  
+
    hw_stop_process("pump");
 
    if ( ! bHasETH )

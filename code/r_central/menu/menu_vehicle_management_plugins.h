@@ -12,7 +12,7 @@ class MenuVehicleManagePlugins: public Menu
       virtual bool periodicLoop();
       virtual int  onBack();
       virtual void onSelectItem();
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);        
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
 
    protected:
       void populateInfo();

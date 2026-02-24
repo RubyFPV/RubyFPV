@@ -105,7 +105,7 @@ unsigned int RenderEngineUI::getFontIdRegular()
       return 0;
    return s_uRenderEngineUIFontIdRegular;
 }
-     
+
 unsigned int RenderEngineUI::getFontIdBig()
 {
    if ( NULL == s_pRenderEngineUI )
@@ -155,7 +155,7 @@ unsigned int RenderEngineUI::loadFontSize(float fSize)
          sprintf(szFileName, "res/font_rawobold_%d.dsc", nSize );
       }
    }
-   
+
    s_uRenderEngineUIFontsListSizes[nSize] = s_pRenderEngineUI->loadRawFont(pP->iOSDFont, szFileName, 0);
    if ( 0 == s_uRenderEngineUIFontsListSizes[nSize] )
    {
@@ -204,7 +204,7 @@ unsigned int RenderEngineUI::loadImage(const char* szFile)
       return 0;
    return s_pRenderEngineUI->loadImage(szFile);
 }
- 
+
 void RenderEngineUI::freeImage(unsigned int idImage)
 {
    if ( NULL == s_pRenderEngineUI )
@@ -380,7 +380,7 @@ void RenderEngineUI::drawRoundRect(float xPos, float yPos, float fWidth, float f
       return;
    s_pRenderEngineUI->drawRoundRect(xPos,yPos,fWidth, fHeight, fCornerRadius);
 }
- 
+
 void RenderEngineUI::drawTriangle(float x1, float y1, float x2, float y2, float x3, float y3)
 {
    if ( NULL == s_pRenderEngineUI )

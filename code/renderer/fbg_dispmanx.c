@@ -43,7 +43,7 @@ struct _fbg *fbg_dispmanxSetup(uint32_t displayNumber, VC_IMAGE_TYPE_T image_typ
     if (dispmanx_context->display == 0) {
         fprintf(stderr, "fbg_dispmanxSetup: vc_dispmanx_display_open failed for display %i\n", displayNumber);
         free(dispmanx_context);
-        return NULL;  
+        return NULL;
     }
 
     DISPMANX_MODEINFO_T info;
@@ -52,7 +52,7 @@ struct _fbg *fbg_dispmanxSetup(uint32_t displayNumber, VC_IMAGE_TYPE_T image_typ
         fprintf(stderr, "fbg_dispmanxSetup: vc_dispmanx_display_get_info failed for display %i\n", displayNumber);
         vc_dispmanx_display_close(dispmanx_context->display);
         free(dispmanx_context);
-        return NULL;  
+        return NULL;
     }
 
 #ifdef FBG_MMAL
@@ -69,7 +69,7 @@ struct _fbg *fbg_dispmanxSetup(uint32_t displayNumber, VC_IMAGE_TYPE_T image_typ
         fprintf(stderr, "fbg_dispmanxSetup: vc_dispmanx_resource_create failed for display %i\n", displayNumber);
         vc_dispmanx_display_close(dispmanx_context->display);
         free(dispmanx_context);
-        return NULL;  
+        return NULL;
     }
 
     dispmanx_context->front_resource = vc_dispmanx_resource_create(dispmanx_context->resource_type, info.width, info.height, &vc_image_ptr);
@@ -78,7 +78,7 @@ struct _fbg *fbg_dispmanxSetup(uint32_t displayNumber, VC_IMAGE_TYPE_T image_typ
         vc_dispmanx_resource_delete(dispmanx_context->back_resource);
         vc_dispmanx_display_close(dispmanx_context->display);
         free(dispmanx_context);
-        return NULL;  
+        return NULL;
     }
 
 
@@ -88,7 +88,7 @@ struct _fbg *fbg_dispmanxSetup(uint32_t displayNumber, VC_IMAGE_TYPE_T image_typ
         vc_dispmanx_resource_delete(dispmanx_context->back_resource);
         vc_dispmanx_display_close(dispmanx_context->display);
         free(dispmanx_context);
-        return NULL;  
+        return NULL;
     }
 
 
@@ -99,7 +99,7 @@ struct _fbg *fbg_dispmanxSetup(uint32_t displayNumber, VC_IMAGE_TYPE_T image_typ
         vc_dispmanx_resource_delete(dispmanx_context->front_resource);
         vc_dispmanx_display_close(dispmanx_context->display);
         free(dispmanx_context);
-        return NULL;  
+        return NULL;
     }
 
     dispmanx_context->src_rect = malloc(sizeof(VC_RECT_T));
@@ -113,7 +113,7 @@ struct _fbg *fbg_dispmanxSetup(uint32_t displayNumber, VC_IMAGE_TYPE_T image_typ
         free(dispmanx_context->src_rect);
         free(dispmanx_context->dst_rect);
         free(dispmanx_context);
-        return NULL;  
+        return NULL;
     }
 
     dispmanx_context->pitch = info.width * 4;
@@ -132,7 +132,7 @@ struct _fbg *fbg_dispmanxSetup(uint32_t displayNumber, VC_IMAGE_TYPE_T image_typ
         0
     };
 
-    dispmanx_context->elem = vc_dispmanx_element_add(dispmanx_context->update, dispmanx_context->display, 3, dispmanx_context->dst_rect, dispmanx_context->front_resource, dispmanx_context->src_rect, 
+    dispmanx_context->elem = vc_dispmanx_element_add(dispmanx_context->update, dispmanx_context->display, 3, dispmanx_context->dst_rect, dispmanx_context->front_resource, dispmanx_context->src_rect,
         DISPMANX_PROTECTION_NONE, &alpha, NULL, DISPMANX_NO_ROTATE);
     if (dispmanx_context->elem == 0) {
         fprintf(stderr, "fbg_dispmanxSetup: vc_dispmanx_element_add failed for display %i\n", displayNumber);
@@ -142,7 +142,7 @@ struct _fbg *fbg_dispmanxSetup(uint32_t displayNumber, VC_IMAGE_TYPE_T image_typ
         free(dispmanx_context->src_rect);
         free(dispmanx_context->dst_rect);
         free(dispmanx_context);
-        return NULL;  
+        return NULL;
     }
 
     result = vc_dispmanx_update_submit_sync(dispmanx_context->update);
@@ -181,12 +181,12 @@ struct _fbg *fbg_dispmanxSetup(uint32_t displayNumber, VC_IMAGE_TYPE_T image_typ
     input->format->es->video.crop.y = 0;
     input->format->es->video.crop.width  = fbg->width;
     input->format->es->video.crop.height = fbg->height;
-    mmal_port_format_commit(input); 
+    mmal_port_format_commit(input);
     mmal_component_enable(render);
     mmal_port_parameter_set_boolean(input, MMAL_PARAMETER_ZERO_COPY, MMAL_TRUE);
     input->buffer_size = input->buffer_size_recommended;
     input->buffer_num = input->buffer_num_recommended;
-    
+
     if (input->buffer_num < 2) {
         input->buffer_num = 2;
     }

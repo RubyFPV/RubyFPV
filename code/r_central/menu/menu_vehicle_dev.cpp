@@ -47,7 +47,7 @@ MenuVehicleDev::MenuVehicleDev(void)
 {
    m_Width = 0.36;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.16;
-   
+
    addItems();
 }
 
@@ -219,7 +219,7 @@ void MenuVehicleDev::onSelectItem()
       add_menu_to_stack(new MenuSystemDevStats());
       return;
    }
-   
+
    if ( m_IndexPCAPRadioTx == m_SelectedIndex )
    {
       if ( 0 == m_pItemsSelect[9]->getSelectedIndex() )
@@ -269,9 +269,9 @@ void MenuVehicleDev::onSelectItem()
       save_ControllerSettings();
       valuesToUI();
       send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
-      
+
       if ( ! handle_commands_send_developer_flags(g_pCurrentModel->uDeveloperFlags) )
-         valuesToUI(); 
+         valuesToUI();
       return;
    }
 
@@ -328,7 +328,7 @@ void MenuVehicleDev::onSelectItem()
       else
          g_pCurrentModel->uDeveloperFlags |= DEVELOPER_FLAGS_BIT_INJECT_VIDEO_FAULTS;
       if ( ! handle_commands_send_developer_flags(g_pCurrentModel->uDeveloperFlags) )
-         valuesToUI();  
+         valuesToUI();
    }
 
    if ( m_IndexInjectMinorVideoFaults == m_SelectedIndex )
@@ -338,7 +338,7 @@ void MenuVehicleDev::onSelectItem()
       else
          g_pCurrentModel->uDeveloperFlags |= DEVELOPER_FLAGS_BIT_INJECT_RECOVERABLE_VIDEO_FAULTS;
       if ( ! handle_commands_send_developer_flags(g_pCurrentModel->uDeveloperFlags) )
-         valuesToUI();  
+         valuesToUI();
    }
 
    if ( m_IndexInsertVideoDbgTimings == m_SelectedIndex )

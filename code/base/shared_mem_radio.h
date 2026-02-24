@@ -51,13 +51,13 @@ typedef struct
 // Vehicle radio interfaces assignment to radio links is auto/user defined.
 // Vehicle radio interfaces parameters are checked/re-computed when the vehicle starts.
 
-typedef struct 
+typedef struct
 {
    int iAntennaCount;
    type_runtime_radio_rx_signal_info signalInfoAll;
    type_runtime_radio_rx_signal_info signalInfoVideo;
    type_runtime_radio_rx_signal_info signalInfoData;
-   
+
 } ALIGN_STRUCT_SPEC_INFO shared_mem_radio_stats_radio_interface_rx_signal_all;
 
 typedef struct
@@ -69,7 +69,7 @@ typedef struct
    u8 openedForWrite;
    shared_mem_radio_stats_radio_interface_rx_signal_all signalInfo;
    int lastRecvDataRate; // positive: bps, negative: MCS, 0 - never
-   int lastRecvDataRateVideo; 
+   int lastRecvDataRateVideo;
    int lastRecvDataRateData;
    int lastSentDataRateVideo; // positive: bps, negative: MCS, 0 - never
    int lastSentDataRateData;
@@ -132,7 +132,7 @@ typedef struct
    u32 timeLastRxPacket;
    u32 timeLastTxPacket;
    u32 timeNow;
-   
+
    int rxQuality; // 0...100%
    int rxRelativeQuality; // higher value means better link; it's relative to the other radio interfaces
 
@@ -195,7 +195,7 @@ typedef struct
    u32 timeLastRxPacket;
    u32 timeLastTxPacket;
    u32 uLastTimeReceivedAckFromAVehicle;
-   
+
    int iMaxRxQuality;
    shared_mem_radio_stats_stream           radio_streams[MAX_CONCURENT_VEHICLES][MAX_RADIO_STREAMS];
    shared_mem_radio_stats_radio_interface  radio_interfaces[MAX_RADIO_INTERFACES];

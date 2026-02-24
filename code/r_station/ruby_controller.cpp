@@ -57,7 +57,7 @@
 #include "shared_vars.h"
 #include "timers.h"
 
-shared_mem_process_stats* s_pProcessStatsCentral = NULL; 
+shared_mem_process_stats* s_pProcessStatsCentral = NULL;
 
 void try_open_process_stats()
 {
@@ -71,25 +71,25 @@ void try_open_process_stats()
    }
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("--------------------------");
    log_line("Caught signal to stop: %d", sig);
    log_line("--------------------------");
    g_bQuit = true;
-} 
+}
 
 int main(int argc, char *argv[])
 {
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
-   
+
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
       printf("%d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       return 0;
-   }   
+   }
 
    log_init("RubyController");
 
@@ -105,15 +105,15 @@ int main(int argc, char *argv[])
    szPrefix[0] = 0;
 
    if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityCentral > 100) )
-      sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityCentral - 120);    
+      sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityCentral - 120);
 
    hw_execute_ruby_process(szPrefix, "ruby_central", NULL, NULL);
-   
+
    log_line("Executed central process.");
-   
+
    for( int i=0; i<5; i++ )
       hardware_sleep_ms(800);
-   
+
    char szComm[MAX_FILE_PATH_SIZE];
    u32 uSleepIntervalMs = 500;
    u32 maxTimeForProcess = 9000;
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
             log_softerror_and_alarm("Main processing loop took too long (%u ms).", dTime);
          continue;
       }
-      
+
       // Executes once every 2 seconds
 
       g_TimeNow = get_current_timestamp_ms();
@@ -179,14 +179,14 @@ int main(int argc, char *argv[])
          else
             hw_set_current_thread_affinity("ruby_controller", 0, hw_procs_get_cpu_count()-1);
 
-         shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_CENTRAL, s_pProcessStatsCentral);   
+         shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_CENTRAL, s_pProcessStatsCentral);
          s_pProcessStatsCentral = NULL;
 
          char szPrefix[256];
          szPrefix[0] = 0;
 
          if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityCentral > 100) )
-            sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityCentral - 120);    
+            sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityCentral - 120);
          hw_execute_ruby_process(szPrefix, "ruby_central", "-nointro", NULL);
          log_line_watchdog("Restarting ruby_central process done.");
          uTimeLastPaused = g_TimeNow;
@@ -248,22 +248,22 @@ int main(int argc, char *argv[])
       {
          for( int i=0; i<1000; i++ )
             hardware_sleep_ms(500);
-           
+
          log_line_watchdog("Restarting ruby_central process...");
 
          hw_stop_process("ruby_central");
-         shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_CENTRAL, s_pProcessStatsCentral);   
+         shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_CENTRAL, s_pProcessStatsCentral);
          s_pProcessStatsCentral = NULL;
 
          sprintf(szComm, "touch %s%s", FOLDER_CONFIG, FILE_TEMP_CONTROLLER_CENTRAL_CRASHED);
          hw_execute_bash_command(szComm, NULL);
-   
+
          hardware_sleep_ms(200);
 
          hw_execute_bash_command("./ruby_central -reinit &", NULL);
          for( int i=0; i<3; i++ )
             hardware_sleep_ms(800);
-   
+
          while ( hw_process_exists("ruby_central") )
          {
             log_line("Ruby reinit still in progress...");
@@ -275,11 +275,11 @@ int main(int argc, char *argv[])
          szPrefix[0] = 0;
 
          if ( pCS->iPrioritiesAdjustment && (pCS->iThreadPriorityCentral > 100) )
-            sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityCentral - 120);    
+            sprintf(szPrefix, "nice -n %d", pCS->iThreadPriorityCentral - 120);
          hw_execute_ruby_process(szPrefix, "ruby_central", "-nointro", NULL);
          uTimeLastPaused = g_TimeNow;
          log_line_watchdog("Restarting ruby_central process done.");
-      } 
+      }
    }
 
    if ( NULL != pSemaphoreRestart )
@@ -297,9 +297,9 @@ int main(int argc, char *argv[])
    sem_unlink(SEMAPHORE_WATCHDOG_CONTROLLER_RESTART);
 
 
-   shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_CENTRAL, s_pProcessStatsCentral);   
+   shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_CENTRAL, s_pProcessStatsCentral);
    s_pProcessStatsCentral = NULL;
    log_line("Finished execution.");
    log_line_watchdog("Finished execution");
    return (0);
-} 
+}

@@ -64,7 +64,7 @@ void MenuConfirmationImportKey::onShow()
 }
 
 void MenuConfirmationImportKey::onReturnFromChild(int iChildMenuId, int returnValue)
-{   
+{
    Menu::onReturnFromChild(iChildMenuId, returnValue);
    if ( iChildMenuId/1000 == 1 )
    {

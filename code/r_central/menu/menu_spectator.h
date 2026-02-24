@@ -10,7 +10,7 @@ class MenuSpectator: public Menu
       virtual void onShow();
       virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
-            
+
    private:
       int m_IndexSelectedVehicle;
 

@@ -128,7 +128,7 @@ void osd_show_ahi_heading(float yTop, float fWidth)
    int heading = 0;
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry && g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bFCTelemetrySourcePresent )
       heading = g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.heading;
-   
+
    //static int heading = 0;
    //heading++;
 
@@ -157,7 +157,7 @@ void osd_show_ahi_heading(float yTop, float fWidth)
       hdng = hdng % 360;
       float xPos = 0.5 + (i - heading) * fWidth/headingValues;
       if ( (i%5) == 0 )
-      {         
+      {
          szBuff[0] = 0; szBuff[1] = 0;
          if ( hdng == 0 || hdng == 360 )
             strcpy(szBuff, "N");
@@ -209,7 +209,7 @@ void osd_show_ahi_heading(float yTop, float fWidth)
       {
          //osd_ahi_set_color(COLOR_OSD_AHI_LINE_BORDER, s_StrokeWidthLine + s_ShadowThickness);
          //Line( xPos, yTop, xPos, yTop + 3 );
-         //osd_ahi_set_color(COLOR_OSD_AHI_LINE_FG, s_StrokeWidthLine);   
+         //osd_ahi_set_color(COLOR_OSD_AHI_LINE_FG, s_StrokeWidthLine);
          //Line( xPos, yTop, xPos, yTop + 3 );
       }
    }
@@ -248,7 +248,7 @@ void osd_ahi_show_horizont_ladder(float roll, float pitch)
    float yt[3] = {(float)(yCenter+planeWidth), (float)(yCenter+planeWidth), (float)(yCenter+planeWidth-planeWidth*0.4)};
 
    osd_ahi_set_color(COLOR_OSD_AHI_LINE_BORDER, 2.0*s_ShadowThicknessPx);
-   g_pRenderEngine->drawPolyLine(xt, yt, 3);    
+   g_pRenderEngine->drawPolyLine(xt, yt, 3);
    g_pRenderEngine->fillPolygon(xt, yt, 3);
 
    osd_ahi_set_color(COLOR_OSD_AHI_LINE_FG, 0.0);
@@ -256,7 +256,7 @@ void osd_ahi_show_horizont_ladder(float roll, float pitch)
    if ( g_pCurrentModel->osd_params.ahi_warning_angle > 1 )
    if ( fabs(roll) > g_pCurrentModel->osd_params.ahi_warning_angle )
       osd_ahi_set_color(COLOR_OSD_AHI_LINE_FG_WARNING, 0.0);
-   g_pRenderEngine->drawPolyLine(xt, yt, 3);   
+   g_pRenderEngine->drawPolyLine(xt, yt, 3);
    g_pRenderEngine->fillPolygon(xt, yt, 3);
 
    float height_text = osd_getFontHeight();
@@ -266,7 +266,7 @@ void osd_ahi_show_horizont_ladder(float roll, float pitch)
    float range = 30;
    float space_text = 0.006 * ahi_fScale;
    float ratio = height_ladder / range;
-    
+
    sprintf(szBuff, "%d", (int)roll);
    float x2 = xCenter-height_text*0.5*0.8;
    if ( roll < 0 )
@@ -440,7 +440,7 @@ void osd_ahi_draw_panels()
    }
 
    float len = ahi_fMaxWidth * ahi_GradationAspect;
- 
+
    float xLeft = ahi_xs+wBar-len;
    float xRight = ahi_xe-wBar+len;
    float yMid = (ahi_ys+ahi_ye)/2.0;
@@ -473,7 +473,7 @@ void osd_ahi_draw_panels()
       float xr[8] = {xRight, (float)(xRight+0.3*len), (float)(xRight+0.3*len), (float)(xRight+wBar*2.4), (float)(xRight+wBar*2.4), (float)(xRight+0.3*len), (float)(xRight+0.3*len), xRight};
       float yr[8] = {yMid, (float)(yMid+0.3*len), (float)(yMid+hBar*0.5), (float)(yMid+hBar*0.5), (float)(yMid-hBar*0.5), (float)(yMid-hBar*0.5), (float)(yMid-0.3*len), yMid};
       g_pRenderEngine->drawPolyLine(xr, yr, 8);
-      
+
    }
    else
    {
@@ -518,7 +518,7 @@ void osd_ahi_detailed_show_main_panels_info(float roll, float pitch)
    }
 
    float height_text = osd_getFontHeight() * ahi_fScale;
-   
+
    strcpy(szBuff,"0");
    float fUISpeed = 0.0;
    if ( g_pCurrentModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_AIR_SPEED_MAIN )
@@ -529,7 +529,7 @@ void osd_ahi_detailed_show_main_panels_info(float roll, float pitch)
       {
         tmp32 = g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.aspeed;
         fSpeed = (tmp32/100.0f-1000.0)*3.6f; // m/s->km/h
-        fSpeed = _osd_convertKm(fSpeed);     
+        fSpeed = _osd_convertKm(fSpeed);
         s_ahi_lastASpeed = s_ahi_lastASpeed * s_fAHIAverageConstant + (1.0-s_fAHIAverageConstant) * fSpeed;
         fUISpeed = s_ahi_lastASpeed;
         sprintf(szBuff, "%.1f", s_ahi_lastASpeed);
@@ -559,7 +559,7 @@ void osd_ahi_detailed_show_main_panels_info(float roll, float pitch)
          fUISpeed = 0.0;
       }
    }
- 
+
    if ( g_pCurrentModel->osd_params.instruments_flags[osd_get_current_layout_index()] & INSTRUMENTS_FLAG_SPEED_TO_SIDES )
    {
       osd_ahi_set_color(COLOR_OSD_AHI_TEXT_BORDER, 2.0*s_ShadowThicknessPx);
@@ -595,7 +595,7 @@ void osd_ahi_detailed_show_main_panels_info(float roll, float pitch)
    }
    else
       sprintf(szBuff, "---");
-    
+
    if ( s_ahi_show_altitude )
    {
       if ( g_pCurrentModel->osd_params.instruments_flags[osd_get_current_layout_index()] & INSTRUMENTS_FLAG_SPEED_TO_SIDES )
@@ -1083,7 +1083,7 @@ void osd_ahi_detailed_show_auxiliary_info(float roll, float pitch)
       sprintf(szBuff, "%03d", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.heading);
    else
       sprintf(szBuff, "---");
-     
+
    if ( g_pCurrentModel->osd_params.instruments_flags[osd_get_current_layout_index()] & INSTRUMENTS_FLAG_SPEED_TO_SIDES )
    {
       //float dx = osd_ahi_show_icon(xLeft, y,"", "", bAlignLeft, fScale);
@@ -1117,7 +1117,7 @@ void osd_ahi_detailed_show_auxiliary_info(float roll, float pitch)
       else
          osd_show_value(xLeft,y, szBuff, g_idFontOSD);
    }
-      
+
    // Right side
 
    if ( ! s_ahi_show_altitude )
@@ -1132,7 +1132,7 @@ void osd_ahi_detailed_show_auxiliary_info(float roll, float pitch)
       sprintf(szBuff, "VS: %.1f", _osd_convertMeters(g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.vspeed/100.0f-1000.0));
    else
       sprintf(szBuff,"VS: 0.0");
-     
+
    osd_ahi_set_color(COLOR_OSD_AHI_TEXT_BORDER, 2.0*s_ShadowThicknessPx);
    if ( p->iUnits == prefUnitsImperial || p->iUnits == prefUnitsFeets )
    {
@@ -1360,7 +1360,7 @@ void osd_show_ahi(float roll, float pitch)
    if ( s_bDebugAHIShowAll || (g_pCurrentModel->osd_params.instruments_flags[osd_get_current_layout_index()] & INSTRUMENTS_FLAG_SHOW_SPEEDALT) )
    {
       osd_ahi_set_color(COLOR_OSD_AHI_LINE_BORDER, 2.0*s_ShadowThicknessPx + s_LineThicknessPx);
-      osd_ahi_draw_panels();     
+      osd_ahi_draw_panels();
       osd_ahi_set_color(COLOR_OSD_AHI_LINE_FG, s_LineThicknessPx);
       osd_ahi_draw_panels();
 

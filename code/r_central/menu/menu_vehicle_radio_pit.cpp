@@ -70,7 +70,7 @@ void MenuVehicleRadioLinkPITModes::addItems()
 {
    removeAllItems();
    removeAllTopLines();
- 
+
    Preferences* pP = get_Preferences();
 
    m_pItemsSelect[0] = new MenuItemSelect(L("Enable PIT Mode"), L("Enables or disables PIT mode (reduced Tx power mode)."));
@@ -152,7 +152,7 @@ void MenuVehicleRadioLinkPITModes::addItems()
       m_pItemsSelect[4]->setSelectedIndex(1);
 
    if ( ! (g_pCurrentModel->radioInterfacesParams.uFlagsRadioInterfaces & RADIO_INTERFACES_FLAGS_PIT_MODE_ENABLE) )
-      m_pItemsSelect[4]->setEnabled(false);     
+      m_pItemsSelect[4]->setEnabled(false);
 }
 
 void MenuVehicleRadioLinkPITModes::valuesToUI()

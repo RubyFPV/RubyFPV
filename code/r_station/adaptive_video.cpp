@@ -196,7 +196,7 @@ void _adaptive_video_reset_kf_state(Model* pModel, type_global_state_vehicle_run
    else
       pRuntimeInfo->iCurrentAdaptiveVideoKeyFrameMsTarget = pModel->getInitialKeyframeIntervalMs(pModel->video_params.iCurrentVideoProfile);
    pRuntimeInfo->iPendingKeyFrameMsToSet = pRuntimeInfo->iCurrentAdaptiveVideoKeyFrameMsTarget;
-   log_line("[AdaptiveVideo] Did reset %s keyframe state to: request %u ms keyframe from vehicle", 
+   log_line("[AdaptiveVideo] Did reset %s keyframe state to: request %u ms keyframe from vehicle",
       (pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_KEYFRAME)?"adaptive":"fixed", pRuntimeInfo->iPendingKeyFrameMsToSet);
 }
 
@@ -333,14 +333,14 @@ void _adaptive_video_init_first_handshake(int iRuntimeIndex)
 
    if ( 0 != g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentAdaptiveVideoTargetVideoBitrateBPS )
       g_State.vehiclesRuntimeInfo[iRuntimeIndex].uPendingVideoBitrateToSet = g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentAdaptiveVideoTargetVideoBitrateBPS;
-   
+
    if ( 0 != g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentAdaptiveVideoECScheme )
       g_State.vehiclesRuntimeInfo[iRuntimeIndex].uPendingECSchemeToSet = g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentAdaptiveVideoECScheme;
    else
       g_State.vehiclesRuntimeInfo[iRuntimeIndex].uPendingECSchemeToSet = 0xFFFF;
 
    g_State.vehiclesRuntimeInfo[iRuntimeIndex].uPendingDRBoostToSet = g_State.vehiclesRuntimeInfo[iRuntimeIndex].uCurrentDRBoost;
-   
+
    g_State.vehiclesRuntimeInfo[iRuntimeIndex].uAdaptiveVideoRequestId++;
 
    log_line("[AdaptiveVideo] Initial handshake for VID %u: video bitrate: %.2f, EC scheme: %d/%d, DR boost: %d, KF: %d ms",
@@ -394,7 +394,7 @@ void adaptive_video_enable_test_mode(bool bEnableTestMode)
    s_bAdaptiveTestModeDirectionUp = false;
    log_line("[AdaptiveVideo] Test mode was set to: %s", s_bAdaptiveIsInTestMode?"On":"Off");
    log_line("[AdaptiveVideo] Is global paused right now? %s", (s_uTimePauseAdaptiveVideoUntil==0)?"No":"Yes");
-   
+
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
    {
       if ( (g_State.vehiclesRuntimeInfo[i].uVehicleId == 0) || (g_State.vehiclesRuntimeInfo[i].uVehicleId == MAX_U32) )
@@ -426,7 +426,7 @@ void _adaptive_video_send_adaptive_message_to_vehicle(u32 uVehicleId)
       s_uDeltaForRequestAdaptive += 10;
    if ( g_TimeNow - pRuntimeInfo->uLastTimeSentAdaptiveVideoRequest > 500 )
       s_uDeltaForRequestAdaptive = 10;
-   
+
    if ( g_TimeNow > g_TimeStart+5000 )
    if ( pRuntimeInfo->uLastTimeRecvDataFromVehicle < g_TimeNow-1000 )
    {
@@ -490,7 +490,7 @@ void _adaptive_video_send_adaptive_message_to_vehicle(u32 uVehicleId)
    pData += sizeof(int);
    memcpy(pData, (u8*)&uDRBoost, sizeof(u8));
    pData += sizeof(u8);
-   
+
    packets_queue_inject_packet_first_mark_time(&s_QueueRadioPacketsHighPrio, packet);
 
    char szDR[128];
@@ -532,7 +532,7 @@ void adaptive_video_received_vehicle_msg_ack(u32 uRequestId, u32 uVehicleId, int
       pRuntimeInfo->bDidFirstTimeAdaptiveHandshake = true;
       log_line("[AdaptiveVideo] Finished doing first time handshake.");
    }
-   
+
    g_SMControllerRTInfo.uFlagsAdaptiveVideo[g_SMControllerRTInfo.iCurrentIndex] |= CTRL_RT_INFO_FLAG_RECV_ACK;
 
    pRuntimeInfo->uAdaptiveVideoAckId = uRequestId;
@@ -584,9 +584,9 @@ void _adaptive_video_compute_metrics(Model* pModel, type_global_state_vehicle_ru
    u32 uAdaptiveWeights = pModel->video_link_profiles[pModel->video_params.iCurrentVideoProfile].uAdaptiveWeights;
 
    controller_runtime_info_vehicle* pRTInfoVehicle = controller_rt_info_get_vehicle_info(&g_SMControllerRTInfo, pModel->uVehicleId);
-   
+
    s_uAdaptiveMetric_TimeToLookBackMs = 500 + 100 * (10-iAdaptiveStrength);
-   
+
    if ( s_AdaptiveMetrics.uTimeToLookBackForRxLost > s_uAdaptiveMetric_TimeToLookBackMs )
       s_uAdaptiveMetric_TimeToLookBackMs = s_AdaptiveMetrics.uTimeToLookBackForRxLost;
    if ( s_AdaptiveMetrics.uTimeToLookBackForRetr > s_uAdaptiveMetric_TimeToLookBackMs )
@@ -606,7 +606,7 @@ void _adaptive_video_compute_metrics(Model* pModel, type_global_state_vehicle_ru
    s_iAdaptiveMetric_IntervalsToLookBack--;
    if ( s_iAdaptiveMetric_IntervalsToLookBack >= SYSTEM_RT_INFO_INTERVALS )
       s_iAdaptiveMetric_IntervalsToLookBack = SYSTEM_RT_INFO_INTERVALS - 1;
-   
+
    int iRTInfoIndex = g_SMControllerRTInfo.iCurrentIndex;
 
    compute_adaptive_metrics(&s_AdaptiveMetrics, iAdaptiveStrength, uAdaptiveWeights);
@@ -676,11 +676,11 @@ void _adaptive_video_compute_metrics(Model* pModel, type_global_state_vehicle_ru
 
        if ( g_SMControllerRTInfo.uOutputedVideoBlocksSkippedBlocks[iRTInfoIndex] > 0 )
           s_iAdaptiveMetric_TotalBadVideoBlocksIntervals++;
-       
+
        if ( s_uAdaptiveMetric_TimeToLookBackMs >= s_AdaptiveMetrics.uTimeToLookBackForECUsed )
        if ( g_SMControllerRTInfo.uOutputedVideoBlocksECUsed[iRTInfoIndex] )
           s_iAdaptiveMetric_IntervalsWithECHits++;
-  
+
        if ( s_uAdaptiveMetric_TimeToLookBackMs >= s_AdaptiveMetrics.uTimeToLookBackForECMax )
        if ( g_SMControllerRTInfo.uOutputedVideoBlocksMaxECUsed[iRTInfoIndex] )
           s_iAdaptiveMetric_IntervalsWithMaxECHits++;
@@ -701,13 +701,13 @@ void _adaptive_video_compute_metrics(Model* pModel, type_global_state_vehicle_ru
              if ( (iMaxLocalRSSIThresh == -1000) || (iMaxLocalRSSIThresh < g_SMControllerRTInfo.radioInterfacesSignalInfoVideo[iRTInfoIndex][k].iDbmThreshMin) )
                 iMaxLocalRSSIThresh = g_SMControllerRTInfo.radioInterfacesSignalInfoVideo[iRTInfoIndex][k].iDbmThreshMin;
           }
-    
+
           if ( (iMaxLocalSNRThresh > -200) && (iMaxLocalSNRThresh < s_iAdaptiveMetric_MinimSNRThresh) )
              s_iAdaptiveMetric_MinimSNRThresh = iMaxLocalSNRThresh;
           if ( (iMaxLocalRSSIThresh > -200) && (iMaxLocalRSSIThresh < s_iAdaptiveMetric_MinimRSSIThresh) )
              s_iAdaptiveMetric_MinimRSSIThresh = iMaxLocalRSSIThresh;
        }
- 
+
        iRTInfoIndex--;
        if ( iRTInfoIndex < 0 )
           iRTInfoIndex = SYSTEM_RT_INFO_INTERVALS-1;
@@ -1062,7 +1062,7 @@ bool _adaptive_video_switch_lower(Model* pModel, type_global_state_vehicle_runti
    //pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS = pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS - pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS * fLoadIncrease;
    //if ( pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS < DEFAULT_LOWEST_ALLOWED_ADAPTIVE_VIDEO_BITRATE )
    //   pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS = DEFAULT_LOWEST_ALLOWED_ADAPTIVE_VIDEO_BITRATE;
-   
+
    pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS = DEFAULT_LOWEST_ALLOWED_ADAPTIVE_VIDEO_BITRATE;
    if ( pModel->isActiveCameraVeye() )
       pRuntimeInfo->uCurrentAdaptiveVideoTargetVideoBitrateBPS *= 2;
@@ -1283,7 +1283,7 @@ bool _adaptive_video_check_vehicle(Model* pModel, type_global_state_vehicle_runt
    // 10: highest (fastest) adjustment strength;
 
    _adaptive_video_compute_metrics(pModel, pRuntimeInfo);
-   
+
    if ( g_TimeNow > pRuntimeInfo->uLastTimeSentAdaptiveVideoRequest + s_AdaptiveMetrics.uMinimumTimeToSwitchLower )
    if ( (pRuntimeInfo->uCurrentAdaptiveVideoECScheme == 0xFFFF) || (pRuntimeInfo->uCurrentAdaptiveVideoECScheme == 0) )
    if ( _adaptive_video_should_switch_lower(pModel, pRuntimeInfo) )
@@ -1397,7 +1397,7 @@ void _adaptive_video_periodic_loop_for_vehicle(int iRuntimeIndex, bool bForceSyn
    {
       if ( 0 == pRuntimeInfo->uAdaptiveVideoRequestId )
          _adaptive_video_init_first_handshake(iRuntimeIndex);
-      
+
       u32 uDeltaTimeRequests = 10;
       if ( pModel->isVideoLinkFixedOneWay() )
          uDeltaTimeRequests = 2000;
@@ -1543,7 +1543,7 @@ void adaptive_video_periodic_loop(bool bForceSyncNow)
       adaptive_video_reset_time_for_vehicle(0);
       send_adaptive_video_paused_to_central(0, false);
    }
-   
+
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
    {
       if ( (g_State.vehiclesRuntimeInfo[i].uVehicleId == 0) || (g_State.vehiclesRuntimeInfo[i].uVehicleId == MAX_U32) )

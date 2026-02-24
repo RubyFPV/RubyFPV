@@ -24,7 +24,7 @@ class MenuItemSlider: public MenuItem
      virtual void onKeyDown(bool bIgnoreReversion);
      virtual void onKeyLeft(bool bIgnoreReversion);
      virtual void onKeyRight(bool bIgnoreReversion);
-     
+
    protected:
       float m_SliderWidth;
       int m_ValueMin;

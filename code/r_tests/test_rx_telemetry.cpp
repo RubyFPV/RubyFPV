@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
    setpriority(PRIO_PROCESS, 0, -10);
    log_init("Test");
    log_line("\nStarted.\n");
-   
-  
+
+
    exit(0);
 }

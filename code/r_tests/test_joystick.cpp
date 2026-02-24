@@ -8,14 +8,14 @@
 
 int iQuit = 0;
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    iQuit = 1;
-} 
+}
 
 
 int main()
-{ 
+{
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
@@ -92,7 +92,7 @@ int main()
         // to read. SDL_PollEvent(&event) just checks
         // if any new events have happend, and stores them
         // inside of the event variable.
-     
+
         static int kkk = 0;
         kkk++;
         if ( (kkk % 10000) == 0 )
@@ -117,7 +117,7 @@ int main()
             case SDL_QUIT:
                 quit = 1;
                 break;
-            
+
             case SDL_JOYAXISMOTION:
                 printf("The value of axis %d was changed to %d.\n", event.jaxis.axis, event.jaxis.value);
                 break;

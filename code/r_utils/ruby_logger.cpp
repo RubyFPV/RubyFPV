@@ -67,13 +67,13 @@ void _log_logger_message(const char* szMsg)
       log_line("Failed to write to logger (%s)", szFile);
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("--------------------------");
    log_line("Caught signal to stop: %d", sig);
    log_line("--------------------------");
    g_bQuit = true;
-} 
+}
 
 int _open_msg_queue()
 {
@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
       int len = msgrcv(iLogMsgQueue, &logMessage, MAX_SERVICE_LOG_ENTRY_LENGTH, 0, MSG_NOERROR);
       if ( g_bQuit )
          break;
-      
+
       if ( len <= 0 )
       {
           sprintf(s_szLogMsg, "Failed to read log message queue. Error code: %d, (%s)", errno, strerror(errno));
@@ -243,4 +243,4 @@ int main(int argc, char *argv[])
 
    log_line("Stopped");
    return 0;
-} 
+}

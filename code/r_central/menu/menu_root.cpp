@@ -75,7 +75,7 @@ void MenuRoot::onShow()
 {
    int iPrevSelectedItem = m_SelectedIndex;
    log_line("MenuRoot: onShow...");
-   
+
    load_Preferences();
    addItems();
    Menu::onShow();
@@ -94,7 +94,7 @@ void MenuRoot::addItems()
    m_iIndexSpectator = -1;
 
    Preferences* pP = get_Preferences();
-   
+
    if ( pP->iShowCompactMenus )
       m_iIndexSimpleSetup = addMenuItem(new MenuItem(L("Quick vehicle setup"), L("Quickly change the most common vehicle settings.")));
    else
@@ -112,7 +112,7 @@ void MenuRoot::addItems()
    m_iIndexSystem = addMenuItem(new MenuItem(L("System"), L("Configure system options, shows detailed information about the system.")));
    addSeparator();
    m_iIndexMedia = addMenuItem(new MenuItem(L("Media & Storage"), L("Manage saved logs, screenshots and videos.")));
-   
+
    m_pMenuItems[m_ItemsCount-1]->setExtraHeight(m_sfMenuPaddingY);
    char szBuff[256];
    char szBuff2[64];
@@ -203,7 +203,7 @@ void MenuRoot::RenderVehicleInfo()
               (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
               (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
             strcpy(szRunType, "flights");
-      
+
          //sprintf(szLine3, "Total %s: %d", szRunType, g_pCurrentModel->stats_TotalFlights);
          //hText3 = g_pRenderEngine->getMessageHeight(szLine3, MENU_TEXTLINE_SPACING, maxTextWidth, g_idFontMenu);
          //height += hText3 + lineSpacing;
@@ -307,7 +307,7 @@ void MenuRoot::Render()
 
    if ( Menu::getRenderMode() != 1 )
       m_RenderHeight += 1.14 * g_pRenderEngine->textHeight(g_idFontMenu);
-   
+
    RenderVehicleInfo();
 
    bool bTmp1 = m_bEnableScrolling;
@@ -321,7 +321,7 @@ void MenuRoot::Render()
    iItem++;
    //yTopItems += RenderItem(iItem, yTopItems);
    //iItem++;
- 
+
    m_bEnableScrolling = bTmp1;
    m_bHasScrolling = bTmp2;
 
@@ -385,10 +385,10 @@ void MenuRoot::onSelectItem()
          add_menu_to_stack(new MenuSearch());
 
    //if ( 4 == m_SelectedIndex )
-   //   add_menu_to_stack(new MenuRadioConfig()); 
+   //   add_menu_to_stack(new MenuRadioConfig());
 
    if ( m_iIndexController == m_SelectedIndex )
-      add_menu_to_stack(new MenuController()); 
+      add_menu_to_stack(new MenuController());
 
    if ( m_iIndexMedia == m_SelectedIndex )
       add_menu_to_stack(new MenuStorage());

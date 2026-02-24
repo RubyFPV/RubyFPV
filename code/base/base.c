@@ -142,7 +142,7 @@ u32 revert_word(u32 input)
    u32 out = (input & 0xFF) << 8;
    out = out | ((input>>8) & 0xFF);
    return out;
-} 
+}
 
 void reset_counters(type_u32_couters* pCounters)
 {
@@ -172,7 +172,7 @@ u32 base_compute_crc32(u8 *buf, int length)
       crc = crc32_table[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
    }
    return crc ^ ~0U;
-} 
+}
 
 u8 base_compute_crc8(u8* pBuffer, int iLength)
 {
@@ -186,7 +186,7 @@ u8 base_compute_crc8(u8* pBuffer, int iLength)
 
 int base_check_crc32(u8* pBuffer, int iLength)
 {
-   u32 crc = base_compute_crc32(pBuffer + sizeof(u32), iLength-sizeof(u32)); 
+   u32 crc = base_compute_crc32(pBuffer + sizeof(u32), iLength-sizeof(u32));
    u32* p = (u32*)pBuffer;
    if ( *p != crc )
       return 0;
@@ -393,7 +393,7 @@ char* replaceNewLinesToSpaces(char* szBuff)
 {
    if ( (NULL == szBuff) || (0 == szBuff[0]) )
       return szBuff;
-      
+
    removeTrailingNewLines(szBuff);
 
    int iLen = strlen(szBuff);
@@ -550,9 +550,9 @@ void log_init(const char* component_name)
    s_szAdditionalLogFile[0] = 0;
    _init_timestamp_for_process();
    s_uTimeStartLogForCurrentProcess = get_current_timestamp_ms();
-   
+
    _log_check_for_service_log_access();
-   
+
    char szLogLine[256];
    pid_t pid = getpid();
    pid_t ppid = getppid();
@@ -691,7 +691,7 @@ void log_line(const char* format, ...)
    szTime[0] = 0;
    if ( s_logAddTime )
       _log_format_time_mstens(szTime);
- 
+
    if ( _log_check_for_service_log_access() )
    {
       char szBuff[MAX_SERVICE_LOG_ENTRY_LENGTH];
@@ -713,7 +713,7 @@ void log_line(const char* format, ...)
       FILE* fdAux = fopen(s_szAdditionalLogFile, "a+");
       if ( NULL != fdAux )
       {
-         fprintf(fdAux, "%s %s: ", szTime, sszComponentName);  
+         fprintf(fdAux, "%s %s: ", szTime, sszComponentName);
          fclose(fdAux);
       }
    }
@@ -752,7 +752,7 @@ void log_line(const char* format, ...)
    if ( ! s_logDisabledStdout )
       printf("\n");
    if ( NULL != fd )
-     fprintf(fd, "\n");  
+     fprintf(fd, "\n");
 
    //if ( 0 == lock )
    //   flock(fileno(fd), LOCK_UN);
@@ -782,7 +782,7 @@ void log_line_forced_to_file(const char* format, ...)
       FILE* fdAux = fopen(s_szAdditionalLogFile, "a+");
       if ( NULL != fdAux )
       {
-         fprintf(fdAux, "%s(F) %s: ", szTime, sszComponentName);  
+         fprintf(fdAux, "%s(F) %s: ", szTime, sszComponentName);
          fclose(fdAux);
       }
    }
@@ -820,7 +820,7 @@ void log_line_forced_to_file(const char* format, ...)
    if ( ! s_logDisabledStdout )
       printf("\n");
    if ( NULL != fd )
-     fprintf(fd, "\n");  
+     fprintf(fd, "\n");
 
    va_end(args);
    //if ( 0 == lock )
@@ -841,7 +841,7 @@ void log_line_watchdog(const char* format, ...)
    szTime[0] = 0;
    if ( s_logAddTime )
       _log_format_time_mstens(szTime);
- 
+
    if ( _log_check_for_service_log_access() )
    {
       char szBuff[MAX_SERVICE_LOG_ENTRY_LENGTH];
@@ -867,9 +867,9 @@ void log_line_watchdog(const char* format, ...)
    if ( ! s_logDisabledStdout )
       printf("%s %s: ", szTime, sszComponentName);
    if ( NULL != fd )
-     fprintf(fd, "%s %s: ", szTime, sszComponentName);  
+     fprintf(fd, "%s %s: ", szTime, sszComponentName);
    if ( NULL != fd2 )
-     fprintf(fd2, "%s %s: ", szTime, sszComponentName);  
+     fprintf(fd2, "%s %s: ", szTime, sszComponentName);
 
    if ( NULL != fd )
       vfprintf(fd, format, args);
@@ -881,9 +881,9 @@ void log_line_watchdog(const char* format, ...)
    if ( ! s_logDisabledStdout )
       printf("\n");
    if ( NULL != fd )
-     fprintf(fd, "\n");  
+     fprintf(fd, "\n");
    if ( NULL != fd2 )
-     fprintf(fd2, "\n");  
+     fprintf(fd2, "\n");
 
    va_end(args);
    //if ( 0 == lock )
@@ -907,7 +907,7 @@ void log_line_commands(const char* format, ...)
    szTime[0] = 0;
    if ( s_logAddTime )
       _log_format_time_mstens(szTime);
- 
+
    if ( _log_check_for_service_log_access() )
    {
       char szBuff[MAX_SERVICE_LOG_ENTRY_LENGTH];
@@ -933,9 +933,9 @@ void log_line_commands(const char* format, ...)
    if ( ! s_logDisabledStdout )
       printf("%s %s: ", szTime, sszComponentName);
    if ( NULL != fd )
-     fprintf(fd, "%s %s: ", szTime, sszComponentName);  
+     fprintf(fd, "%s %s: ", szTime, sszComponentName);
    if ( NULL != fd2 )
-     fprintf(fd2, "%s %s: ", szTime, sszComponentName);  
+     fprintf(fd2, "%s %s: ", szTime, sszComponentName);
 
    if ( NULL != fd )
       vfprintf(fd, format, args);
@@ -947,9 +947,9 @@ void log_line_commands(const char* format, ...)
    if ( ! s_logDisabledStdout )
       printf("\n");
    if ( NULL != fd )
-     fprintf(fd, "\n");  
+     fprintf(fd, "\n");
    if ( NULL != fd2 )
-     fprintf(fd2, "\n");  
+     fprintf(fd2, "\n");
 
    va_end(args);
    //if ( 0 == lock )
@@ -1008,7 +1008,7 @@ void log_buffer5(const u8* buffer, int size, int delim1, int delim2, int delim3,
          sprintf(szTmp, "%x", buffer[i]);
          strcat(szBuff, szTmp);
          len += strlen(szTmp);
-    
+
          int bBreak = 0;
          if ( delim1 > 0 )
          if ( (i+1) == delim1 )
@@ -1051,7 +1051,7 @@ void log_buffer5(const u8* buffer, int size, int delim1, int delim2, int delim3,
             len = strlen(szBuff);
          }
       }
-      sprintf(szTmp,"%x]\n", buffer[size-1]);  
+      sprintf(szTmp,"%x]\n", buffer[size-1]);
       strcat(szBuff, szTmp);
       _log_service_entry(szTime, szBuff);
       return;
@@ -1067,7 +1067,7 @@ void log_buffer5(const u8* buffer, int size, int delim1, int delim2, int delim3,
    if ( ! s_logDisabledStdout )
       printf("Len %d: [", size);
    if ( NULL != fd )
-     fprintf(fd, "Len %d: [", size);  
+     fprintf(fd, "Len %d: [", size);
 
    int i=0;
    for( i=0; i<size-1; i++ )
@@ -1120,7 +1120,7 @@ void log_buffer5(const u8* buffer, int size, int delim1, int delim2, int delim3,
    if ( ! s_logDisabledStdout )
       printf("%x]\n", buffer[size-1]);
    if ( NULL != fd )
-     fprintf(fd, "%x]\n", buffer[size-1]);  
+     fprintf(fd, "%x]\n", buffer[size-1]);
 
    //if ( 0 == lock )
    //   flock(fileno(fd), LOCK_UN);
@@ -1138,7 +1138,7 @@ void log_dword(const char* szText, u32 value)
    szTime[0] = 0;
    if ( s_logAddTime )
       _log_format_time_mstens(szTime);
- 
+
    if ( _log_check_for_service_log_access() )
    {
       char szBuff[MAX_SERVICE_LOG_ENTRY_LENGTH];
@@ -1152,13 +1152,13 @@ void log_dword(const char* szText, u32 value)
    strcpy(szFile, FOLDER_LOGS);
    strcat(szFile, LOG_FILE_SYSTEM);
    FILE* fd = fopen(szFile, "a+");
-   
+
    if ( ! s_logDisabledStdout )
       printf("%s %s: ", szTime, sszComponentName);
    if ( NULL != fd )
-     fprintf(fd, "%s %s: ", szTime, sszComponentName);  
+     fprintf(fd, "%s %s: ", szTime, sszComponentName);
 
-   
+
    if ( NULL != fd )
    {   fprintf(fd, szText); fprintf(fd, ": "); }
    if ( ! s_logDisabledStdout )
@@ -1182,7 +1182,7 @@ void log_dword(const char* szText, u32 value)
    if ( ! s_logDisabledStdout )
       printf("\n");
    if ( NULL != fd )
-     fprintf(fd, "\n");  
+     fprintf(fd, "\n");
 
    if ( NULL != fd )
       fclose(fd);
@@ -1197,7 +1197,7 @@ void log_dword_bits(const char* szText, u32 value)
    szTime[0] = 0;
    if ( s_logAddTime )
       _log_format_time_mstens(szTime);
- 
+
    if ( _log_check_for_service_log_access() )
    {
       char szBuff[MAX_SERVICE_LOG_ENTRY_LENGTH];
@@ -1211,13 +1211,13 @@ void log_dword_bits(const char* szText, u32 value)
    strcpy(szFile, FOLDER_LOGS);
    strcat(szFile, LOG_FILE_SYSTEM);
    FILE* fd = fopen(szFile, "a+");
-   
+
    if ( ! s_logDisabledStdout )
       printf("%s %s: ", szTime, sszComponentName);
    if ( NULL != fd )
-     fprintf(fd, "%s %s: ", szTime, sszComponentName);  
+     fprintf(fd, "%s %s: ", szTime, sszComponentName);
 
-   
+
    if ( NULL != fd )
    {
        fprintf(fd, szText);
@@ -1247,7 +1247,7 @@ void log_dword_bits(const char* szText, u32 value)
    if ( ! s_logDisabledStdout )
       printf("\n");
    if ( NULL != fd )
-     fprintf(fd, "\n");  
+     fprintf(fd, "\n");
 
    if ( NULL != fd )
       fclose(fd);
@@ -1259,7 +1259,7 @@ void log_always(const char* szText)
    szTime[0] = 0;
    if ( s_logAddTime )
       _log_format_time_mstens(szTime);
- 
+
    if ( _log_check_for_service_log_access() )
    {
       char szBuff[MAX_SERVICE_LOG_ENTRY_LENGTH];
@@ -1284,7 +1284,7 @@ void log_always(const char* szText)
       FILE* fdAux = fopen(s_szAdditionalLogFile, "a+");
       if ( NULL != fdAux )
       {
-         fprintf(fdAux, "%s %s: ", szTime, sszComponentName);  
+         fprintf(fdAux, "%s %s: ", szTime, sszComponentName);
          fclose(fdAux);
       }
    }
@@ -1334,7 +1334,7 @@ void log_always(const char* szText)
    if ( ! s_logDisabledStdout )
       printf("\n");
    if ( NULL != fd )
-     fprintf(fd, "\n");  
+     fprintf(fd, "\n");
 
    //if ( 0 == lock )
    //   flock(fileno(fd), LOCK_UN);
@@ -1379,7 +1379,7 @@ void log_error_and_alarm(const char* format, ...)
    FILE* fd2 = fopen(szFile2, "a+");
    //int lock = flock(fileno(fd), LOCK_EX);
    //int lock2 = flock(fileno(fd2), LOCK_EX);
- 
+
    if ( 0 != s_szAdditionalLogFile[0] )
    {
       FILE* fdAux = fopen(s_szAdditionalLogFile, "a+");
@@ -1393,9 +1393,9 @@ void log_error_and_alarm(const char* format, ...)
    if ( ! s_logDisabledStdout )
       printf("%s %s: ERROR: ", szTime, sszComponentName);
    if ( NULL != fd )
-     fprintf(fd, "%s %s: ERROR: ", szTime, sszComponentName);  
+     fprintf(fd, "%s %s: ERROR: ", szTime, sszComponentName);
    if ( NULL != fd2 )
-     fprintf(fd2, "%s %s: ERROR: ", szTime, sszComponentName);  
+     fprintf(fd2, "%s %s: ERROR: ", szTime, sszComponentName);
 
    if ( 0 != s_szAdditionalLogFile[0] )
    {
@@ -1427,9 +1427,9 @@ void log_error_and_alarm(const char* format, ...)
    if ( ! s_logDisabledStdout )
       printf("\n");
    if ( NULL != fd )
-     fprintf(fd, "\n");  
+     fprintf(fd, "\n");
    if ( NULL != fd2 )
-     fprintf(fd2, "\n");  
+     fprintf(fd2, "\n");
 
    va_end(args);
    //if ( 0 == lock )
@@ -1480,7 +1480,7 @@ void log_softerror_and_alarm(const char* format, ...)
    FILE* fd2 = fopen(szFile2, "a+");
    //int lock = flock(fileno(fd), LOCK_EX);
    //int lock2 = flock(fileno(fd2), LOCK_EX);
- 
+
    if ( 0 != s_szAdditionalLogFile[0] )
    {
       FILE* fdAux = fopen(s_szAdditionalLogFile, "a+");
@@ -1494,9 +1494,9 @@ void log_softerror_and_alarm(const char* format, ...)
    if ( ! s_logDisabledStdout )
       printf("%s %s: SOFT_ERROR: ", szTime, sszComponentName);
    if ( NULL != fd )
-     fprintf(fd, "%s %s: SOFT_ERROR: ", szTime, sszComponentName);  
+     fprintf(fd, "%s %s: SOFT_ERROR: ", szTime, sszComponentName);
    if ( NULL != fd2 )
-     fprintf(fd2, "%s %s: SOFT_ERROR: ", szTime, sszComponentName);  
+     fprintf(fd2, "%s %s: SOFT_ERROR: ", szTime, sszComponentName);
 
    if ( 0 != s_szAdditionalLogFile[0] )
    {
@@ -1520,7 +1520,7 @@ void log_softerror_and_alarm(const char* format, ...)
       FILE* fdAux = fopen(s_szAdditionalLogFile, "a+");
       if ( NULL != fdAux )
       {
-         fprintf(fdAux, "\n");  
+         fprintf(fdAux, "\n");
          fclose(fdAux);
       }
    }
@@ -1528,9 +1528,9 @@ void log_softerror_and_alarm(const char* format, ...)
    if ( ! s_logDisabledStdout )
       printf("\n");
    if ( NULL != fd )
-     fprintf(fd, "\n");  
+     fprintf(fd, "\n");
    if ( NULL != fd2 )
-     fprintf(fd2, "\n");  
+     fprintf(fd2, "\n");
 
    va_end(args);
    //if ( 0 == lock )
@@ -1548,7 +1548,7 @@ void log_softerror_and_alarm(const char* format, ...)
 int check_licences()
 {
    #ifdef FEATURE_CHECK_LICENCES
-   
+
    char szBuff[1024];
    char szIds[32][64];
    int iCountIds = 0;

@@ -75,7 +75,7 @@ void MenuVehicleFunctions::sendParams()
    params.bEnableRCTriggerFreqSwitchLink3 = false;
 
    if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_FUNCTIONS_TRIGGERS_PARAMS, 0, (u8*)&params, sizeof(type_functions_parameters)) )
-      valuesToUI();      
+      valuesToUI();
 }
 
 void MenuVehicleFunctions::onReturnFromChild(int iChildMenuId, int returnValue)

@@ -75,7 +75,7 @@ bool configure_radio_interfaces_for_current_model(Model* pModel, shared_mem_radi
       radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(i);
       if ( NULL == pRadioHWInfo )
          continue;
-      
+
       int nRadioLinkId = pModel->radioInterfacesParams.interface_link_id[i];
       if ( (nRadioLinkId < 0) || (nRadioLinkId >= pModel->radioLinksParams.links_count) )
          continue;
@@ -110,7 +110,7 @@ bool configure_radio_interfaces_for_current_model(Model* pModel, shared_mem_radi
          uRadioLinkFrequency = pModel->relay_params.uRelayFrequencyKhz;
          log_line("Radio link %d is a relay link on %s", iLink+1, str_format_frequency(uRadioLinkFrequency));
       }
-   
+
       log_line("Radio link %d must be set to %s", iLink+1, str_format_frequency(uRadioLinkFrequency));
 
       int iLinkConfiguredInterfacesCount = 0;
@@ -189,7 +189,7 @@ bool configure_radio_interfaces_for_current_model(Model* pModel, shared_mem_radi
          }
          else if ( hardware_radio_index_is_serial_radio(iInterface) )
          {
-            iLinkConfiguredInterfacesCount++;          
+            iLinkConfiguredInterfacesCount++;
          }
          else
          {
@@ -328,7 +328,7 @@ int radio_links_open_rxtx_radio_interfaces()
             else
                radio_open_interface_for_read(i, RADIO_PORT_ROUTER_UPLINK);
 
-            g_SM_RadioStats.radio_interfaces[i].openedForRead = 1;      
+            g_SM_RadioStats.radio_interfaces[i].openedForRead = 1;
             countOpenedForRead++;
          }
       }
@@ -493,7 +493,7 @@ void radio_links_close_rxtx_radio_interfaces()
       g_SM_RadioStats.radio_interfaces[i].openedForRead = 0;
       g_SM_RadioStats.radio_interfaces[i].openedForWrite = 0;
    }
-   log_line("[RadioLinks] Closed all radio interfaces (rx/tx)."); 
+   log_line("[RadioLinks] Closed all radio interfaces (rx/tx).");
 }
 
 
@@ -512,11 +512,11 @@ bool radio_links_apply_settings(Model* pModel, int iRadioLink, type_radio_links_
    bool bUpdateFreq = false;
    if ( pRadioLinkParamsOld->link_frequency_khz[iRadioLink] != pRadioLinkParamsNew->link_frequency_khz[iRadioLink] )
       bUpdateFreq = true;
-   if ( (pRadioLinkParamsOld->link_radio_flags_tx[iRadioLink] & RADIO_FLAG_HT40) != 
+   if ( (pRadioLinkParamsOld->link_radio_flags_tx[iRadioLink] & RADIO_FLAG_HT40) !=
         (pRadioLinkParamsNew->link_radio_flags_tx[iRadioLink] & RADIO_FLAG_HT40) )
       bUpdateFreq = true;
 
-   if ( bUpdateFreq )     
+   if ( bUpdateFreq )
    {
       for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
       {
@@ -540,7 +540,7 @@ bool radio_links_apply_settings(Model* pModel, int iRadioLink, type_radio_links_
    // Apply data rates
 
    // If downlink data rate for an Atheros card has changed, update it.
-      
+
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
    {
       if ( g_SM_RadioStats.radio_interfaces[i].assignedVehicleRadioLinkId != iRadioLink )
@@ -548,7 +548,7 @@ bool radio_links_apply_settings(Model* pModel, int iRadioLink, type_radio_links_
       radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(i);
       if ( NULL == pRadioHWInfo )
          continue;
-      
+
       if ( (pRadioHWInfo->iRadioType != RADIO_TYPE_ATHEROS) &&
            (pRadioHWInfo->iRadioType != RADIO_TYPE_RALINK) )
          continue;
@@ -559,7 +559,7 @@ bool radio_links_apply_settings(Model* pModel, int iRadioLink, type_radio_links_
    }
 
    // Radio flags are applied on the fly, when sending each radio packet
-   s_uRadioLinksStartTime = g_TimeNow = get_current_timestamp_ms();   
+   s_uRadioLinksStartTime = g_TimeNow = get_current_timestamp_ms();
    return true;
 }
 
@@ -623,7 +623,7 @@ bool radio_links_restart(bool bAsync)
    }
 
    configure_radio_interfaces_for_current_model(g_pCurrentModel, &g_SM_RadioStats, g_pProcessStats);
-   
+
    radio_duplicate_detection_remove_data_for_all_except(g_uControllerId);
 
    if ( g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_USE_PCAP_RADIO_TX )
@@ -643,7 +643,7 @@ bool radio_links_restart(bool bAsync)
 
    radio_links_open_rxtx_radio_interfaces();
    radio_rx_start_rx_thread(&g_SM_RadioStats, 0, g_pCurrentModel->getVehicleFirmwareType());
-    
+
    if ( NULL != g_pProcessStats )
    {
       g_TimeNow = get_current_timestamp_ms();
@@ -668,7 +668,7 @@ bool radio_links_restart(bool bAsync)
       ruby_ipc_channel_send_message(s_fIPCRouterToCommands, (u8*)&PH, PH.total_length);
       if ( g_pCurrentModel->rc_params.uRCFlags & RC_FLAGS_ENABLED )
          ruby_ipc_channel_send_message(s_fIPCRouterToRC, (u8*)&PH, PH.total_length);
-               
+
       if ( NULL != g_pProcessStats )
          g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
    }

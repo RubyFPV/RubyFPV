@@ -16,10 +16,10 @@ class MenuVehicleRC: public Menu
       virtual int onBack();
       virtual bool periodicLoop();
       virtual void Render();
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
       virtual void valuesToUI();
-            
+
    private:
       void updateUIState(bool bEnable);
       void renderLiveValues();
@@ -27,7 +27,7 @@ class MenuVehicleRC: public Menu
       void onAssignAxe(int axeIndex);
 
       MenuItemSelect* m_pItemsSelect[20];
-      MenuItemSlider* m_pItemsSlider[10];      
+      MenuItemSlider* m_pItemsSlider[10];
 
       int m_CurrentRCValues[MAX_RC_CHANNELS];
       u32 m_TimeLastRCCompute;

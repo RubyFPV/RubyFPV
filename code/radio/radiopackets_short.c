@@ -57,7 +57,7 @@ u8 radio_packets_short_get_next_id_for_radio_interface(int iInterfaceIndex)
 {
    u8 uIndex = s_uRadioPacketsShortIndexes[iInterfaceIndex];
    s_uRadioPacketsShortIndexes[iInterfaceIndex]++;
-   return uIndex; 
+   return uIndex;
 }
 
 int radio_buffer_is_valid_short_packet(u8* pBuffer, int iLength)
@@ -71,7 +71,7 @@ int radio_buffer_is_valid_short_packet(u8* pBuffer, int iLength)
       return 0;
 
    t_packet_header_short* pPHS = (t_packet_header_short*)pBuffer;
-      
+
    if ( pPHS->data_length > iLength - sizeof(t_packet_header_short) )
       return 0;
 

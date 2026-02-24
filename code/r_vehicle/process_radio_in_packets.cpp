@@ -144,7 +144,7 @@ void _check_update_atheros_datarates(u32 linkIndex, int datarateVideoBPS)
       }
 
       radio_utils_set_datarate_atheros(g_pCurrentModel, i, datarateVideoBPS, 0);
-      
+
       pRadioInfo->iCurrentDataRateBPS = datarateVideoBPS;
 
       g_TimeNow = get_current_timestamp_ms();
@@ -162,7 +162,7 @@ void _check_update_atheros_datarates(u32 linkIndex, int datarateVideoBPS)
 
       radio_rx_resume_interface(i);
       radio_tx_resume_radio_interface(i);
-      
+
       g_TimeNow = get_current_timestamp_ms();
       if ( NULL != g_pProcessStats )
       {
@@ -216,7 +216,7 @@ int _handle_received_packet_error(int iInterfaceIndex, u8* pData, int nDataLengt
       g_UplinkInfoRxStats[iInterfaceIndex].timeLastLogWrongRxPacket = g_TimeNow;
       log_softerror_and_alarm("Received %d invalid packet(s). Error: %d", s_uTotalBadPacketsReceived, iRadioError );
       s_uTotalBadPacketsReceived = 0;
-   } 
+   }
    return 0;
 }
 
@@ -242,7 +242,7 @@ void process_received_single_radio_packet(int iRadioInterface, u8* pData, int da
    if ( pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iDbmLast < 500 )
    if ( pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iDbmLast > -500 )
       g_UplinkInfoRxStats[iRadioInterface].lastReceivedDBM = pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iDbmLast;
-   
+
    if ( pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iDbmNoiseLast < 500 )
    if ( pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iDbmNoiseLast > -500 )
       g_UplinkInfoRxStats[iRadioInterface].lastReceivedDBMNoise = pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.signalInfoAll.iDbmNoiseLast;
@@ -292,7 +292,7 @@ void process_received_single_radio_packet(int iRadioInterface, u8* pData, int da
    }
 
    // Detect if it's a relayed packet from controller to relayed vehicle
-   
+
    if ( (NULL != g_pCurrentModel) && (g_pCurrentModel->relay_params.uRelayedVehicleId != 0) )
    if ( uVehicleIdDest == g_pCurrentModel->relay_params.uRelayedVehicleId )
    {
@@ -354,7 +354,7 @@ void process_received_single_radio_packet(int iRadioInterface, u8* pData, int da
             piInfo++;
             int datarateData = *piInfo;
             log_line("Received new Set Radio Links Flags command. Link %d, Link flags: %s, Datarate %d/%d", linkIndex+1, str_get_radio_frame_flags_description2(linkFlags), datarateVideo, datarateData);
-            if ( datarateVideo != g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[linkIndex] ) 
+            if ( datarateVideo != g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[linkIndex] )
                _check_update_atheros_datarates(linkIndex, datarateVideo);
          }
       }

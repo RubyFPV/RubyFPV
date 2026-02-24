@@ -72,7 +72,7 @@ void MenuSystemAllParams::Render()
 
    u32 uBoardType = 0;
 
-   float height_text = g_pRenderEngine->textHeight(g_idFontMenuSmall);   
+   float height_text = g_pRenderEngine->textHeight(g_idFontMenuSmall);
 
    float xPos = m_xPos+m_sfMenuPaddingX;
    float yPos = y;
@@ -87,7 +87,7 @@ void MenuSystemAllParams::Render()
       fscanf(fd,"%u", &uBoardType);
       fclose(fd);
    }
-         
+
    sprintf(szBuff, "Controller board: %s, no vehicle selected.", str_get_hardware_board_name(uBoardType));
    if ( NULL != g_pCurrentModel )
       sprintf(szBuff, "Controller board: %s, vehicle board: %s, vehicle name: %s, %s", str_get_hardware_board_name(uBoardType), str_get_hardware_board_name(g_pCurrentModel->hwCapabilities.uBoardType), g_pCurrentModel->getLongName(), g_pCurrentModel->is_spectator?"(Spectator Mode)":"(Control Mode)");
@@ -110,7 +110,7 @@ void MenuSystemAllParams::Render()
          //hw_execute_bash_command_raw("ifconfig | grep -A1 eth | head -2 | tail -1", szOutput);
          hw_execute_bash_command_raw("ip addr | grep eth | grep inet", szOutput);
          log_line("Out: [%s]", szOutput);
-         
+
          int cSpaces = 0;
          int cOther = 0;
          for( int i=0; i<(int)strlen(szOutput); i++ )
@@ -172,7 +172,7 @@ float MenuSystemAllParams::renderVehicleCamera(float xPos, float yPos, float wid
       return 0.0;
    float y0 = yPos;
    float height_text = g_pRenderEngine->textHeight(g_idFontMenuSmall);
-   
+
    char szCamera[256];
    char szVideo[256];
    char szBuff[1024];
@@ -196,7 +196,7 @@ float MenuSystemAllParams::renderVehicleCamera(float xPos, float yPos, float wid
 
    strcpy(szTemp, str_get_video_profile_name(g_pCurrentModel->video_params.iCurrentVideoProfile));
 
-   snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "S: %s/%d/%d/%d", szTemp, 
+   snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "S: %s/%d/%d/%d", szTemp,
               (g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_RETRANSMISSIONS)?1:0,
               0,
               (((g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags)>>8)&0xFF)*5);
@@ -271,7 +271,7 @@ float MenuSystemAllParams::renderVehicleRC(float xPos, float yPos, float width, 
 float MenuSystemAllParams::renderRadioInfo(float xPos, float yPos, float width, float height, float fScale)
 {
    char szBuff[256];
-   float height_text = g_pRenderEngine->textHeight(g_idFontMenuSmall);   
+   float height_text = g_pRenderEngine->textHeight(g_idFontMenuSmall);
 
    g_pRenderEngine->setColors(get_Color_MenuText());
    g_pRenderEngine->setStroke(get_Color_MenuText(), 0.6);
@@ -299,7 +299,7 @@ float MenuSystemAllParams::renderRadioInfo(float xPos, float yPos, float width, 
          strcat(szBuff, "2.5, ");
       if ( pNICInfo->supportedBands & 8 )
          strcat(szBuff, "5.8, ");
-      
+
       g_pRenderEngine->drawText(xPos, yPos, g_idFontMenuSmall, szBuff);
       yPos += 1.4*height_text;
 
@@ -310,7 +310,7 @@ float MenuSystemAllParams::renderRadioInfo(float xPos, float yPos, float width, 
          strcat(szBuff, "RX Only, ");
       else
          strcat(szBuff, "TX/RX, ");
-      
+
       if ( controllerIsCardDisabled(pNICInfo->szMAC) )
          strcat(szBuff, "Disabled");
       else
@@ -419,7 +419,7 @@ float MenuSystemAllParams::renderDataRates(float xPos, float yPos, float width, 
 float MenuSystemAllParams::renderProcesses(float xPos, float yPos, float width, float fScale)
 {
    ControllerSettings* pCS = get_ControllerSettings();
-   
+
    float y0 = yPos;
    float height_text = g_pRenderEngine->textHeight(g_idFontMenuSmall);
 
@@ -450,7 +450,7 @@ float MenuSystemAllParams::renderProcesses(float xPos, float yPos, float width, 
 
 
 float MenuSystemAllParams::renderSoftware(float xPos, float yPos, float width, float fScale)
-{   
+{
    float y0 = yPos;
    float height_text = g_pRenderEngine->textHeight(g_idFontMenuSmall);
 
@@ -482,7 +482,7 @@ float MenuSystemAllParams::renderSoftware(float xPos, float yPos, float width, f
 float MenuSystemAllParams::renderDeveloperFlags(float xPos, float yPos, float width, float fScale)
 {
    float y0 = yPos;
-   float height_text = g_pRenderEngine->textHeight(g_idFontMenuSmall);   
+   float height_text = g_pRenderEngine->textHeight(g_idFontMenuSmall);
 
    char szBuff[1024];
 
@@ -519,7 +519,7 @@ float MenuSystemAllParams::renderDeveloperFlags(float xPos, float yPos, float wi
 float MenuSystemAllParams::renderControllerParams(float xPos, float yPos, float width, float fScale)
 {
    ControllerSettings* pCS = get_ControllerSettings();
-   
+
    float y0 = yPos;
    float height_text = g_pRenderEngine->textHeight(g_idFontMenuSmall);
 

@@ -130,8 +130,8 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
 {
    if ( NULL == g_pEngine || NULL == pTelemetryInfo || NULL == pCurrentSettings )
       return;
-   
-   
+
+
    char szBuff[64];
 
    float fBackgroundAlpha = pCurrentSettings->fBackgroundAlpha;
@@ -143,7 +143,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
    draw_shadow(g_pEngine, xCenter, yCenter, fRadius);
 
    g_pEngine->setColors(g_pEngine->getColorOSDInstruments());
-   
+
    u32 fontId = g_pEngine->getFontIdRegular();
    float height_text = g_pEngine->textHeight(fontId);
 
@@ -215,7 +215,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
       }
       nSpeed += ndSpeed;
    }
-   
+
    // Show speed value
 
    float hspeed = ((float)pTelemetryInfo->hspeed)/100.0 - 1000.0;
@@ -231,11 +231,11 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
    s_fPluginSpeedSmooth = 0.8*s_fPluginSpeedSmooth + 0.2 * hspeed;
 
    sprintf(szBuff, "%d km/h", (int)s_fPluginSpeedSmooth);
-   
+
    if ( NULL != pCurrentSettings->pExtraInfo )
    {
       plugin_settings_info_t2_extra* pExtraInfo2 = (plugin_settings_info_t2_extra*) pCurrentSettings->pExtraInfo;
-      
+
       if ( pExtraInfo2->iMeasureUnitsType == 1 || pExtraInfo2->iMeasureUnitsType == 3 )
          sprintf(szBuff, "%d mi/h", (int) s_fPluginSpeedSmooth);
    }
@@ -304,5 +304,5 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
 }
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

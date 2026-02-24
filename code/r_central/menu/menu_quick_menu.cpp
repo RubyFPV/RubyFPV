@@ -72,7 +72,7 @@ MenuQuickMenu::~MenuQuickMenu()
 void MenuQuickMenu::onShow()
 {
    //log_line("MenuQuickMenu: onShow...");
-   
+
    addItems();
    Menu::onShow();
 
@@ -89,7 +89,7 @@ void MenuQuickMenu::addItems()
    removeAllItems();
 
    Preferences* pP = get_Preferences();
-   
+
    m_pItemAction.clear();
 
    int m_index = 0;

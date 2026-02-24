@@ -44,7 +44,7 @@ void reset_VehicleSettings()
 {
    memset(&s_VehicleSettings, 0, sizeof(s_VehicleSettings));
    s_VehicleSettings.iDevRxLoopTimeout = DEFAULT_MAX_RX_LOOP_TIMEOUT_MILISECONDS_VEHICLE;
-   
+
    log_line("Reseted vehicle settings.");
 }
 
@@ -99,7 +99,7 @@ int load_VehicleSettings()
       return 0;
    }
 
-   
+
    if ( 1 != fscanf(fd, "%d", &s_VehicleSettings.iDevRxLoopTimeout) )
    {
       s_VehicleSettings.iDevRxLoopTimeout = DEFAULT_MAX_RX_LOOP_TIMEOUT_MILISECONDS_VEHICLE;

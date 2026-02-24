@@ -30,7 +30,7 @@ class MenuItem
      bool isHidden();
 
      void highlightFirstWord(bool bHighlight);
-     
+
      void setCondensedOnly();
      void setExtraHeight(float fExtraHeight);
      float getExtraHeight();
@@ -58,7 +58,7 @@ class MenuItem
      float getItemRenderYPos();
 
      void setMargin(float fMargin);
-     
+
      virtual float getItemHeight(float maxWidth);
      virtual float getTitleWidth(float maxWidth);
      virtual float getValueWidth(float maxWidth);

@@ -111,7 +111,7 @@ int _radio_tx_send_msg(int iInterfaceIndex, u8* pData, int iLength)
 {
    // Split the packet into small serial packets and send it
    // radio packet header is part of the total packet size, so take it into account
-   
+
    t_packet_header_short PHS;
    u8 uBuffer[1000];
    int iTotalBytesSent = 0;
@@ -137,7 +137,7 @@ int _radio_tx_send_msg(int iInterfaceIndex, u8* pData, int iLength)
       PHS.start_header = SHORT_PACKET_START_BYTE_REG_PACKET;
       if ( pData == pDataToSend )
          PHS.start_header = SHORT_PACKET_START_BYTE_START_PACKET;
-      if ( iBytesLeftToSend <= iUsableDataBytesInEachPacket ) 
+      if ( iBytesLeftToSend <= iUsableDataBytesInEachPacket )
          PHS.start_header = SHORT_PACKET_START_BYTE_END_PACKET;
 
       int iShortPacketDataSize = iUsableDataBytesInEachPacket;
@@ -154,7 +154,7 @@ int _radio_tx_send_msg(int iInterfaceIndex, u8* pData, int iLength)
 
       iShortPacketDataSize += sizeof(t_packet_header_short);
       uBuffer[1] = base_compute_crc8(&uBuffer[2], iShortPacketDataSize - 2);
-      
+
       int iWriteResult = 0;
       if ( hardware_radio_index_is_sik_radio(iInterfaceIndex) )
          iWriteResult = radio_write_sik_packet(iInterfaceIndex, uBuffer, iShortPacketDataSize, get_current_timestamp_ms());
@@ -166,7 +166,7 @@ int _radio_tx_send_msg(int iInterfaceIndex, u8* pData, int iLength)
             iShortPacketDataSize, iWriteResult);
          if ( iWriteResult > 0 )
             iTotalBytesSent += iWriteResult;
-         continue; 
+         continue;
       }
       iTotalBytesSent += iWriteResult;
       hardware_sleep_micros(500);
@@ -196,7 +196,7 @@ static void * _thread_radio_tx(void *argument)
       hardware_sleep_ms(uWaitTime);
       if ( uWaitTime < 30 )
          uWaitTime += 5;
-      
+
       if ( (NULL != piQuit) && (*piQuit != 0 ) )
       {
          log_line("[RadioTxThread] Signaled to stop.");
@@ -220,7 +220,7 @@ static void * _thread_radio_tx(void *argument)
       int iIPCLength = msgrcv(s_iRadioTxIPCQueue, &ipcMessage, sizeof(ipcMessage), 0, MSG_NOERROR | IPC_NOWAIT);
       if ( iIPCLength <= 2 )
          continue;
-      
+
       if ( iIPCLength > MAX_PACKET_TOTAL_SIZE )
       {
          log_softerror_and_alarm("[RadioTx] Read IPC message too big (%d bytes), skipping it.", iIPCLength);
@@ -235,7 +235,7 @@ static void * _thread_radio_tx(void *argument)
 
       if ( s_iRadioTxInterfacesPaused[ipcMessage.type] )
          continue;
-        
+
       if ( ! hardware_radio_index_is_serial_radio(ipcMessage.type) )
       {
          log_softerror_and_alarm("[RadioTx] Read IPC message for radio interface %d which is not a serial radio, skipping it.", ipcMessage.type+1);
@@ -245,7 +245,7 @@ static void * _thread_radio_tx(void *argument)
       uWaitTime = 1;
 
       _radio_tx_send_msg(ipcMessage.type, (u8*)ipcMessage.data, iIPCLength);
-      
+
    }
 
    log_line("[RadioTxThread] Stopped.");
@@ -397,7 +397,7 @@ void radio_tx_set_serial_packet_size(int iRadioInterfaceIndex, int iSerialPacket
    }
 }
 
-// Sends a regular radio packet to serial radios. 
+// Sends a regular radio packet to serial radios.
 // Returns 1 for success.
 int radio_tx_send_serial_radio_packet(int iRadioInterfaceIndex, u8* pData, int iDataLength)
 {
@@ -406,13 +406,13 @@ int radio_tx_send_serial_radio_packet(int iRadioInterfaceIndex, u8* pData, int i
       log_softerror_and_alarm("[RadioTx] Tried to write serial packet to invalid radio interface index (%d)", iRadioInterfaceIndex+1);
       return -1;
    }
-   
+
    if ( (NULL == pData) || (iDataLength < 2) )
    {
       log_softerror_and_alarm("[RadioTx] Tried to write invalid serial packet (%d bytes)", iDataLength);
       return -1;
    }
-   
+
    if ( s_iRadioTxIPCQueue < 0 )
    {
       log_softerror_and_alarm("[RadioTx] Tried to write serial packet with no IPC opened.");
@@ -423,8 +423,8 @@ int radio_tx_send_serial_radio_packet(int iRadioInterfaceIndex, u8* pData, int i
    type_ipc_message_tx_packet_buffer msg;
 
    msg.type = iRadioInterfaceIndex;
-   memcpy((u8*)&(msg.data[0]), pData, iDataLength); 
-   
+   memcpy((u8*)&(msg.data[0]), pData, iDataLength);
+
    int iRetryCounter = 2;
    int iSucceeded = 0;
    do
@@ -435,7 +435,7 @@ int radio_tx_send_serial_radio_packet(int iRadioInterfaceIndex, u8* pData, int i
          iRetryCounter = 0;
          break;
       }
-      
+
       if ( errno == EAGAIN )
          log_softerror_and_alarm("[RadioTx] Failed to write to IPC, error code: EAGAIN" );
       if ( errno == EACCES )
@@ -454,7 +454,7 @@ int radio_tx_send_serial_radio_packet(int iRadioInterfaceIndex, u8* pData, int i
          log_line("[RadioTx] IPC Info (fd %d) info: %u pending messages, %u used bytes, max bytes in the IPC channel: %u bytes",
             s_iRadioTxIPCQueue, (u32)msg_stats.msg_qnum, (u32)msg_stats.msg_cbytes, (u32)msg_stats.msg_qbytes);
       }
-      
+
       iRetryCounter--;
       hardware_sleep_ms(5);
 

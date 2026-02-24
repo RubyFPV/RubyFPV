@@ -7,7 +7,7 @@ class MenuQuickMenuSettings: public Menu
 {
    public:
       MenuQuickMenuSettings();
-      virtual void onShow(); 
+      virtual void onShow();
       virtual void Render();
       virtual void valuesToUI();
       virtual void onSelectItem();

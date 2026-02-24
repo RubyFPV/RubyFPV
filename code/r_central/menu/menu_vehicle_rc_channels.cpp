@@ -45,7 +45,7 @@ MenuVehicleRCChannels::MenuVehicleRCChannels(void)
    m_xPos = menu_get_XStartPos(m_Width)-0.01;
    m_yPos = 0.24;
    m_bDisableStacking = true;
-   
+
    setColumnsCount(8);
    char szBuff[128];
 
@@ -57,7 +57,7 @@ MenuVehicleRCChannels::MenuVehicleRCChannels(void)
    addTopLine(" ");
    addTopLine(". ");
 
-   m_ChannelCount = g_pCurrentModel->rc_params.channelsCount; 
+   m_ChannelCount = g_pCurrentModel->rc_params.channelsCount;
    for( int i=0; i<m_ChannelCount; i++ )
    {
       m_CurrentRCValues[i] = 0;
@@ -67,15 +67,15 @@ MenuVehicleRCChannels::MenuVehicleRCChannels(void)
       m_ItemsChannels[i].pItemTitle = new MenuItem(szBuff);
       m_ItemsChannels[i].m_IndexTitle = addMenuItem(m_ItemsChannels[i].pItemTitle);
 
-      m_ItemsChannels[i].pItemMin = new MenuItemRange("Min:", "", 500, 2000, 1000, 1 );  
+      m_ItemsChannels[i].pItemMin = new MenuItemRange("Min:", "", 500, 2000, 1000, 1 );
       m_ItemsChannels[i].pItemMin->setCondensedOnly();
       m_ItemsChannels[i].m_IndexMin = addMenuItem(m_ItemsChannels[i].pItemMin);
 
-      m_ItemsChannels[i].pItemMid = new MenuItemRange("Mid:", "", 1000, 2000, 1500, 1 );  
+      m_ItemsChannels[i].pItemMid = new MenuItemRange("Mid:", "", 1000, 2000, 1500, 1 );
       m_ItemsChannels[i].pItemMid->setCondensedOnly();
       m_ItemsChannels[i].m_IndexMid = addMenuItem(m_ItemsChannels[i].pItemMid);
 
-      m_ItemsChannels[i].pItemMax = new MenuItemRange("Max:", "", 1500, 2500, 2000, 1 );  
+      m_ItemsChannels[i].pItemMax = new MenuItemRange("Max:", "", 1500, 2500, 2000, 1 );
       m_ItemsChannels[i].pItemMax->setCondensedOnly();
       m_ItemsChannels[i].m_IndexMax = addMenuItem(m_ItemsChannels[i].pItemMax);
 
@@ -83,12 +83,12 @@ MenuVehicleRCChannels::MenuVehicleRCChannels(void)
       m_ItemsChannels[i].pItemReverse->setCondensedOnly();
       m_ItemsChannels[i].m_IndexReverse = addMenuItem(m_ItemsChannels[i].pItemReverse);
       m_ItemsChannels[i].pItemReverse->setNotEditable();
-      
+
       m_ItemsChannels[i].pItemToggle = new MenuItemCheckbox("Toggle", "Make this channel togle when buttons are pressed");
       m_ItemsChannels[i].pItemToggle->setCondensedOnly();
       m_ItemsChannels[i].m_IndexToggle = addMenuItem(m_ItemsChannels[i].pItemToggle);
       m_ItemsChannels[i].pItemToggle->setNotEditable();
-      
+
       m_ItemsChannels[i].pItemClear = new MenuItem("Clear", "Clears the assignment for this channel");
       m_ItemsChannels[i].pItemClear->setCondensedOnly();
       m_ItemsChannels[i].m_IndexClear = addMenuItem(m_ItemsChannels[i].pItemClear);
@@ -189,7 +189,7 @@ void MenuVehicleRCChannels::Render()
    RenderPrepare();
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
    float hTop = height_text;
-   
+
    float yTop = RenderFrameAndTitle();
    float y = yTop;
 
@@ -204,7 +204,7 @@ void MenuVehicleRCChannels::Render()
    g_pRenderEngine->drawText(xSt + 0.295*m_sfScaleFactor, y, g_idFontMenu, "Toggle:");
    g_pRenderEngine->drawText(xSt + 0.43*m_sfScaleFactor, y, g_idFontMenu, "Assignment:");
    g_pRenderEngine->drawText(xSt + 0.55*m_sfScaleFactor, y, g_idFontMenu, "Live View:");
-    
+
    y += hTop*1.7;
 
    float yMenuItemHeight = m_pMenuItems[0]->getItemHeight(getUsableWidth());
@@ -265,7 +265,7 @@ void MenuVehicleRCChannels::Render()
       g_pRenderEngine->setFill(0,0,0,0);
       g_pRenderEngine->setStrokeSize(1);
       g_pRenderEngine->drawRoundRect(xLive, yLine, rectW, rectH, corner);
-   
+
       g_pRenderEngine->setColors(get_Color_MenuText());
       sprintf(szBuff, "%d", val);
 
@@ -675,7 +675,7 @@ void MenuVehicleRCChannels::onSelectItem()
 
    if ( m_pMenuItems[m_SelectedIndex]->isEditing() )
       return;
-   
+
    if ( subIndex == 7 )
    {
       onClickAssign(index);
@@ -691,5 +691,5 @@ void MenuVehicleRCChannels::onSelectItem()
    }
 
    if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_RC_PARAMS, 0, (u8*)&params, sizeof(rc_parameters_t)) )
-      valuesToUI();  
+      valuesToUI();
 }

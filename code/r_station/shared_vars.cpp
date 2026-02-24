@@ -37,8 +37,8 @@ bool g_bQuit = false;
 bool g_bDebugState = false;
 Model* g_pCurrentModel = NULL;
 
-ControllerSettings* g_pControllerSettings = NULL; 
-ControllerInterfacesSettings* g_pControllerInterfaces = NULL; 
+ControllerSettings* g_pControllerSettings = NULL;
+ControllerInterfacesSettings* g_pControllerInterfaces = NULL;
 u32 g_uControllerId = MAX_U32;
 
 bool g_bSearching = false;

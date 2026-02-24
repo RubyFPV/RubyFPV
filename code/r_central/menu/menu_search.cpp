@@ -129,7 +129,7 @@ MenuSearch::MenuSearch(void)
 
    if ( m_bHasSiKRadio )
     m_Width = 0.38;
-   
+
    _add_menu_items();
 }
 
@@ -201,7 +201,7 @@ int MenuSearch::_populate_search_frequencies()
    m_NumChannels = 0;
 
    m_pItemsSelectFreq = new MenuItemSelect(L("Manual Search"), L("Manualy search on a particular frequency"));
-   
+
    u32 currentFreqKhz = DEFAULT_FREQUENCY;
 
    if ( NULL == g_pCurrentModel )
@@ -321,7 +321,7 @@ int MenuSearch::_populate_search_frequencies()
    {
       Preferences* pP = get_Preferences();
       int iCountCh = getChannels58Count();
-   
+
       if ( pP->iScaleMenus > 0 )
          iCountCh /= 2;
 
@@ -379,7 +379,7 @@ void MenuSearch::_add_menu_items()
 
    m_iCountSupportedBands = 0;
    m_pItemSelectBand = new MenuItemSelect(L("Band:"), L("Change the frequency bands to search on."));
-   
+
    if ( m_SupportedBands & RADIO_HW_SUPPORTED_BAND_433 )
    {
       m_SupportedBandsList[m_iCountSupportedBands] = RADIO_HW_SUPPORTED_BAND_433;
@@ -425,7 +425,7 @@ void MenuSearch::_add_menu_items()
 
    for( int i=0; i<m_iCountSupportedBands; i++ )
       log_line("MenuSearch() Supported search bands (%d of %d): %s", i+1, m_iCountSupportedBands, str_getBandName(m_SupportedBandsList[i]));
-   
+
    if ( 0 == m_iCountSupportedBands )
       m_pItemSelectBand->addSelection(L("No bands supported."));
    m_pItemSelectBand->setIsEditable();
@@ -433,25 +433,25 @@ void MenuSearch::_add_menu_items()
    m_IndexBand = addMenuItem(m_pItemSelectBand);
 
    m_IndexModelTypes = -1;
-   
+
    m_IndexStartSearch = addMenuItem(new MenuItem(L("Start Search"), L("Start/Stop searching for vehicles on current band.")));
    m_IndexManualSearch = _populate_search_frequencies();
 
    if ( m_bHasSiKRadio )
    {
       float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
-  
+
       char szBuff[256];
       char szBands[128];
       str_get_supported_bands_string(m_uSiKBands, szBands);
       sprintf(szBuff, "SiK parameters (for searching on %s)", szBands);
-      
+
       MenuItemText* pItem = new MenuItemText(szBuff);
       pItem->setMargin(0.0);
       m_IndexSiKInfo = addMenuItem(pItem);
 
       m_pItemsSelect[2] = new MenuItemSelect(L("SiK Radio Data Rate"), L("Sets the physical radio air data rate to use while searching."));
-      
+
       sprintf(szBuff, "Default (%d kbps)", DEFAULT_RADIO_DATARATE_SIK_AIR/1000);
       m_pItemsSelect[2]->addSelection(szBuff);
 
@@ -460,7 +460,7 @@ void MenuSearch::_add_menu_items()
          sprintf(szBuff, "%d kbps", (getSiKAirDataRates()[i])/1000);
          m_pItemsSelect[2]->addSelection(szBuff);
       }
-      
+
       m_pItemsSelect[2]->setIsEditable();
       m_pItemsSelect[2]->setMargin(height_text);
       m_IndexSiKAirRate = addMenuItem(m_pItemsSelect[2]);
@@ -578,11 +578,11 @@ void MenuSearch::startSearch()
    bool bFoundSupportedRadioInterface = false;
 
    g_iCurrentActiveVehicleRuntimeInfoIndex = 0;
-   
+
    m_pSearchChannels = NULL;
    m_SearchChannelsCount = 0;
    m_bIsSearchingSiK = false;
-   
+
    if ( m_SupportedBandsList[m_SearchBandIndex] == RADIO_HW_SUPPORTED_BAND_433 )
    {
      m_pSearchChannels = getChannels433();
@@ -704,7 +704,7 @@ void MenuSearch::startSearch()
       add_menu_to_stack(pm);
       return;
    }
-   
+
    g_bSearching = true;
    g_iSearchFrequency = 0;
    g_bSearchFoundVehicle = false;
@@ -738,7 +738,7 @@ void MenuSearch::startSearch()
 
    handle_commands_abandon_command();
    reset_vehicle_runtime_info(&g_SearchVehicleRuntimeInfo);
-   
+
    log_line("MenuSearch: Finished start search function");
    render_all(get_current_timestamp_ms(), true);
    log_line("MenuSearch: Exit start search function");
@@ -749,7 +749,7 @@ void MenuSearch::startSearch()
    m_bIsSearchPaused = false;
    m_nSkippedCount = 0;
 
-   
+
    search_finished_with_no_results = false;
    render_search_step = -1;
 }
@@ -803,7 +803,7 @@ void MenuSearch::stopSearch()
 void MenuSearch::Render()
 {
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
-   
+
    RenderPrepare();
    float yTop = Menu::RenderFrameAndTitle();
    float y0 = yTop;
@@ -814,7 +814,7 @@ void MenuSearch::Render()
    y += height_text*0.4;
 
    char szBuff[200];
-   
+
    if ( search_finished_with_no_results && (! g_bSearchFoundVehicle) )
    {
        g_pRenderEngine->setColors(get_Color_MenuText());
@@ -822,9 +822,9 @@ void MenuSearch::Render()
        if ( m_nSkippedCount > 0 )
           strcpy(szBuff, L("Vehicle found and skipped."));
        g_pRenderEngine->drawMessageLines(m_xPos+m_sfMenuPaddingX, y, szBuff, MENU_TEXTLINE_SPACING, getUsableWidth(), g_idFontMenu);
-   
+
        y += height_text *(1.0+MENU_ITEM_SPACING);
-       
+
        strcpy(szBuff, L("You could search on other bands and channels."));
        if ( m_nSkippedCount > 0 )
           strcpy(szBuff, " ");
@@ -841,7 +841,7 @@ void MenuSearch::Render()
 
    if ( m_bIsSearchingManual || m_bIsSearchingAuto )
       onSearchStep();
-       
+
    g_pRenderEngine->setColors(get_Color_MenuText());
 
    sprintf(szBuff, L("Searching ..."));
@@ -916,7 +916,7 @@ void MenuSearch::onSearchStep()
    //if ( delayMs<1 || delayMs > 200 )
    //   delayMs = DEFAULT_DELAY_WIFI_CHANGE;
    u32 delayMs = 30;
-   
+
    int step = (render_search_step/3);
    int substep = (render_search_step%3);
    log_line("MenuSearch::onSearchStep(), step: %d, substep: %d", step, substep);
@@ -946,7 +946,7 @@ void MenuSearch::onSearchStep()
       if ( NULL != m_pPopupSearch )
       {
          char szTitle[128];
-         sprintf(szTitle, L("Searching on %s"), str_format_frequency(m_CurrentSearchFrequencyKhz));     
+         sprintf(szTitle, L("Searching on %s"), str_format_frequency(m_CurrentSearchFrequencyKhz));
          strcat(szTitle, " ...");
          m_pPopupSearch->setTitle(szTitle);
       }
@@ -976,7 +976,7 @@ void MenuSearch::onSearchStep()
              int iLBT = m_pItemsSelect[4]->getSelectedIndex();
              int iMCSTR = m_pItemsSelect[5]->getSelectedIndex();
              pairing_start_search_sik_mode(m_CurrentSearchFrequencyKhz, iAirDataRate, iECC, iLBT, iMCSTR);
-         }  
+         }
          else
             pairing_start_search_mode(m_CurrentSearchFrequencyKhz, m_iSearchModelTypes);
 
@@ -1004,7 +1004,7 @@ void MenuSearch::onSearchStep()
       str_get_supported_bands_string(getBand(m_CurrentSearchFrequencyKhz), szBands);
       log_line("MenuSearch::onSearchStep() Router ready %u ms ago, current search frequency: %s, band: %s, have SiK radios: %d",
         g_TimeNow - g_RouterIsReadyTimestamp, str_format_frequency(m_CurrentSearchFrequencyKhz), szBands, hardware_radio_has_sik_radios());
-      
+
 
       u32 uWaitTimeMs = 3*1100/DEFAULT_TELEMETRY_SEND_RATE;
       if ( hardware_radio_has_sik_radios() )
@@ -1081,7 +1081,7 @@ void MenuSearch::onSearchStep()
          u8 vMin = g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.rubyVersion;
          vMaj = vMaj >> 4;
          vMin = vMin & 0x0F;
-   
+
          char szFreq1[64];
          char szFreq2[64];
          char szFreq3[64];
@@ -1195,18 +1195,18 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
       pExistingModel = findModelWithId(g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId, 14);
       if ( NULL == pExistingModel )
          bIsNew = true;
-   } 
+   }
    if ( bIsNew )
       log_line("MenuSearch: The found vehicle VID %u is new (not on controller).", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId);
    else
       log_line("MenuSearch: The found vehicle VID %u (is spectator: %s) already exists on controller.", g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId, pExistingModel->is_spectator?"yes":"no");
-   
+
    // Connect as Spectator
 
    if ( 1 == returnValue )
    {
       log_line("MenuSearch: Pressed add as spectator. Current total spectator vehicles: %d.", getControllerModelsSpectatorCount());
-      
+
       if ( pExistingModel != NULL)
       {
          if ( (pExistingModel->is_spectator == false) || modelIsInControllerList(pExistingModel->uVehicleId) )
@@ -1245,7 +1245,7 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
    if ( 2 == returnValue )
    {
       log_line("MenuSearch: Pressed add as controller. Current total controller vehicles: %d.", getControllerModelsCount());
-     
+
       if ( pExistingModel != NULL)
       {
          log_line("MenuSearch: There is already an existing model for VID %u, model's software ver: %d.%d b-%d", pExistingModel->uVehicleId, get_sw_version_major(pExistingModel), get_sw_version_minor(pExistingModel), get_sw_version_build(pExistingModel));
@@ -1292,7 +1292,7 @@ void MenuSearch::onReturnFromChild(int iChildMenuId, int returnValue)
       saveControllerModel(g_pCurrentModel);
 
       ruby_set_active_model_id(g_pCurrentModel->uVehicleId);
-     
+
       if ( g_pCurrentModel->getVehicleFirmwareType() == MODEL_FIRMWARE_TYPE_RUBY )
          g_pCurrentModel->b_mustSyncFromVehicle = true;
       log_line("MenuSearch: Changed current main vehicle to vehicle id %u", g_pCurrentModel->uVehicleId);
@@ -1391,7 +1391,7 @@ void MenuSearch::onSelectItem()
       iCountValidRadioInterfaces++;
    }
    log_line("Valid interfaces for search: %d", iCountValidRadioInterfaces);
-   
+
    if ( m_IndexBand == m_SelectedIndex )
    {
       m_SearchBandIndex = m_pItemSelectBand->getSelectedIndex();
@@ -1452,7 +1452,7 @@ void MenuSearch::onSelectItem()
       m_SearchChannelsCount = 1;
 
       log_line("Searching only on %s", str_format_frequency(m_pSearchChannels[0]));
-      
+
       if ( m_bHasSiKRadio )
       {
          enableMenuItem(m_IndexSiKInfo, false);
@@ -1498,7 +1498,7 @@ void MenuSearch::onSelectItem()
    if ( m_bHasSiKRadio && (m_SelectedIndex > m_IndexManualSearch) )
    {
       ControllerSettings* pCS = get_ControllerSettings();
-   
+
       if ( m_pMenuItems[m_SelectedIndex]->isEditing() )
          return;
 
@@ -1561,7 +1561,7 @@ void MenuSearch::createSearchPopup()
           iLBT?"LBT":"No LBT",
           iMCSTR?"MCSTR":"No MCSTR");
       m_pPopupSearch->addLine(szBuff);
-   }     
+   }
 
    m_pPopupSearch->addLine(L("Long press on [Back] to stop the search."));
 

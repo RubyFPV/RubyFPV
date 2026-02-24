@@ -45,7 +45,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "../radio/fec.h" 
+#include "../radio/fec.h"
 
 #include "../base/base.h"
 #include "../base/config.h"
@@ -74,7 +74,7 @@
 
 pthread_t s_pThreadRxVideoOutputStreamer;
 sem_t* s_pRxVideoSemaphoreRestartVideoStreamer = NULL;
-sem_t* s_pSemaphoreVideoStreamerOverloadAlarm = NULL; 
+sem_t* s_pSemaphoreVideoStreamerOverloadAlarm = NULL;
 
 bool s_bRxVideoOutputStreamerThreadIsRunning = false;
 bool s_bRxVideoOutputStreamerThreadMustStop = false;
@@ -102,7 +102,7 @@ u32 s_uLastIOErrorAlarmFlagsVideoStreamer = 0;
 u32 s_uLastIOErrorAlarmFlagsUSBPlayer = 0;
 u32 s_uTimeLastOkVideoStreamerOutputToPipe = 0;
 u32 s_uTimeStartGettingVideoIOErrors = 0;
-         
+
 typedef struct
 {
    bool bVideoUSBTethering;
@@ -117,7 +117,7 @@ typedef struct
 
 t_video_usb_output_info s_VideoUSBOutputInfo;
 
-typedef struct 
+typedef struct
 {
    bool s_bForwardETHPipeEnabled;
    int s_ForwardETHVideoPipeFile;
@@ -167,7 +167,7 @@ void rx_video_output_start_video_streamer()
    s_pSemaphoreSMData = NULL;
 
    //s_pSemaphoreSMData = sem_open(SEMAPHORE_SM_VIDEO_DATA_AVAILABLE, O_RDWR);
-   s_pSemaphoreSMData = sem_open(SEMAPHORE_SM_VIDEO_DATA_AVAILABLE, O_CREAT, S_IWUSR | S_IRUSR, 0); 
+   s_pSemaphoreSMData = sem_open(SEMAPHORE_SM_VIDEO_DATA_AVAILABLE, O_CREAT, S_IWUSR | S_IRUSR, 0);
    if ( (NULL == s_pSemaphoreSMData) || (SEM_FAILED == s_pSemaphoreSMData) )
    {
       log_error_and_alarm("[VideoOutput] Failed to create semaphore: %s", SEMAPHORE_SM_VIDEO_DATA_AVAILABLE);
@@ -382,7 +382,7 @@ static void * _thread_rx_video_output_streamer_watchdog(void *argument)
       log_line("[VideoOutputThread] Opened semaphore for signaling video streamer restart");
 
    log_line("[VideoOutputThread] Started worker thread for video streamer output. Working state now.");
-   
+
    while ( ! s_bRxVideoOutputStreamerThreadMustStop )
    {
       if ( s_bRxVideoOutputStreamerThreadMustStop )
@@ -493,7 +493,7 @@ void _processor_rx_video_forward_create_eth_socket()
       s_VideoETHOutputInfo.s_ForwardETHSocketVideo = -1;
       return;
    }
-  
+
    memset(&s_VideoETHOutputInfo.s_ForwardETHSockAddr, '\0', sizeof(struct sockaddr_in));
    s_VideoETHOutputInfo.s_ForwardETHSockAddr.sin_family = AF_INET;
    s_VideoETHOutputInfo.s_ForwardETHSockAddr.sin_port = (in_port_t)htons(g_pControllerSettings->nVideoForwardETHPort);
@@ -553,7 +553,7 @@ void _rx_video_output_open_pipe_to_streamer()
    //if ( 0 != fcntl(s_fPipeVideoOutToStreamer, F_SETFL, O_NONBLOCK) )
    //   log_softerror_and_alarm("[IPC] Failed to set nonblock flag on PIC channel %s write endpoint.", FIFO_RUBY_STATION_VIDEO_STREAM_DISPLAY);
    //log_line("[VideoOutput] Video streamer FIFO write endpoint pipe new flags: %s", str_get_pipe_flags(fcntl(s_fPipeVideoOutToStreamer, F_GETFL)));
-  
+
    log_line("[VideoOutput] Video streamer pipe FIFO default size: %d bytes", fcntl(s_fPipeVideoOutToStreamer, F_GETPIPE_SZ));
    fcntl(s_fPipeVideoOutToStreamer, F_SETPIPE_SZ, 250000);
    log_line("[VideoOutput] Video streamer FIFO new size: %d bytes", fcntl(s_fPipeVideoOutToStreamer, F_GETPIPE_SZ));
@@ -563,7 +563,7 @@ void _rx_video_output_open_pipe_to_streamer()
 void rx_video_output_init()
 {
    log_line("[VideoOutput] Init start...");
-   
+
    log_line("[VideoOutput] Controller streamer output mode: %d", g_pControllerSettings->iStreamerOutputMode);
    if ( g_pControllerSettings->iStreamerOutputMode == 0 )
    {
@@ -588,16 +588,16 @@ void rx_video_output_init()
    }
    else
       log_softerror_and_alarm("[VideoOutput] No video streamer output method defined.");
-   
+
    s_fPipeVideoOutToStreamer = -1;
    s_iLocalVideoPlayerUDPSocket = -1;
    s_uLastVideoFrameTime= MAX_U32;
    s_bDidSentAnyDataToVideoStreamerPipe = false;
    s_bDidSentAnyDataToVideoStreamerSM = false;
-   
+
    s_ParserH264StreamOutput.init();
    s_ParserH264VideoOutput.init();
-   
+
    s_uSMVideoStreamWritePosition = 2*sizeof(u32);
    s_pSMVideoStreamerWrite = NULL;
 
@@ -649,7 +649,7 @@ void rx_video_output_init()
    s_VideoUSBOutputInfo.socketUSBOutput = -1;
    s_VideoUSBOutputInfo.usbBlockSize = 1024;
    s_VideoUSBOutputInfo.usbBufferPos = 0;
-   
+
    if ( NULL != g_pControllerSettings )
    {
       s_iLastUSBVideoForwardPort = g_pControllerSettings->iVideoForwardUSBPort;
@@ -677,7 +677,7 @@ void rx_video_output_init()
       log_line("[VideoOutput] Video ETH forwarding is enabled, type RTS.");
       _processor_rx_video_forward_create_eth_socket();
    }
-   
+
    s_pRxVideoSemaphoreRestartVideoStreamer = sem_open(SEMAPHORE_RESTART_VIDEO_STREAMER, O_CREAT, S_IWUSR | S_IRUSR, 0);
    if ( (NULL == s_pRxVideoSemaphoreRestartVideoStreamer) || (SEM_FAILED == s_pRxVideoSemaphoreRestartVideoStreamer) )
       log_error_and_alarm("[VideoOutput] Failed to open semaphore for writing: %s; error: %d (%s)", SEMAPHORE_RESTART_VIDEO_STREAMER, errno, strerror(errno));
@@ -742,7 +742,7 @@ void rx_video_output_uninit()
    s_pRxVideoSemaphoreRestartVideoStreamer = NULL;
 
    rx_video_output_stop_video_streamer();
-   
+
    if ( -1 != s_VideoETHOutputInfo.s_ForwardETHSocketVideo )
       close(s_VideoETHOutputInfo.s_ForwardETHSocketVideo);
    s_VideoETHOutputInfo.s_ForwardETHSocketVideo = -1;
@@ -891,7 +891,7 @@ void _rx_video_output_parse_h264_stream(u32 uVehicleId, u8* pBuffer, int iLength
       {
          u32 uSize = (g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] >> 16);
          uSize += iLength;
-         g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] = 
+         g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] =
          (g_SMControllerDebugVideoRTInfo.uOutputFramesInfo[g_SMControllerDebugVideoRTInfo.iCurrentFrameBufferIndex] & 0x0000FFFF) | ((uSize & 0xFFFF) << 16);
 
          u32 uDeltaMS = g_TimeNow - g_SMControllerRTInfo.uCurrentSliceStartTime;
@@ -917,7 +917,7 @@ void _rx_video_output_parse_h264_stream(u32 uVehicleId, u8* pBuffer, int iLength
    update_shared_mem_video_frames_stats_on_new_frame( &g_SM_VideoFramesStatsOutput,
        s_ParserH264StreamOutput.getSizeOfLastCompleteFrameInBytes(),
        s_ParserH264StreamOutput.getCurrentFrameType(),
-       s_ParserH264StreamOutput.getDetectedSlices(), 
+       s_ParserH264StreamOutput.getDetectedSlices(),
        s_ParserH264StreamOutput.getDetectedFPS(), g_TimeNow );
    */
 }
@@ -982,7 +982,7 @@ void _rx_video_output_to_video_streamer_pipe(u8* pBuffer, int iLength, bool bWai
       log_line("[VideoOutput] Send first data to video output pipe for local video streamer");
       s_bDidSentAnyDataToVideoStreamerPipe = true;
    }
-   
+
    int iRes = 0;
    int iExpectedWriteResult = iLength;
    if ( (NULL == s_pPipeVideoOutputBuffer) || (! bWaitFullFrame) )
@@ -1073,14 +1073,14 @@ void _rx_video_output_to_video_streamer_pipe(u8* pBuffer, int iLength, bool bWai
 void _rx_video_output_to_local_video_player_udp(u8* pData, int iLength)
 {
    s_uOutputBitrateToLocalVideoPlayerUDP += iLength*8;
-   
+
    sendto(s_iLocalVideoPlayerUDPSocket, pData, iLength, 0, (struct sockaddr *)&s_LocalVideoPlayuerUDPSocketAddr, sizeof(s_LocalVideoPlayuerUDPSocketAddr) );
    /*
    struct iovec iov;
    struct msghdr msghdr;
    iov.iov_base = pData;
    iov.iov_len = iLength;
-   
+
    memset(&msghdr, 0, sizeof(msghdr));
    msghdr.msg_iov = &iov;
    msghdr.msg_iovlen = 1;
@@ -1183,7 +1183,7 @@ void rx_video_output_video_data(u32 uVehicleId, t_packet_header_video_segment* p
    //   u8* pExtraData = pBuffer + video_data_length;
    //   u32* pExtraDataU32 = (u32*)pExtraData;
    //   pExtraDataU32[6] = get_current_timestamp_ms();
-      
+
    //   /*
    //   u32 uVehicleTimestampOrg = pExtraDataU32[3];
    //            int iVehicleTimestampNow = (int)uVehicleTimestampOrg + radio_get_link_clock_delta();

@@ -88,11 +88,11 @@ int s_PipeBufferCommandsPos = 0;
 
 u8 s_BufferMessageFromTelemetry[MAX_PACKET_TOTAL_SIZE];
 u8 s_PipeBufferTelemetryUplink[MAX_PACKET_TOTAL_SIZE];
-int s_PipeBufferTelemetryUplinkPos = 0;  
+int s_PipeBufferTelemetryUplinkPos = 0;
 
 u8 s_BufferRCUplink[MAX_PACKET_TOTAL_SIZE];
 u8 s_PipeBufferRCUplink[MAX_PACKET_TOTAL_SIZE];
-int s_PipeBufferRCUplinkPos = 0;  
+int s_PipeBufferRCUplinkPos = 0;
 
 t_packet_queue s_QueueRadioPacketsHighPrio;
 t_packet_queue s_QueueRadioPacketsRegPrio;
@@ -144,7 +144,7 @@ void _router_update_frame_eof()
 void send_alarm_to_central(u32 uAlarm, u32 uFlags1, u32 uFlags2)
 {
    s_uAlarmIndexToCentral++;
-  
+
    t_packet_header PH;
    radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_RUBY_ALARM, STREAM_ID_DATA);
    PH.vehicle_id_src = 0;
@@ -170,7 +170,7 @@ void send_alarm_to_central(u32 uAlarm, u32 uFlags1, u32 uFlags2)
       log_ipc_send_central_error(packet, PH.total_length);
    }
    if ( NULL != g_pProcessStats )
-      g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;   
+      g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
 }
 
 void log_ipc_send_central_error(u8* pPacket, int iLength)
@@ -204,7 +204,7 @@ void _broadcast_radio_interface_init_failed(int iInterfaceIndex)
    u8 buffer[MAX_PACKET_TOTAL_SIZE];
    memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
    radio_packet_compute_crc(buffer, PH.total_length);
-   
+
    if ( NULL != g_pProcessStats )
       g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
 
@@ -264,7 +264,7 @@ void send_message_to_central(u32 uPacketType, u32 uParam, bool bTelemetryToo)
    u8 buffer[MAX_PACKET_TOTAL_SIZE];
    memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
    radio_packet_compute_crc(buffer, PH.total_length);
-   
+
    if ( NULL != g_pProcessStats )
       g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
 
@@ -291,7 +291,7 @@ void send_adaptive_video_paused_to_central(u32 uVehicleId, bool bPaused)
    u8 buffer[MAX_PACKET_TOTAL_SIZE];
    memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
    radio_packet_compute_crc(buffer, PH.total_length);
-   
+
    if ( NULL != g_pProcessStats )
       g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
 
@@ -317,7 +317,7 @@ void _check_for_atheros_datarate_change_command_to_vehicle(u8* pPacketBuffer)
    t_packet_header_command* pPHC = (t_packet_header_command*)(pPacketBuffer + sizeof(t_packet_header));
 
    if ( (pPHC->command_type != COMMAND_ID_SET_RADIO_LINK_FLAGS) ||
-         (iParamsLength != (int)(2*sizeof(u32)+2*sizeof(int))) ) 
+         (iParamsLength != (int)(2*sizeof(u32)+2*sizeof(int))) )
       return;
 
    u32* pInfo = (u32*)(pPacketBuffer + sizeof(t_packet_header)+sizeof(t_packet_header_command));
@@ -350,7 +350,7 @@ void _process_and_send_packet(u8* pPacketBuffer, int iPacketLength, u32 uTimeAdd
 
    if ( (pPH->packet_type == PACKET_TYPE_VEHICLE_RECORDING) )
       send_count = 2;
-  
+
    if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_RUBY )
    if ( pPH->packet_type == PACKET_TYPE_RUBY_PING_CLOCK )
    {
@@ -513,9 +513,9 @@ void _read_ipc_pipes(u32 uTimeNow)
       _preprocess_central_ipc_packet(s_BufferCommands);
       t_packet_header* pPH = (t_packet_header*)s_BufferCommands;
       if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_LOCAL_CONTROL )
-         packets_queue_add_packet(&s_QueueControlPackets, s_BufferCommands); 
+         packets_queue_add_packet(&s_QueueControlPackets, s_BufferCommands);
       else
-         packets_queue_add_packet(&s_QueueRadioPacketsRegPrio, s_BufferCommands); 
+         packets_queue_add_packet(&s_QueueRadioPacketsRegPrio, s_BufferCommands);
    }
    if ( maxToRead - maxPacketsToRead > 6 )
       log_line("Read %d messages from central msgqueue.", maxToRead - maxPacketsToRead);
@@ -524,9 +524,9 @@ void _read_ipc_pipes(u32 uTimeNow)
    while ( (maxPacketsToRead > 0) && (NULL != ruby_ipc_try_read_message(g_fIPCFromTelemetry, s_PipeBufferTelemetryUplink, &s_PipeBufferTelemetryUplinkPos, s_BufferMessageFromTelemetry)) )
    {
       maxPacketsToRead--;
-      t_packet_header* pPH = (t_packet_header*)s_BufferMessageFromTelemetry;      
+      t_packet_header* pPH = (t_packet_header*)s_BufferMessageFromTelemetry;
       if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_LOCAL_CONTROL )
-         packets_queue_add_packet(&s_QueueControlPackets, s_BufferMessageFromTelemetry); 
+         packets_queue_add_packet(&s_QueueControlPackets, s_BufferMessageFromTelemetry);
       else
       {
          if ( ! isPairingDoneWithVehicle(pPH->vehicle_id_dest) )
@@ -541,9 +541,9 @@ void _read_ipc_pipes(u32 uTimeNow)
    while ( (maxPacketsToRead > 0) && (NULL != ruby_ipc_try_read_message(g_fIPCFromRC, s_PipeBufferRCUplink, &s_PipeBufferRCUplinkPos, s_BufferRCUplink)) )
    {
       maxPacketsToRead--;
-      t_packet_header* pPH = (t_packet_header*)s_BufferRCUplink;      
+      t_packet_header* pPH = (t_packet_header*)s_BufferRCUplink;
       if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_LOCAL_CONTROL )
-         packets_queue_add_packet(&s_QueueControlPackets, s_BufferRCUplink); 
+         packets_queue_add_packet(&s_QueueControlPackets, s_BufferRCUplink);
       else
       {
          if ( ! isPairingDoneWithVehicle(pPH->vehicle_id_dest) )
@@ -558,7 +558,7 @@ void _read_ipc_pipes(u32 uTimeNow)
 void init_shared_memory_objects()
 {
    g_TimeNow = get_current_timestamp_ms();
-   
+
    g_pSMControllerRTInfo = controller_rt_info_open_for_write();
    if ( NULL == g_pSMControllerRTInfo )
       log_softerror_and_alarm("Failed to open shared mem to controller runtime info for writing: %s", SHARED_MEM_CONTROLLER_RUNTIME_INFO);
@@ -584,7 +584,7 @@ void init_shared_memory_objects()
       log_softerror_and_alarm("Failed to open history radio rx stats shared memory for write.");
    else
       shared_mem_radio_stats_rx_hist_reset(&g_SM_HistoryRxStats);
-  
+
    if ( NULL == g_pCurrentModel )
       radio_stats_reset(&g_SM_RadioStats, DEFAULT_OSD_RADIO_GRAPH_REFRESH_PERIOD_MS);
    else
@@ -668,7 +668,7 @@ int open_pipes()
    g_fIPCToRC = ruby_open_ipc_channel_write_endpoint(IPC_CHANNEL_TYPE_ROUTER_TO_RC);
    if ( g_fIPCToRC < 0 )
       return -1;
-   
+
    g_fIPCFromCentral = ruby_open_ipc_channel_read_endpoint(IPC_CHANNEL_TYPE_CENTRAL_TO_ROUTER);
    if ( g_fIPCFromCentral < 0 )
       return -1;
@@ -676,15 +676,15 @@ int open_pipes()
    g_fIPCToCentral = ruby_open_ipc_channel_write_endpoint(IPC_CHANNEL_TYPE_ROUTER_TO_CENTRAL);
    if ( g_fIPCToCentral < 0 )
       return -1;
-   
+
    g_fIPCToTelemetry = ruby_open_ipc_channel_write_endpoint(IPC_CHANNEL_TYPE_ROUTER_TO_TELEMETRY);
    if ( g_fIPCToTelemetry < 0 )
       return -1;
-   
+
    g_fIPCFromTelemetry = ruby_open_ipc_channel_read_endpoint(IPC_CHANNEL_TYPE_TELEMETRY_TO_ROUTER);
    if ( g_fIPCFromTelemetry < 0 )
       return -1;
-   
+
    if ( NULL == g_pCurrentModel || (!g_pCurrentModel->audio_params.enabled) )
    {
       log_line("Audio is disabled on current vehicle.");
@@ -698,7 +698,7 @@ int open_pipes()
 
    return 0;
 }
-     
+
 int _consume_ipc_messages()
 {
    int iConsumed = 0;
@@ -744,9 +744,9 @@ int _try_read_consume_rx_packets(bool bHighPriority, int iCountMax, u32 uTimeout
       iCountConsumed++;
       if ( g_bQuit )
          break;
-      
+
       g_SMControllerRTInfo.uRxLastDeltaTime[g_SMControllerRTInfo.iCurrentIndex][0] = g_TimeNow - g_SMControllerRTInfo.uCurrentSliceStartTime;
-      process_received_single_radio_packet(iRadioInterfaceIndex, pPacket, iPacketLength);      
+      process_received_single_radio_packet(iRadioInterfaceIndex, pPacket, iPacketLength);
       shared_mem_radio_stats_rx_hist_update(&g_SM_HistoryRxStats, iRadioInterfaceIndex, pPacket, g_TimeNow);
       g_SMControllerRTInfo.uRxProcessedPackets[g_SMControllerRTInfo.iCurrentIndex]++;
    }
@@ -777,15 +777,15 @@ void _main_loop_searching();
 void _main_loop_simple(bool bDoBasicTxSync);
 void _main_loop_adv_sync();
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("--------------------------");
    log_line("Caught signal to stop: %d", sig);
    log_line("--------------------------");
    radio_rx_mark_quit();
    g_bQuit = true;
-} 
-  
+}
+
 int main(int argc, char *argv[])
 {
    if ( strcmp(argv[argc-1], "-ver") == 0 )
@@ -798,11 +798,11 @@ int main(int argc, char *argv[])
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
-         
+
    log_init("Router");
    log_arguments(argc, argv);
    log_line_forced_to_file("Linux mem page size: %d bytes", getpagesize());
-   
+
    hardware_detectBoardAndSystemType();
 
    g_bSearching = false;
@@ -813,7 +813,7 @@ int main(int argc, char *argv[])
       g_bSearching = true;
       g_uSearchFrequency = atoi(argv[2]);
    }
-   
+
    if ( argc >= 5 )
    if ( strcmp(argv[3], "-firmware") == 0 )
    {
@@ -851,27 +851,27 @@ int main(int argc, char *argv[])
 
 
    int iCPUCoresCount = hw_procs_get_cpu_count();
-   log_line("Detected CPU with %d cores.", iCPUCoresCount);   
+   log_line("Detected CPU with %d cores.", iCPUCoresCount);
 
    utils_log_radio_packets_sizes();
    radio_init_link_structures();
    radio_enable_crc_gen(1);
-   hardware_enumerate_radio_interfaces(); 
+   hardware_enumerate_radio_interfaces();
 
    init_radio_rx_structures();
    reset_sik_state_info(&g_SiKRadiosState);
 
-   load_Preferences();   
+   load_Preferences();
    load_ControllerSettings();
    load_ControllerInterfacesSettings();
    controllerRadioInterfacesLogInfo();
 
    g_pControllerSettings = get_ControllerSettings();
    g_pControllerInterfaces = get_ControllerInterfacesSettings();
-   Preferences* pP = get_Preferences();   
+   Preferences* pP = get_Preferences();
    if ( pP->nLogLevel != 0 )
       log_only_errors();
- 
+
    if ( g_pControllerSettings->iCoresAdjustment )
    {
       hw_set_current_thread_affinity("station", CORE_AFFINITY_STATION_GS, CORE_AFFINITY_STATION_GS);
@@ -879,7 +879,7 @@ int main(int argc, char *argv[])
    }
    if ( NULL != g_pControllerSettings )
       radio_rx_set_timeout_interval(g_pControllerSettings->iDevRxLoopTimeout);
-     
+
    if ( g_pControllerSettings->iRadioBypassSocketBuffers )
       radio_set_bypass_socket_buffers(1);
    else
@@ -936,7 +936,7 @@ int main(int argc, char *argv[])
       log_error_and_alarm("Failed to open required pipes. Exit.");
       return -1;
    }
-      
+
    u32 delayMs = DEFAULT_DELAY_WIFI_CHANGE;
    if ( NULL != pP )
       delayMs = (u32) pP->iDebugWiFiChangeDelay;
@@ -946,7 +946,7 @@ int main(int argc, char *argv[])
    hardware_sleep_ms(delayMs);
 
    g_SM_RadioStats.countLocalRadioInterfaces = hardware_get_radio_interfaces_count();
-  
+
    if ( g_bSearching )
    {
       if ( s_iSearchSikAirRate > 0 )
@@ -968,7 +968,7 @@ int main(int argc, char *argv[])
    packets_queue_init(&s_QueueControlPackets);
 
    log_line("IPC Queues Init Complete.");
-   
+
    g_TimeStart = get_current_timestamp_ms();
 
    if ( NULL != g_pCurrentModel )
@@ -984,7 +984,7 @@ int main(int argc, char *argv[])
    g_bFirstModelPairingDone = false;
    char szFile[128];
    strcpy(szFile, FOLDER_CONFIG);
-   strcat(szFile, FILE_CONFIG_FIRST_PAIRING_DONE); 
+   strcat(szFile, FILE_CONFIG_FIRST_PAIRING_DONE);
    if ( access(szFile, R_OK) != -1 )
       g_bFirstModelPairingDone = true;
 
@@ -1006,7 +1006,7 @@ int main(int argc, char *argv[])
 
    radio_duplicate_detection_init();
    radio_rx_start_rx_thread(&g_SM_RadioStats, (int)g_bSearching, g_uAcceptedFirmwareType);
-   
+
    log_line("Broadcasting that router is ready.");
    broadcast_router_ready();
 
@@ -1067,7 +1067,7 @@ int main(int argc, char *argv[])
 
       if ( (g_TimeNow - uLastLoopTime >= 70) && (! g_bSearching) )
          discardRetransmissionsInfoAndBuffersOnLengthyOp();
-  
+
       uLastLoopTime = g_TimeNow;
 
       if ( g_bSearching )
@@ -1079,7 +1079,7 @@ int main(int argc, char *argv[])
             log_line("Still in search mode, all active...");
          }
       }
-      
+
       if ( g_bSearching )
          _main_loop_searching();
       else if ( g_pCurrentModel->rxtx_sync_type == RXTX_SYNC_TYPE_ADV )
@@ -1112,7 +1112,7 @@ int main(int argc, char *argv[])
 
    controller_rt_info_close(g_pSMControllerRTInfo);
    controller_debug_video_rt_info_close(g_pSMControllerDebugVideoRTInfo);
-   
+
    shared_mem_radio_stats_rx_hist_close(g_pSM_HistoryRxStats);
    shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_ROUTER_RX, g_pProcessStats);
    shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_CENTRAL, g_pProcessStatsCentral);
@@ -1125,8 +1125,8 @@ int main(int argc, char *argv[])
    shared_mem_router_vehicles_runtime_info_close(g_pSM_RouterVehiclesRuntimeInfo);
 
    shared_mem_ctrl_ping_stats_info_close(g_pSMDbgPingStats);
-   radio_links_close_rxtx_radio_interfaces(); 
-  
+   radio_links_close_rxtx_radio_interfaces();
+
    ruby_close_ipc_channel(g_fIPCFromCentral);
    ruby_close_ipc_channel(g_fIPCToCentral);
    ruby_close_ipc_channel(g_fIPCFromTelemetry);
@@ -1151,7 +1151,7 @@ int main(int argc, char *argv[])
    log_line("---------------------------");
    log_line("Execution Finished. Exit.");
    log_line("---------------------------");
- 
+
    return 0;
 }
 
@@ -1160,7 +1160,7 @@ void video_processors_init()
    if ( ! g_bSearching )
    {
       rx_video_output_init();
-      
+
       rx_video_output_start_video_streamer();
 
       #ifdef HW_PLATFORM_RASPBERRY
@@ -1271,7 +1271,7 @@ void _main_loop_searching()
       g_pProcessStats->uTotalLoopTime += uTimeNow - g_TimeNow;
       if ( 0 != g_pProcessStats->uLoopCounter )
          g_pProcessStats->uAverageLoopTimeMs = g_pProcessStats->uTotalLoopTime / g_pProcessStats->uLoopCounter;
-   }   
+   }
 }
 
 
@@ -1292,7 +1292,7 @@ void _main_loop_simple(bool bDoBasicTxSync)
       if ( g_pVideoProcessorRxList[i] != NULL )
          g_pVideoProcessorRxList[i]->periodicLoopProcessor(g_TimeNow, false);
    }
-   
+
    if ( controller_rt_info_will_advance_index(&g_SMControllerRTInfo, g_TimeNow) )
       adaptive_video_periodic_loop(false);
 
@@ -1304,7 +1304,7 @@ void _main_loop_simple(bool bDoBasicTxSync)
 
    if ( (NULL != g_pCurrentModel) && g_pCurrentModel->hasCamera() )
       rx_video_output_periodic_loop();
-   
+
    g_TimeNow = g_pProcessStats->uLoopTimer2 = get_current_timestamp_ms();
    u32 tTime2 = g_TimeNow;
 
@@ -1370,7 +1370,7 @@ void _main_loop_simple(bool bDoBasicTxSync)
    {
       radio_rx_set_packet_counter_output(&(g_SMControllerRTInfo.uRxHighPriorityPackets[g_SMControllerRTInfo.iCurrentIndex][0]),
           &(g_SMControllerRTInfo.uRxDataPackets[g_SMControllerRTInfo.iCurrentIndex][0]), &(g_SMControllerRTInfo.uRxMissingPackets[g_SMControllerRTInfo.iCurrentIndex][0]), &(g_SMControllerRTInfo.uRxMissingPacketsMaxGap[g_SMControllerRTInfo.iCurrentIndex][0]));
-   
+
       if ( g_pControllerSettings->iDeveloperMode )
          radio_rx_set_air_gap_track_output(&(g_SMControllerRTInfo.uRxMaxAirgapSlots[g_SMControllerRTInfo.iCurrentIndex]));
    }
@@ -1439,7 +1439,7 @@ void _main_loop_adv_sync()
       adaptive_video_periodic_loop(bAnyVehicleMustSyncNow);
 
    router_periodic_loop();
-   
+
    _read_ipc_pipes(tTime1);
    _consume_ipc_messages();
 

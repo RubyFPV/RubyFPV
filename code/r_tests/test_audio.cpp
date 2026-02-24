@@ -46,7 +46,7 @@ void _find_block(u8* pPacket, char* szMatchFile)
          //printf("End of file. Read %d bytes.\n", iTotalRead);
          break;
       }
-      
+
       t_packet_header* pPH = (t_packet_header*)buffer;
       if ( pPH->packet_type != PACKET_TYPE_AUDIO_SEGMENT )
       {
@@ -63,7 +63,7 @@ void _find_block(u8* pPacket, char* szMatchFile)
       {
          break;
       }
-      
+
       u32 uAudioIndex;
       memcpy(&uAudioIndex, pData, sizeof(u32));
       u32 uBlockIndex = uAudioIndex >> 8;
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
    int iSegment = 0;
    FILE* fpOutput = NULL;
    char szBuff[256];
-   
+
    u32 uAudioSize = 0;
    u32 uNextExpectedBlock = MAX_U32;
    u32 uNextExpectedPacket = MAX_U32;
@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
          break;
       }
       iTotalRead += iRead;
-      
+
       t_packet_header* pPH = (t_packet_header*)buffer;
       if ( pPH->packet_type != PACKET_TYPE_AUDIO_SEGMENT )
       {
@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
          printf("Invalid packet size: %u bytes, expected %u bytes.\n", uSize, uAudioSize);
          iCountErrors++;
       }
-      
+
       if ( (uBlockIndex != uNextExpectedBlock) || (uPacketIndex != uNextExpectedPacket) )
       {
          printf("Missing packets at %u/%u, expected %u/%u\n",
@@ -240,9 +240,9 @@ int main(int argc, char *argv[])
    }
 
    fclose(fpInput);
-   
+
    printf("Input stream: from block %u to block %u, %u bytes each.\n%d errors\n",
       uStartBlockInput, uBlockIndex, uAudioSize, iCountErrors);
    printf("Done\n");
    return (0);
-} 
+}

@@ -109,7 +109,7 @@ void process_received_video_component_packet(int iInterfaceIndex, u8* pPacket, i
       /*
       t_packet_header_video_segment* pPHVS = (t_packet_header_video_segment*) (pPacket+sizeof(t_packet_header));
       int iDbgDR = (int) pPH->uCRC;
-      log_line("DBG %c%d [%u/%02d of %02d] sch %d/%d, framep %d/%d, EOF in %d+%d, %u ms from now, NAL %s%s-%s%s%s, eof?%d DR: %d", 
+      log_line("DBG %c%d [%u/%02d of %02d] sch %d/%d, framep %d/%d, EOF in %d+%d, %u ms from now, NAL %s%s-%s%s%s, eof?%d DR: %d",
           (pPH->packet_flags & PACKET_FLAGS_BIT_RETRANSMITED)?'r':'f',
           pPHVS->uH264FrameIndex, pPHVS->uCurrentBlockIndex, pPHVS->uCurrentBlockPacketIndex,
           pPHVS->uCurrentBlockDataPackets + pPHVS->uCurrentBlockECPackets,

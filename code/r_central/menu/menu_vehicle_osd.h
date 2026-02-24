@@ -16,7 +16,7 @@ class MenuVehicleOSD: public Menu
       virtual void onSelectItem();
 
       void showCompact();
-            
+
    private:
       void addItems();
       int m_IndexSettings;
@@ -36,7 +36,7 @@ class MenuVehicleOSD: public Menu
       //int m_IndexOSDReset;
       int m_IndexOSDController;
       int m_IndexShowFull;
-      
+
       MenuItemSlider* m_pItemsSlider[3];
       MenuItemSelect* m_pItemsSelect[20];
       MenuItemRange* m_pItemsRange[10];

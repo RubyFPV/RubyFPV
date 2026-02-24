@@ -3,7 +3,7 @@
 #include "hardware.h"
 #include "video_capture_res.h"
 
-type_video_capture_resolution_info g_listCaptureResolutions[] = 
+type_video_capture_resolution_info g_listCaptureResolutions[] =
 {
    {569,320, 90, "320p"},
    {560,420, 90, "SD 4:3"},
@@ -24,7 +24,7 @@ type_video_capture_resolution_info g_listCaptureResolutions[] =
 int g_iListCaptureResolutionsCount = 0;
 
 
-type_video_capture_resolution_info g_listCaptureResolutionsVeye[] = 
+type_video_capture_resolution_info g_listCaptureResolutionsVeye[] =
 {
    {1280,720, 30, "720p"},
    {1920,1080, 30, "1080p"}
@@ -32,7 +32,7 @@ type_video_capture_resolution_info g_listCaptureResolutionsVeye[] =
 int g_iListCaptureResolutionsVeyeCount = 2;
 
 
-type_video_capture_resolution_info g_listCaptureResolutionsVeye307[] = 
+type_video_capture_resolution_info g_listCaptureResolutionsVeye307[] =
 {
    {1280,720, 60, "720p"},
    {1920,1080, 30, "1080p"}
@@ -40,7 +40,7 @@ type_video_capture_resolution_info g_listCaptureResolutionsVeye307[] =
 int g_iListCaptureResolutionsVeyeCount307 = 2;
 
 
-type_video_capture_resolution_info g_listCaptureResolutionsOpenIPC[] = 
+type_video_capture_resolution_info g_listCaptureResolutionsOpenIPC[] =
 {
    {1024,576, 120, "SD 576"},
    {832, 624, 120, "SD 624 4:3"},
@@ -76,7 +76,7 @@ type_video_capture_resolution_info* getOptionsVideoResolutions(int iCameraType)
 }
 
 int getOptionsVideoResolutionsCount(int iCameraType)
-{   
+{
    if ( iCameraType == CAMERA_TYPE_VEYE290 ||
         iCameraType == CAMERA_TYPE_VEYE327 )
       return g_iListCaptureResolutionsVeyeCount;
@@ -127,10 +127,10 @@ int getOptionsVideoResolutionMaxFPS(int iCameraType, int w, int h)
       }
       return 90;
    }
-   
+
    if ( 0 == g_iListCaptureResolutionsCount )
       g_iListCaptureResolutionsCount = sizeof(g_listCaptureResolutions)/sizeof(g_listCaptureResolutions[0]);
-   
+
    for( int i=0; i<g_iListCaptureResolutionsCount; i++ )
    {
       if ( g_listCaptureResolutions[i].iWidth == w )

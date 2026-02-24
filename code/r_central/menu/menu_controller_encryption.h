@@ -3,7 +3,7 @@
 #include "menu_item_select.h"
 #include "menu_item_slider.h"
 #include "menu_item_edit.h"
-      
+
 class MenuControllerEncryption: public Menu
 {
    public:
@@ -11,7 +11,7 @@ class MenuControllerEncryption: public Menu
       virtual void Render();
       virtual void valuesToUI();
       virtual int onBack();
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
 
    private:

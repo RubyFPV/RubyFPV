@@ -18,11 +18,11 @@ class MenuVehicleRadioConfig: public Menu
       virtual void Render();
       virtual void valuesToUI();
       virtual void onSelectItem();
-            
+
    private:
       MenuItemSelect* m_pItemsSelect[50];
       MenuItemSlider* m_pItemsSlider[10];
-      
+
       int m_IndexPrioritizeUplink;
       int m_IndexDisableUplink;
       int m_IndexEncryption;

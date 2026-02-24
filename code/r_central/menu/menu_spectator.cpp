@@ -54,7 +54,7 @@ MenuSpectator::MenuSpectator(void)
 void MenuSpectator::onShow()
 {
    m_Height = 0.0;
-   
+
    removeAllItems();
    m_IndexSelectedVehicle = -1;
 
@@ -169,7 +169,7 @@ void MenuSpectator::onSelectItem()
 
    m_IndexSelectedVehicle = m_SelectedIndex;
    log_line("Adding menu for vehicle index %d", m_IndexSelectedVehicle);
-   
+
    MenuVehicleSelector* pMenu = new MenuVehicleSelector();
    pMenu->m_IndexSelectedVehicle = m_SelectedIndex;
    pMenu->m_bSpectatorMode = true;

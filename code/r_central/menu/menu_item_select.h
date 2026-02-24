@@ -8,7 +8,7 @@ class MenuItemSelect: public MenuItemSelectBase
      MenuItemSelect(const char* title);
      MenuItemSelect(const char* title, const char* tooltip);
      virtual ~MenuItemSelect();
-     
+
      virtual void onKeyUp(bool bIgnoreReversion);
      virtual void onKeyDown(bool bIgnoreReversion);
      virtual void Render(float xPos, float yPos, bool bSelected, float fWidthSelection);

@@ -88,7 +88,7 @@ class ProcessorRxVideo
       int getVideoFPS();
       int getVideoType();
       u32 getLastTempRetrPauseResume();
-      
+
       void updateHistoryStats(u32 uTimeNow);
       // Returns how many retransmission packets where requested, if any
       int periodicLoopProcessor(u32 uTimeNow, bool bForceSyncNow);
@@ -104,9 +104,9 @@ class ProcessorRxVideo
 
    protected:
       void _resetOutputState();
-      
+
       void updateControllerRTInfoAndVideoDecodingStats(u8* pRadioPacket, int iPacketLength);
-      
+
       void _updateDebugStatsOnVideoPacket(type_rx_video_packet_info* pVideoPacket);
       void _checkUpdateRetransmissionsState();
       void checkUpdateRetransmissionsState();
@@ -123,7 +123,7 @@ class ProcessorRxVideo
       bool m_bPauseTempRetrUntillANewVideoPacket;
       u32 m_uTimeLastResumedTempRetrPause;
       u32 m_uLastTimeActivated;
-      
+
       // Configuration
 
       u32 m_uRetryRetransmissionAfterTimeoutMiliseconds;
@@ -136,7 +136,7 @@ class ProcessorRxVideo
       u32 m_uTimeLastOutputedVideoPacket;
       u32 m_uTimeReceivedLastOutputedVideoPacket;
 
-      // Rx state 
+      // Rx state
       t_packet_header_video_segment m_NewestReceivedVideoPacketInfo;
       type_rx_video_block_info m_CopyNewestReceivedVideoRxBlockInfo;
       u32 m_uNewestReceivedVideoPacketTime;

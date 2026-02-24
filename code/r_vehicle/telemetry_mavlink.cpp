@@ -100,7 +100,7 @@ void _telemetry_mavlink_send_setup()
    mavlink_message_t msgMsgInterval;
    mavlink_message_t msgHighLatency;
 
-   
+
    log_line("[Telem] Initializing MAVLink with flight controller...");
    if ( ! (g_pCurrentModel->telemetry_params.flags & TELEMETRY_FLAGS_REQUEST_DATA_STREAMS) )
    {
@@ -108,10 +108,10 @@ void _telemetry_mavlink_send_setup()
       return;
    }
 
-   
+
    mavlink_msg_heartbeat_pack(g_pCurrentModel->telemetry_params.controller_mavlink_id, componentId, &msgHeartBeat, MAV_TYPE_GCS, MAV_AUTOPILOT_INVALID, 0,0,0);
    len = mavlink_msg_to_send_buffer(serialBufferOut, &msgHeartBeat);
-   
+
    if ( len != write(telemetry_get_serial_port_file(), serialBufferOut, len) )
    {
       s_iCountTelemetryMAVLinkWriteErrors++;
@@ -120,7 +120,7 @@ void _telemetry_mavlink_send_setup()
    }
    else
       s_iCountTelemetryMAVLinkWriteErrors = 0;
-   
+
    int rate = g_pCurrentModel->telemetry_params.iUpdateRateHz;
    if ( rate < 1 ) rate = 1;
    if ( rate > 10 ) rate = 10;
@@ -136,13 +136,13 @@ void _telemetry_mavlink_send_setup()
    else
       s_iCountTelemetryMAVLinkWriteErrors = 0;
    log_line("[Telem] Requested all MAVLink data streams");
-   
+
 
    char szParam[32];
    strcpy(szParam, "RC_OVERRIDE_TIME");
 
    if ( g_pCurrentModel->rc_params.uRCFlags & RC_FLAGS_ENABLED )
-   {      
+   {
       float fTimeout = (float)g_pCurrentModel->rc_params.rc_failsafe_timeout_ms/1000.0;
       log_line("[Telem] Sending to FC an RC_OVERRIDE timeout of %.2f seconds", fTimeout);
       mavlink_message_t msgSetParam;
@@ -175,10 +175,10 @@ void _telemetry_mavlink_send_setup()
    }
    else
       s_iCountTelemetryMAVLinkWriteErrors = 0;
-  
+
    //mavlink_message_t msgReqParamList;
    //mavlink_msg_param_request_list_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-   //                            uint8_t target_system, uint8_t target_component) 
+   //                            uint8_t target_system, uint8_t target_component)
 
 /*
    mavlink_msg_message_interval_pack(g_pCurrentModel->telemetry_params.controller_mavlink_id, componentId, &msgMsgInterval, MAVLINK_MSG_ID_ATTITUDE, 100000);
@@ -237,8 +237,8 @@ void _telemetry_mavlink_send_setup()
    high_latency.target_component = MAV_COMP_ID_AUTOPILOT1;
    high_latency.command = MAV_CMD_CONTROL_HIGH_LATENCY;
    high_latency.confirmation = 0;
-   high_latency.param1 = 1;        
- 
+   high_latency.param1 = 1;
+
    mavlink_msg_command_long_encode(g_pCurrentModel->telemetry_params.controller_mavlink_id, componentId, &msgHighLatency, &high_latency);
    len = mavlink_msg_to_send_buffer(serialBufferOut, &msgHighLatency);
    if ( len != write(telemetry_get_serial_port_file(), serialBufferOut, len) )
@@ -259,8 +259,8 @@ void _telemetry_mavlink_send_setup()
    cmd_mode.target_component = MAV_COMP_ID_AUTOPILOT1;
    cmd_mode.command = MAV_CMD_DO_SET_MODE;
    cmd_mode.confirmation = 0;
-   cmd_mode.param1 = MAV_MODE_MANUAL_DISARMED;        
- 
+   cmd_mode.param1 = MAV_MODE_MANUAL_DISARMED;
+
    mavlink_message_t msg;
    mavlink_msg_command_long_encode(g_pCurrentModel->telemetry_params.controller_mavlink_id, componentId, &msg, &cmd_mode);
    len = mavlink_msg_to_send_buffer(serialBufferOut, &msg);
@@ -269,7 +269,7 @@ void _telemetry_mavlink_send_setup()
       log_softerror_and_alarm("Failed to write to serial port to FC");
       return;
    }
- 
+
    log_line("Requested stab mode.");
 */
 
@@ -317,7 +317,7 @@ void telemetry_mavlink_on_second_lapse()
    if ( pFCTelem->flight_mode != 0 )
    if ( pFCTelem->flight_mode & FLIGHT_MODE_ARMED )
       pFCTelem->arm_time++;
-   
+
    g_pCurrentModel->updateStatsEverySecond(pFCTelem);
 
    if ( pFCTelem->flight_mode != 0 )
@@ -396,12 +396,12 @@ void _preprocess_fc_telemetry(t_packet_header_fc_telemetry* pPHFCT)
       pPHFCT->uFCFlags = pPHFCT->uFCFlags | FC_TELE_FLAGS_HAS_GPS_FIX;
    else if ( (g_pCurrentModel->iGPSCount > 1) && ( pPHFCT->extra_info[2] != 0xFF )
              && ( pPHFCT->extra_info[1] > 0 ) && (pPHFCT->extra_info[1] != 0xFF) && ( pPHFCT->extra_info[2] >= GPS_FIX_TYPE_2D_FIX ) )
-      pPHFCT->uFCFlags = pPHFCT->uFCFlags | FC_TELE_FLAGS_HAS_GPS_FIX;        
+      pPHFCT->uFCFlags = pPHFCT->uFCFlags | FC_TELE_FLAGS_HAS_GPS_FIX;
 
    bool bHasAnyGPSGoodInfo = false;
    if ( pPHFCT->satelites > 2 && pPHFCT->hdop < 9000 )
       bHasAnyGPSGoodInfo = true;
-   if ( (g_pCurrentModel->iGPSCount > 1) 
+   if ( (g_pCurrentModel->iGPSCount > 1)
              && ( pPHFCT->extra_info[1] > 2 ) && (pPHFCT->extra_info[1] != 0xFF)
              && ( ((int)pPHFCT->extra_info[3]) * 255 + pPHFCT->extra_info[4] < 9000 ) )
       bHasAnyGPSGoodInfo = true;
@@ -415,7 +415,7 @@ void _preprocess_fc_telemetry(t_packet_header_fc_telemetry* pPHFCT)
 
    s_lLastPosLat = pPHFCT->latitude;
    s_lLastPosLon = pPHFCT->longitude;
-   
+
    if ( (pPHFCT->gps_fix_type >= GPS_FIX_TYPE_2D_FIX) &&
         ( (pPHFCT->latitude > 5) || (pPHFCT->latitude < -5) ) &&
         ( (pPHFCT->longitude > 5) || (pPHFCT->longitude < -5) ) )
@@ -424,7 +424,7 @@ void _preprocess_fc_telemetry(t_packet_header_fc_telemetry* pPHFCT)
       {
          home_set = true;
          home_lat = pPHFCT->latitude;
-         home_lon = pPHFCT->longitude;        
+         home_lon = pPHFCT->longitude;
       }
 
       // Update distance from home
@@ -492,7 +492,7 @@ void telemetry_mavlink_send_to_controller()
    t_packet_header_fc_telemetry* pFCTelem = telemetry_get_fc_telemetry_header();
    t_packet_header_fc_extra* pFCTelemExtra = telemetry_get_fc_extra_telemetry_header();
    _preprocess_fc_telemetry(pFCTelem);
-   
+
    if ( g_pCurrentModel->telemetry_params.flags & TELEMETRY_FLAGS_FORCE_ARMED )
       pFCTelem->flight_mode |= FLIGHT_MODE_ARMED;
 
@@ -503,7 +503,7 @@ void telemetry_mavlink_send_to_controller()
 
    bool bSendFCMessage = false;
    if ( (get_last_message_time() > 0) && (0 != get_last_message()[0]) )
-   if ( get_last_message_time() + TIMEOUT_FC_MESSAGE > g_TimeNow )   
+   if ( get_last_message_time() + TIMEOUT_FC_MESSAGE > g_TimeNow )
       bSendFCMessage = true;
 
    if ( bSendFCMessage )

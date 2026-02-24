@@ -46,19 +46,19 @@ MenuButtons::MenuButtons(void)
 
    int c = 0;
 
-   m_pItemsSelect[c] = new MenuItemSelect(L("Swap +/- Buttons"), L("Swaps the function of + and - buttons."));  
+   m_pItemsSelect[c] = new MenuItemSelect(L("Swap +/- Buttons"), L("Swaps the function of + and - buttons."));
    m_pItemsSelect[c]->addSelection(L("No"));
    m_pItemsSelect[c]->addSelection(L("Yes"));
    addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect(L("Swap +/- Edit Buttons"), L("Swaps the function of + and - buttons for editing values in UI."));  
+   m_pItemsSelect[c] = new MenuItemSelect(L("Swap +/- Edit Buttons"), L("Swaps the function of + and - buttons for editing values in UI."));
    m_pItemsSelect[c]->addSelection(L("No"));
    m_pItemsSelect[c]->addSelection(L("Yes"));
    addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect(L("Quick Action Button 1"), L("Change what happens when you press the quick action button 1."));  
+   m_pItemsSelect[c] = new MenuItemSelect(L("Quick Action Button 1"), L("Change what happens when you press the quick action button 1."));
    m_pItemsSelect[c]->addSelection(L("None"));
    m_pItemsSelect[c]->addSelection(L("Cycle OSD screen"));
    m_pItemsSelect[c]->addSelection(L("Cycle OSD size"));
@@ -78,7 +78,7 @@ MenuButtons::MenuButtons(void)
    addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect(L("Quick Action Button 2"), L("Change what happens when you press the quick action button 2."));  
+   m_pItemsSelect[c] = new MenuItemSelect(L("Quick Action Button 2"), L("Change what happens when you press the quick action button 2."));
    m_pItemsSelect[c]->addSelection(L("None"));
    m_pItemsSelect[c]->addSelection(L("Cycle OSD screen"));
    m_pItemsSelect[c]->addSelection(L("Cycle OSD size"));
@@ -98,7 +98,7 @@ MenuButtons::MenuButtons(void)
    addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect(L("Quick Action Button 3"), L("Change what happens when you press the quick action button 3."));  
+   m_pItemsSelect[c] = new MenuItemSelect(L("Quick Action Button 3"), L("Change what happens when you press the quick action button 3."));
    m_pItemsSelect[c]->addSelection(L("None"));
    m_pItemsSelect[c]->addSelection(L("Cycle OSD screen"));
    m_pItemsSelect[c]->addSelection(L("Cycle OSD size"));
@@ -118,7 +118,7 @@ MenuButtons::MenuButtons(void)
    addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect(L("Rotary Encoder Function"), L("Sets the function of the optional rotary encoder. Long press the rotary encoder for 10 seconds to revert to Menu function."));  
+   m_pItemsSelect[c] = new MenuItemSelect(L("Rotary Encoder Function"), L("Sets the function of the optional rotary encoder. Long press the rotary encoder for 10 seconds to revert to Menu function."));
    m_pItemsSelect[c]->addSelection(L("None"));
    m_pItemsSelect[c]->addSelection(L("Menu Navigation"));
    m_pItemsSelect[c]->addSelection(L("Camera Adjustment"));
@@ -126,14 +126,14 @@ MenuButtons::MenuButtons(void)
    m_IndexRotaryEncoder = addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect(L("Rotary Encoder Speed"), L("Sets the speed of the optional rotary encoder."));  
+   m_pItemsSelect[c] = new MenuItemSelect(L("Rotary Encoder Speed"), L("Sets the speed of the optional rotary encoder."));
    m_pItemsSelect[c]->addSelection(L("Normal"));
    m_pItemsSelect[c]->addSelection(L("Slower"));
    m_pItemsSelect[c]->setIsEditable();
    m_IndexRotarySpeed = addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect(L("Rotary Encoder 2 Function"), L("Sets the function of the secondary optional rotary encoder. Long press the secondary rotary encoder for 10 seconds to revert to Menu function."));  
+   m_pItemsSelect[c] = new MenuItemSelect(L("Rotary Encoder 2 Function"), L("Sets the function of the secondary optional rotary encoder. Long press the secondary rotary encoder for 10 seconds to revert to Menu function."));
    m_pItemsSelect[c]->addSelection(L("None"));
    m_pItemsSelect[c]->addSelection(L("Menu Navigation"));
    m_pItemsSelect[c]->addSelection(L("Camera Adjustment"));
@@ -141,7 +141,7 @@ MenuButtons::MenuButtons(void)
    m_IndexRotaryEncoder2 = addMenuItem(m_pItemsSelect[c]);
    c++;
 
-   m_pItemsSelect[c] = new MenuItemSelect(L("Rotary Encoder 2 Speed"), L("Sets the speed of the secondary optional rotary encoder."));  
+   m_pItemsSelect[c] = new MenuItemSelect(L("Rotary Encoder 2 Speed"), L("Sets the speed of the secondary optional rotary encoder."));
    m_pItemsSelect[c]->addSelection(L("Normal"));
    m_pItemsSelect[c]->addSelection(L("Slower"));
    m_pItemsSelect[c]->setIsEditable();

@@ -135,7 +135,7 @@ float getDefaultHeight()
 
 
 float _heading_course_to(double lat1, double long1, double lat2, double long2)
-{    
+{
     double dlon = (long2-long1)*0.017453292519;
 
     lat1 = (lat1)*0.017453292519;
@@ -156,7 +156,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
 {
    if ( NULL == g_pUIEngine || NULL == pTelemetryInfo || NULL == pCurrentSettings )
       return;
-   
+
    float fBackgroundAlpha = pCurrentSettings->fBackgroundAlpha;
    float xCenter = xPos + 0.5*fWidth;
    float yCenter = yPos + 0.5*fHeight;
@@ -169,7 +169,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
 
    s_uFontIdCustomSize = g_pUIEngine->loadFontSize(fFontSize);
    s_uFontIdCustomSizeLarger = g_pUIEngine->loadFontSize(fFontSizeLarger);
-   
+
    if ( 0 == s_uFontIdCustomSize || MAX_U32 == s_uFontIdCustomSize )
       s_uFontIdCustomSize = g_pUIEngine->getFontIdSmall();
 
@@ -210,7 +210,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
    {
       float fAngle = 90 - i;
       float distInner = 0.85;
-      
+
       float xMargin = xCenter + fRadius*0.95 * cos(fAngle*0.017453) / g_pUIEngine->getAspectRatio();
       float yMargin = yCenter - fRadius*0.95 * sin(fAngle*0.017453);
 
@@ -220,7 +220,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
       g_pUIEngine->drawLine(xMargin,yMargin,xinner,yinner);
    }
 
- 
+
    for( int i=0; i<360; i+= 5 )
    {
       float fAngle = 90 - i;
@@ -244,7 +244,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
          if ( pCurrentSettings->nSettingsValues[0] == 0 )
             g_pUIEngine->setColors(g_pUIEngine->getColorOSDInstruments());
          else
-            g_pUIEngine->setColors(fColorWhite);      
+            g_pUIEngine->setColors(fColorWhite);
 
          g_pUIEngine->setStrokeSize(1.0);
       }
@@ -299,7 +299,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
 
        float fAngle = 90.0 - heading_home;
        float distInner = 0.9;
-       
+
        float xinner = xCenter + fRadius * distInner * cos(fAngle*0.017453) / g_pUIEngine->getAspectRatio();
        float yinner = yCenter - fRadius * distInner * sin(fAngle*0.017453);
 
@@ -335,10 +335,10 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
        if ( pCurrentSettings->nSettingsValues[0] == 0 )
           g_pUIEngine->setColors(g_pUIEngine->getColorOSDInstruments());
        else
-          g_pUIEngine->setColors(fColorWhite);         
+          g_pUIEngine->setColors(fColorWhite);
    }
 
-   
+
    // Show heading
 
    g_pUIEngine->setStroke(fColorYellow);
@@ -408,9 +408,9 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
    if ( pCurrentSettings->nSettingsValues[0] == 0 )
       g_pUIEngine->setColors(g_pUIEngine->getColorOSDInstruments());
    else
-      g_pUIEngine->setColors(fColorWhite);         
+      g_pUIEngine->setColors(fColorWhite);
 
-  
+
    // Show wind
 
    if ( pCurrentSettings->nSettingsValues[3] == 1 )
@@ -434,12 +434,12 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
       if ( fWindAngle >= 360.0 )
          fWindAngle -= 360.0;
 
-      int iWindSpeed10 = 1 + (int)(fWindSpeed/9.0); 
+      int iWindSpeed10 = 1 + (int)(fWindSpeed/9.0);
       if ( iWindSpeed10 > 5 )
          iWindSpeed10 = 5;
       float distMargin = 0.74;
       float fSizeArrow = 0.045*fRadius;
-       
+
       //float xmargin = xCenter + fRadius * distMargin * cos(fWindAngle*0.017453) / g_pUIEngine->getAspectRatio();
       //float ymargin = yCenter - fRadius * distMargin * sin(fWindAngle*0.017453);
 
@@ -453,7 +453,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
 
          float x2in = -fSizeArrow;
          float y2in = -fSizeArrow*1.6;
-         
+
          float x1,y1, x2, y2;
          rotate_point(g_pUIEngine, x1in, y1in, 0,0, -fWindAngle+90, &x1, &y1);
          rotate_point(g_pUIEngine, x2in, y2in, 0,0, -fWindAngle+90, &x2, &y2);
@@ -467,7 +467,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
    if ( pCurrentSettings->nSettingsValues[0] == 0 )
       g_pUIEngine->setColors(g_pUIEngine->getColorOSDInstruments());
    else
-      g_pUIEngine->setColors(fColorWhite);         
+      g_pUIEngine->setColors(fColorWhite);
 
    // Show home distance
 
@@ -476,7 +476,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
        if ( pCurrentSettings->nSettingsValues[0] == 0 )
           g_pUIEngine->setColors(g_pUIEngine->getColorOSDInstruments());
        else
-          g_pUIEngine->setColors(fColorWhite);         
+          g_pUIEngine->setColors(fColorWhite);
 
        float fDist = pTelemetryInfo->distance/100.0;
        if ( fDist > 1000000 || fDist < 0 )
@@ -494,5 +494,5 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
 }
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

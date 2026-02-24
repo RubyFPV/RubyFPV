@@ -146,7 +146,7 @@ void PopupRadioInterface::computeSize()
    float fMarginX = Menu::getMenuPaddingX();
    m_RenderWidth = m_fMaxWidth;
    m_RenderHeight = 0;
-   
+
    if ( 0 != m_szTitle[0] )
    {
       m_RenderHeight = g_pRenderEngine->getMessageHeight(m_szTitle, POPUP_LINE_SPACING, m_fMaxWidth-2.0*fMarginX, g_idFontMenu);
@@ -189,9 +189,9 @@ void PopupRadioInterface::Render()
    g_pRenderEngine->setStroke(get_Color_PopupBorder());
 
    g_pRenderEngine->drawRoundRect(m_xPos, m_yPos, m_RenderWidth, m_RenderHeight, POPUP_ROUND_MARGIN);
-   
+
    g_pRenderEngine->setColors(get_Color_PopupText());
-   
+
    float x = m_xPos + fMarginX;
    float y = m_yPos + Menu::getMenuPaddingY();
    if ( 0 != m_szTitle[0] )

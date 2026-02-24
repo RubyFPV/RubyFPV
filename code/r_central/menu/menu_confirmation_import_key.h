@@ -8,7 +8,7 @@ class MenuConfirmationImportKey: public Menu
       MenuConfirmationImportKey(const char* szTitle, const char* szText, int id);
       virtual ~MenuConfirmationImportKey();
       virtual void onShow();
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
 
 };

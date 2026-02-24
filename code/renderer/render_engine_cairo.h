@@ -10,7 +10,7 @@ class RenderEngineCairo: public RenderEngine
      virtual ~RenderEngineCairo();
 
      virtual void* getDrawContext();
-     virtual void setStroke(const double* color, float fStrokeSize); 
+     virtual void setStroke(const double* color, float fStrokeSize);
      virtual void setStrokeSize(float fStrokeSize);
 
      virtual void setFontOutlineColor(u32 idFont, u8 r, u8 g, u8 b, u8 a);
@@ -21,7 +21,7 @@ class RenderEngineCairo: public RenderEngine
      virtual int getImageWidth(u32 uImageId);
      virtual int getImageHeight(u32 uImageId);
      virtual void changeImageHue(u32 uImageId, u8 r, u8 g, u8 b);
-     
+
      virtual void startFrame();
      virtual void endFrame();
      virtual void rotate180();
@@ -47,7 +47,7 @@ class RenderEngineCairo: public RenderEngine
      virtual void fillCircle(float x, float y, float r);
      virtual void drawCircle(float x, float y, float r);
      virtual void drawArc(float x, float y, float r, float a1, float a2);
-     
+
    protected:
       cairo_t* _createTempDrawContext();
       cairo_t* _getActiveCairoContext();
@@ -62,7 +62,7 @@ class RenderEngineCairo: public RenderEngine
       void _blend_pixel(unsigned char* pixel, unsigned char r, unsigned char g, unsigned char b, unsigned char a);
       void _draw_hline(int x, int y, int w, unsigned char r, unsigned char g, unsigned char b, unsigned char a);
       void _draw_vline(int x, int y, int h, unsigned char r, unsigned char g, unsigned char b, unsigned char a);
-      
+
       bool m_bUseDoubleBuffering;
       u32 m_uRenderDrawSurfacesIds[2];
       cairo_surface_t *m_pMainCairoSurface[2];

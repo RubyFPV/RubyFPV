@@ -32,7 +32,7 @@
 
 
 // ------------------------------------------------------------
-// Configuration customisations for individual hardware platforms: 
+// Configuration customisations for individual hardware platforms:
 
 #ifdef HW_PLATFORM_RASPBERRY
 #define HW_CAPABILITY_GPIO

@@ -89,13 +89,13 @@ MenuVehicleOSDWidgets::MenuVehicleOSDWidgets(void)
    m_pItemsSelect[MAX_MENU_OSD_WIDGETS]->setIsEditable();
    m_IndexShowSpeedAlt = addMenuItem(m_pItemsSelect[MAX_MENU_OSD_WIDGETS]);
 
-   m_pItemsSelect[MAX_MENU_OSD_WIDGETS+1] = new MenuItemSelect("   Side Speed/Alt", "Shows the instruments for speed and altitude to the edge of the screen");  
+   m_pItemsSelect[MAX_MENU_OSD_WIDGETS+1] = new MenuItemSelect("   Side Speed/Alt", "Shows the instruments for speed and altitude to the edge of the screen");
    m_pItemsSelect[MAX_MENU_OSD_WIDGETS+1]->addSelection("No");
    m_pItemsSelect[MAX_MENU_OSD_WIDGETS+1]->addSelection("Yes");
    m_pItemsSelect[MAX_MENU_OSD_WIDGETS+1]->setIsEditable();
    m_IndexSpeedToSides = addMenuItem(m_pItemsSelect[MAX_MENU_OSD_WIDGETS+1]);
 
-   m_pItemsSelect[MAX_MENU_OSD_WIDGETS+2] = new MenuItemSelect("Show Heading", "Shows the heading instrument");  
+   m_pItemsSelect[MAX_MENU_OSD_WIDGETS+2] = new MenuItemSelect("Show Heading", "Shows the heading instrument");
    m_pItemsSelect[MAX_MENU_OSD_WIDGETS+2]->addSelection("No");
    m_pItemsSelect[MAX_MENU_OSD_WIDGETS+2]->addSelection("Yes");
    m_pItemsSelect[MAX_MENU_OSD_WIDGETS+2]->setIsEditable();

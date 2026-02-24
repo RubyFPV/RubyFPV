@@ -72,7 +72,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 
 typedef struct
@@ -174,5 +174,5 @@ void hardware_set_oipc_cpu_freq(int iFreqCPUMhz);
 void hardware_set_oipc_gpu_boost(int iGPUBoost);
 void hardware_balance_interupts();
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

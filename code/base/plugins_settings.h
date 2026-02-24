@@ -10,7 +10,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 typedef struct
 {
@@ -44,5 +44,5 @@ int doesPluginHasModelSettings(SinglePluginSettings* pPlugin, Model* pModel);
 void deletePluginModelSettings(u32 uModelId);
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

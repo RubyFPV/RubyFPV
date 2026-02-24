@@ -47,7 +47,7 @@ MenuControllerTelemetry::MenuControllerTelemetry(void)
    m_Width = 0.34;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.25;
    load_ControllerSettings();
-   
+
    addMenuItem(new MenuItemSection(L("Local Telemetry")));
 
    m_pItemsSelect[1] = new MenuItemSelect(L("Telemetry Local Serial Port"), "Sets the serial port to use for telemetry input/output to other devices.");
@@ -261,7 +261,7 @@ void MenuControllerTelemetry::onSelectItem()
          save_ControllerSettings();
          save_ControllerInterfacesSettings();
 
-         valuesToUI(); 
+         valuesToUI();
          send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
       }
       return;
@@ -273,7 +273,7 @@ void MenuControllerTelemetry::onSelectItem()
    {
       long val = hardware_serial_get_baud_rates()[m_pItemsSelect[2]->getSelectedIndex()];
       hw_serial_port_info_t* pPortInfo = hardware_get_serial_port_info(iCurrentTelemetrySerialPortIndex);
-         
+
       if ( (NULL != pPortInfo) && (val != pPortInfo->lPortSpeed) )
       {
          pPortInfo->lPortSpeed = val;
@@ -311,7 +311,7 @@ void MenuControllerTelemetry::onSelectItem()
       send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
       return;
    }
-   
+
    if ( m_IndexTelemetryUSBPacket == m_SelectedIndex )
    {
       pCS->iTelemetryForwardUSBPacketSize = m_pItemsRange[1]->getCurrentValue();

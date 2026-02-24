@@ -320,7 +320,7 @@ char* str_get_packet_type(int iPacketType)
    {
       case PACKET_TYPE_EMBEDED_SHORT_PACKET: strcpy(s_szPacketType, "PACKET_TYPE_EMBEDED_SHORT_PACKET"); break;
       case PACKET_TYPE_EMBEDED_FULL_PACKET: strcpy(s_szPacketType, "PACKET_TYPE_EMBEDED_FULL_PACKET"); break;
-      
+
       case PACKET_TYPE_RUBY_PING_CLOCK:          strcpy(s_szPacketType, "PACKET_TYPE_RUBY_PING_CLOCK"); break;
       case PACKET_TYPE_RUBY_PING_CLOCK_REPLY:    strcpy(s_szPacketType, "PACKET_TYPE_RUBY_PING_CLOCK_REPLY"); break;
       case PACKET_TYPE_RUBY_RADIO_REINITIALIZED: strcpy(s_szPacketType, "PACKET_TYPE_RUBY_RADIO_REINITIALIZED"); break;
@@ -362,7 +362,7 @@ char* str_get_packet_type(int iPacketType)
       case PACKET_TYPE_RUBY_TELEMETRY_RADIO_RX_HISTORY: strcpy(s_szPacketType, "PACKET_TYPE_RUBY_TELEMETRY_RADIO_RX_HISTORY"); break;
       case PACKET_TYPE_TELEMETRY_MSP:             strcpy(s_szPacketType, "PACKET_TYPE_TELEMETRY_MSP"); break;
       case PACKET_TYPE_VEHICLE_RECORDING: strcpy(s_szPacketType, "PACKET_TYPE_VEHICLE_RECORDING"); break;
-      case PACKET_TYPE_NEGOCIATE_RADIO_LINKS: strcpy(s_szPacketType, "PACKET_TYPE_NEGOCIATE_RADIO_LINKS"); break;       
+      case PACKET_TYPE_NEGOCIATE_RADIO_LINKS: strcpy(s_szPacketType, "PACKET_TYPE_NEGOCIATE_RADIO_LINKS"); break;
       // Local packets
 
       case PACKET_TYPE_LOCAL_CONTROL_PAUSE_RESUME_AUDIO:    strcpy(s_szPacketType, "PACKET_TYPE_LOCAL_CONTROL_PAUSE_RESUME_AUDIO"); break;
@@ -646,7 +646,7 @@ char* str_format_datarate_inline(int dataRateBPS)
          sprintf(s_szFormatDatarateInline, "%d bps", dataRateBPS);
    }
 
-   return s_szFormatDatarateInline;   
+   return s_szFormatDatarateInline;
 }
 
 char* str_format_bitrate_inline(int iBitrateBPS)
@@ -732,10 +732,10 @@ char* str_format_frequency(u32 uFrequencyKhz)
    static char s_szFrequencyFormat[64];
 
    s_szFrequencyFormat[0] = 0;
-   
+
    if ( uFrequencyKhz < 10000 )
       uFrequencyKhz *= 1000;
-     
+
    if ( (uFrequencyKhz%1000) == 0 )
       sprintf(s_szFrequencyFormat, "%u Mhz", uFrequencyKhz/1000);
    else if ( (uFrequencyKhz%100) == 0 )
@@ -754,7 +754,7 @@ char* str_format_frequency_no_sufix(u32 uFrequencyKhz)
    static char s_szFrequencyFormatNoSufix[64];
 
    s_szFrequencyFormatNoSufix[0] = 0;
-   
+
    if ( (uFrequencyKhz%1000) == 0 )
       sprintf(s_szFrequencyFormatNoSufix, "%u", uFrequencyKhz/1000);
    else if ( (uFrequencyKhz%100) == 0 )
@@ -976,7 +976,7 @@ void str_get_hardware_camera_type_string_to_string(u32 uCamType, char* szOutput)
       strcpy(szOutput, "None");
       return;
    }
-   
+
    strcpy(szOutput, "Unknown");
 
    if ( uCamType == CAMERA_TYPE_CSI )
@@ -1006,7 +1006,7 @@ void str_get_supported_bands_string(u32 bands, char* szOut)
       return;
 
    int iCount = 0;
-   
+
    szOut[0] = 0;
    if ( bands & RADIO_HW_SUPPORTED_BAND_433 )
       strcat(szOut, "433");
@@ -1102,7 +1102,7 @@ const char* str_get_radio_driver_description(int iDriverType)
 {
    static char sszNICDriverDescription[32];
    strcpy(sszNICDriverDescription, "N/A");
-  
+
    if ( iDriverType == RADIO_HW_DRIVER_ATHEROS )
       strcpy(sszNICDriverDescription, "ath9k_htc");
    if ( iDriverType == RADIO_HW_DRIVER_RALINK )
@@ -1156,7 +1156,7 @@ const char* str_get_radio_card_model_string(int cardModel)
    if ( cardModel == CARD_MODEL_RTL8733BU )         strcpy(s_szCardModelDescription, "RTL8733BU");
    if ( cardModel == CARD_MODEL_BONNET_LOW_POWER )  strcpy(s_szCardModelDescription, "Bonnet L");
    if ( cardModel == CARD_MODEL_BONNET_HIGH_POWER ) strcpy(s_szCardModelDescription, "Bonnet H");
-   
+
    if ( cardModel == CARD_MODEL_SIK_RADIO )         strcpy(s_szCardModelDescription, "SiK-Radio");
    if ( cardModel == CARD_MODEL_SERIAL_RADIO )      strcpy(s_szCardModelDescription, "Serial-Radio");
    if ( cardModel == CARD_MODEL_SERIAL_RADIO_ELRS ) strcpy(s_szCardModelDescription, "ELRS-Radio");
@@ -1206,7 +1206,7 @@ char* str_get_radio_capabilities_description2(u32 uFlags)
 {
    static char s_szRadioCapabilitiesFlags[256];
    s_szRadioCapabilitiesFlags[0] = 0;
-   str_get_radio_capabilities_description(uFlags, s_szRadioCapabilitiesFlags);   
+   str_get_radio_capabilities_description(uFlags, s_szRadioCapabilitiesFlags);
    return s_szRadioCapabilitiesFlags;
 }
 
@@ -1215,7 +1215,7 @@ void str_get_radio_capabilities_description(u32 uFlags, char* szOutput)
    if ( NULL == szOutput )
       return;
    szOutput[0] = 0;
-   
+
    if ( uFlags & RADIO_HW_CAPABILITY_FLAG_DISABLED )
       strcat(szOutput, "[DISABLED] ");
    if ( (uFlags & RADIO_HW_CAPABILITY_FLAG_CAN_TX) && (uFlags & RADIO_HW_CAPABILITY_FLAG_CAN_RX) )
@@ -1243,7 +1243,7 @@ char* str_get_radio_frame_flags_description2(u32 frameFlags)
 {
    static char s_szRadioFrameFlagsDescription[256];
    s_szRadioFrameFlagsDescription[0] = 0;
-   str_get_radio_frame_flags_description(frameFlags, s_szRadioFrameFlagsDescription);   
+   str_get_radio_frame_flags_description(frameFlags, s_szRadioFrameFlagsDescription);
    return s_szRadioFrameFlagsDescription;
 }
 
@@ -1469,7 +1469,7 @@ char* str_get_decode_h264_profile_name(u8 uH264Profile, u8 uH264ProfileConstrain
       else
          strcpy(s_szH264DecodedProfileName, "High444");
    }
-   
+
    if ( uH264Profile == 0x2C )
    {
       strcpy(s_szH264DecodedProfileName, "CAVL444Intra");
@@ -1583,7 +1583,7 @@ char* str_get_developer_flags(u32 uDeveloperFlags)
       strcat(s_szDeveloperFlagsDesc, " INJECT_VIDEO_FAULTS2");
    if ( uDeveloperFlags & DEVELOPER_FLAGS_USE_PCAP_RADIO_TX )
       strcat(s_szDeveloperFlagsDesc, " USE_PCAP_RADIO_TX");
-   
+
    if ( 0 == s_szDeveloperFlagsDesc[0] )
       strcpy(s_szDeveloperFlagsDesc, "[None]");
    return s_szDeveloperFlagsDesc;
@@ -1691,7 +1691,7 @@ char* str_format_relay_flags(u32 uRelayCapabilitiesFlags)
    static char s_szRelayFlagsDescription[128];
    s_szRelayFlagsDescription[0] = 0;
 
-  
+
    if ( uRelayCapabilitiesFlags & RELAY_CAPABILITY_TRANSPORT_TELEMETRY )
       strcat(s_szRelayFlagsDescription, " [TELEM]");
    if ( uRelayCapabilitiesFlags & RELAY_CAPABILITY_TRANSPORT_VIDEO )
@@ -1729,7 +1729,7 @@ char* str_format_relay_mode(u32 uRelayMode)
       strcat(s_szRelayModeDescription, " Is-Relay-Node");
    if ( uRelayMode & RELAY_MODE_IS_RELAYED_NODE )
       strcat(s_szRelayModeDescription, " Is-Relayed-Node");
-   
+
    if ( 0 == s_szRelayModeDescription[0] )
       strcpy(s_szRelayModeDescription, "None");
    return s_szRelayModeDescription;
@@ -1739,10 +1739,10 @@ char* str_format_firmware_type(u32 uFirmwareType)
 {
    static char s_szFormatFirmwareType[32];
    s_szFormatFirmwareType[0] = 0;
- 
+
    if ( uFirmwareType == MODEL_FIRMWARE_TYPE_RUBY )
       strcpy(s_szFormatFirmwareType, "Ruby");
    else
       strcpy(s_szFormatFirmwareType, "Unknown");
-   return s_szFormatFirmwareType;  
+   return s_szFormatFirmwareType;
 }

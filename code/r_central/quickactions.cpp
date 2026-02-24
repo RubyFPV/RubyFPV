@@ -80,7 +80,7 @@ bool quickActionCheckVehicle(const char* szText)
    p->setCentered();
    p->setIconId(g_idIconInfo, get_Color_IconWarning());
    popups_add_topmost(p);
-   return false;  
+   return false;
 }
 
 void executeQuickActionTakePicture()
@@ -131,7 +131,7 @@ void executeQuickActionCycleOSD()
    log_line("Execute quick action to switch OSD screen for VID %u (%s): from layout %d to next one", pModel->uVehicleId, pModel->getShortName(), pModel->osd_params.iCurrentOSDScreen);
 
    int curentLayout = pModel->osd_params.iCurrentOSDScreen;
-   int k=0; 
+   int k=0;
    while ( k < 10 )
    {
       k++;
@@ -139,7 +139,7 @@ void executeQuickActionCycleOSD()
       if ( pModel->osd_params.iCurrentOSDScreen >= osdLayoutLast )
          pModel->osd_params.iCurrentOSDScreen = osdLayout1;
       if ( pModel->osd_params.osd_flags2[pModel->osd_params.iCurrentOSDScreen] & OSD_FLAG2_LAYOUT_ENABLED )
-         break; 
+         break;
    }
 
    if ( curentLayout == pModel->osd_params.iCurrentOSDScreen )
@@ -198,7 +198,7 @@ void executeQuickActionRelaySwitch()
       return;
    if ( get_current_timestamp_ms() < s_uTimeLastQuickActionPress + 500 )
       return;
-   
+
    s_uTimeLastQuickActionPress = get_current_timestamp_ms();
 
    if ( ! link_is_vehicle_online_now(g_pCurrentModel->uVehicleId) )
@@ -231,7 +231,7 @@ void executeQuickActionRelaySwitch()
       popups_add_topmost(p);
       return;
    }
-   
+
    type_relay_parameters newParams;
    memcpy((u8*)&newParams, &(g_pCurrentModel->relay_params), sizeof(type_relay_parameters));
    u32 uOldRelayMode = newParams.uCurrentRelayMode;
@@ -265,7 +265,7 @@ void executeQuickActionRelaySwitch()
       Model * pModel = g_pCurrentModel;
       if ( newParams.uCurrentRelayMode & RELAY_MODE_REMOTE )
          pModel = findModelWithId(g_pCurrentModel->relay_params.uRelayedVehicleId, 50);
-        
+
       if ( NULL != pModel )
       {
          osd_set_current_layout_index_and_source_model(pModel, pModel->osd_params.iCurrentOSDScreen);
@@ -323,14 +323,14 @@ void executeQuickActionSwitchFavoriteVehicle()
    saveControllerModel(g_pCurrentModel);
 
    ruby_set_active_model_id(g_pCurrentModel->uVehicleId);
-   
+
    onMainVehicleChanged(false);
 
    //shared_vars_state_reset_all_vehicles_runtime_info();
    //g_VehiclesRuntimeInfo[0].uVehicleId = g_pCurrentModel->uVehicleId;
    //g_VehiclesRuntimeInfo[0].pModel = g_pCurrentModel;
    //g_iCurrentActiveVehicleRuntimeInfoIndex = 0;
-   
+
    int iIndexRuntime = -1;
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
    {
@@ -381,7 +381,7 @@ void executeQuickActionSwitchFavoriteVehicle()
    send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_SWITCH_FAVORIVE_VEHICLE, uVehicleId);
    char szBuff[256];
    sprintf(szBuff, "Switching to favorite vehicle: %s", pNewVehicle->getLongName());
-   warnings_add(0, szBuff); 
+   warnings_add(0, szBuff);
 
    log_line("Finished QA favorite action to switch current vehicle from VID %u to %u", uOldVehicleId, uVehicleId);
    log_line("--------------------------------------------------------------------------------------------");

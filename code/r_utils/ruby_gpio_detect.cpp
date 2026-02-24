@@ -57,13 +57,13 @@
 
 bool g_bQuit = false;
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("--------------------------");
    log_line("Caught signal to stop: %d", sig);
    log_line("--------------------------");
    g_bQuit = true;
-} 
+}
 
 int main(int argc, char *argv[])
 {
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 
    if ( strcmp(argv[argc-1], "-debug") == 0 )
       log_enable_stdout();
-   
+
    #ifdef HW_CAPABILITY_GPIO
    char szFile[128];
    strcpy(szFile, FOLDER_CONFIG);
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
    while ( ! g_bQuit )
    {
       GPIOInitButtons();
-   
+
       while ( ! g_bQuit )
       {
          hardware_sleep_ms(10);
@@ -150,4 +150,4 @@ int main(int argc, char *argv[])
    log_line("GPIO detection process finished.");
 
    return 0;
-} 
+}

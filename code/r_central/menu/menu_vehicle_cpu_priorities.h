@@ -14,7 +14,7 @@ class MenuVehicleCPUPriorities: public Menu
       virtual void onItemEndEdit(int itemIndex);
       virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
-      
+
    private:
       int m_iIndexAffinities;
       int m_iIndexAffinitiesBalance;
@@ -30,11 +30,11 @@ class MenuVehicleCPUPriorities: public Menu
       int m_iIndexPriorityOthers;
 
       int m_iIndexIONiceRouter, m_iIndexIONiceVideo;
-      
+
       int m_IndexQuery;
       int m_IndexRestart;
       int m_IndexResetPriorities;
-      
+
       MenuItemSlider* m_pItemsSlider[20];
       MenuItemSelect* m_pItemsSelect[20];
 

@@ -29,7 +29,7 @@ class GenericTxECBuffers
       type_generic_tx_ec_packet* getMarkFirstUnsendPacket(u32* puBlockIndex, int* piBufferIndex, int* piPacketIndex);
       u8* getPacket(u32 uBlockIndex, u32 uPacketIndex, int* piOutputSize);
       void markPacketAsSent(int iBufferIndex, u32 uPacketIndex);
-      
+
    protected:
       void _deleteBuffers();
       void _reinitBuffers();

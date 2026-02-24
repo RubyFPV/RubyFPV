@@ -69,7 +69,7 @@ RenderEngineOVG::RenderEngineOVG()
    //InitShapes(&sWidth, &sHeight);
    init(&m_iRenderWidth, &m_iRenderHeight);
    log_line("RendererOVG: Display size is: %d x %d", m_iRenderWidth, m_iRenderHeight);
-   
+
    m_fPixelWidth = 1.0/(float)m_iRenderWidth;
    m_fPixelHeight = 1.0/(float)m_iRenderHeight;
 
@@ -269,7 +269,7 @@ float RenderEngineOVG::textWidth(u32 fontId, const char* szText)
       }
    if ( -1 == indexFont )
       return 0.0;
-   
+
    float fWidth = TextWidth(szText, m_Fonts[indexFont], 1.0*m_iRenderHeight);
    fWidth = fWidth/(float)m_iRenderWidth;
    return fWidth;
@@ -321,14 +321,14 @@ float RenderEngineOVG::getMessageHeight(const char* text, float line_spacing_per
       return 0.0;
 
    float fTextHeight = textHeight(fontId);
-   
+
    char szText[1024];
    strcpy(szText, text );
    const char* szTokens = " \n";
    char* szContext = szText;
    char* szWord = NULL;
    char* szPrevWord = NULL;
-   float height_text = fTextHeight;   
+   float height_text = fTextHeight;
    float h = 0, w = 0;
    float line_width = 0;
    float space_width = TextWidth("_", m_Fonts[indexFont], fTextHeight*m_iRenderHeight);

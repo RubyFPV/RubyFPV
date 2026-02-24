@@ -136,7 +136,7 @@ void MenuSwitchVehicle::onSelectItem()
       Popup* p = new Popup("Switching vehicles...",0.3,0.64, 0.26, 0.2);
       popups_add_topmost(p);
       render_all(get_current_timestamp_ms(), true);
-         
+
       pairing_stop();
       setCurrentModel(pModel->uVehicleId);
       g_pCurrentModel = getCurrentModel();
@@ -147,7 +147,7 @@ void MenuSwitchVehicle::onSelectItem()
 
       g_bIsFirstConnectionToCurrentVehicle = true;
       onMainVehicleChanged(true);
-      pairing_start_normal(); 
+      pairing_start_normal();
    }
 }
 

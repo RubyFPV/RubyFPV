@@ -85,7 +85,7 @@ MenuControllerRadioInterfaces::MenuControllerRadioInterfaces(void)
    {
       radio_hw_info_t* pNIC = hardware_get_radio_info(n);
       t_ControllerRadioInterfaceInfo* pCardInfo = controllerGetRadioCardInfo(pNIC->szMAC);
-      
+
       char szName[128];
       strcpy(szName, "NoName");
 
@@ -125,7 +125,7 @@ void MenuControllerRadioInterfaces::valuesToUI()
    for( int n=0; n<hardware_get_radio_interfaces_count(); n++ )
    {
       radio_hw_info_t* pNIC = hardware_get_radio_info(n);
-      
+
       if ( 1 == hardware_get_radio_interfaces_count() )
       {
          controllerRemoveCardDisabled(pNIC->szMAC);
@@ -153,7 +153,7 @@ void MenuControllerRadioInterfaces::valuesToUI()
 
    m_pMenuItems[m_IndexTXPreferred]->setEnabled(true);
    m_pItemsSelect[1]->addSelection("None");
-      
+
    for( int n=0; n<hardware_get_radio_interfaces_count(); n++ )
    {
       radio_hw_info_t* pNIC = hardware_get_radio_info(n);
@@ -163,7 +163,7 @@ void MenuControllerRadioInterfaces::valuesToUI()
          continue;
 
       t_ControllerRadioInterfaceInfo* pCardInfo = controllerGetRadioCardInfo(pNIC->szMAC);
-      
+
       char szName[128];
       strcpy(szName, "NoName");
 

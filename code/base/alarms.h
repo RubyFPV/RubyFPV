@@ -32,7 +32,7 @@
 #define ALARM_ID_CONTROLLER_NO_INTERFACES_FOR_RADIO_LINK  ((u32)(((u32)0x01)<<18))
 #define ALARM_ID_CONTROLLER_CPU_LOOP_OVERLOAD ((u32)(((u32)0x01)<<19)) // param: low word: loop miliseconds average, highword: loop miliseconds spike
 #define ALARM_ID_CONTROLLER_RX_TIMEOUT  ((u32)(((u32)0x01)<<20)) // param: which interface timedout
-#define ALARM_ID_CONTROLLER_IO_ERROR  ((u32)(((u32)0x01)<<21)) 
+#define ALARM_ID_CONTROLLER_IO_ERROR  ((u32)(((u32)0x01)<<21))
 #define ALARM_ID_CONTROLLER_LOW_STORAGE_SPACE ((u32)(((u32)0x01)<<22))
 #define ALARM_ID_CONTROLLER_STORAGE_WRITE_ERRROR ((u32)(((u32)0x01)<<23))
 #define ALARM_ID_CONTROLLER_PAIRING_COMPLETED ((u32)(((u32)0x01)<<24))
@@ -89,5 +89,5 @@ extern "C" {
 void alarms_to_string(u32 uAlarms, u32 uFlags1, u32 uFlags2, char* szOutput);
 
 #ifdef __cplusplus
-}  
+}
 #endif

@@ -63,7 +63,7 @@ float osd_render_stats_video_bitrate_history_get_height()
    //else
    if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_VIDEO_ADAPTIVE_H264_QUANTIZATION )
       height += hGraph2;
-   
+
    height += 4.0*height_text_small*s_OSDStatsLineSpacing;
    return height;
 }
@@ -74,7 +74,7 @@ float osd_render_stats_video_bitrate_history_get_width()
       return g_fOSDStatsForcePanelWidth;
 
    float width = g_pRenderEngine->textWidth(s_idFontStats, "AAAAAAAA AAAAAAAA AAAAAAAA AAAAAA");
-   
+
    width += 2.0*s_fOSDStatsMargin/g_pRenderEngine->getAspectRatio();
    return width;
 }
@@ -98,7 +98,7 @@ void osd_render_stats_video_bitrate_history(float xPos, float yPos)
    osd_set_colors_background_fill(g_fOSDStatsBgTransparency);
    g_pRenderEngine->drawRoundRect(xPos, yPos, width, height, 1.5*POPUP_ROUND_MARGIN);
    osd_set_colors();
-   
+
 
    xPos += s_fOSDStatsMargin/g_pRenderEngine->getAspectRatio();
    yPos += s_fOSDStatsMargin*0.7;
@@ -110,7 +110,7 @@ void osd_render_stats_video_bitrate_history(float xPos, float yPos)
    //g_pRenderEngine->setColors(get_Color_Dev());
 
    g_pRenderEngine->drawText(xPos, yPos, s_idFontStats, "Video Bitrate");
-   
+
    char szBuff[64];
    sprintf(szBuff, "(Mbps, %d ms/slice)", (int)g_SM_DevVideoBitrateHistory.uGraphSliceInterval);
    osd_show_value_left(rightMargin,yPos, szBuff, s_idFontStatsSmall);
@@ -138,7 +138,7 @@ void osd_render_stats_video_bitrate_history(float xPos, float yPos)
    osd_set_colors_background_fill(g_fOSDStatsBgTransparency);
    g_pRenderEngine->drawRoundRect(xPos, y-height_text_small*0.6, width, yBottomGraph - y + height_text_small*1.2, 1.5*POPUP_ROUND_MARGIN);
    osd_set_colors();
-      
+
    u32 uMaxGraphValue = 0; // In mbps
    for( int i=0; i<(int)g_SM_DevVideoBitrateHistory.uTotalDataPoints; i++ )
    {
@@ -212,16 +212,16 @@ void osd_render_stats_video_bitrate_history(float xPos, float yPos)
 
          g_pRenderEngine->drawLine(xBarMiddle-widthBar, y+hGraph-hDataratePrev, xBarMiddle, y+hGraph-hDataratePrev);
          if ( i != g_SM_DevVideoBitrateHistory.uCurrentDataPoint )
-         if ( fabs(hDatarate-hDataratePrev) >= g_pRenderEngine->getPixelHeight() )           
+         if ( fabs(hDatarate-hDataratePrev) >= g_pRenderEngine->getPixelHeight() )
             g_pRenderEngine->drawLine(xBarMiddle, y+hGraph-hDatarate, xBarMiddle, y+hGraph-hDataratePrev);
-         
+
          g_pRenderEngine->setStroke(250,100,150, s_fOSDStatsGraphLinesAlpha);
 
          g_pRenderEngine->drawLine(xBarMiddle-widthBar, y+hGraph-hDatarateLow, xBarMiddle, y+hGraph-hDatarateLow);
          if ( i != g_SM_DevVideoBitrateHistory.uCurrentDataPoint )
-         if ( fabs(hDatarateLow-hDatarateLowPrev) >= g_pRenderEngine->getPixelHeight() )           
+         if ( fabs(hDatarateLow-hDatarateLowPrev) >= g_pRenderEngine->getPixelHeight() )
             g_pRenderEngine->drawLine(xBarMiddle, y+hGraph-hDatarateLow, xBarMiddle, y+hGraph-hDatarateLowPrev);
-      
+
          if ( g_SM_DevVideoBitrateHistory.history[i-1].uVideoProfileSwitches != g_SM_DevVideoBitrateHistory.history[i].uVideoProfileSwitches )
          if ( (g_SM_DevVideoBitrateHistory.history[i-1].uVideoProfileSwitches>>4) != (g_SM_DevVideoBitrateHistory.history[i].uVideoProfileSwitches>>4) )
          {
@@ -245,7 +245,7 @@ void osd_render_stats_video_bitrate_history(float xPos, float yPos)
    }
    y += hGraph + height_text*0.4;
    g_pRenderEngine->setStrokeSize(1.0);
-   
+
    strcpy(szBuff, "Bitrate: ");
    g_pRenderEngine->drawText(xPos, y, s_idFontStatsSmall, szBuff);
    float fTmpWidth = g_pRenderEngine->textWidth(s_idFontStatsSmall, szBuff);
@@ -275,9 +275,9 @@ void osd_render_stats_video_bitrate_history(float xPos, float yPos)
    g_pRenderEngine->drawText(xPos, y, s_idFontStats, szBuff);
    y += height_text*s_OSDStatsLineSpacing;
    */
-   
+
    strcpy(szBuff, "Current target video bitrate/profile: 0 bps / NA");
-   
+
    char szProfile[64];
    strcpy(szProfile, str_get_video_profile_name(g_SM_DevVideoBitrateHistory.history[0].uVideoProfileSwitches>>4));
    if ( 0 != (g_SM_DevVideoBitrateHistory.history[0].uVideoProfileSwitches & 0x0F) )
@@ -288,14 +288,14 @@ void osd_render_stats_video_bitrate_history(float xPos, float yPos)
    str_format_bitrate(g_SM_DevVideoBitrateHistory.uCurrentTargetVideoBitrate, szTmp);
 
    snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "Current target bitrate/profile: %s / %s", szTmp, szProfile);
-   
+
    g_pRenderEngine->drawText(xPos, y, s_idFontStatsSmall, szBuff);
    y += height_text_small*s_OSDStatsLineSpacing;
 
    sprintf(szBuff, "Overflowing now at: %d", g_SM_DevVideoBitrateHistory.uQuantizationOverflowValue);
    g_pRenderEngine->drawText(xPos, y, s_idFontStatsSmall, szBuff);
    y += height_text_small*s_OSDStatsLineSpacing;
-   
+
    strcpy(szBuff, "Auto Quantization: On");
    if (!((g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags) & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_VIDEO_ADAPTIVE_H264_QUANTIZATION) )
       strcpy(szBuff, "Auto Quantization: Off");
@@ -306,7 +306,7 @@ void osd_render_stats_video_bitrate_history(float xPos, float yPos)
    // Second graph
 
    if ( g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_ENABLE_VIDEO_ADAPTIVE_H264_QUANTIZATION )
-   {   
+   {
       u32 uMaxQuant = 0;
       u32 uMinQuant = 1000;
       for( int i=0; i<(int)g_SM_DevVideoBitrateHistory.uTotalDataPoints; i++ )
@@ -350,7 +350,7 @@ void osd_render_stats_video_bitrate_history(float xPos, float yPos)
       g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
       //g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
       //g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
-      
+
       for( float i=0; i<=widthGraph-2.0*wPixel; i+= 5*wPixel )
       {
          g_pRenderEngine->drawLine(xPos+dxGraph+i, y, xPos + dxGraph + i + 2.0*wPixel, y);
@@ -362,29 +362,29 @@ void osd_render_stats_video_bitrate_history(float xPos, float yPos)
       xBarMiddle = xPos + dxGraph + widthBar*0.5 - g_pRenderEngine->getPixelWidth();
 
       g_pRenderEngine->setStroke(150,200,250, s_fOSDStatsGraphLinesAlpha*0.9);
-            
+
       g_pRenderEngine->setStrokeSize(2.0);
 
       for( int i=0; i<(int)g_SM_DevVideoBitrateHistory.uTotalDataPoints; i++ )
       {
          float hVideoQuantization = (g_SM_DevVideoBitrateHistory.history[i].uVideoQuantization-uMinQuant)*hGraph2/uMaxDelta;
-    
+
          if ( (g_SM_DevVideoBitrateHistory.history[i].uVideoQuantization == 0xFF) ||
               (i > 0 && g_SM_DevVideoBitrateHistory.history[i-1].uVideoQuantization == 0xFF ) )
          {
-    
+
             g_pRenderEngine->setFill(100,100,200, s_fOSDStatsGraphLinesAlpha*0.6);
-            g_pRenderEngine->setStroke(150,200,250, s_fOSDStatsGraphLinesAlpha*0.9*0.6);   
+            g_pRenderEngine->setStroke(150,200,250, s_fOSDStatsGraphLinesAlpha*0.9*0.6);
             g_pRenderEngine->setStrokeSize(0.0);
-         
+
             g_pRenderEngine->drawRect(xBarMiddle-widthBar*0.5, y+4.0*g_pRenderEngine->getPixelHeight(), widthBar, hGraph2-8.0*g_pRenderEngine->getPixelHeight());
-    
-            g_pRenderEngine->setStroke(150,200,250, s_fOSDStatsGraphLinesAlpha*0.9);   
+
+            g_pRenderEngine->setStroke(150,200,250, s_fOSDStatsGraphLinesAlpha*0.9);
             g_pRenderEngine->setStrokeSize(2.0);
          }
          else if ( i != 0 )
             g_pRenderEngine->drawLine(xBarMiddle, y+hGraph2-hVideoQuantization, xBarMiddle+widthBar, y+hGraph2-hVideoQuantizationPrev);
-    
+
          hVideoQuantizationPrev = hVideoQuantization;
          xBarMiddle += widthBar;
       }

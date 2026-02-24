@@ -21,7 +21,7 @@ typedef struct
 
 #ifdef __cplusplus
 extern "C" {
-#endif  
+#endif
 
 void packets_queue_init(t_packet_queue* pQueue);
 
@@ -38,6 +38,6 @@ u8* packets_queue_pop_packet_and_time(t_packet_queue* pQueue, int* pLength, u32*
 u8* packets_queue_peek_packet(t_packet_queue* pQueue, int index, int* pLength);
 
 #ifdef __cplusplus
-}  
+}
 #endif
 

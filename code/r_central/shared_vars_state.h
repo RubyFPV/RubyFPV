@@ -25,11 +25,11 @@ typedef struct
 extern t_structure_file_upload g_CurrentUploadingFile;
 extern bool g_bHasFileUploadInProgress;
 
-typedef struct 
+typedef struct
 {
    u32 uVehicleId;
    Model* pModel;
-   
+
    // Ruby telemetry
 
    bool bGotRubyTelemetryInfo;
@@ -78,7 +78,7 @@ typedef struct
 
    char szLastMessageFromFC[FC_MESSAGE_MAX_LENGTH];
    u32 uTimeLastMessageFromFC;
-   
+
    // Other info
 
    bool bLinkLost;
@@ -103,7 +103,7 @@ typedef struct
    bool bWaitingForModelSettings;
    u32 uTimeLastReceivedModelSettings;
    u8  uTmpLastThrottledFlags;
-   
+
    int tmp_iCountRubyTelemetryPacketsFull;
    int tmp_iCountRubyTelemetryPacketsShort;
    int tmp_iCountFCTelemetryPacketsFull;

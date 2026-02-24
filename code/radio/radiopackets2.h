@@ -333,7 +333,7 @@ typedef struct
    //  6: set video bitrate
    //  7: set keyframe ms
    //  8: last frame timers
-   
+
    u32 uStreamInfo; // value dependent on uStreamInfoFlags;
 
    u8  uCurrentVideoLinkProfile;
@@ -370,7 +370,7 @@ typedef struct
    u32 uTime2; // local timestamp sent to radio tx;
    u32 uTime3; // local timestamp received;
    u32 uTime4; // local timestamp sent to video streamer;
-      
+
 } __attribute__((packed)) t_packet_header_video_segment_debug_info;
 
 
@@ -452,10 +452,10 @@ typedef struct
 {
    u16 uRubyFlags;    // see above
    u8  uFCFlags;
-   u8  rubyVersion;  // version x.y 4bits each        
+   u8  rubyVersion;  // version x.y 4bits each
    u8  radio_links_count;
    u32 uRadioFrequenciesKhz[3]; // lowest 31 bits: frequency. highest bit: 0 - regular link, 1 - relay link
-   
+
    u8 flight_mode;
    u8 throttle;
    u16 voltage; // 1/1000 volts
@@ -464,7 +464,7 @@ typedef struct
    u32 altitude_abs; // 1/100 meters -1000 m
    u32 distance; // 1/100 meters
    u16 heading;
-   
+
    u32 vspeed; // 1/100 meters -1000 m
    u32 aspeed; // airspeed (1/100 meters - 1000 m)
    u32 hspeed; // 1/100 meters -1000 m
@@ -514,7 +514,7 @@ typedef struct // introduced in version 7.4
 typedef struct // introduced in version 10.4
 {
    u16 uRubyFlags;    // see above
-   u8  rubyVersion;  // version x.y 4bits each        
+   u8  rubyVersion;  // version x.y 4bits each
    u32 uVehicleId; // to which vehicle this telemetry refers to
    u8  vehicle_type;
          // semantic changed in version 8.0
@@ -587,7 +587,7 @@ typedef struct // introduced in version 11.2
    u8  uplink_rc_rssi;      // 0...100, 255 - not available
    u8  uplink_mavlink_rc_rssi; // 0...100, 255 - not available
    u8  uplink_mavlink_rx_rssi; // 0...100, 255 - not available
-   
+
    int iTxPowers[6]; // current Tx powers, per radio link, in mW. positive: as set, negative: adjusted down
    u16 txTimePerSec; // miliseconds
    u16 uExtraRubyFlags; // see above
@@ -629,7 +629,7 @@ typedef struct // introduced in version 11.5
    u8  uplink_rc_rssi;      // 0...100, 255 - not available
    u8  uplink_mavlink_rc_rssi; // 0...100, 255 - not available
    u8  uplink_mavlink_rx_rssi; // 0...100, 255 - not available
-   
+
    int iTxPowers[MAX_RADIO_INTERFACES]; // current Tx powers, per radio link, in mW. positive: as set, negative: adjusted down
    u16 uDummyT1; // deprecated in 11.5
    u16 uExtraRubyFlags; // see above
@@ -637,7 +637,7 @@ typedef struct // introduced in version 11.5
    u8 extraSize; // Extra info as part of the packet, after headers, can be retransmission info
 } __attribute__((packed)) t_packet_header_ruby_telemetry_extended_v6;
 
-// Flags for structure t_packet_header_ruby_telemetry_extended_extra_info 
+// Flags for structure t_packet_header_ruby_telemetry_extended_extra_info
 #define FLAG_RUBY_TELEMETRY_EXTRA_INFO_IS_VALID ((u32)(((u32)0x01)<<1))
 
 typedef struct
@@ -659,7 +659,7 @@ typedef struct
    u16 totalReceivedRetransmissionsRequestsSegmentsUnique;
    u16 totalReceivedRetransmissionsRequestsSegmentsDuplicate;
    u16 totalReceivedRetransmissionsRequestsSegmentsRetried;
-      
+
    u16 totalReceivedRetransmissionsRequestsUniqueLast5Sec;
    u16 totalReceivedRetransmissionsRequestsDuplicateLast5Sec;
 
@@ -704,7 +704,7 @@ typedef struct
    u8 temperatureC; // temperature - 100 degree celsius (value 100 = 0 celsius)
    // Changed in v7.5 to 2 8 bit values
    //u16 fc_kbps; // kbits/s serial link volume from FC to Pi
-   u8 fc_hudmsgpersec; // low 4 bits: heartbeat messages/sec; high 4 bits: system messages/sec; 
+   u8 fc_hudmsgpersec; // low 4 bits: heartbeat messages/sec; high 4 bits: system messages/sec;
    u8 fc_kbps;
    u8 rc_rssi;
    u8 extra_info[12];
@@ -938,7 +938,7 @@ byte 4: command type:
 
 #ifdef __cplusplus
 extern "C" {
-#endif  
+#endif
 
 void radio_packet_init(t_packet_header* pPH, u8 component, u8 packet_type, u32 uStreamId);
 void radio_packet_compute_crc(u8* pBuffer, int length);

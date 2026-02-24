@@ -165,7 +165,7 @@ int _GPIOTryPullUpDown(int iPin, int iPullDirection)
       log_line("Failed set GPIO pin %d to input.", iPin);
       failed = 1;
    }
-   
+
    char szComm[64];
    sprintf(szComm, "raspi-gpio set %d ip %s 2>&1", iPin, (iPullDirection==0)?"pd":"pu");
    hw_execute_bash_command_silent(szComm, NULL);
@@ -451,7 +451,7 @@ int GPIOInitButtons()
    }
 
    char szComm[64];
-   
+
    if ( GPIOGetPinMenu() > 0 )
    {
    sprintf(szComm, "raspi-gpio set %d ip 2>&1", GPIOGetPinMenu());
