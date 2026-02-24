@@ -13,9 +13,9 @@ class MenuCalibrateHDMI: public Menu
       virtual int onBack();
       virtual void onSelectItem();
       virtual void valuesToUI();
-            
+
    private:
-      
+
       MenuItemSlider* m_pItemsSlider[15];
       MenuItemSelect* m_pItemsSelect[20];
       MenuItemRange* m_pItemsRange[15];

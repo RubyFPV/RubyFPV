@@ -74,7 +74,7 @@ class RenderEngine
      virtual void setFill(const double* pColor);
      virtual void setFill(float r, float g, float b, float a);
      virtual void setStroke(const double* color);
-     virtual void setStroke(const double* color, float fStrokeSize); 
+     virtual void setStroke(const double* color, float fStrokeSize);
      virtual void setStroke(float r, float g, float b, float a);
      virtual float getStrokeSize();
      virtual void setStrokeSize(float fStrokeSize);
@@ -126,7 +126,7 @@ class RenderEngine
      virtual float getMessageWidth(const char* text, float max_width, u32 fontId);
      virtual float getMessageHeight(const char* text, float line_spacing_percent, float max_width, u32 fontId);
      virtual float drawMessageLines(float xPos, float yPos, const char* text, float line_spacing_percent, float max_width, u32 fontId);
-     
+
      virtual void drawLine(float x1, float y1, float x2, float y2);
      virtual void drawRect(float xPos, float yPos, float fWidth, float fHeight);
      virtual void drawRoundRect(float xPos, float yPos, float fWidth, float fHeight, float fCornerRadius);
@@ -169,7 +169,7 @@ class RenderEngine
       bool m_bHighlightFirstWord;
       bool m_bDrawBackgroundBoundingBoxes;
       bool m_bDrawBackgroundBoundingBoxesTextUsesSameStrokeColor;
-      
+
       float m_fBoundingBoxPadding;
 
       bool m_bDisableTextOutline;
@@ -200,5 +200,5 @@ void render_free_engine();
 extern "C" {
 
 void render_engine_test();
-}  
+}
 

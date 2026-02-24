@@ -155,7 +155,7 @@ void media_scan_files()
    char szOutBuff[1024];
 
    _media_remove_invalid_files();
- 
+
 
    // Count files in a folder:
    // ls media/ | grep picture- | wc -l
@@ -199,7 +199,7 @@ char* media_get_screenshot_filename()
       strcpy(vehicle_name, g_pCurrentModel->vehicle_name);
    if ( (0 == strlen(vehicle_name)) || (1 == strlen(vehicle_name) && vehicle_name[0] == ' ') )
       strcpy(vehicle_name, "none");
-    
+
    str_sanitize_filename(vehicle_name);
 
    sprintf(s_szMediaCurrentScreenshotFileName, FILE_FORMAT_SCREENSHOT, vehicle_name, s_iMediaBootCount, g_TimeNow/1000, g_TimeNow%1000 );

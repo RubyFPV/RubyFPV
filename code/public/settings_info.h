@@ -13,7 +13,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif   
+#endif
 
 typedef unsigned int u32;
 typedef unsigned short u16;
@@ -40,5 +40,5 @@ typedef struct
 } ALIGN_STRUCT_SPEC_INFO plugin_settings_info_t2_extra;
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

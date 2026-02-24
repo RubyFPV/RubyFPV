@@ -56,7 +56,7 @@ MenuVehiclePeripherals::MenuVehiclePeripherals(void)
    m_xPos = menu_get_XStartPos(m_Width);
    m_yPos = 0.4;
    m_bWaitingForVehicleInfo = false;
-   
+
    char szBuff[256];
 
    addMenuItem(new MenuItemSection("Serial Ports"));
@@ -67,7 +67,7 @@ MenuVehiclePeripherals::MenuVehiclePeripherals(void)
          addSeparator();
       u32 uUsage = g_pCurrentModel->hardwareInterfacesInfo.serial_port_supported_and_usage[i] & 0xFF;
       sprintf( szBuff, "%s Usage:", g_pCurrentModel->hardwareInterfacesInfo.serial_port_names[i] );
-      
+
       m_pItemsSelect[i*2] = new MenuItemSelect(szBuff);
       if ( ! (g_pCurrentModel->hardwareInterfacesInfo.serial_port_supported_and_usage[i] & MODEL_SERIAL_PORT_BIT_SUPPORTED) )
       {
@@ -147,7 +147,7 @@ void MenuVehiclePeripherals::valuesToUI()
       }
 
       m_pItemsSelect[i*2]->setEnabled(true);
-      
+
       u32 uUsage = g_pCurrentModel->hardwareInterfacesInfo.serial_port_supported_and_usage[i] & 0xFF;
       if ( uUsage == SERIAL_PORT_USAGE_SIK_RADIO )
       {
@@ -216,9 +216,9 @@ void MenuVehiclePeripherals::valuesToUI()
 void MenuVehiclePeripherals::Render()
 {
    RenderPrepare();
-   float yTop = RenderFrameAndTitle();   
+   float yTop = RenderFrameAndTitle();
    float y = yTop;
- 
+
    for( int i=0; i<m_ItemsCount; i++ )
       y += RenderItem(i,y);
    RenderEnd(yTop);

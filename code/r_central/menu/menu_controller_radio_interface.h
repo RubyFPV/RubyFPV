@@ -11,7 +11,7 @@ class MenuControllerRadioInterface: public Menu
 {
    public:
       MenuControllerRadioInterface(int iInterfaceIndex);
-      virtual void onShow(); 
+      virtual void onShow();
       virtual void Render();
       virtual void valuesToUI();
       virtual int onBack();
@@ -27,7 +27,7 @@ class MenuControllerRadioInterface: public Menu
       MenuItemSlider* m_pItemsSlider[10];
       MenuItemEdit*   m_pItemsEdit[10];
       Popup* m_pPopupProgress;
-      
+
       int m_iInterfaceIndex;
 
       int m_IndexTXPreferred;

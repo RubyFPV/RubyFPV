@@ -15,10 +15,10 @@ class MenuVehicleVideo: public Menu
       void showCompact();
       virtual void onShow();
       virtual void Render();
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
       virtual void valuesToUI();
-            
+
    private:
       type_video_capture_resolution_info* m_pVideoResolutions;
       int m_iVideoResolutionsCount;

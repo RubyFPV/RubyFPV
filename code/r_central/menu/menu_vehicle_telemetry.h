@@ -13,7 +13,7 @@ class MenuVehicleTelemetry: public Menu
       virtual void Render();
       virtual void onSelectItem();
       virtual void valuesToUI();
-            
+
    private:
       void addItems();
       MenuItemSelect* m_pItemsSelect[15];

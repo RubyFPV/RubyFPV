@@ -99,7 +99,7 @@ MenuControllerVideo::MenuControllerVideo(void)
    m_Width = 0.36;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.25;
    float fSliderWidth = 0.12 * m_sfScaleFactor;
-   
+
    char szBuff[64];
 
    snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), L("Current real display resolution: %dx%d"),
@@ -119,7 +119,7 @@ MenuControllerVideo::MenuControllerVideo(void)
    }
    m_pItemsSelect[0]->setIsEditable();
    m_IndexHDMIRes = addMenuItem(m_pItemsSelect[0]);
-   
+
    m_pItemsSelect[3] = new MenuItemSelect(L("HDMI refresh rate"), L("Sets the HDMI refresh rate for the display."));
    m_pItemsSelect[3]->setIsEditable();
    m_IndexHDMIRefreshRate = addMenuItem(m_pItemsSelect[3]);
@@ -319,7 +319,7 @@ void MenuControllerVideo::valuesToUI()
    {
       if ( -1 != m_IndexStreamerMode )
          m_pItemsSelect[7]->setSelectedIndex(g_pControllerSettings->iStreamerOutputMode);
-   
+
       if ( -1 != m_IndexMPPBuffers )
          m_pItemsSlider[5]->setCurrentValue(g_pControllerSettings->iVideoMPPBuffersSize);
 
@@ -412,7 +412,7 @@ void MenuControllerVideo::onSelectItem()
       snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "sed -i 's/config_hdmi_boost=[0-9]*/config_hdmi_boost=%d/g' config.txt", hdmi_boost);
       hw_execute_bash_command(szBuff, NULL);
       hw_execute_bash_command("cp config.txt /boot/config.txt", NULL);
-      
+
       save_ControllerSettings();
       return;
    }
@@ -464,7 +464,7 @@ void MenuControllerVideo::onSelectItem()
 
    if ( m_IndexCalibrateHDMI == m_SelectedIndex )
    {
-      add_menu_to_stack(new MenuCalibrateHDMI());      
+      add_menu_to_stack(new MenuCalibrateHDMI());
       return;
    }
 
@@ -587,7 +587,7 @@ void MenuControllerVideo::onSelectItem()
       pairing_start_normal();
       return;
    }
-  
+
    if ( m_IndexWaitFullFrame == m_SelectedIndex )
    {
       g_pControllerSettings->iWaitFullFrameForOutput = m_pItemsSelect[8]->getSelectedIndex();

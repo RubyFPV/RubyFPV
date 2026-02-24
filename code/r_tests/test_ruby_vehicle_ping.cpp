@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
          continue;
       for(int i=0; i<hardware_get_radio_interfaces_count(); i++)
       {
-         radio_hw_info_t* pNICInfo = hardware_get_radio_info(i);         
+         radio_hw_info_t* pNICInfo = hardware_get_radio_info(i);
          if(FD_ISSET(pNICInfo->monitor_interface.selectable_fd, &readset))
          {
             printf("\nReceived some data\n");

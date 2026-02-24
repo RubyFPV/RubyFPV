@@ -46,7 +46,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/socket.h> 
+#include <sys/socket.h>
 #include <getopt.h>
 #include <poll.h>
 #include <sched.h>
@@ -139,7 +139,7 @@ void _video_source_majestic_check_cores_affinities_balance()
 
    int iCPUCoreMaj = hw_process_get_current_core(iPIDMajestic);
    int iCPUCoreRuby = hw_process_get_current_core(getpid());
-   
+
    log_line("[VideoSourceMaj] Current CPU core for majestic is: %d, for ruby_rt_vehicle is: %d, %s", iCPUCoreMaj, iCPUCoreRuby, (iCPUCoreMaj == iCPUCoreRuby)?"the same":"are different");
    if ( iCPUCoreMaj == iCPUCoreRuby )
        _video_source_majestic_move_ruby_to_other_cores();
@@ -199,7 +199,7 @@ int _video_source_majestic_open(int iUDPPort)
 
    if ( 0 != setsockopt(s_fInputVideoStreamUDPSocket, SOL_SOCKET, SO_RXQ_OVFL, (const void *)&optval , sizeof(optval)) )
        log_softerror_and_alarm("[VideoSourceMaj] Unable to set SO_RXQ_OVFL: %s", strerror(errno));
-   
+
    int iRecvSize = 0;
    socklen_t iParamLen = sizeof(iRecvSize);
    getsockopt(s_fInputVideoStreamUDPSocket, SOL_SOCKET, SO_RCVBUF, &iRecvSize, &iParamLen);
@@ -213,12 +213,12 @@ int _video_source_majestic_open(int iUDPPort)
    iParamLen = sizeof(iRecvSize);
    getsockopt(s_fInputVideoStreamUDPSocket, SOL_SOCKET, SO_RCVBUF, &iRecvSize, &iParamLen);
    log_line("[VideoSourceMaj] New current socket recv buffer size: %d (requested: %d)", iRecvSize, iWantedRecvSize);
- 
+
    memset(&server_addr, 0, sizeof(server_addr));
    server_addr.sin_family = AF_INET;
    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
    server_addr.sin_port = htons((unsigned short)s_iInputVideoStreamUDPPort );
- 
+
    if( bind(s_fInputVideoStreamUDPSocket,(struct sockaddr *)&server_addr, sizeof(server_addr)) < 0 )
    {
       log_error_and_alarm("[VideoSourceMaj] Failed to bind socket for video stream to port %d.", s_iInputVideoStreamUDPPort);
@@ -228,7 +228,7 @@ int _video_source_majestic_open(int iUDPPort)
    }
 
    log_line("[VideoSourceMaj] Opened read socket on port %d for reading video stream. socket fd = %d", s_iInputVideoStreamUDPPort, s_fInputVideoStreamUDPSocket);
-   
+
    return s_fInputVideoStreamUDPSocket;
 }
 
@@ -534,7 +534,7 @@ int _video_source_majestic_try_read_input_udp_data(bool bAsync)
                 if ( uDelta > 255 )
                    uDelta = 255;
                 uFlags2 |= (uDelta & 0xFF) << 16;
-                
+
                 send_alarm_to_controller(ALARM_ID_DEVELOPER_ALARM, ALARM_FLAG_DEVELOPER_ALARM_UDP_SKIPPED | ((uDroppedCount & 0xFF) << 8), uFlags2, 5);
              }
 
@@ -585,13 +585,13 @@ int _video_source_majestic_try_read_input_udp_data(bool bAsync)
 
       struct sockaddr_in client_addr;
       socklen_t len = sizeof(client_addr);
-      
+
       memset(&client_addr, 0, sizeof(client_addr));
       client_addr.sin_family = AF_INET;
       client_addr.sin_addr.s_addr = INADDR_ANY;
       client_addr.sin_port = htons( s_iInputVideoStreamUDPPort );
 
-      nRecvBytes = recvfrom(s_fInputVideoStreamUDPSocket, s_uInputVideoUDPBuffer, sizeof(s_uInputVideoUDPBuffer)/sizeof(s_uInputVideoUDPBuffer[0]), 
+      nRecvBytes = recvfrom(s_fInputVideoStreamUDPSocket, s_uInputVideoUDPBuffer, sizeof(s_uInputVideoUDPBuffer)/sizeof(s_uInputVideoUDPBuffer[0]),
                 MSG_WAITALL, ( struct sockaddr *) &client_addr,
                 &len);
       //int nRecv = recv(socket_server, szBuff, 1024, )
@@ -619,13 +619,13 @@ int _video_source_majestic_parse_rtp_data(u8* pInputRawData, int iInputBytes)
       log_softerror_and_alarm("[VideoSourceMaj] Process RTP packet too small, only %d bytes", iInputBytes);
       return 0;
    }
- 
+
    int iRTPHeaderLength = 0;
    if ( (pInputRawData[0] & 0x80) && (pInputRawData[1] & 0x60) )
       iRTPHeaderLength = 12;
 
    // ----------------------------------------------
-   // Begin - Check RTP sequence number   
+   // Begin - Check RTP sequence number
    bool bHasPadding = ((pInputRawData[0]>>5) & 0x01)?true:false;
    u8  uRTPPacketType = (pInputRawData[1] & 0x7F);
    u16 uRTPSeqNb = (((u16)pInputRawData[2]) << 8) | pInputRawData[3];
@@ -691,18 +691,18 @@ int _video_source_majestic_parse_rtp_data(u8* pInputRawData, int iInputBytes)
          iOutputSize -= iPaddingBytes;
       return iOutputSize;
    }
-   
+
    // Fragmentation unit (fragmented NAL over multiple packets)
 
    s_bLastReadIsSingleNAL = false;
    s_bLastReadIsEndNAL = false;
    s_bLastReadIsStartNAL = false;
 
-   
+
    u8 uFUStartBit = 0;
    u8 uFUEndBit = 0;
 
-   if ( uFragmentTypeH264 == 28 ) 
+   if ( uFragmentTypeH264 == 28 )
    {
       if ( iInputBytes < 2 )
       {
@@ -722,7 +722,7 @@ int _video_source_majestic_parse_rtp_data(u8* pInputRawData, int iInputBytes)
       pInputRawData++;
       iInputBytes--;
    }
-   else 
+   else
    {
       if ( iInputBytes < 3 )
       {
@@ -753,7 +753,7 @@ int _video_source_majestic_parse_rtp_data(u8* pInputRawData, int iInputBytes)
    if ( uFUEndBit )
       s_bLastReadIsEndNAL = true;
 
-   if (uFUStartBit) 
+   if (uFUStartBit)
    {
       uNALOutputHeader[0] = 0;
       uNALOutputHeader[1] = 0;
@@ -801,7 +801,7 @@ void _parse_stream(unsigned char* pBuffer, int iLength)
          s_uTimeLastNAL = uTime;
          s_uNALSize = 0;
       }
-   } 
+   }
 }
 */
 
@@ -849,12 +849,12 @@ int video_source_majestic_get_audio_data(u8* pOutputBuffer, int iMaxToRead)
 {
    if ( (NULL == pOutputBuffer) || (iMaxToRead < 0 ) )
       return 0;
-   
+
    int iRead = s_iInputMajAudioBufferBytes;
    if ( iRead > iMaxToRead )
       iRead = iMaxToRead;
    memcpy(pOutputBuffer, s_uInputMajAudioBuffer, iRead);
- 
+
    if ( iRead == s_iInputMajAudioBufferBytes )
       s_iInputMajAudioBufferBytes = 0;
    else
@@ -949,7 +949,7 @@ bool video_source_majestic_periodic_health_checks()
    if ( g_TimeNow > hardware_camera_maj_get_last_change_time() + 5000 )
    {
       log_softerror_and_alarm("[VideoSourceMaj] majestic is not generating any video stream. Restart it.");
-      
+
       signal_start_long_op();
       video_source_majestic_stop_program();
       s_bIsRestartingMajestic = true;
@@ -962,7 +962,7 @@ bool video_source_majestic_periodic_health_checks()
       }
       send_alarm_to_controller(ALARM_ID_VIDEO_CAPTURE_MALFUNCTION,0,0, 5);
 
-      // Restart did not worked. Do hard restart 
+      // Restart did not worked. Do hard restart
       if ( s_iCountMajestigProcessNotRunningChecks >= 2 )
       {
          // Do a full restart of vehicle
@@ -975,9 +975,9 @@ bool video_source_majestic_periodic_health_checks()
          {
             sem_post(pSem);
             sem_close(pSem);
-            log_line("[VideoSourceMaj] Signaled semaphore to restart all procs."); 
+            log_line("[VideoSourceMaj] Signaled semaphore to restart all procs.");
          }
-         
+
          s_iCountMajestigProcessNotRunningChecks = -2;
          return true;
       }
@@ -991,7 +991,7 @@ bool video_source_majestic_periodic_health_checks()
       hw_init_worker_thread_attrs(&attr, iCoreAffinity, -1, SCHED_OTHER, 0, "maj restart");
 
       if ( 0 != pthread_create(&s_pThreadRestartMajestic, &attr, &_thread_restart_majestic, NULL) )
-      {  
+      {
          log_softerror_and_alarm("[VideoSourceMaj] Failed to create thread to stop/restart majestic. Do it manually.");
          _restart_majestic_procedure();
          _video_source_majestic_open(MAJESTIC_UDP_PORT);
@@ -1017,7 +1017,7 @@ bool video_source_majestic_periodic_health_checks()
          log_softerror_and_alarm("[VideoSourceMaj] Current majestic NAL size now: % bytes",
             hardware_camera_maj_get_current_nal_size());
 
-         hardware_camera_maj_update_nal_size(g_pCurrentModel);        
+         hardware_camera_maj_update_nal_size(g_pCurrentModel);
          video_source_majestic_clear_input_buffers();
       }
    }

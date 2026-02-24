@@ -59,7 +59,7 @@ void controller_launch_router(bool bSearchMode, int iFirmwareType)
    szParams[0] = 0;
    if ( bSearchMode )
    {
-   
+
       if ( (g_iSearchSiKAirDataRate >= 0) && (iFirmwareType == MODEL_FIRMWARE_TYPE_RUBY) )
       {
          if ( g_pControllerSettings->iPrioritiesAdjustment && (g_pControllerSettings->iThreadPriorityRouter > 100) )
@@ -77,7 +77,7 @@ void controller_launch_router(bool bSearchMode, int iFirmwareType)
    else
    {
       if ( g_pControllerSettings->iPrioritiesAdjustment && (g_pControllerSettings->iThreadPriorityRouter > 100) )
-         sprintf(szPrefix, "nice -n %d", g_pControllerSettings->iThreadPriorityRouter - 120);    
+         sprintf(szPrefix, "nice -n %d", g_pControllerSettings->iThreadPriorityRouter - 120);
       #ifdef HW_CAPABILITY_IONICE
       if ( g_pControllerSettings->iPrioritiesAdjustment && (g_pControllerSettings->ioNiceRouter > 0) )
       {
@@ -188,7 +188,7 @@ const char* controller_validate_radio_settings(Model* pModel, u32* pVehicleNICFr
                sprintf(s_szControllerCardError, s_szControllerCardErrorFrequency, str_format_frequency(uFreq1));
                return s_szControllerCardError;
             }
-            
+
             if ( pModel->relay_params.isRelayEnabledOnRadioLinkId >= 0 )
             if ( pModel->relay_params.uRelayedVehicleId != 0 )
             if ( pModel->relay_params.uRelayedVehicleId != MAX_U32 )
@@ -197,11 +197,11 @@ const char* controller_validate_radio_settings(Model* pModel, u32* pVehicleNICFr
             {
                sprintf(s_szControllerCardError, "You can't set frequency %s, it's used for relaying.", str_format_frequency(uFreq1));
                return s_szControllerCardError;
-            }        
+            }
          }
       }
    }
-   
+
 
    // Check [all cards disabled] on vehicle
 

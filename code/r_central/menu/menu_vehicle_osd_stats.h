@@ -13,7 +13,7 @@ class MenuVehicleOSDStats: public Menu
       virtual void onShow();
       virtual void Render();
       virtual void onSelectItem();
-            
+
    private:
       int m_IndexFontSize, m_IndexTransparency, m_IndexFitWidgets;
       int m_IndexStatsRadioLinks, m_IndexStatsRadioInterfaces, m_IndexVehicleRadioRxStats, m_IndexStatsDecode;

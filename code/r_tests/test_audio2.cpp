@@ -62,7 +62,7 @@ void* _thread_audio_queueing_playback(void *argument)
       int iReadSize = 0;
       u32 uTimeStart = get_current_timestamp_ms();
       u32 uTimeEnd = 0;
-      
+
       FD_ZERO(&readSet);
       FD_SET(s_fPipeAudioPlayerQueueRead, &readSet);
       FD_ZERO(&exceSet);
@@ -102,7 +102,7 @@ void* _thread_audio_queueing_playback(void *argument)
       if ( s_bStopThreadAudioQueueing )
          break;
 
-   
+
       if ( s_fPipeAudioPlayerOutput > 0 )
       {
          uTimeStart = get_current_timestamp_ms();
@@ -143,7 +143,7 @@ void* _thread_audio_buffering_playback(void *argument)
       int iReadSize = 0;
       u32 uTimeStart = get_current_timestamp_ms();
       u32 uTimeEnd = 0;
-      
+
       FD_ZERO(&readSet);
       FD_SET(s_fPipeAudioBufferRead, &readSet);
       FD_ZERO(&exceSet);
@@ -230,11 +230,11 @@ void* _thread_audio_buffering_playback(void *argument)
 }
 
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    g_bQuit = true;
-} 
+}
 
 
 int main(int argc, char *argv[])
@@ -248,14 +248,14 @@ int main(int argc, char *argv[])
       printf("  usebuffers: -1 no buff, x how much buffer\n\n");
       return -1;
    }
-   
+
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
-   
+
    log_init("TA");
    log_enable_stdout();
-   
+
    strcpy(g_szSpeed, argv[1]);
    strcpy(g_szFormat, argv[2]);
    strcpy(g_szFlags, argv[3]);
@@ -310,7 +310,7 @@ int main(int argc, char *argv[])
    log_line("Player pipe FIFO default size: %d bytes", fcntl(s_fPipeAudioPlayerOutput, F_GETPIPE_SZ));
    //fcntl(s_fPipeAudioPlayerOutput, F_SETPIPE_SZ, 250000);
    //log_line("Player pipe FIFO new size: %d bytes", fcntl(s_fPipeAudioPlayerOutput, F_GETPIPE_SZ));
-   
+
 
    log_line("Prepare to streaming data...");
    for( int i=0; i<4; i++ )
@@ -318,7 +318,7 @@ int main(int argc, char *argv[])
 
 
    if ( g_iBufferPacketsCount >= 0 )
-   { 
+   {
       s_fPipeAudioPlayerQueueRead = open(FIFO_RUBY_AUDIO_QUEUE, O_CREAT | O_RDONLY | O_NONBLOCK);
       if ( s_fPipeAudioPlayerQueueRead <= 0 )
       {
@@ -440,7 +440,7 @@ int main(int argc, char *argv[])
       {
          if ( iCountReads < 8 )
             bSkip = true;
-         
+
          if ( NULL != strstr(g_szFlags, "1") )
          {
             if ( 0 == iCountSkips )
@@ -507,7 +507,7 @@ int main(int argc, char *argv[])
 
    hw_stop_process("aplay");
    fclose(fp);
-   
+
    if ( -1 != s_fPipeAudioPlayerOutput )
       close(s_fPipeAudioPlayerOutput);
    s_fPipeAudioPlayerOutput = -1;
@@ -519,7 +519,7 @@ int main(int argc, char *argv[])
    if ( -1 != s_fPipeAudioPlayerQueueRead )
       close(s_fPipeAudioPlayerQueueRead);
    s_fPipeAudioPlayerQueueRead = -1;
-   
+
    if ( s_fPipeAudioBufferWrite > 0 )
       close(s_fPipeAudioBufferWrite);
    s_fPipeAudioBufferWrite = -1;
@@ -543,4 +543,4 @@ int main(int argc, char *argv[])
    s_bThreadAudioQueueingStarted = false;
 
    return 0;
-} 
+}

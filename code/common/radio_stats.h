@@ -4,7 +4,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif  
+#endif
 
 void shared_mem_radio_stats_rx_hist_reset(shared_mem_radio_stats_rx_hist* pStats);
 void shared_mem_radio_stats_rx_hist_update(shared_mem_radio_stats_rx_hist* pStats, int iInterfaceIndex, u8* pPacket, u32 uTimeNow);
@@ -38,5 +38,5 @@ int radio_stats_get_reset_stream_lost_packets_flags(shared_mem_radio_stats* pSMR
 
 u32 radio_stats_get_time_last_received_packet_on_stream(shared_mem_radio_stats* pSMRS, u32 uVehicleId, u32 uStreamIndex);
 #ifdef __cplusplus
-}  
+}
 #endif

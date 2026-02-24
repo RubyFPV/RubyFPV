@@ -24,5 +24,5 @@ void radio_tx_set_serial_packet_size(int iRadioInterfaceIndex, int iSerialPacket
 int radio_tx_send_serial_radio_packet(int iRadioInterfaceIndex, u8* pData, int iDataLength);
 
 #ifdef __cplusplus
-}  
+}
 #endif

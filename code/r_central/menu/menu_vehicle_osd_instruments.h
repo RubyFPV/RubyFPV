@@ -14,7 +14,7 @@ class MenuVehicleOSDInstruments: public Menu
       virtual void onSelectItem();
       virtual void onItemValueChanged(int itemIndex);
       virtual void valuesToUI();
-            
+
    private:
       MenuItemSlider* m_pItemsSlider[15];
       MenuItemSelect* m_pItemsSelect[50];

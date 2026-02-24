@@ -106,8 +106,8 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
 {
    if ( NULL == g_pEngine || NULL == pTelemetryInfo || NULL == pCurrentSettings )
       return;
-   
-   
+
+
    char szBuff[64];
 
    float fBackgroundAlpha = pCurrentSettings->fBackgroundAlpha;
@@ -121,7 +121,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
    draw_shadow(g_pEngine, xCenter, yCenter, fRadius);
 
    g_pEngine->setColors(g_pEngine->getColorOSDInstruments());
-   
+
    //u32 fontId = g_pEngine->getFontIdRegular();
    //float height_text = g_pEngine->textHeight(fontId);
 
@@ -133,7 +133,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
    g_pEngine->setStrokeSize(0.0);
    g_pEngine->fillCircle(xCenter, yCenter, fRadius);
    g_pEngine->setColors(g_pEngine->getColorOSDInstruments());
-   
+
    fRadius = fRadius*0.98;
 
    float xp[64];
@@ -421,7 +421,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
    g_pEngine->setColors(g_pEngine->getColorOSDInstruments());
 
    g_pEngine->setStroke(colorGradations, 3.0);
-   
+
    for( float fAngle = 0; fAngle<360; fAngle += 10 )
    {
       float fFinalAngle = fAngle + 90.0 + (float) pTelemetryInfo->heading;
@@ -468,5 +468,5 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
 }
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

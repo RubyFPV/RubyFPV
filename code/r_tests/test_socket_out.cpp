@@ -16,12 +16,12 @@
 
 bool bQuit = false;
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    bQuit = true;
-} 
-  
+}
+
 int main(int argc, char *argv[])
 {
    signal(SIGINT, handle_sigint);
@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
    if ( argc >= 2 )
       port = atoi(argv[1]);
 
-   
+
    struct addrinfo hints;
    memset(&hints,0,sizeof(hints));
    hints.ai_family=AF_UNSPEC;
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 
    int socketfd;
    struct sockaddr_in server_addr;
-	
+
    socketfd = socket(AF_INET , SOCK_DGRAM, 0);
    //socketfd = socket(AF_INET,SOCK_DGRAM,res->ai_protocol);
    if (socketfd == -1)
@@ -63,12 +63,12 @@ int main(int argc, char *argv[])
    }
 
    memset(&server_addr, 0, sizeof(server_addr));
-    
+
    server_addr.sin_family = AF_INET;
    //server_addr.sin_addr.s_addr = inet_addr("192.168.42.129");
    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
    server_addr.sin_port = htons( port );
-	
+
    log_line("Sending data on port %d ...", port);
 
    while (!bQuit)
@@ -76,8 +76,8 @@ int main(int argc, char *argv[])
       log_line("Sending data...");
       sendto(socketfd, "Hello", 4,
         0, (struct sockaddr *)&server_addr, sizeof(server_addr) );
-    
-       hardware_sleep_ms(500);  
+
+       hardware_sleep_ms(500);
    }
 
    close(socketfd);

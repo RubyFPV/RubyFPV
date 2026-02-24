@@ -23,7 +23,7 @@ typedef struct
    // Helper configure tool info
    bool bConfiguringToolInProgress; // SiK configuring is in progress using the helper tool
    u32  uTimeStartConfiguring; // start time of the SiK configure helper tool
-   
+
    bool bInterfacesToReopen[MAX_RADIO_INTERFACES]; // SiK interfaces to reopen after the worker thread or helper tool finishes
 
 } ALIGN_STRUCT_SPEC_INFO t_sik_radio_state;

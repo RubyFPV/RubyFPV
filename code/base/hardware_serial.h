@@ -3,7 +3,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 #define MAX_SERIAL_PORT_NAME 64
 #define MAX_SERIAL_PORTS 6
@@ -49,5 +49,5 @@ int hardware_serial_send_sik_command(int iSerialPortFD, const char* szCommand);
 int hardware_serial_wait_sik_response(int iSerialPortFD, int iTimeoutMS, int iMinimumLines, u8* pOutputBuffer, int* pInOutputLength);
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

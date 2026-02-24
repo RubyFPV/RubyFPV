@@ -130,12 +130,12 @@ void MenuItemVehicle::Render(float xPos, float yPos, bool bSelected, float fWidt
       pModel = getSpectatorModel(m_iVehicleIndex);
    else
       pModel = getModelAtIndex(m_iVehicleIndex);
-   
+
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
    u32 idIcon = 0;
    if ( NULL != pModel )
       idIcon = osd_getVehicleIcon(pModel->vehicle_type);
-   
+
    bool bIsCurrentVehicle = false;
    bool bIsCurrentSpectatorVehicle = false;
    if ( !m_bIsSpectator )
@@ -153,7 +153,7 @@ void MenuItemVehicle::Render(float xPos, float yPos, bool bSelected, float fWidt
     double pC[4];
    memcpy(pC, get_Color_MenuBg(), 4*sizeof(double));
    pC[0] += 40; pC[1] += 35; pC[2] += 30;
-         
+
    if ( bIsCurrentVehicle )
    {
       g_pRenderEngine->setColors(get_Color_MenuText());

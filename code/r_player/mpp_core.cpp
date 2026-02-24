@@ -145,7 +145,7 @@ int _mpp_init_frames(MppFrame pFrame)
       memset(&(g_Frames[i].drmBufferInfo), 0, sizeof(type_drm_buffer));
       struct drm_mode_create_dumb creq;
       struct drm_prime_handle dph;
- 
+
       uint32_t handles[4] = {0}, pitches[4] = {0}, offsets[4] = {0};
 
       memset(&creq, 0, sizeof(creq));
@@ -172,9 +172,9 @@ int _mpp_init_frames(MppFrame pFrame)
       {
          iRet = ioctl(ruby_drm_core_get_fd(), DRM_IOCTL_PRIME_HANDLE_TO_FD, &dph);
       } while (iRet == -1 && (errno == EINTR || errno == EAGAIN));
-  
+
       g_Frames[i].drmBufferInfo.uBufferId = dph.fd;
-  
+
       MppBufferInfo info;
       memset(&info, 0, sizeof(info));
       info.type = MPP_BUFFER_TYPE_DRM;
@@ -195,12 +195,12 @@ int _mpp_init_frames(MppFrame pFrame)
      memset(offsets, 0, sizeof(offsets));
      handles[0] = g_Frames[i].drmBufferInfo.uHandle;
      offsets[0] = 0;
-     pitches[0] = stride_h;      
+     pitches[0] = stride_h;
      handles[1] = g_Frames[i].drmBufferInfo.uHandle;
      offsets[1] = pitches[0] * stride_v;
      pitches[1] = pitches[0];
      drmModeAddFB2(ruby_drm_core_get_fd(), w, h, DRM_FORMAT_NV12, handles, pitches, offsets, &(g_Frames[i].drmBufferInfo.uBufferId), 0);
-     
+
      log_line("[MPP] Allocated new (%d) DRM FB buffer: handle: %u, fb_id: %u",
          i, g_Frames[i].drmBufferInfo.uHandle, g_Frames[i].drmBufferInfo.uBufferId);
    }
@@ -208,13 +208,13 @@ int _mpp_init_frames(MppFrame pFrame)
    // Register external frame group
    g_pMPPApi->control(g_MPPCtx, MPP_DEC_SET_EXT_BUF_GROUP, g_MPPBufferGroup);
    g_pMPPApi->control(g_MPPCtx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
-   
+
    ruby_drm_set_video_source_size(w, h);
    ruby_drm_core_set_plane_properties_and_buffer(g_Frames[0].drmBufferInfo.uBufferId);
    g_bMPPFramesBuffersInitialised = true;
 
    u32 uTimeDiff = get_current_timestamp_ms() - uTimeStart;
-   
+
    log_line("[MPP] Init frames (%d frames) done (took %u ms)", g_iMPPBuffersSize, uTimeDiff);
    return 0;
 }
@@ -291,7 +291,7 @@ void* _mpp_thread_frame_decode(void *param)
    MppFrame pFrame  = NULL;
 
    log_line("[MPPThreadDecoder] Start main thread loop...");
-   while ( (!g_bMPPFrameEOS) && (!g_bQuit) ) 
+   while ( (!g_bMPPFrameEOS) && (!g_bQuit) )
    {
       g_pMPPApi->decode_get_frame(g_MPPCtx, &pFrame);
       if ( g_bQuit )
@@ -324,7 +324,7 @@ void* _mpp_thread_frame_decode(void *param)
 
       // Regular frame
       g_pSMProcessStats->uLoopCounter3++;
-     
+
       if ( 0 == g_uTimeFirstFrame )
       {
          //log_line("[MPPThreadDecoder] Received first frame.");
@@ -352,7 +352,7 @@ void* _mpp_thread_frame_decode(void *param)
          //   log_line("[MPPThreadDecoder] Diff now index: %d, prev index: %d", iPrimeIndex, s_iLastPrimeBufferIndex);
          //log_line("[MPPThreadDecoder] Received a frame in primeId buffer index %d (max %d)", iPrimeIndex, g_iMPPBuffersSize);
          //s_iLastPrimeBufferIndex = iPrimeIndex;
-         
+
          if ( (-1 != iPrimeIndex) && (! g_bQuit) )
          {
             //ruby_drm_core_set_plane_buffer(g_Frames[iPrimeIndex].drmBufferInfo.uBufferId);
@@ -368,7 +368,7 @@ void* _mpp_thread_frame_decode(void *param)
             }
          }
       }
-      
+
       g_bMPPFrameEOS = (mpp_frame_get_eos(pFrame))?true:false;
       mpp_frame_deinit(&pFrame);
       pFrame = NULL;
@@ -444,7 +444,7 @@ int mpp_init(bool bUseH265Decoder, int iMPPBuffersSize, u32 uCPUAffinityMask, in
    g_iMPPBuffersSize = iMPPBuffersSize;
    if ( (g_iMPPBuffersSize < 5) || (g_iMPPBuffersSize >= MAX_VIDEO_FRAMES) )
       g_iMPPBuffersSize = 32;
-     
+
    int iRes = mpp_check_support_format(MPP_CTX_DEC, g_MPPDecodeType);
    if ( iRes != 0 )
    {
@@ -484,13 +484,13 @@ int mpp_init(bool bUseH265Decoder, int iMPPBuffersSize, u32 uCPUAffinityMask, in
       sem_close(g_pSemaphoreMPPDisplayFrameReadyRead);
    if ( NULL != g_pSemaphoreMPPDisplayFrameReadyWrite )
       sem_close(g_pSemaphoreMPPDisplayFrameReadyWrite);
-   
+
    sem_unlink(SEMAPHORE_MPP_DISPLAY_FRAME_READY);
    g_pSemaphoreMPPDisplayFrameReadyWrite = sem_open(SEMAPHORE_MPP_DISPLAY_FRAME_READY, O_CREAT | O_RDWR, S_IWUSR | S_IRUSR, 0);
    if ( (NULL == g_pSemaphoreMPPDisplayFrameReadyWrite) || (SEM_FAILED == g_pSemaphoreMPPDisplayFrameReadyWrite) )
    {
       log_error_and_alarm("[MPP] Failed to create write semaphore: %s, try alternative.", SEMAPHORE_MPP_DISPLAY_FRAME_READY);
-      g_pSemaphoreMPPDisplayFrameReadyWrite = sem_open(SEMAPHORE_MPP_DISPLAY_FRAME_READY, O_CREAT, S_IWUSR | S_IRUSR, 0); 
+      g_pSemaphoreMPPDisplayFrameReadyWrite = sem_open(SEMAPHORE_MPP_DISPLAY_FRAME_READY, O_CREAT, S_IWUSR | S_IRUSR, 0);
       if ( (NULL == g_pSemaphoreMPPDisplayFrameReadyWrite) || (SEM_FAILED == g_pSemaphoreMPPDisplayFrameReadyWrite) )
       {
          log_error_and_alarm("[MPP] Failed to create write semaphore: %s", SEMAPHORE_MPP_DISPLAY_FRAME_READY);
@@ -505,7 +505,7 @@ int mpp_init(bool bUseH265Decoder, int iMPPBuffersSize, u32 uCPUAffinityMask, in
    if ( (NULL == g_pSemaphoreMPPDisplayFrameReadyRead) || (SEM_FAILED == g_pSemaphoreMPPDisplayFrameReadyRead) )
    {
       log_error_and_alarm("[MPP] Failed to create read semaphore: %s, try alternative.", SEMAPHORE_MPP_DISPLAY_FRAME_READY);
-      g_pSemaphoreMPPDisplayFrameReadyRead = sem_open(SEMAPHORE_MPP_DISPLAY_FRAME_READY, O_CREAT, S_IWUSR | S_IRUSR, 0); 
+      g_pSemaphoreMPPDisplayFrameReadyRead = sem_open(SEMAPHORE_MPP_DISPLAY_FRAME_READY, O_CREAT, S_IWUSR | S_IRUSR, 0);
       if ( (NULL == g_pSemaphoreMPPDisplayFrameReadyRead) || (SEM_FAILED == g_pSemaphoreMPPDisplayFrameReadyRead) )
       {
          log_error_and_alarm("[MPP] Failed to create read semaphore: %s", SEMAPHORE_MPP_DISPLAY_FRAME_READY);
@@ -569,7 +569,7 @@ int mpp_uninit()
    g_iMPPFrameBufferIndexToDisplay = -1;
    if ( (NULL == g_pSemaphoreMPPDisplayFrameReadyWrite) || (0 != sem_post(g_pSemaphoreMPPDisplayFrameReadyWrite)) )
       log_softerror_and_alarm("Failed to signal semaphore for display frame to quit.");
-  
+
    g_pMPPApi->reset(g_MPPCtx);
    if ( g_MPPBufferGroup )
    {
@@ -586,7 +586,7 @@ int mpp_uninit()
          //} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
       }
    }
-  
+
    mpp_packet_deinit(&g_MPPInputPacket);
    mpp_destroy(g_MPPCtx);
    free(g_pInputBuffer);

@@ -12,7 +12,7 @@ class MenuVehicle: public Menu
       virtual bool periodicLoop();
       virtual void onSelectItem();
 
-   protected:    
+   protected:
       u16 m_Flags;
       float m_fIconSize;
       void addTopDescription();

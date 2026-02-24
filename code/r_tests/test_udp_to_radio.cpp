@@ -10,11 +10,11 @@
 #include <sys/resource.h>
 #include <stdio.h>
 #include <sys/stat.h>
-#include <sys/socket.h> 
+#include <sys/socket.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/socket.h> 
+#include <sys/socket.h>
 #include <getopt.h>
 #include <poll.h>
 
@@ -77,7 +77,7 @@ int read_async_udp(int fSocket, u8* pOutput)
 
    if ( ! (fds[0].revents & POLLIN) )
       return 0;
-    
+
 
    struct iovec iov = { .iov_base = (void*)bufvideoin,
                                       .iov_len = sizeof(bufvideoin) };
@@ -118,12 +118,12 @@ int read_async_udp(int fSocket, u8* pOutput)
    return (int)rsize;
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    bQuit = true;
-} 
-  
+}
+
 int main(int argc, char *argv[])
 {
    signal(SIGINT, handle_sigint);
@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
 
    int socket_server, socket_client;
    struct sockaddr_in server_addr, client_addr;
-	
+
    socket_server = socket(AF_INET , SOCK_DGRAM, 0);
    if (socket_server == -1)
    {
@@ -192,11 +192,11 @@ int main(int argc, char *argv[])
 
    memset(&server_addr, 0, sizeof(server_addr));
    memset(&client_addr, 0, sizeof(client_addr));
-    
+
    server_addr.sin_family = AF_INET;
    server_addr.sin_addr.s_addr = INADDR_ANY;
    server_addr.sin_port = htons( udpport );
-	
+
    client_addr.sin_family = AF_INET;
    client_addr.sin_addr.s_addr = INADDR_ANY;
    client_addr.sin_port = htons( udpport );
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
    u32 uBytesRead = 0;
    u32 uBytesWritten = 0;
    u32 uLoopsPerSec = 0;
-   
+
    while (!bQuit)
    {
       uTimeNow = get_current_timestamp_ms();
@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
 
 
          socklen_t len = sizeof(client_addr);
-         nRecv = recvfrom(socket_server, uBuffer, 1200, 
+         nRecv = recvfrom(socket_server, uBuffer, 1200,
                    MSG_WAITALL, ( struct sockaddr *) &client_addr,
                    &len);
          //int nRecv = recv(socket_server, szBuff, 1024, )

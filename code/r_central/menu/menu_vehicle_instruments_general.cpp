@@ -45,7 +45,7 @@ MenuVehicleInstrumentsGeneral::MenuVehicleInstrumentsGeneral(void)
    for( int i=0; i<20; i++ )
       m_pItemsSelect[i] = NULL;
 
-   m_pItemsSelect[10] = new MenuItemSelect(L("Display Units"), L("Changes how the OSD displays data: in metric system or imperial system."));  
+   m_pItemsSelect[10] = new MenuItemSelect(L("Display Units"), L("Changes how the OSD displays data: in metric system or imperial system."));
    m_pItemsSelect[10]->addSelection(L("Metric (km/h)"));
    m_pItemsSelect[10]->addSelection(L("Metric (m/s)"));
    m_pItemsSelect[10]->addSelection(L("Imperial (mi/h)"));
@@ -53,7 +53,7 @@ MenuVehicleInstrumentsGeneral::MenuVehicleInstrumentsGeneral(void)
    m_pItemsSelect[10]->setIsEditable();
    m_IndexUnits = addMenuItem(m_pItemsSelect[10]);
 
-   m_pItemsSelect[12] = new MenuItemSelect(L("Display Units (Heights)"), L("Changes how the OSD displays heights: in metric system or imperial system."));  
+   m_pItemsSelect[12] = new MenuItemSelect(L("Display Units (Heights)"), L("Changes how the OSD displays heights: in metric system or imperial system."));
    //m_pItemsSelect[12]->addSelection("Metric (km)");
    m_pItemsSelect[12]->addSelection(L("Metric (m)"));
    //m_pItemsSelect[12]->addSelection("Imperial (mi)");
@@ -68,7 +68,7 @@ MenuVehicleInstrumentsGeneral::MenuVehicleInstrumentsGeneral(void)
    m_IndexTemp = addMenuItem(m_pItemsSelect[13]);
 
 
-   m_pItemsSelect[1] = new MenuItemSelect(L("Instruments Size"), L("Increase/decrease instruments sizes."));  
+   m_pItemsSelect[1] = new MenuItemSelect(L("Instruments Size"), L("Increase/decrease instruments sizes."));
    m_pItemsSelect[1]->addSelection("Smallest");
    m_pItemsSelect[1]->addSelection("Smaller");
    m_pItemsSelect[1]->addSelection("Small");
@@ -78,7 +78,7 @@ MenuVehicleInstrumentsGeneral::MenuVehicleInstrumentsGeneral(void)
    m_pItemsSelect[1]->addSelection("Largest");
    m_pItemsSelect[1]->addSelection("XLarge");
    m_IndexAHISize = addMenuItem(m_pItemsSelect[1]);
- 
+
    m_pItemsSelect[2] = new MenuItemSelect(L("Instruments Line Thickness"), L("Sets the thickness of instruments elements"));
    m_pItemsSelect[2]->addSelection("Smallest");
    m_pItemsSelect[2]->addSelection("Small");
@@ -86,14 +86,14 @@ MenuVehicleInstrumentsGeneral::MenuVehicleInstrumentsGeneral(void)
    m_pItemsSelect[2]->addSelection("Big");
    m_pItemsSelect[2]->addSelection("Biggest");
    m_IndexAHIStrokeSize = addMenuItem(m_pItemsSelect[2]);
-   
+
    m_pItemsSelect[9] = new MenuItemSelect(L("Flash OSD on Telemetry Lost"), L("Flashes the OSD whenever a telemetry data packet is lost."));
    m_pItemsSelect[9]->addSelection(L("No"));
    m_pItemsSelect[9]->addSelection(L("Yes"));
    m_pItemsSelect[9]->setIsEditable();
    m_iIndexFlashOSDOnTelemLost = addMenuItem(m_pItemsSelect[9]);
 
-   m_pItemsSelect[3] = new MenuItemSelect(L("Altitude type"), L("Shows the vehicle altitude relative to sea level or relative to the starting position."));  
+   m_pItemsSelect[3] = new MenuItemSelect(L("Altitude type"), L("Shows the vehicle altitude relative to sea level or relative to the starting position."));
    m_pItemsSelect[3]->addSelection(L("Absolute"));
    m_pItemsSelect[3]->addSelection(L("Relative"));
    m_pItemsSelect[3]->setIsEditable();
@@ -105,25 +105,25 @@ MenuVehicleInstrumentsGeneral::MenuVehicleInstrumentsGeneral(void)
    m_pItemsSelect[6]->setIsEditable();
    m_IndexLocalVertSpeed = addMenuItem(m_pItemsSelect[6]);
 
-   m_pItemsSelect[4] = new MenuItemSelect(L("Revert Pitch"), L("Reverses the rotation direction of the pitch axis. Impacts only on the AHI gauge."));  
+   m_pItemsSelect[4] = new MenuItemSelect(L("Revert Pitch"), L("Reverses the rotation direction of the pitch axis. Impacts only on the AHI gauge."));
    m_pItemsSelect[4]->addSelection(L("No"));
    m_pItemsSelect[4]->addSelection(L("Yes"));
    m_pItemsSelect[4]->setUseMultiViewLayout();
    m_IndexRevertPitch = addMenuItem(m_pItemsSelect[4]);
 
-   m_pItemsSelect[5] = new MenuItemSelect(L("Revert Roll"), L("Reverses the rotation direction of the roll axis. Impacts only on the AHI gauge."));  
+   m_pItemsSelect[5] = new MenuItemSelect(L("Revert Roll"), L("Reverses the rotation direction of the roll axis. Impacts only on the AHI gauge."));
    m_pItemsSelect[5]->addSelection(L("No"));
    m_pItemsSelect[5]->addSelection(L("Yes"));
    m_pItemsSelect[5]->setUseMultiViewLayout();
    m_IndexRevertRoll = addMenuItem(m_pItemsSelect[5]);
 
-   m_pItemsSelect[7] = new MenuItemSelect(L("Main Speed"), L("Shows the air speed or ground speed as the main speed indicator."));  
+   m_pItemsSelect[7] = new MenuItemSelect(L("Main Speed"), L("Shows the air speed or ground speed as the main speed indicator."));
    m_pItemsSelect[7]->addSelection(L("Ground"));
    m_pItemsSelect[7]->addSelection(L("Air"));
    m_pItemsSelect[7]->setUseMultiViewLayout();
    m_IndexAHIShowAirSpeed = addMenuItem(m_pItemsSelect[7]);
 
-   m_pItemsSelect[8] = new MenuItemSelect(L("Battery Cells"), L("How many cells (in series) does the vehicle battery has."));  
+   m_pItemsSelect[8] = new MenuItemSelect(L("Battery Cells"), L("How many cells (in series) does the vehicle battery has."));
    m_pItemsSelect[8]->addSelection(L("Auto Detect"));
    m_pItemsSelect[8]->addSelection("1 cell");
    m_pItemsSelect[8]->addSelection("2 cells");
@@ -303,7 +303,7 @@ void MenuVehicleInstrumentsGeneral::onSelectItem()
       }
       sendToVehicle = true;
    }
-   
+
    if ( m_IndexLocalVertSpeed == m_SelectedIndex )
    {
       if ( 0 == m_pItemsSelect[6]->getSelectedIndex() )
@@ -335,7 +335,7 @@ void MenuVehicleInstrumentsGeneral::onSelectItem()
          for( int i=0; i<MODEL_MAX_OSD_SCREENS; i++ )
             params.osd_flags[i] |= OSD_FLAG_REVERT_ROLL;
       sendToVehicle = true;
-   } 
+   }
 
    if ( m_IndexAHIShowAirSpeed == m_SelectedIndex )
    {

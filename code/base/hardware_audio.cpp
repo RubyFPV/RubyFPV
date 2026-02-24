@@ -173,7 +173,7 @@ int hardware_audio_play_file(const char* szFile)
 
    char szComm[256];
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "aplay -q %s 2>/dev/null 1>/dev/null", szFile);
-   
+
    #if defined (HW_PLATFORM_RADXA)
    char szDevice[64];
    szDevice[0] = 0;
@@ -197,7 +197,7 @@ void* _thread_audio_play_async(void *argument)
    log_line("[HardwareAudio] Playing file: %s", s_szAudioFilePlayAsync);
    char szComm[256];
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "aplay -q %s 2>/dev/null 1>/dev/null &", s_szAudioFilePlayAsync);
-   
+
    #if defined (HW_PLATFORM_RADXA)
    char szDevice[64];
    szDevice[0] = 0;
@@ -205,7 +205,7 @@ void* _thread_audio_play_async(void *argument)
       strcpy(szDevice, "-D hw:CARD=rockchiphdmi0 ");
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "aplay -q %s%s 2>/dev/null 1>/dev/null &", szDevice, s_szAudioFilePlayAsync);
    #endif
-   
+
    hw_execute_bash_command_nonblock(szComm, NULL);
    log_line("[HardwareAudio] Ended thread to play file async.");
    return NULL;

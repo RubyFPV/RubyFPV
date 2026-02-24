@@ -187,7 +187,7 @@ void ParserH264::_parseDetectedStartOfNALUnit(u32 uTimeNow)
    m_uLastNALUType = m_uCurrentNALUType;
    m_uCurrentNALUType = m_uStreamCurrentParsedToken & 0b11111;
    m_uSizeLastFrame = m_uSizeCurrentFrame;
-   
+
    m_uTimeLastNALStart = uTimeNow;
    m_uSizeCurrentFrame = 0;
 
@@ -206,7 +206,7 @@ void ParserH264::_parseDetectedStartOfNALUnit(u32 uTimeNow)
          }
          if ( ! m_bDetectedFirstKeyframe )
             m_iFramesSinceLastFPSCompute = 0;
-  
+
          m_bDetectedFirstKeyframe = true;
          m_iFramesSinceLastKeyframe = 0;
       }

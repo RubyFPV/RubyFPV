@@ -14,7 +14,7 @@ extern "C" {
 #include <drm.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
-#include <drm_fourcc.h> 
+#include <drm_fourcc.h>
 }
 #endif
 
@@ -101,7 +101,7 @@ int _hdmi_detect_current_mode()
    if ( 0 != szBuff[0] )
       sscanf(szBuff, "%d", &hgroup);
 
-   szBuff[0] = 0;   
+   szBuff[0] = 0;
    hw_execute_bash_command_silent("cat /boot/config.txt | grep hdmi_mode | sed -r 's/[=]+//g' | sed -r 's/[hdmi_mode]+//g'", szBuff);
    if ( 0 != szBuff[0] )
       sscanf(szBuff, "%d", &hmode);
@@ -156,13 +156,13 @@ int _hdmi_detect_current_mode()
       log_softerror_and_alarm("[HDMI] Cannot retrieve DRM resources (%d)", errno);
       return -errno;
    }
- 
+
    if ( pAllDRMResources->count_connectors <= 0 )
    {
       log_softerror_and_alarm("[HDMI] No connectors available (%d)", errno);
       return -1;
    }
- 
+
    log_line("[HDMI] Finding resources (%d connectors, %d crtcs)...",
       pAllDRMResources->count_connectors, pAllDRMResources->count_crtcs);
 
@@ -283,7 +283,7 @@ int hdmi_load_current_mode()
    {
       log_softerror_and_alarm("[HDMI] Can't read user set HDMI mode. Invalid file.");
       fclose(fd);
-      return -1;    
+      return -1;
    }
    fclose(fd);
 
@@ -480,7 +480,7 @@ int hdmi_get_best_resolution_index_for(int iWidth, int iHeight, int iRefresh)
    log_line("[HDMI] Supported resolutions (%d):", s_nHDMI_ResolutionCount);
    for( int i=0; i<s_nHDMI_ResolutionCount; i++ )
       log_line("[HDMI] Resolution index %d: %d x %d", i, s_nHDMI_ResolutionWidth[i], s_nHDMI_ResolutionHeight[i]);
-   
+
    int indexResolution = -1;
    for( int i=0; i<s_nHDMI_ResolutionCount; i++ )
    {
@@ -516,7 +516,7 @@ int hdmi_get_best_resolution_index_for(int iWidth, int iHeight, int iRefresh)
       // Return mode 0
       s_nHDMI_CurrentResolutionIndex = 0;
       s_nHDMI_CurrentResolutionRefreshIndex = 0;
-      return 0;    
+      return 0;
    }
 
    int indexRefresh = -1;

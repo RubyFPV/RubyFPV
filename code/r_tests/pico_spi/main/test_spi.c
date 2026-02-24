@@ -49,7 +49,7 @@ int main()
          gpio_put(LED_PIN, led);
          printf("ld %d\n", led);
          k++;
-      } 
+      }
    }
    printf("SPI pins: %d, %d, %d, %d", SPI_CLK, SPI_CS, SPI_MOSI, SPI_MISO);
 

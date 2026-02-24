@@ -41,7 +41,7 @@ class MenuControllerVideo: public Menu
 
       int m_IndexAudioVolume;
       int m_IndexAudioTest;
-      
+
       int m_hdmigroupOrg;
       int m_hdmimodeOrg;
 };

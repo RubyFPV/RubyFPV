@@ -16,7 +16,7 @@ class MenuVehicleVideoEncodings: public Menu
       bool m_bShowRetransmissions;
       bool m_bShowEC;
       bool m_bShowH264;
-      
+
    private:
       void addItems();
       void checkAddWarningInMenu();

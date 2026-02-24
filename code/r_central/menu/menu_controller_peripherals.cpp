@@ -127,10 +127,10 @@ void MenuControllerPeripherals::addItems()
          addSeparator();
 
       u32 uUsage = (u32)pInfo->iPortUsage;
-      
+
       snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "%s Usage", pInfo->szName );
       m_pItemsSelect[10+i*2] = new MenuItemSelect(szBuff, L("Enables this serial port on the controller for a particular use."));
-      
+
       if ( uUsage == SERIAL_PORT_USAGE_SIK_RADIO )
       {
          m_pItemsSelect[10+i*2]->addSelection("None");
@@ -146,7 +146,7 @@ void MenuControllerPeripherals::addItems()
          m_pItemsSelect[10+i*2]->addSelection(str_get_serial_port_usage(SERIAL_PORT_USAGE_SERIAL_RADIO_ELRS_915));
          m_pItemsSelect[10+i*2]->addSelection(str_get_serial_port_usage(SERIAL_PORT_USAGE_SERIAL_RADIO_ELRS_24));
          m_iSerialBuiltInOptionsCount = 7;
-         
+
          for( int n=0; n<get_CorePluginsCount(); n++ )
          {
             char szOption[128];
@@ -241,7 +241,7 @@ void MenuControllerPeripherals::valuesToUI()
    }
 
    for( int i=0; i<hardware_serial_get_ports_count(); i++ )
-   {  
+   {
       hw_serial_port_info_t* pInfo = hardware_get_serial_port_info(i);
       if ( NULL == pInfo )
          continue;
@@ -400,7 +400,7 @@ bool MenuControllerPeripherals::periodicLoop()
       if ( percent > 100 ) percent = 100;
       sprintf(szBuff, "Enumerating I2C devices %d%%. Please wait...", percent);
       m_pItemWait->setTitle(szBuff);
-      invalidate();     
+      invalidate();
    }
    if ( m_nSearchI2CDeviceAddress >= 128 )
    {
@@ -421,7 +421,7 @@ void MenuControllerPeripherals::addI2CDevices()
       if ( s_nMenuControllerI2CDevices[i] <= 0 )
          continue;
       t_i2c_device_settings* pInfo = hardware_i2c_get_device_settings((u8)s_nMenuControllerI2CDevices[i]);
-      if ( NULL == pInfo ) 
+      if ( NULL == pInfo )
          continue;
       if ( i == I2C_DEVICE_ADDRESS_PICO_EXTENDER )
       {
@@ -578,7 +578,7 @@ void MenuControllerPeripherals::onSelectItem()
          send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
          valuesToUI();
          return;
-      } 
+      }
 
       if ( m_IndexSerialSpeed[i] == m_SelectedIndex && (! m_pMenuItems[m_SelectedIndex]->isEditing()) )
       {
@@ -610,7 +610,7 @@ void MenuControllerPeripherals::onSelectItem()
       if ( s_nMenuControllerI2CDevices[i] <= 0 )
          continue;
       t_i2c_device_settings* pInfo = hardware_i2c_get_device_settings((u8)s_nMenuControllerI2CDevices[i]);
-      if ( NULL == pInfo ) 
+      if ( NULL == pInfo )
          continue;
 
       if ( m_IndexI2CDevices[devIndex] == m_SelectedIndex && (! m_pMenuItems[m_SelectedIndex]->isEditing()) )

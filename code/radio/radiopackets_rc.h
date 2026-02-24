@@ -46,12 +46,12 @@ typedef struct
 
 #ifdef __cplusplus
 extern "C" {
-#endif  
+#endif
 
 void packet_header_rc_full_set_rc_channel_value(t_packet_header_rc_full_frame_upstream* pphrc, u16 ch, u16 val);
 u16 packet_header_rc_full_get_rc_channel_value(t_packet_header_rc_full_frame_upstream* pphrc, u16 ch);
 
 #ifdef __cplusplus
-}  
+}
 #endif
 

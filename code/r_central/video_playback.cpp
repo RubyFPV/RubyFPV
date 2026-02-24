@@ -120,7 +120,7 @@ void video_playback_play_file(const char* szVideoInfoFile)
    {
       send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_PAUSE_LOCAL_VIDEO_DISPLAY, 1);
       hardware_sleep_ms(200);
-   }  
+   }
    #ifdef HW_PLATFORM_RASPBERRY
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "./%s -file %s%s -fps %d", VIDEO_PLAYER_OFFLINE, FOLDER_MEDIA, szFile, iFPS);
    #endif
@@ -194,7 +194,7 @@ void video_playback_stop()
 
    log_line("VideoPlayback: Stopping video playback...");
    hw_stop_process(VIDEO_PLAYER_OFFLINE);
- 
+
    g_bIsVideoPlaying = false;
    render_all(get_current_timestamp_ms(), true);
 
@@ -203,7 +203,7 @@ void video_playback_stop()
    char szComm[256];
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s", CONFIG_FILE_FULLPATH_PAUSE_VIDEO_PLAYER);
    hw_execute_bash_command(szComm, NULL);
-      
+
    if ( pairing_isStarted() )
       send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_PAUSE_LOCAL_VIDEO_DISPLAY, 0);
 
@@ -214,7 +214,7 @@ void _video_playback_read_next_srt_frame()
 {
    if ( (NULL == s_pFilePlaybackSRT) || (g_uVideoPlayingTimeMs < s_uTimeSRTCurrentFrameEnd) )
       return;
-   
+
    int iFrame = 0;
    char szStartTime[128];
    char szEndTime[128];
@@ -279,7 +279,7 @@ void _video_playback_read_next_osd_frame()
 {
    if ( (NULL == s_pFilePlaybackOSD) || (g_uVideoPlayingTimeMs <= s_uTimeOSDCurrentFrameStart) )
       return;
-   
+
    u8 uBuffer[128];
    u16 uBuffer16[MAX_MSP_CHARS_BUFFER];
    if ( 0 == s_uCountOSDFramesRead )
@@ -301,7 +301,7 @@ void _video_playback_read_next_osd_frame()
       return;
    }
    memcpy((u8*)&s_uTimeOSDCurrentFrameStart, uBuffer, sizeof(u32));
-   
+
    nRead = fread(uBuffer16, 1, DEFAULT_MSPOSD_RECORDING_ROWS * DEFAULT_MSPOSD_RECORDING_COLS * sizeof(u16), s_pFilePlaybackOSD);
    if ( nRead != DEFAULT_MSPOSD_RECORDING_ROWS * DEFAULT_MSPOSD_RECORDING_COLS * sizeof(u16) )
    {
@@ -325,7 +325,7 @@ void video_playback_periodic_loop()
    if ( access(CONFIG_FILE_FULLPATH_PAUSE_VIDEO_PLAYER, R_OK) == -1 )
       g_uVideoPlayingTimeMs += g_TimeNow - s_uTimestampVideoPlaybackLastLoopMs;
    s_uTimestampVideoPlaybackLastLoopMs = g_TimeNow;
-   
+
    _video_playback_read_next_srt_frame();
    _video_playback_read_next_osd_frame();
 
@@ -390,7 +390,7 @@ void video_playback_render()
       g_pRenderEngine->drawText(0.04 + fWidth, y, g_idFontMenuLarge, szBuff);
    }
    sprintf(szBuff, "Press [Menu] for pause/resume or [Back] to stop");
-   g_pRenderEngine->drawText(0.04, 0.084, g_idFontMenu, szBuff);  
+   g_pRenderEngine->drawText(0.04, 0.084, g_idFontMenu, szBuff);
 
    float fWidthText = 0.0;
    float hText = g_pRenderEngine->textHeight(g_idFontMenuLarge);

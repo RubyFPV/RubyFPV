@@ -13,7 +13,7 @@ class RenderEngineOVG: public RenderEngine
      virtual void setColors(const double* color, float fAlfaScale);
      virtual void setFill(float r, float g, float b, float a);
      virtual void setStroke(const double* color);
-     virtual void setStroke(const double* color, float fStrokeWidth); 
+     virtual void setStroke(const double* color, float fStrokeWidth);
      virtual void setStroke(float r, float g, float b, float a);
      virtual void setStrokeWidth(float fWidth);
 

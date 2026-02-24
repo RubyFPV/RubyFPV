@@ -66,7 +66,7 @@ void do_first_boot_pre_initialization(bool bIgnoreDrivers)
    hw_execute_bash_command("sync", NULL);
    if ( ! bIgnoreDrivers )
       hardware_install_drivers(1);
-   
+
    printf("\nRuby: Done doing first time ever initialization on Raspberry.\n");
    fflush(stdout);
    #endif
@@ -94,9 +94,9 @@ void do_first_boot_pre_initialization(bool bIgnoreDrivers)
    hw_execute_bash_command(szComm, NULL);
 
    hardware_set_default_radxa_cpu_freq();
-   
+
    hw_execute_bash_command("sync", NULL);
-   
+
    if ( hardware_is_running_on_runcam_vrx() )
    {
       // Disable joystick left action as a QA for RunCam VRx
@@ -242,7 +242,7 @@ void do_first_boot_initialization(bool bIsVehicle, u32 uBoardType)
             pcs->iFreqARM = 1200;
          else if ( ((uBoardType & BOARD_TYPE_MASK) == BOARD_TYPE_PI3BPLUS) || (uBoardType & BOARD_TYPE_MASK) == BOARD_TYPE_PI4B || ((uBoardType & BOARD_TYPE_MASK) == BOARD_TYPE_PI3APLUS) )
             pcs->iFreqARM = 1400;
-         else if ( ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PIZERO) && ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PIZEROW) && ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_NONE) 
+         else if ( ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PIZERO) && ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PIZEROW) && ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_NONE)
                && ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PI2B) && ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PI2BV11) && ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PI2BV12) )
             pcs->iFreqARM = 1200;
 
@@ -269,7 +269,7 @@ void do_first_boot_initialization(bool bIsVehicle, u32 uBoardType)
    hw_execute_bash_command_silent(szComm, NULL);
    hardware_sleep_ms(50);
    //if ( ! s_isVehicle )
-   //   execute_bash_command("raspi-config --expand-rootfs > /dev/null 2>&1", NULL);   
+   //   execute_bash_command("raspi-config --expand-rootfs > /dev/null 2>&1", NULL);
 
 
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
@@ -304,7 +304,7 @@ Model* first_boot_create_default_model(bool bIsVehicle, u32 uBoardType)
    s_ModelFirstBoot.find_and_validate_camera_settings();
 
    char szFile[MAX_FILE_PATH_SIZE];
-   
+
    if ( bIsVehicle )
    {
       s_ModelFirstBoot.hwCapabilities.uBoardType = uBoardType;
@@ -322,7 +322,7 @@ Model* first_boot_create_default_model(bool bIsVehicle, u32 uBoardType)
          s_ModelFirstBoot.processesPriorities.iFreqARM = 1200;
       else if ( ((uBoardType & BOARD_TYPE_MASK) == BOARD_TYPE_PI3BPLUS) || ((uBoardType & BOARD_TYPE_MASK) == BOARD_TYPE_PI4B) || ((uBoardType & BOARD_TYPE_MASK) == BOARD_TYPE_PI3APLUS) )
          s_ModelFirstBoot.processesPriorities.iFreqARM = 1400;
-      else if ( ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PIZERO) && ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PIZEROW) && ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_NONE) 
+      else if ( ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PIZERO) && ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PIZEROW) && ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_NONE)
                && ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PI2B) && ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PI2BV11) && ((uBoardType & BOARD_TYPE_MASK) != BOARD_TYPE_PI2BV12) )
          s_ModelFirstBoot.processesPriorities.iFreqARM = 1200;
 
@@ -332,7 +332,7 @@ Model* first_boot_create_default_model(bool bIsVehicle, u32 uBoardType)
       config_file_force_value("config.txt", "hdmi_force_hotplug", 1);
       config_file_force_value("config.txt", "ignore_lcd", 0);
       //config_file_force_value("config.txt", "hdmi_safe", 1);
-        
+
       hw_execute_bash_command("cp config.txt /boot/config.txt", NULL);
       #endif
 
@@ -354,7 +354,7 @@ Model* first_boot_create_default_model(bool bIsVehicle, u32 uBoardType)
       }
 
       s_ModelFirstBoot.setVideoProfilesDefaultVideoBitrates();
-      
+
       if ( bHasAtheros )
       {
          for( int i=0; i<s_ModelFirstBoot.radioLinksParams.links_count; i++ )
@@ -386,7 +386,7 @@ Model* first_boot_create_default_model(bool bIsVehicle, u32 uBoardType)
                &s_ModelFirstBoot.radioLinksParams.link_frequency_khz[2],
                szBuff);
             fclose(fd);
-         
+
             if ( szBuff[0] == '*' && szBuff[1] == 0 )
                szBuff[0] = 0;
             szBuff[MAX_VEHICLE_NAME_LENGTH] = 0;

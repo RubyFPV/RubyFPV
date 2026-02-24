@@ -50,7 +50,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    char szBuff[256];
    sprintf(szBuff, "OSD Elements (%s)", str_get_osd_screen_name(g_pCurrentModel->osd_params.iCurrentOSDScreen));
    setTitle(szBuff);
-   
+
    setColumnsCount(2);
    enableColumnSelection(false);
    bool bUseMultiSelection = true;
@@ -61,7 +61,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MSP )
       addTopLine("To change the layout of the MSP OSD elements use your flight controller configurator software.");
 
-   m_pItemsSelect[32] = new MenuItemSelect(L("OSD Elements Arrangement"), L("How the OSD elements are arranged on the screen: fluid around margins or only on the left/right sides of the screen."));  
+   m_pItemsSelect[32] = new MenuItemSelect(L("OSD Elements Arrangement"), L("How the OSD elements are arranged on the screen: fluid around margins or only on the left/right sides of the screen."));
    m_pItemsSelect[32]->addSelection(L("Fluid"));
    m_pItemsSelect[32]->addSelection(L("Left/Right"));
    //if ( bUseMultiSelection )
@@ -69,7 +69,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    m_pItemsSelect[32]->setIsEditable();
    m_IndexOSDOrientation = addMenuItem(m_pItemsSelect[32]);
 
-   m_pItemsSelect[25] = new MenuItemSelect(L("Background bars"), L("Shows background bars behind the OSD to increase readability"));  
+   m_pItemsSelect[25] = new MenuItemSelect(L("Background bars"), L("Shows background bars behind the OSD to increase readability"));
    m_pItemsSelect[25]->addSelection(L("No"));
    m_pItemsSelect[25]->addSelection(L("Yes"));
    if ( bUseMultiSelection )
@@ -79,7 +79,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    m_IndexVoltage = -1;
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    {
-      m_pItemsSelect[1] = new MenuItemSelect(L("Voltage/Current"), L("Shows the voltage/current on the OSD."));  
+      m_pItemsSelect[1] = new MenuItemSelect(L("Voltage/Current"), L("Shows the voltage/current on the OSD."));
       m_pItemsSelect[1]->addSelection(L("No"));
       m_pItemsSelect[1]->addSelection(L("Yes"));
       if ( bUseMultiSelection )
@@ -90,7 +90,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    m_IndexVoltagePerCell = -1;
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    {
-      m_pItemsSelect[2] = new MenuItemSelect(L("Voltage per cell"), L("Shows also the voltage per cell of the battery."));  
+      m_pItemsSelect[2] = new MenuItemSelect(L("Voltage per cell"), L("Shows also the voltage per cell of the battery."));
       m_pItemsSelect[2]->addSelection(L("No"));
       m_pItemsSelect[2]->addSelection(L("Yes"));
       if ( bUseMultiSelection )
@@ -98,7 +98,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
       m_IndexVoltagePerCell = addMenuItem(m_pItemsSelect[2]);
    }
 
-   m_pItemsSelect[31] = new MenuItemSelect(L("Controller Voltage & Current"), L("Shows controller voltage and current on the OSD."));  
+   m_pItemsSelect[31] = new MenuItemSelect(L("Controller Voltage & Current"), L("Shows controller voltage and current on the OSD."));
    m_pItemsSelect[31]->addSelection(L("No"));
    m_pItemsSelect[31]->addSelection(L("Yes"));
    if ( bUseMultiSelection )
@@ -119,7 +119,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    m_IndexTotalDistance = -1;
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    {
-      m_pItemsSelect[10] = new MenuItemSelect(L("Total distance"), L("Shows on the OSD the total distance traveled, not just current distance from home."));  
+      m_pItemsSelect[10] = new MenuItemSelect(L("Total distance"), L("Shows on the OSD the total distance traveled, not just current distance from home."));
       m_pItemsSelect[10]->addSelection(L("No"));
       m_pItemsSelect[10]->addSelection(L("Yes"));
       if ( bUseMultiSelection )
@@ -130,7 +130,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    m_IndexSpeed = -1;
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    {
-      m_pItemsSelect[33] = new MenuItemSelect(L("Speed"), L("Shows the ground and/or air speed on the OSD."));  
+      m_pItemsSelect[33] = new MenuItemSelect(L("Speed"), L("Shows the ground and/or air speed on the OSD."));
       m_pItemsSelect[33]->addSelection(L("None"));
       m_pItemsSelect[33]->addSelection(L("Ground Speed"));
       m_pItemsSelect[33]->addSelection(L("Air Speed"));
@@ -142,7 +142,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    m_IndexAltitude = -1;
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    {
-      m_pItemsSelect[4] = new MenuItemSelect(L("Altitude"), L("Shows the altitude on the OSD."));  
+      m_pItemsSelect[4] = new MenuItemSelect(L("Altitude"), L("Shows the altitude on the OSD."));
       m_pItemsSelect[4]->addSelection(L("No"));
       m_pItemsSelect[4]->addSelection(L("Yes"));
       if ( bUseMultiSelection )
@@ -164,7 +164,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    m_IndexHomeInvert = -1;
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    {
-      m_pItemsSelect[7] = new MenuItemSelect(L("Mirror home arrow"), L("Flips the rotation of the home arrow."));  
+      m_pItemsSelect[7] = new MenuItemSelect(L("Mirror home arrow"), L("Flips the rotation of the home arrow."));
       m_pItemsSelect[7]->addSelection(L("No"));
       m_pItemsSelect[7]->addSelection(L("Yes"));
       if ( bUseMultiSelection )
@@ -187,7 +187,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    m_IndexShowGPSInfo = -1;
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    {
-      m_pItemsSelect[26] = new MenuItemSelect(L("GPS Satellites"), L("Shows the GPS satellites information."));  
+      m_pItemsSelect[26] = new MenuItemSelect(L("GPS Satellites"), L("Shows the GPS satellites information."));
       m_pItemsSelect[26]->addSelection(L("No"));
       m_pItemsSelect[26]->addSelection(L("Yes"));
       if ( bUseMultiSelection )
@@ -197,8 +197,8 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
 
    m_IndexShowGPSPos = -1;
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
-   {   
-      m_pItemsSelect[9] = new MenuItemSelect(L("GPS position"), L("Shows the current GPS position (long,lat)."));  
+   {
+      m_pItemsSelect[9] = new MenuItemSelect(L("GPS position"), L("Shows the current GPS position (long,lat)."));
       m_pItemsSelect[9]->addSelection(L("No"));
       m_pItemsSelect[9]->addSelection(L("Yes"));
       m_pItemsSelect[9]->addSelection(L("Scrambled"));
@@ -206,7 +206,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
       m_IndexShowGPSPos = addMenuItem(m_pItemsSelect[9]);
    }
 
-   m_pItemsSelect[11] = new MenuItemSelect(L("Flight mode"), L("Shows flight mode on the OSD."));  
+   m_pItemsSelect[11] = new MenuItemSelect(L("Flight mode"), L("Shows flight mode on the OSD."));
    m_pItemsSelect[11]->addSelection(L("No"));
    m_pItemsSelect[11]->addSelection(L("Yes"));
    m_pItemsSelect[11]->addSelection(L("Only when changing"));
@@ -216,7 +216,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    //   m_pItemsSelect[11]->setUseMultiViewLayout();
    m_IndexMode = addMenuItem(m_pItemsSelect[11]);
 
-   m_pItemsSelect[12] = new MenuItemSelect(L("Time"), L("Shows the arm/flight time on the OSD."));  
+   m_pItemsSelect[12] = new MenuItemSelect(L("Time"), L("Shows the arm/flight time on the OSD."));
    m_pItemsSelect[12]->addSelection(L("No"));
    m_pItemsSelect[12]->addSelection(L("Yes (Top)"));
    m_pItemsSelect[12]->addSelection(L("Yes (Bottom)"));
@@ -228,7 +228,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    m_IndexWind = -1;
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    {
-      m_pItemsSelect[28] = new MenuItemSelect(L("Wind"), L("Shows the wind direction and speed on the OSD."));  
+      m_pItemsSelect[28] = new MenuItemSelect(L("Wind"), L("Shows the wind direction and speed on the OSD."));
       m_pItemsSelect[28]->addSelection(L("No"));
       m_pItemsSelect[28]->addSelection(L("Yes"));
       if ( bUseMultiSelection )
@@ -242,7 +242,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    m_IndexTemperature = -1;
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    {
-      m_pItemsSelect[29] = new MenuItemSelect(L("Temperature"), L("Shows the temperature (if reported by the flight controller) on the OSD."));  
+      m_pItemsSelect[29] = new MenuItemSelect(L("Temperature"), L("Shows the temperature (if reported by the flight controller) on the OSD."));
       m_pItemsSelect[29]->addSelection(L("No"));
       m_pItemsSelect[29]->addSelection(L("Yes"));
       if ( bUseMultiSelection )
@@ -253,7 +253,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    m_IndexThrottle = -1;
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    {
-      m_pItemsSelect[13] = new MenuItemSelect(L("Throttle"), L("Shows the throttle on the OSD."));  
+      m_pItemsSelect[13] = new MenuItemSelect(L("Throttle"), L("Shows the throttle on the OSD."));
       m_pItemsSelect[13]->addSelection(L("No"));
       m_pItemsSelect[13]->addSelection(L("Yes"));
       if ( bUseMultiSelection )
@@ -264,7 +264,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
    m_IndexPitch = -1;
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    {
-      m_pItemsSelect[14] = new MenuItemSelect(L("Pitch"), L("Shows vehicle pitch on the OSD."));  
+      m_pItemsSelect[14] = new MenuItemSelect(L("Pitch"), L("Shows vehicle pitch on the OSD."));
       m_pItemsSelect[14]->addSelection(L("No"));
       m_pItemsSelect[14]->addSelection(L("Yes"));
       if ( bUseMultiSelection )
@@ -272,14 +272,14 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
       m_IndexPitch = addMenuItem(m_pItemsSelect[14]);
    }
 
-   m_pItemsSelect[15] = new MenuItemSelect(L("Vehicle CPU Info"), L("Shows vehicle CPU info on the OSD."));  
+   m_pItemsSelect[15] = new MenuItemSelect(L("Vehicle CPU Info"), L("Shows vehicle CPU info on the OSD."));
    m_pItemsSelect[15]->addSelection(L("No"));
    m_pItemsSelect[15]->addSelection(L("Yes"));
    if ( bUseMultiSelection )
       m_pItemsSelect[15]->setUseMultiViewLayout();
    m_IndexCPU = addMenuItem(m_pItemsSelect[15]);
-   
-   m_pItemsSelect[30] = new MenuItemSelect(L("Controller CPU Info"), L("Shows controller CPU info on the OSD."));  
+
+   m_pItemsSelect[30] = new MenuItemSelect(L("Controller CPU Info"), L("Shows controller CPU info on the OSD."));
    m_pItemsSelect[30]->addSelection(L("No"));
    m_pItemsSelect[30]->addSelection(L("Yes"));
    if ( bUseMultiSelection )
@@ -357,7 +357,7 @@ MenuVehicleOSDElements::MenuVehicleOSDElements(void)
       m_IndexRCRSSI = addMenuItem(m_pItemsSelect[34]);
    }
 
-   m_pItemsSelect[22] = new MenuItemSelect(L("Signal strength bars"), L("Shows signal strength bars on the OSD."));  
+   m_pItemsSelect[22] = new MenuItemSelect(L("Signal strength bars"), L("Shows signal strength bars on the OSD."));
    m_pItemsSelect[22]->addSelection(L("No"));
    m_pItemsSelect[22]->addSelection(L("Yes"));
    if ( bUseMultiSelection )
@@ -409,14 +409,14 @@ void MenuVehicleOSDElements::valuesToUI()
 {
    Preferences* p = get_Preferences();
    ControllerSettings* pCS = get_ControllerSettings();
-   
+
    int iScreenIndex = g_pCurrentModel->osd_params.iCurrentOSDScreen;
 
    m_pItemsSelect[25]->setSelection((g_pCurrentModel->osd_params.osd_flags2[iScreenIndex] & OSD_FLAG2_SHOW_BGBARS)?1:0);
 
    if ( -1 != m_IndexVoltage )
       m_pItemsSelect[1]->setSelection((g_pCurrentModel->osd_params.osd_flags[iScreenIndex] & OSD_FLAG_SHOW_BATTERY)?1:0);
-   
+
    if ( -1 != m_IndexVoltagePerCell )
    {
       m_pItemsSelect[2]->setSelection((g_pCurrentModel->osd_params.osd_flags2[iScreenIndex] & OSD_FLAG2_SHOW_BATTERY_CELLS)?1:0);
@@ -492,7 +492,7 @@ void MenuVehicleOSDElements::valuesToUI()
    }
    else
       m_pItemsSelect[12]->setSelection(0);
-   
+
    if ( -1 != m_IndexThrottle )
       m_pItemsSelect[13]->setSelection((g_pCurrentModel->osd_params.osd_flags[iScreenIndex] & OSD_FLAG_SHOW_THROTTLE)?1:0);
    if ( -1 != m_IndexPitch )
@@ -516,7 +516,7 @@ void MenuVehicleOSDElements::valuesToUI()
    else if ( g_pCurrentModel->osd_params.osd_flags[iScreenIndex] & OSD_FLAG_SHOW_VEHICLE_RADIO_LINKS )
       m_pItemsSelect[19]->setSelectedIndex(2);
 
-   
+
    if ( (g_pCurrentModel->osd_params.osd_flags2[iScreenIndex] & OSD_FLAG2_SHOW_RADIO_LINK_QUALITY_BARS) &&
         (g_pCurrentModel->osd_params.osd_flags2[iScreenIndex] & OSD_FLAG2_SHOW_RADIO_LINK_QUALITY_NUMBERS) )
       m_pItemsSelect[20]->setSelectedIndex(2);
@@ -547,7 +547,7 @@ void MenuVehicleOSDElements::valuesToUI()
    else
       m_pItemsSelect[21]->setSelectedIndex(0);
 
-   
+
    m_pItemsSelect[36]->setSelectedIndex(0);
    if ( g_pCurrentModel->osd_params.osd_flags2[iScreenIndex] & OSD_FLAG2_SHOW_TX_POWER )
       m_pItemsSelect[36]->setSelectedIndex(1);
@@ -562,7 +562,7 @@ void MenuVehicleOSDElements::valuesToUI()
 
    if ( -1 != m_IndexHIDOSD )
       m_pItemsSelect[24]->setSelectedIndex((g_pCurrentModel->osd_params.osd_flags[iScreenIndex] & OSD_FLAG_SHOW_HID_IN_OSD)?1:0);
-   
+
    m_pItemsSelect[27]->setSelectedIndex(0);
    if ( g_pCurrentModel->osd_params.osd_flags3[iScreenIndex] & OSD_FLAG3_SHOW_GRID_CROSSHAIR )
       m_pItemsSelect[27]->setSelectedIndex(1);
@@ -641,7 +641,7 @@ void MenuVehicleOSDElements::valuesToUI()
       {
          m_pItemsSelect[20]->setEnabled(false);
          m_pItemsSelect[21]->setEnabled(false);
-      }           
+      }
    }
 
    m_pItemsSelect[25]->setEnabled(true);
@@ -944,7 +944,7 @@ void MenuVehicleOSDElements::onSelectItem()
       params.osd_layout_preset[iScreenIndex] = OSD_PRESET_CUSTOM;
       sendToVehicle = true;
    }
-   
+
    if ( m_IndexTime == m_SelectedIndex )
    {
       if ( 0 == m_pItemsSelect[12]->getSelectedIndex() )
@@ -1055,7 +1055,7 @@ void MenuVehicleOSDElements::onSelectItem()
       params.osd_layout_preset[iScreenIndex] = OSD_PRESET_CUSTOM;
       sendToVehicle = true;
    }
-   
+
    if ( m_IndexRadioLinkBars == m_SelectedIndex )
    {
       params.osd_flags2[iScreenIndex] &= ~(OSD_FLAG2_SHOW_RADIO_LINK_QUALITY_BARS | OSD_FLAG2_SHOW_RADIO_LINK_QUALITY_NUMBERS);
@@ -1065,7 +1065,7 @@ void MenuVehicleOSDElements::onSelectItem()
          params.osd_flags2[iScreenIndex] |= OSD_FLAG2_SHOW_RADIO_LINK_QUALITY_NUMBERS;
       else
          params.osd_flags2[iScreenIndex] |= OSD_FLAG2_SHOW_RADIO_LINK_QUALITY_BARS | OSD_FLAG2_SHOW_RADIO_LINK_QUALITY_NUMBERS;
-      
+
       g_pCurrentModel->checkUpdateOSDRadioLinksFlags(&params);
       params.osd_layout_preset[iScreenIndex] = OSD_PRESET_CUSTOM;
       sendToVehicle = true;

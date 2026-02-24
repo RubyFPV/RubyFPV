@@ -184,7 +184,7 @@ void MenuItemSlider::Render(float xPos, float yPos, bool bSelected, float fWidth
 
    xPosSlider += m_fMarginX;
    xPosSelector += m_fMarginX;
-   
+
    float yTop = yPos + paddingV;
    float yBottom = yPos + fHeightEdit - paddingV;
    float yMid = yPos + 0.5*fHeightEdit;
@@ -214,7 +214,7 @@ void MenuItemSlider::Render(float xPos, float yPos, bool bSelected, float fWidth
    g_pRenderEngine->setStrokeSize(0);
 
    g_pRenderEngine->drawTextLeft(xPosSlider-valueMargin, yPos, g_idFontMenu, szValue);
-   
+
    g_pRenderEngine->setStrokeSize(1);
    g_pRenderEngine->drawRoundRect(xPosSelector, yTop, fSizeSelectorW, fSizeSelectorH, 0.1*Menu::getMenuPaddingY());
 

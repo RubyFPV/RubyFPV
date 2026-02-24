@@ -230,7 +230,7 @@ char* _ruby_central_get_star_seq_string(int iSeqId)
      strcpy(s_szRubyCentralStartSeqText, "START_SEQ_COMPLETED");
    else if ( iSeqId == START_SEQ_FAILED )
      strcpy(s_szRubyCentralStartSeqText, "START_SEQ_FAILED");
-   
+
    return s_szRubyCentralStartSeqText;
 }
 
@@ -252,7 +252,7 @@ void load_resources()
          s_idBgImage[i] = g_pRenderEngine->loadImage(szFile);
 
       sprintf(szFile, "res/ruby_bg%d_blr.png", i+iDelta);
-      
+
       if ( access(szFile, R_OK) != -1 )
          s_idBgImageMenu[i] = g_pRenderEngine->loadImage(szFile);
       else
@@ -304,7 +304,7 @@ void _draw_background_picture()
 
    int iImageId = s_idBgImage[s_iBgImageIndex];
    int iImageIdPrev = s_idBgImage[s_iBgImageIndexPrev];
-   
+
    if ( isMenuOn() )
    {
       iImageId = s_idBgImageMenu[s_iBgImageIndex];
@@ -348,7 +348,7 @@ void _draw_background_picture()
    //g_pRenderEngine->drawText(0.42, 0.24, g_idFontMenuLarge, "Digital FPV System");
 
    float fXTextStart = 0.3;
-   
+
    double c[4] = {40,40,40,1};
    g_pRenderEngine->setColors(c);
    sprintf(szBuff, "Welcome to %s Digital FPV System", SYSTEM_NAME);
@@ -407,7 +407,7 @@ bool _render_video_background()
       t_structure_vehicle_info* pRuntimeInfo = get_vehicle_runtime_info_for_vehicle_id(uVehicleIdFullVideo);
       Model* pModel = findModelWithId(uVehicleIdFullVideo, 60);
 
-      if ( pModel->is_spectator )      
+      if ( pModel->is_spectator )
       if ( (NULL != pRuntimeInfo) && pRuntimeInfo->bGotRubyTelemetryInfo )
       if ( pRuntimeInfo->headerRubyTelemetryExtended.uRubyFlags & FLAG_RUBY_TELEMETRY_VEHICLE_HAS_CAMERA )
          pModel->iCameraCount = 1;
@@ -563,7 +563,7 @@ void render_background_and_paddings(bool bForceBackground)
    if ( (NULL != pActiveModel) && (pActiveModel->video_params.uVideoExtraFlags & VIDEO_FLAG_GENERATE_H265) )
    {
       bShowBgPicture = false;
-      bShowBgVideo = true;    
+      bShowBgVideo = true;
    }
    #endif
 
@@ -597,7 +597,7 @@ void render_background_and_paddings(bool bForceBackground)
    if ( bShowBgVideo )
    if ( _render_video_background() )
       return;
- 
+
    shared_mem_video_stream_stats* pVDS = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, uActiveVehicleId);
 
    float fScreenAspect = (float)(g_pRenderEngine->getScreenWidth())/(float)(g_pRenderEngine->getScreenHeight());
@@ -652,7 +652,7 @@ void render_background_and_paddings(bool bForceBackground)
    }
    else
       s_fTargetAdaptiveBandHeightPercent = 0.0;
-   
+
    if ( s_fCurrentAdaptiveBandHeightPercent > 0.01 )
    if ( bIsOnLow || (fabs(s_fTargetAdaptiveBandHeightPercent - s_fCurrentAdaptiveBandHeightPercent) > 0.02) || (s_fTargetAdaptiveBandHeightPercent > 0.02) )
    {
@@ -690,9 +690,9 @@ void render_all_with_menus(u32 timeNow, bool bRenderMenus, bool bForceBackground
    u32 uTimeStart = get_current_timestamp_ms();
 
    g_pRenderEngine->startFrame();
-   
+
    render_background_and_paddings(bForceBackground);
-   
+
    if ( (!g_bSearching) || g_bSearchFoundVehicle )
    if ( ! bForceBackground )
    if ( (s_StartSequence == START_SEQ_COMPLETED) || (s_StartSequence == START_SEQ_FAILED) )
@@ -733,7 +733,7 @@ void render_all_with_menus(u32 timeNow, bool bRenderMenus, bool bForceBackground
          xPos = osd_getMarginX() + osd_getVerticalBarWidth() + 0.01*osd_getScaleOSD();
          yPos = osd_getMarginY() + 0.01*osd_getScaleOSD();
       }
-   
+
       osd_set_colors_text(get_Color_Dev());
       if ( (g_TimeNow/500) % 2 )
       {
@@ -802,7 +802,7 @@ void render_all_with_menus(u32 timeNow, bool bRenderMenus, bool bForceBackground
          xPos = osd_getMarginX() + osd_getVerticalBarWidth() + 0.01*osd_getScaleOSD();
          yPos = osd_getMarginY() + 0.01*osd_getScaleOSD();
       }
-   
+
       osd_set_colors();
       g_pRenderEngine->setFill(0,0,0,0.5);
       g_pRenderEngine->setStroke(0,0,0,0);
@@ -810,7 +810,7 @@ void render_all_with_menus(u32 timeNow, bool bRenderMenus, bool bForceBackground
       g_pRenderEngine->disableAlphaBlending();
       g_pRenderEngine->drawRect(xPos, yPos-0.003, 0.74, 0.05);
 
-      osd_set_colors_text(get_Color_Dev());      
+      osd_set_colors_text(get_Color_Dev());
 
       xPos += 0.02*osd_getScaleOSD();
       yPos += 0.003;
@@ -835,9 +835,9 @@ void render_all_with_menus(u32 timeNow, bool bRenderMenus, bool bForceBackground
 
       g_pRenderEngine->setAlphaBlendingEnabled(bAlphaEnabled);
    }
-  
+
    if ( handle_commands_is_command_in_progress() )
-      render_commands();   
+      render_commands();
 
    if ( s_bShowMira )
    {
@@ -936,7 +936,7 @@ void compute_cpu_state()
       {
           tmp[0] = tmp[1] = tmp[2] = tmp[3] = 0;
       }
-      
+
       if ( tmp[0] < valgcpu[0] || tmp[1] < valgcpu[1] || tmp[2] < valgcpu[2] || tmp[3] < valgcpu[3] )
             g_iControllerCPULoad = 0;
       else
@@ -945,8 +945,8 @@ void compute_cpu_state()
          if ( (total + (tmp[3] - valgcpu[3])) != 0 )
             g_iControllerCPULoad = (total * 100) / (total + (tmp[3] - valgcpu[3]));
       }
-         
-      valgcpu[0] = tmp[0]; valgcpu[1] = tmp[1]; valgcpu[2] = tmp[2]; valgcpu[3] = tmp[3]; 
+
+      valgcpu[0] = tmp[0]; valgcpu[1] = tmp[1]; valgcpu[2] = tmp[2]; valgcpu[3] = tmp[3];
    }
 
    static bool s_bThreadCheckCPUCreated = false;
@@ -1157,16 +1157,16 @@ void executeQuickActions()
 
    log_line("Current assigned QA actions: button1: %d, button2: %d, button3: %d",
     p->iActionQuickButton1,p->iActionQuickButton2,p->iActionQuickButton3);
-   
+
    log_regular_mode();
-   
+
    if ( (!pairing_isStarted()) || (! g_bIsRouterReady) )
    {
       warnings_add(0, "Please connect to a vehicle first, to execute Quick Actions.");
       return;
    }
 
-   if ( ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA1) && quickActionCycleOSD == p->iActionQuickButton1) || 
+   if ( ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA1) && quickActionCycleOSD == p->iActionQuickButton1) ||
         ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA2) && quickActionCycleOSD == p->iActionQuickButton2) ||
         ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA3) && quickActionCycleOSD == p->iActionQuickButton3) )
    {
@@ -1195,7 +1195,7 @@ void executeQuickActions()
       executeQuickActionTakePicture();
       return;
    }
-         
+
    if ( ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA1) && (quickActionPITMode == p->iActionQuickButton1)) ||
         ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA2) && (quickActionPITMode == p->iActionQuickButton2)) ||
         ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA3) && (quickActionPITMode == p->iActionQuickButton3)) )
@@ -1224,7 +1224,7 @@ void executeQuickActions()
       g_bToglleStatsOff = ! g_bToglleStatsOff;
       return;
    }
-         
+
    if ( ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA1) && quickActionToggleAllOff == p->iActionQuickButton1) ||
         ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA2) && quickActionToggleAllOff == p->iActionQuickButton2) ||
         ((keyboard_get_triggered_input_events() & INPUT_EVENT_PRESS_QA3) && quickActionToggleAllOff == p->iActionQuickButton3) )
@@ -1308,7 +1308,7 @@ void executeQuickActions()
          iProfile = 0;
 
       camera_profile_parameters_t* pProfile2 = &(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iProfile]);
-      
+
       //char szBuff[64];
       //sprintf(szBuff, "Switching to camera profile %s", model_getCameraProfileName(iProfile));
       //warnings_add(g_pCurrentModel->uVehicleId, szBuff);
@@ -1362,7 +1362,7 @@ void r_check_processes_filesystem()
       { failed = true; strcat(szFilesMissing, " "); strcat(szFilesMissing, VIDEO_PLAYER_SM); }
    if( access( VIDEO_PLAYER_OFFLINE, R_OK ) == -1 )
       { failed = true; strcat(szFilesMissing, " "); strcat(szFilesMissing, VIDEO_PLAYER_OFFLINE); }
-     
+
    log_line("Checked proccesses. Result: %s", failed?"failed":"all ok");
 
    if ( failed )
@@ -1432,9 +1432,9 @@ void ruby_load_models()
    strcpy(szFreq1, str_format_frequency(g_pCurrentModel->radioLinksParams.link_frequency_khz[0]));
    strcpy(szFreq2, str_format_frequency(g_pCurrentModel->radioLinksParams.link_frequency_khz[1]));
    strcpy(szFreq3, str_format_frequency(g_pCurrentModel->radioLinksParams.link_frequency_khz[2]));
-   
+
    log_line("Current model radio links: %d, 1st radio link frequency: %s, 2nd radio link: %s, 3rd radio link: %s",
-      g_pCurrentModel->radioLinksParams.links_count, 
+      g_pCurrentModel->radioLinksParams.links_count,
       szFreq1, szFreq2, szFreq3);
 }
 
@@ -1494,7 +1494,7 @@ bool ruby_central_has_sdcard_update(bool bDoUpdateToo)
       {
          log_line("[SDCard] Ruby version on the SD card parsed: %d.%d", iMajor, iMinor);
          log_line("[SDCard] Ruby version running now: %d.%d", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR);
-         
+
          if ( (iMajor < SYSTEM_SW_VERSION_MAJOR) ||
               ((iMajor == SYSTEM_SW_VERSION_MAJOR) && (iMinor <= SYSTEM_SW_VERSION_MINOR)) )
          {
@@ -1552,7 +1552,7 @@ void* _thread_video_recording_processing(void *argument)
       }
       break;
    }
-      
+
    log_line("[VideoRecording-Th] Video processing process finished.");
 
    char szFile[MAX_FILE_PATH_SIZE];
@@ -1586,7 +1586,7 @@ void* _thread_video_recording_processing(void *argument)
 
    sprintf(szComm, "rm -rf %s%s 2>/dev/null", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_INFO);
    hw_execute_bash_command(szComm, NULL );
-  
+
    g_bIsVideoProcessing = false;
    g_bIsVideoRecording = false;
    g_uVideoRecordingStartTime = 0;
@@ -1615,7 +1615,7 @@ void start_loop()
       popupStartup.setTitle(SYSTEM_NAME);
       if ( g_bIsReinit )
          popupStartup.addLine("Restarting...");
-      
+
       popupStartup.addLine(L("Loading configuration..."));
       log_line("Finished executing start up sequence step: %d (%s)", s_StartSequence, _ruby_central_get_star_seq_string(s_StartSequence));
       s_StartSequence = START_SEQ_LOAD_CONFIG;
@@ -1871,14 +1871,14 @@ void start_loop()
          alarms_add_from_local(ALARM_ID_CONTROLLER_STORAGE_WRITE_ERRROR, 0, 0);
          bWriteFailed = true;
       }
-               
+
       if ( bWriteFailed )
          log_line("Checking the file system for write access: Failed.");
       else
          log_line("Checking the file system for write access: Succeeded.");
-         
+
       ruby_load_models();
-      
+
       //char szBuff[256];
       //sprintf(szBuff, "(Loaded %d models)", getControllerModelsCount());
       //popupStartup.addLine(szBuff);
@@ -2049,11 +2049,11 @@ void start_loop()
       popupStartup.addLine(L("Configuring processes..."));
       s_StartSequence = START_SEQ_START_PROCESSES;
    }
-   
+
    if ( s_StartSequence == START_SEQ_START_PROCESSES )
    {
       log_line("Start sequence: START_SEQ_START_PROCESSES");
-      
+
       if ( g_bPlayIntro )
       {
          if ( is_semaphore_signaled_clear(s_pSemaphoreVideoIntro, SEMAPHORE_VIDEO_FILE_PLAYBACK_FINISHED) )
@@ -2205,7 +2205,7 @@ void clear_shared_mems()
    memset(&g_SM_HistoryRxStats, 0, sizeof(shared_mem_radio_stats_rx_hist));
    memset(&g_SM_HistoryRxStatsVehicle, 0, sizeof(shared_mem_radio_stats_rx_hist));
    memset(&g_SM_VideoDecodeStats, 0, sizeof(shared_mem_video_stream_stats_rx_processors));
-   
+
    memset(&g_SMControllerRTInfo, 0, sizeof(controller_runtime_info));
    memset(&g_SM_DownstreamInfoRC, 0, sizeof(t_packet_header_rc_info_downstream));
    memset(&g_SM_RouterVehiclesRuntimeInfo, 0, sizeof(shared_mem_router_vehicles_runtime_info));
@@ -2316,10 +2316,10 @@ void synchronize_shared_mems()
       memcpy((u8*)&g_SM_RouterVehiclesRuntimeInfo, g_pSM_RouterVehiclesRuntimeInfo, sizeof(shared_mem_router_vehicles_runtime_info));
    if ( NULL != g_pSM_RadioStats )
       memcpy((u8*)&g_SM_RadioStats, g_pSM_RadioStats, sizeof(shared_mem_radio_stats));
-   
+
    if ( NULL != g_pSM_HistoryRxStats )
       memcpy((u8*)&g_SM_HistoryRxStats, g_pSM_HistoryRxStats, sizeof(shared_mem_radio_stats_rx_hist));
-   
+
    if ( g_pControllerSettings->iDeveloperMode )
    if ( NULL != g_pCurrentModel )
    if ( g_pCurrentModel->osd_params.osd_flags[g_pCurrentModel->osd_params.iCurrentOSDScreen] & OSD_FLAG_SHOW_STATS_VIDEO_H264_FRAMES_INFO)
@@ -2469,7 +2469,7 @@ void main_loop_r_central()
    if ( NULL != s_pMenuConfirmHDMI )
    if ( g_TimeNow > s_TimeCentralInitializationComplete + 10000 )
    if ( menu_is_menu_on_top(s_pMenuConfirmHDMI) )
-   if ( access(s_szFileHDMIChanged, R_OK) != -1 )         
+   if ( access(s_szFileHDMIChanged, R_OK) != -1 )
    {
       log_line("Reverting HDMI resolution change...");
       ruby_pause_watchdog("reverting HDMI resolution change");
@@ -2520,7 +2520,7 @@ void ruby_pause_watchdog(const char* szReason)
       log_line("[Watchdog] Pause requested, current counter: %d, reason: N/A", s_iCountRequestsPauseWatchdog);
    else
       log_line("[Watchdog] Pause requested, current counter: %d, reason: (%s)", s_iCountRequestsPauseWatchdog, szReason);
-   
+
    s_iCountRequestsPauseWatchdog++;
    if ( 1 == s_iCountRequestsPauseWatchdog )
    {
@@ -2529,7 +2529,7 @@ void ruby_pause_watchdog(const char* szReason)
       if ( (NULL != ps) && (SEM_FAILED != ps) )
       {
          sem_post(ps);
-         sem_close(ps); 
+         sem_close(ps);
       }
       else
          log_softerror_and_alarm("[Watchdog] Failed to open and signal semaphore %s", SEMAPHORE_WATCHDOG_CONTROLLER_PAUSE);
@@ -2546,7 +2546,7 @@ void ruby_resume_watchdog(const char* szReason)
       log_line("[Watchdog] Resume requested, current counter: %d, reason: N/A", s_iCountRequestsPauseWatchdog);
    else
       log_line("[Watchdog] Resume requested, current counter: %d, reason: (%s)", s_iCountRequestsPauseWatchdog, szReason);
-   
+
    s_iCountRequestsPauseWatchdog--;
    if ( 0 == s_iCountRequestsPauseWatchdog )
    {
@@ -2556,7 +2556,7 @@ void ruby_resume_watchdog(const char* szReason)
       if ( (NULL != ps) && (SEM_FAILED != ps) )
       {
          sem_post(ps);
-         sem_close(ps); 
+         sem_close(ps);
       }
       else
          log_softerror_and_alarm("[Watchdog] Failed to open and signal semaphore %s", SEMAPHORE_WATCHDOG_CONTROLLER_RESUME);
@@ -2578,7 +2578,7 @@ void ruby_resume_watchdog_force(const char* szReason)
       log_line("[Watchdog] Full resume requested, current counter: %d, reason: N/A", s_iCountRequestsPauseWatchdog);
    else
       log_line("[Watchdog] Full resume requested, current counter: %d, reason: (%s)", s_iCountRequestsPauseWatchdog, szReason);
-   
+
    s_iCountRequestsPauseWatchdog = 0;
    hardware_sleep_ms(20);
    log_line("[Watchdog] Full resumed watchdog, signal watchdog controller");
@@ -2588,21 +2588,21 @@ void ruby_resume_watchdog_force(const char* szReason)
       if ( (NULL != ps) && (SEM_FAILED != ps) )
       {
          sem_post(ps);
-         sem_close(ps); 
+         sem_close(ps);
       }
       else
          log_softerror_and_alarm("[Watchdog] Failed to open and signal semaphore %s", SEMAPHORE_WATCHDOG_CONTROLLER_RESUME);
    }
 }
 
-   
-void handle_sigint(int sig) 
-{ 
+
+void handle_sigint(int sig)
+{
    log_line("--------------------------");
    log_line("Caught signal to stop: %d", sig);
    log_line("--------------------------");
    g_bQuit = true;
-} 
+}
 
 int main(int argc, char *argv[])
 {
@@ -2626,7 +2626,7 @@ int main(int argc, char *argv[])
       g_bDebugState = true;
    if ( g_bDebugState )
       log_line("Starting in debug mode.");
-   
+
    setlocale(LC_ALL, "en_GB.UTF-8");
 
    s_idBgImage[0] = 0;
@@ -2678,7 +2678,7 @@ int main(int argc, char *argv[])
 
    g_uControllerId = controller_utils_getControllerId();
    log_line("Controller UID: %u", g_uControllerId);
- 
+
    if ( strcmp(argv[argc-1], "-reinit") == 0 )
    {
       log_line("Ruby Central crashed last time, reinitializing graphics engine...");
@@ -2737,7 +2737,7 @@ int main(int argc, char *argv[])
    }
 
    s_uTimeToSwitchLogLevel = get_current_timestamp_ms() + 10000;
-   
+
    #if defined (HW_PLATFORM_RASPBERRY)
    hdmi_enum_modes();
    #endif
@@ -2772,7 +2772,7 @@ int main(int argc, char *argv[])
          if ( (NULL == s_pSemaphoreVideoIntroWillFinish) || (SEM_FAILED == s_pSemaphoreVideoIntroWillFinish) )
          {
             log_error_and_alarm("Failed to create read semaphore: %s, try alternative.", SEMAPHORE_VIDEO_FILE_PLAYBACK_WILL_FINISH);
-            s_pSemaphoreVideoIntroWillFinish = sem_open(SEMAPHORE_VIDEO_FILE_PLAYBACK_WILL_FINISH, O_CREAT, S_IWUSR | S_IRUSR, 0); 
+            s_pSemaphoreVideoIntroWillFinish = sem_open(SEMAPHORE_VIDEO_FILE_PLAYBACK_WILL_FINISH, O_CREAT, S_IWUSR | S_IRUSR, 0);
             if ( (NULL == s_pSemaphoreVideoIntroWillFinish) || (SEM_FAILED == s_pSemaphoreVideoIntroWillFinish) )
             {
                log_error_and_alarm("Failed to create read semaphore: %s", SEMAPHORE_VIDEO_FILE_PLAYBACK_WILL_FINISH);
@@ -2784,7 +2784,7 @@ int main(int argc, char *argv[])
          if ( (NULL == s_pSemaphoreVideoIntro) || (SEM_FAILED == s_pSemaphoreVideoIntro) )
          {
             log_error_and_alarm("Failed to create read semaphore: %s, try alternative.", SEMAPHORE_VIDEO_FILE_PLAYBACK_FINISHED);
-            s_pSemaphoreVideoIntro = sem_open(SEMAPHORE_VIDEO_FILE_PLAYBACK_FINISHED, O_CREAT, S_IWUSR | S_IRUSR, 0); 
+            s_pSemaphoreVideoIntro = sem_open(SEMAPHORE_VIDEO_FILE_PLAYBACK_FINISHED, O_CREAT, S_IWUSR | S_IRUSR, 0);
             if ( (NULL == s_pSemaphoreVideoIntro) || (SEM_FAILED == s_pSemaphoreVideoIntro) )
             {
                log_error_and_alarm("Failed to create read semaphore: %s", SEMAPHORE_VIDEO_FILE_PLAYBACK_FINISHED);
@@ -2820,7 +2820,7 @@ int main(int argc, char *argv[])
 
    hardware_serial_init_ports();
 
-   clear_shared_mems();   
+   clear_shared_mems();
    ruby_clear_all_ipc_channels();
 
    g_pProcessStatsCentral = shared_mem_process_stats_open_write(SHARED_MEM_WATCHDOG_CENTRAL);
@@ -2828,13 +2828,13 @@ int main(int argc, char *argv[])
       log_softerror_and_alarm("Failed to open shared mem for ruby_central process watchdog for writing: %s", SHARED_MEM_WATCHDOG_CENTRAL);
    else
       log_line("Opened shared mem for ruby_centrall process watchdog for writing.");
- 
+
    ruby_pause_watchdog("UX startup");
    hardware_i2c_load_device_settings();
 
    if ( ! load_ControllerInterfacesSettings() )
       save_ControllerInterfacesSettings();
-      
+
    save_ControllerInterfacesSettings();
 
    #if defined (HW_PLATFORM_RADXA)
@@ -2897,10 +2897,10 @@ int main(int argc, char *argv[])
    g_bFirstModelPairingDone = false;
 
    strcpy(szFile, FOLDER_CONFIG);
-   strcat(szFile, FILE_CONFIG_FIRST_PAIRING_DONE); 
+   strcat(szFile, FILE_CONFIG_FIRST_PAIRING_DONE);
    if ( access(szFile, R_OK) != -1 )
       g_bFirstModelPairingDone = true;
- 
+
    log_line("First pairing is done? %s", g_bFirstModelPairingDone?"yes":"no");
 
    keyboard_init();
@@ -2913,7 +2913,7 @@ int main(int argc, char *argv[])
 
    log_line("Start main loop.");
 
-   while (!g_bQuit) 
+   while (!g_bQuit)
    {
       g_uLoopCounter++;
       g_TimeNow = get_current_timestamp_ms();
@@ -2937,7 +2937,7 @@ int main(int argc, char *argv[])
          }
       }
    }
-   
+
    ruby_shutdown_ui();
    return 0;
 }
@@ -2984,7 +2984,7 @@ void ruby_reinit_hdmi_display()
 
    free_all_fonts();
    render_free_engine();
-   
+
    #if defined (HW_PLATFORM_RADXA)
    ruby_drm_core_uninit();
    ruby_drm_core_wait_for_display_connected();
@@ -3001,14 +3001,14 @@ void ruby_reinit_hdmi_display()
 
    g_pRenderEngine = render_init_engine();
    log_line("Render Engine was initialized.");
-   
+
    load_resources();
    osd_apply_preferences();
    menu_init();
 
    log_line("Done reinit HDMI display.");
 
-   pairing_start_normal(); 
+   pairing_start_normal();
 }
 
 void ruby_shutdown_ui()
@@ -3039,7 +3039,7 @@ void ruby_shutdown_ui()
    #if defined (HW_PLATFORM_RADXA)
    oled_render_shutdown();
    #endif
-   
+
    controller_stop_i2c();
 
    log_line("Central: Releasing %d OSD plugins...", g_iPluginsOSDCount);
@@ -3059,7 +3059,7 @@ void ruby_shutdown_ui()
    shared_mem_ctrl_ping_stats_info_close(g_pSMDbgPingStats);
 
    log_line("Shutdown UI, free hardware...");
- 
+
    hardware_release();
 
    render_free_engine();

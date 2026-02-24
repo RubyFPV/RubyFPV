@@ -112,7 +112,7 @@ void MenuVehicleImport::onShow()
 void MenuVehicleImport::Render()
 {
    RenderPrepare();
-   
+
    float yTop = RenderFrameAndTitle();
    float y = yTop;
 
@@ -178,14 +178,14 @@ void MenuVehicleImport::onSelectItem()
       log_error_and_alarm("Failed to load current vehicle configuration from file: %s", szFile);
       return;
    }
- 
+
    fd = fopen("tmp/tempVehicleSettings.txt", "wb");
    if ( NULL != fd )
    {
        fwrite(pData, 1, length, fd);
        fclose(fd);
        fd = NULL;
-   } 
+   }
 
    if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_ALL_PARAMS, 0, pData, length) )
       valuesToUI();

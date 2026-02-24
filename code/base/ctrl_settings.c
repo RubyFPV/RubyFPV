@@ -273,7 +273,7 @@ int load_ControllerSettings()
 
    if ( 2 != fscanf(fd, "%d %d", &s_CtrlSettings.nRetryRetransmissionAfterTimeoutMS, &s_CtrlSettings.nRequestRetransmissionsOnVideoSilenceMs) )
       { failed = 1; log_softerror_and_alarm("Load ctrl settings, failed on line 9"); }
-   
+
    if ( 2 != fscanf(fd, "%d %u", &s_CtrlSettings.nUseFixedIP, &s_CtrlSettings.uFixedIP) )
       { failed = 1; log_softerror_and_alarm("Load ctrl settings, failed on line 10"); }
 
@@ -391,7 +391,7 @@ int load_ControllerSettings()
 
    if ( (s_CtrlSettings.iVideoMPPBuffersSize < 5) || (s_CtrlSettings.iVideoMPPBuffersSize > 128) )
       s_CtrlSettings.iVideoMPPBuffersSize = DEFAULT_MPP_BUFFERS_SIZE;
-     
+
    if ( s_CtrlSettings.iVideoForwardUSBType < 0 || s_CtrlSettings.iVideoForwardUSBType > 1 || s_CtrlSettings.iVideoForwardUSBPacketSize == 0 || s_CtrlSettings.iVideoForwardUSBPort == 0 )
       { s_CtrlSettings.iVideoForwardUSBType = 0; s_CtrlSettings.iVideoForwardUSBPort = 0; s_CtrlSettings.iVideoForwardUSBPacketSize = 1024; }
 
@@ -414,7 +414,7 @@ int load_ControllerSettings()
       reset_ControllerPriorities();
    if ( (s_CtrlSettings.iThreadPriorityRadioTx < 0) || (s_CtrlSettings.iThreadPriorityRadioTx >= 140) )
       reset_ControllerPriorities();
-     
+
    if ( s_CtrlSettings.iRenderFPS < 10 || s_CtrlSettings.iRenderFPS > 30 )
       s_CtrlSettings.iRenderFPS = 15;
 
@@ -440,7 +440,7 @@ int load_ControllerSettings()
    else if ( 1 == iWriteOptionalValues )
    {
       log_line("Incomplete settings file %s, write settings again.", szFile);
-      save_ControllerSettings();    
+      save_ControllerSettings();
    }
    else
       log_line("Loaded controller settings from file: %s", szFile);

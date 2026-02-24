@@ -47,7 +47,7 @@ typedef struct
    int received_video_retransmission;
    int received_telemetry;
    int received_commands;
-} scope_rx_slice_info_t;  
+} scope_rx_slice_info_t;
 
 #define RXSCOPE_SLICES 2000
 
@@ -133,7 +133,7 @@ void rx_scope_stop()
    s_RXScopeInterfaceRx = -1;
 
    s_bRXScopeStarted = false;
-   
+
    if ( s_bRXScopeWasPairingStarted )
       pairing_start_normal();
 }
@@ -155,12 +155,12 @@ void rx_scope_render_bg()
    g_pRenderEngine->setStroke(0,0,0,1);
    g_pRenderEngine->setStrokeWidth(0);
    Rect(0, 0, getScreenWidth(), getScreenHeight());
-      
+
    double cc[4] = { 80,30,40,0.88 };
    char szBuff[256];
 
    render_set_colors(cc);
-   float text_scale = toScreenX(0.02)*0.6;   
+   float text_scale = toScreenX(0.02)*0.6;
    float width_text = TextWidth(SYSTEM_NAME, *render_getFontMenu(), text_scale);
 
    Text(toScreenX(0.91), toScreenX(0.05), SYSTEM_NAME, *render_getFontMenu(), text_scale);
@@ -207,7 +207,7 @@ void rx_scope_render_bg()
    sprintf(szBuff, "Data FPS: %d", s_RXScopeDataFPS);
    Text(toScreenX(0.2), yPos, szBuff, *render_getFontMenu(), text_scale);
    yPos -= text_scale * 1.3;
-   
+
    sprintf(szBuff, "Render FPS: %d", s_RXScopeRenderFPS);
    Text(toScreenX(0.2), yPos, szBuff, *render_getFontMenu(), text_scale);
    yPos -= text_scale * 1.3;
@@ -217,7 +217,7 @@ void rx_scope_render_bg()
    sprintf(szBuff, "kBytes/sec: %d", s_RXScopeLastFrameKb);
    Text(toScreenX(0.36), yPos, szBuff, *render_getFontMenu(), text_scale);
    yPos -= text_scale * 1.3;
-   
+
    sprintf(szBuff, "Packets/sec: %d", s_RXScopeLastFramePackets);
    Text(toScreenX(0.36), yPos, szBuff, *render_getFontMenu(), text_scale);
    yPos -= text_scale * 1.3;
@@ -243,14 +243,14 @@ void rx_scope_render_bg()
       if ( s_RXScopeZoom == 3 )
         sprintf(szBuff, "%d", i*10);
 
-      float width_text = TextWidth(szBuff, *render_getFontMenu(), text_scale);   
+      float width_text = TextWidth(szBuff, *render_getFontMenu(), text_scale);
       int x = startX + (endX-startX)*i/10;
       Text(x-width_text*0.5, startY-text_scale*2.2, szBuff, *render_getFontMenu(), text_scale);
       Line(x, startY-10, x, startY);
       if ( i != 10 )
          Line(x+(endX-startX)/20, startY-10, x+(endX-startX)/20, startY);
    }
-   
+
 
    TextEnd(startX-60, startY+(endY-startY)/2-text_scale*0.4, "kBytes", *render_getFontMenu(), text_scale);
    for( int i=0; i<=s_RXScopeYMax; i+=500 )
@@ -280,9 +280,9 @@ void rx_scope_render()
    if ( s_RXScopeZoom == 1 )
       slicesToRender /= 2;
    if ( s_RXScopeZoom == 2 )
-      slicesToRender /= 4;   
+      slicesToRender /= 4;
    if ( s_RXScopeZoom == 3 )
-      slicesToRender /= 10;   
+      slicesToRender /= 10;
 
 
    float sliceWidth = (float)(endX-startX)/(float)slicesToRender;
@@ -344,28 +344,28 @@ void rx_scope_read_data()
       return;
 
    int miliSec = (s_RXScopeTimeNowMicroSeconds/1000) % 1000;
-   int sliceIndex = miliSec / s_RXScopeSliceInterval;   
+   int sliceIndex = miliSec / s_RXScopeSliceInterval;
    if ( sliceIndex < 0 ) sliceIndex = 0;
    if ( sliceIndex > s_RXScopeSlicesCount ) sliceIndex = s_RXScopeSlicesCount;
 
    if ( sliceIndex != s_RXScopeCurrentSliceIndex )
    {
-      s_RXScopeRXSlices[sliceIndex].received_bytes = 0;       
-      s_RXScopeRXSlices[sliceIndex].received_video = 0;       
-      s_RXScopeRXSlices[sliceIndex].received_video_retransmission = 0;       
-      s_RXScopeRXSlices[sliceIndex].received_telemetry = 0;       
-      s_RXScopeRXSlices[sliceIndex].received_commands = 0;       
+      s_RXScopeRXSlices[sliceIndex].received_bytes = 0;
+      s_RXScopeRXSlices[sliceIndex].received_video = 0;
+      s_RXScopeRXSlices[sliceIndex].received_video_retransmission = 0;
+      s_RXScopeRXSlices[sliceIndex].received_telemetry = 0;
+      s_RXScopeRXSlices[sliceIndex].received_commands = 0;
 
       int clearIndex = s_RXScopeCurrentSliceIndex+1;
       if ( clearIndex > s_RXScopeSlicesCount )
          clearIndex = 0;
       while ( clearIndex != sliceIndex )
       {
-         s_RXScopeRXSlices[clearIndex].received_bytes = 0;       
-         s_RXScopeRXSlices[clearIndex].received_video = 0;       
-         s_RXScopeRXSlices[clearIndex].received_video_retransmission = 0;       
-         s_RXScopeRXSlices[clearIndex].received_telemetry = 0;       
-         s_RXScopeRXSlices[clearIndex].received_commands = 0;       
+         s_RXScopeRXSlices[clearIndex].received_bytes = 0;
+         s_RXScopeRXSlices[clearIndex].received_video = 0;
+         s_RXScopeRXSlices[clearIndex].received_video_retransmission = 0;
+         s_RXScopeRXSlices[clearIndex].received_telemetry = 0;
+         s_RXScopeRXSlices[clearIndex].received_commands = 0;
          clearIndex++;
          if ( clearIndex > s_RXScopeSlicesCount )
             clearIndex = 0;
@@ -387,10 +387,10 @@ void rx_scope_read_data()
    struct timeval to;
    to.tv_sec = 0;
    to.tv_usec = 400;
-         
+
    int maxfd = -1;
    FD_ZERO(&readset);
-   
+
    radio_hw_info_t* pNICInfo = hardware_get_radio_info(s_RXScopeInterfaceRx);
 
    FD_SET(pNICInfo->runtimeInterfaceInfoRx.selectable_fd, &readset);
@@ -518,7 +518,7 @@ void rx_scope_loop()
       s_RXScopePage--;
       if ( s_RXScopePage < 0 )
          s_RXScopePage = 3;
-      rx_scope_on_page_change(); 
+      rx_scope_on_page_change();
 
       s_RXScopeLastTimeZoomChange = s_RXScopeTimeNowMiliSeconds;
       s_RXScopeZoom--;

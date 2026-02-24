@@ -45,7 +45,7 @@ bool ruby_is_first_pairing_done()
 {
    char szFile[MAX_FILE_PATH_SIZE];
    strcpy(szFile, FOLDER_CONFIG);
-   strcat(szFile, FILE_CONFIG_FIRST_PAIRING_DONE); 
+   strcat(szFile, FILE_CONFIG_FIRST_PAIRING_DONE);
    if ( access(szFile, R_OK) == -1 )
       return false;
    return true;
@@ -55,7 +55,7 @@ void ruby_set_is_first_pairing_done()
 {
    char szFile[MAX_FILE_PATH_SIZE];
    strcpy(szFile, FOLDER_CONFIG);
-   strcat(szFile, FILE_CONFIG_FIRST_PAIRING_DONE); 
+   strcat(szFile, FILE_CONFIG_FIRST_PAIRING_DONE);
    FILE* fd = fopen(szFile, "w");
    if ( NULL == fd )
    {
@@ -82,7 +82,7 @@ void reset_sik_state_info(t_sik_radio_state* pState)
 
    pState->bConfiguringToolInProgress = false;
    pState->uTimeStartConfiguring = 0;
-   
+
    for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
       pState->bInterfacesToReopen[i] = false;
 }
@@ -241,7 +241,7 @@ int _compute_controller_rc_ranged_value(Model* pModel, int nChannel, int prevRCV
    int nCamPitch = (pModel->camera_rc_channels & 0x1F);
    int nCamRoll = ((pModel->camera_rc_channels >> 8) & 0x1F);
    int nCamYaw = ((pModel->camera_rc_channels >> 16) & 0x1F);
-   
+
    bool isRelativeMove = false;
 
    if ( (nCamPitch > 0) && (nChannel == nCamPitch-1) )
@@ -317,7 +317,7 @@ int _compute_controller_rc_value_axe(Model* pModel, int nChannel, int prevRCValu
           // bit 4..7 axe/button index (1 index based: first button/axe is 1)
    // each additional 4 bits: positive value (!=0) for each extra button (in increasing order of output RC value)
    // bit 31: toggle flag
-   
+
    // 0...1
    float fNormalizedValue = 0.5;
 
@@ -344,7 +344,7 @@ int _compute_controller_rc_value_axe(Model* pModel, int nChannel, int prevRCValu
       fNormalizedValue = (float)(rawValue - pCtrlInterface->axesMinValue[nAxe])/(float)(pCtrlInterface->axesMaxValue[nAxe] - pCtrlInterface->axesMinValue[nAxe]);
       if ( fNormalizedValue < 0.0 ) fNormalizedValue = 0.0;
       if ( fNormalizedValue > 1.0 ) fNormalizedValue = 1.0;
-   
+
       if ( pModel->rc_params.rcChFlags[nChannel] & RC_CH_FLAGS_INVERTED )
          fNormalizedValue = 1.0 - fNormalizedValue;
 
@@ -570,12 +570,12 @@ void log_current_full_radio_configuration(Model* pModel)
       }
       else
          log_line("* %sRadio Link %d Info:  %s, radio interface(s) assigned to this link: [%s]", szPrefix, i+1, str_format_frequency(pModel->radioLinksParams.link_frequency_khz[i]), szBuff);
-      
+
       szBuff[0] = 0;
 
       str_get_radio_capabilities_description(pModel->radioLinksParams.link_capabilities_flags[i], szBuff);
-      str_get_radio_frame_flags_description(pModel->radioLinksParams.link_radio_flags_tx[i], szBuff2); 
-      str_get_radio_frame_flags_description(pModel->radioLinksParams.link_radio_flags_rx[i], szBuff3); 
+      str_get_radio_frame_flags_description(pModel->radioLinksParams.link_radio_flags_tx[i], szBuff2);
+      str_get_radio_frame_flags_description(pModel->radioLinksParams.link_radio_flags_rx[i], szBuff3);
       log_line("* %sRadio Link %d Capab: %s, Radio tx flags: %s, Radio rx flags: %s", szPrefix, i+1, szBuff, szBuff2, szBuff3);
       str_getDataRateDescription(pModel->radioLinksParams.downlink_datarate_video_bps[i], 0, szBuff);
       str_getDataRateDescription(pModel->radioLinksParams.downlink_datarate_data_bps[i], 0, szBuff2);
@@ -604,7 +604,7 @@ void log_current_full_radio_configuration(Model* pModel)
       szPrefix[0] = 0;
       radio_hw_info_t* pRadioInfo = hardware_get_radio_info(i);
       str_get_radio_capabilities_description(pModel->radioInterfacesParams.interface_capabilities_flags[i], szBuff);
-      str_get_radio_frame_flags_description(pModel->radioInterfacesParams.interface_supported_radio_flags[i], szBuff2); 
+      str_get_radio_frame_flags_description(pModel->radioInterfacesParams.interface_supported_radio_flags[i], szBuff2);
       if ( pModel->radioInterfacesParams.interface_capabilities_flags[i] & RADIO_HW_CAPABILITY_FLAG_USED_FOR_RELAY )
          strcpy(szPrefix, "Relay ");
       log_line("* %sRadio int %d: %s [%s] %s, current frequency: %s, assigned to radio link %d", szPrefix, i+1, pRadioInfo->szUSBPort, str_get_radio_card_model_string(pModel->radioInterfacesParams.interface_card_model[i]), pRadioInfo->szDriver, str_format_frequency(pRadioInfo->uCurrentFrequencyKhz), pModel->radioInterfacesParams.interface_link_id[i]+1);
@@ -634,7 +634,7 @@ bool radio_utils_set_interface_frequency(Model* pModel, int iRadioIndex, int iAs
          delayMs = DEFAULT_DELAY_WIFI_CHANGE;
    }
    else if ( NULL != pModel )
-      delayMs = (pModel->uDeveloperFlags >> DEVELOPER_FLAGS_WIFI_GUARD_DELAY_MASK_SHIFT) & 0xFF; 
+      delayMs = (pModel->uDeveloperFlags >> DEVELOPER_FLAGS_WIFI_GUARD_DELAY_MASK_SHIFT) & 0xFF;
 
    int iStartIndex = 0;
    int iEndIndex = hardware_get_radio_interfaces_count()-1;
@@ -662,7 +662,7 @@ bool radio_utils_set_interface_frequency(Model* pModel, int iRadioIndex, int iAs
    {
       if ( NULL != pProcessStats )
          pProcessStats->lastActiveTime = get_current_timestamp_ms();
-      
+
       radio_hw_info_t* pRadioInfo = hardware_get_radio_info(i);
       if ( (NULL == pRadioInfo) || (0 == hardware_radioindex_supports_frequency(i, uFrequencyKhz)) )
       {
@@ -724,7 +724,7 @@ bool radio_utils_set_interface_frequency(Model* pModel, int iRadioIndex, int iAs
                bUsedHT40 = true;
             }
             #else
-               sprintf(cmd, "iwconfig %s freq %u000", pRadioInfo->szName, uFrequencyKhz);            
+               sprintf(cmd, "iwconfig %s freq %u000", pRadioInfo->szName, uFrequencyKhz);
             #endif
          }
          else if ( pRadioInfo->isHighCapacityInterface )
@@ -732,14 +732,14 @@ bool radio_utils_set_interface_frequency(Model* pModel, int iRadioIndex, int iAs
             #if defined(HW_PLATFORM_RASPBERRY)
             sprintf(cmd, "iw dev %s set freq %u", pRadioInfo->szName, uFreqWifi);
             #else
-            sprintf(cmd, "iwconfig %s freq %u000", pRadioInfo->szName, uFrequencyKhz);            
+            sprintf(cmd, "iwconfig %s freq %u000", pRadioInfo->szName, uFrequencyKhz);
             #endif
          }
          hw_execute_process(cmd, 0, szOutput, sizeof(szOutput)/sizeof(szOutput[0]));
-         
+
          if ( 5 < strlen(szOutput) )
             log_softerror_and_alarm("Received a response from set freq command: [%s]", szOutput);
-           
+
          if ( NULL != strstr( szOutput, "Invalid argument" ) )
          if ( bUsedHT40 )
          if ( pRadioInfo->isHighCapacityInterface )
@@ -784,7 +784,7 @@ bool radio_utils_set_interface_frequency(Model* pModel, int iRadioIndex, int iAs
             continue;
          }
       }
-      
+
       else
       {
          log_softerror_and_alarm("Detected unknown radio interface type.");
@@ -820,11 +820,11 @@ bool radio_utils_set_datarate_atheros(Model* pModel, int iCard, int dataRate_bps
          delayMs = DEFAULT_DELAY_WIFI_CHANGE;
    }
    else if ( NULL != pModel )
-      delayMs = (pModel->uDeveloperFlags >> DEVELOPER_FLAGS_WIFI_GUARD_DELAY_MASK_SHIFT) & 0xFF; 
+      delayMs = (pModel->uDeveloperFlags >> DEVELOPER_FLAGS_WIFI_GUARD_DELAY_MASK_SHIFT) & 0xFF;
 
    delayMs += 20;
    log_line("Setting global datarate for Atheros/RaLink radio interface %d to: %d bps (guard interval: %d ms)", iCard+1, dataRate_bps, (int)delayMs);
-   
+
    radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(iCard);
    if ( NULL == pRadioHWInfo )
    {

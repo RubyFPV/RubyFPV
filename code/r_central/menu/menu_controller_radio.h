@@ -29,5 +29,5 @@ class MenuControllerRadio: public Menu
       int m_IndexRadioLinksAutoTxCard[MAX_RADIO_INTERFACES];
       int m_iRadioLinksTxCardSelectedIndex[MAX_RADIO_INTERFACES];
       int m_IndexRadioConfig;
-      
+
 };

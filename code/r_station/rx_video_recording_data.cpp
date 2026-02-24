@@ -45,7 +45,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "../radio/fec.h" 
+#include "../radio/fec.h"
 
 #include "../base/base.h"
 #include "../base/config.h"
@@ -277,12 +277,12 @@ void rx_video_recording_data_add_srt_frame()
             continue;
          if ( ! pRadioHWInfo->isHighCapacityInterface )
             continue;
-         
+
          fprintf(s_pFileRecordingSRTData, "Radio %d: ", i+1);
 
          int iRadioDBM = g_SMControllerRTInfo.radioInterfacesSignals[i].iMaxDBMVideoForInterface;
          int iSNR = g_SMControllerRTInfo.radioInterfacesSignals[i].iMaxSNRVideoForInterface;
-         
+
          if ( (NULL == g_pCurrentModel) || (! g_pCurrentModel->hasCamera()) )
          {
             iRadioDBM = g_SMControllerRTInfo.radioInterfacesSignals[i].iMaxDBMDataForInterface;
@@ -299,7 +299,7 @@ void rx_video_recording_data_add_srt_frame()
 
       iCountSecLine++;
    }
- 
+
    if ( g_pControllerSettings->iRecordSTRBitrate )
    {
       if ( iCountSecLine )
@@ -325,7 +325,7 @@ void rx_video_recording_data_add_srt_frame()
 
    if ( iCountSecLine )
       fprintf(s_pFileRecordingSRTData, "\n");
- 
+
    fprintf(s_pFileRecordingSRTData, "\n");
    s_iSRTDataFrameCount++;
 }
@@ -365,7 +365,7 @@ void rx_video_recording_data_add_osd_frame()
    for( int y=0; y<DEFAULT_MSPOSD_RECORDING_ROWS; y++ )
    for( int x=0; x<DEFAULT_MSPOSD_RECORDING_COLS; x++ )
       uBuffer[iBuffPos++] = pRuntimeInfo->mspState.uScreenChars[x + y * pRuntimeInfo->mspState.headerTelemetryMSP.uMSPOSDCols];
-      
+
    fwrite(uBuffer, 1, iBuffPos * sizeof(u16), s_pFileRecordingOSDData);
    s_iOSDDataFrameCount = pRuntimeInfo->mspState.iLastDrawFrameNumber;
    s_uLastTimeRecordedOSDData = g_TimeNow;

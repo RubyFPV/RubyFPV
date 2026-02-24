@@ -7,7 +7,7 @@ class MenuControllerDev: public Menu
 {
    public:
       MenuControllerDev();
-      virtual void onShow(); 
+      virtual void onShow();
       virtual void Render();
       virtual void valuesToUI();
       virtual void onReturnFromChild(int iChildMenuId, int returnValue);

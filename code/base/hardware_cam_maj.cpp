@@ -197,7 +197,7 @@ void* _thread_set_majestic_params_async(void *argument)
          if ( 0 != s_iPIDMajestic )
          if ( 0 == strncmp(localCommandsQueue.commands[iNextCommandIndexToExecute].szCommand, "curl", 4) )
             _hardware_maj_send_req(localCommandsQueue.commands[iNextCommandIndexToExecute].szCommand);
-         
+
          //if ( 0 != strstr(localCommandsQueue.commands[iNextCommandIndexToExecute].szCommand, "bitrate") )
          //    log_line("[HwCamMajestic] Video throughtput updated maj bitrate to: [%s]", &localCommandsQueue.commands[iNextCommandIndexToExecute].szCommand[10]);
          bSignalMajestic |= localCommandsQueue.commands[iNextCommandIndexToExecute].bSignalMajestic;
@@ -250,7 +250,7 @@ void hardware_camera_maj_init_threads(Model* pModel)
    if ( (NULL == s_pSemaphoreSetMajesticParamsWrite) || (SEM_FAILED == s_pSemaphoreSetMajesticParamsWrite) )
    {
       log_error_and_alarm("[HwCamMajestic] Failed to create write semaphore: %s, try alternative.", SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC);
-      s_pSemaphoreSetMajesticParamsWrite = sem_open(SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC, O_CREAT, S_IWUSR | S_IRUSR, 0); 
+      s_pSemaphoreSetMajesticParamsWrite = sem_open(SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC, O_CREAT, S_IWUSR | S_IRUSR, 0);
       if ( (NULL == s_pSemaphoreSetMajesticParamsWrite) || (SEM_FAILED == s_pSemaphoreSetMajesticParamsWrite) )
       {
          log_error_and_alarm("[HwCamMajestic] Failed to create write semaphore: %s", SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC);
@@ -266,7 +266,7 @@ void hardware_camera_maj_init_threads(Model* pModel)
    if ( (NULL == s_pSemaphoreSetMajesticParamsRead) || (SEM_FAILED == s_pSemaphoreSetMajesticParamsRead) )
    {
       log_error_and_alarm("[HwCamMajestic] Failed to create read semaphore: %s, try alternative.", SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC);
-      s_pSemaphoreSetMajesticParamsRead = sem_open(SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC, O_CREAT, S_IWUSR | S_IRUSR, 0); 
+      s_pSemaphoreSetMajesticParamsRead = sem_open(SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC, O_CREAT, S_IWUSR | S_IRUSR, 0);
       if ( (NULL == s_pSemaphoreSetMajesticParamsRead) || (SEM_FAILED == s_pSemaphoreSetMajesticParamsRead) )
       {
          log_error_and_alarm("[HwCamMajestic] Failed to create read semaphore: %s", SEMAPHORE_SET_MAJESTIC_PARAMS_ASYNC);
@@ -362,8 +362,8 @@ int hardware_camera_maj_validate_config()
          log_line("[HwCamMajestic] majestic backup config file is ok.");
       return 0;
    }
-  
-   
+
+
    log_softerror_and_alarm("[HwCamMajestic] Invalid majestic config file. Restore it...");
    if ( access("/etc/majestic.yaml.org", R_OK == -1) || (hardware_file_get_file_size("/etc/majestic.yaml.org") < 200) )
    {
@@ -379,7 +379,7 @@ int hardware_camera_maj_validate_config()
    log_line("[HwCamMajestic] Restored majestic config file from backup.");
    return 0;
 }
-   
+
 void* _thread_majestic_log_entry(void *argument)
 {
    char* szLog = (char*)argument;
@@ -482,7 +482,7 @@ bool _hardware_camera_maj_signal_stop_capture_program(int iSignal)
    if ( strlen(szOutput) < 2 )
    {
       s_iPIDMajestic = 0;
-      return true;    
+      return true;
    }
 
 
@@ -493,12 +493,12 @@ bool _hardware_camera_maj_signal_stop_capture_program(int iSignal)
    if ( strlen(szOutput) < 2 )
    {
       s_iPIDMajestic = 0;
-      return true;    
+      return true;
    }
 
    hw_kill_process("majestic", iSignal);
    hardware_sleep_ms(10);
- 
+
    hw_process_get_pids("majestic", szOutput);
    log_line("[HwCamMajestic] Majestic PID after stop command: (%s)", szOutput);
    if ( strlen(szOutput) > 2 )
@@ -805,7 +805,7 @@ void hardware_camera_maj_apply_all_settings(Model* pModel, camera_profile_parame
 void _hardware_camera_maj_set_irfilter_off_sync()
 {
    u32 uSubBoardType = (hardware_getBoardType() & BOARD_SUBTYPE_MASK) >> BOARD_SUBTYPE_SHIFT;
- 
+
    if ( (uSubBoardType == BOARD_SUBTYPE_OPENIPC_UNKNOWN) ||
         (uSubBoardType == BOARD_SUBTYPE_OPENIPC_GENERIC) ||
         (uSubBoardType == BOARD_SUBTYPE_OPENIPC_GENERIC_30KQ) )
@@ -884,7 +884,7 @@ void hardware_camera_maj_set_daylight_off(int iDLOff, bool bAsync)
    {
       if (s_iLastMajesticDaylightMode)
          _add_maj_command_to_queue("curl -s localhost/night/on", false);
-      else 
+      else
          _add_maj_command_to_queue("curl -s localhost/night/off", false);
    }
    else
@@ -917,7 +917,7 @@ void hardware_camera_maj_set_calibration_file(int iCameraType, int iCalibrationF
       snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cli -s .isp.sensorConfig /etc/sensors/%s", szFileName);
       hw_execute_bash_command_raw(szComm, NULL);
    }
-   hw_execute_bash_command_raw("killall -1 majestic", NULL);   
+   hw_execute_bash_command_raw("killall -1 majestic", NULL);
 }
 
 
@@ -950,7 +950,7 @@ void hardware_camera_maj_set_contrast(u32 uValue)
 
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
    s_CurrentMajesticCamSettings.contrast = uValue;
-   
+
    char szComm[128];
    if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
    {
@@ -1121,7 +1121,7 @@ void hardware_camera_maj_set_bitrate(u32 uBitrate)
 
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
    s_uTemporaryMajesticBitrate = uBitrate;
-   
+
    char szComm[128];
    if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
    {
@@ -1201,7 +1201,7 @@ void hardware_camera_maj_set_bitrate_and_qpdelta(u32 uBitrate, int iQPDelta)
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
    s_uTemporaryMajesticBitrate = uBitrate;
    s_iTemporaryMajesticQPDelta = iQPDelta;
-   
+
    char szComm[128];
    if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
    {
@@ -1263,7 +1263,7 @@ void hardware_camera_maj_set_audio_volume(int iVolume)
    }
    s_uMajesticLastChangeTime = s_uMajesticLastChangeAudioTime = get_current_timestamp_ms();
    s_iCurrentMajAudioVolume = iVolume;
-   
+
    char szComm[128];
    sprintf(szComm, "cli -s .audio.volume %d", s_iCurrentMajAudioVolume);
    _add_maj_command_to_queue_or_exec(szComm, true);
@@ -1279,13 +1279,13 @@ void hardware_camera_maj_set_audio_quality(int iBitrate)
       iNewBitrate = 4000;
    if ( iNewBitrate >= 32000 )
       iNewBitrate = 48000;
-   
+
    if ( iNewBitrate == s_iCurrentMajAudioBitrate )
    {
       log_line("[HwCamMajestic] Received request to change bitrate, but it's unchanged: %d", iNewBitrate);
       return;
    }
-   
+
    s_uMajesticLastChangeTime = s_uMajesticLastChangeAudioTime = get_current_timestamp_ms();
    s_iCurrentMajAudioBitrate = iNewBitrate;
 

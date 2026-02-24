@@ -75,7 +75,7 @@ int init_Radios()
       configure_radios_succeeded = true;
       return 1;
    }
-   
+
    u32 uDelayMS = DEFAULT_DELAY_WIFI_CHANGE;
    s_bIsStation = hardware_is_station();
 
@@ -176,7 +176,7 @@ int init_Radios()
    FILE* fd = fopen(szFile, "w");
    fprintf(fd, "done");
    fclose(fd);
-   
+
    hardware_save_radio_info();
 
    log_line("Configuring radios COMPLETED.");
@@ -223,8 +223,8 @@ int r_initradio(int argc, char *argv[])
    {
       log_error_and_alarm("There are no radio interfaces (2.4/5.8 wlans) on this device.");
       return -1;
-   }    
-   
+   }
+
    init_Radios();
 
    log_line("Ruby Init Radio process completed.");

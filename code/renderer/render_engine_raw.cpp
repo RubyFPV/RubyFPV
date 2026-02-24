@@ -246,7 +246,7 @@ int RenderEngineRaw::getImageWidth(u32 uImageId)
    if ( -1 == indexImage )
       return 0;
 
-   
+
    return m_pImages[indexImage]->width;
 }
 
@@ -267,7 +267,7 @@ int RenderEngineRaw::getImageHeight(u32 uImageId)
    if ( -1 == indexImage )
       return 0;
 
-   
+
    return m_pImages[indexImage]->height;
 }
 
@@ -341,7 +341,7 @@ void RenderEngineRaw::_buildMipImage(struct _fbg_img* pSrc, struct _fbg_img* pDe
       pixelSrc++;
       a[3] = *pixelSrc;
       pixelSrc++;
-    
+
       res = sqrtl((r[0]*r[0] + r[1]*r[1] + r[2]*r[2] + r[3]*r[3])/4);
       if ( res < 0 ) res = 0;
       if ( res > 255 ) res = 255;
@@ -475,7 +475,7 @@ void RenderEngineRaw::bltImage(float xPosDest, float yPosDest, float fWidthDest,
       return;
    if ( NULL == m_pImages[indexImage] )
       return;
-  
+
    int xDest = xPosDest*m_iRenderWidth;
    int yDest = yPosDest*m_iRenderHeight;
    int wDest = fWidthDest*m_iRenderWidth;
@@ -490,7 +490,7 @@ void RenderEngineRaw::bltImage(float xPosDest, float yPosDest, float fWidthDest,
    m_pFBG->mix_color.a = 255;
 
    fbg_imageDraw(m_pFBG, m_pImages[indexImage], xDest,yDest,wDest,hDest, iSrcX, iSrcY, iSrcWidth, iSrcHeight);
-  
+
 }
 
 void RenderEngineRaw::bltSprite(float xPosDest, float yPosDest, int iSrcX, int iSrcY, int iSrcWidth, int iSrcHeight, u32 uImageId)
@@ -511,7 +511,7 @@ void RenderEngineRaw::bltSprite(float xPosDest, float yPosDest, int iSrcX, int i
       return;
    if ( NULL == m_pImages[indexImage] )
       return;
-  
+
    int xDest = xPosDest*m_iRenderWidth;
    int yDest = yPosDest*m_iRenderHeight;
    int wDest = iSrcWidth;
@@ -527,7 +527,7 @@ void RenderEngineRaw::bltSprite(float xPosDest, float yPosDest, int iSrcX, int i
    fbg_imageDraw(m_pFBG, m_pImages[indexImage], xDest,yDest,wDest,hDest, iSrcX, iSrcY, iSrcWidth, iSrcHeight);
 }
 
-     
+
 void RenderEngineRaw::drawIcon(float xPos, float yPos, float fWidth, float fHeight, u32 iconId)
 {
    if ( iconId < 1 )
@@ -558,10 +558,10 @@ void RenderEngineRaw::drawIcon(float xPos, float yPos, float fWidth, float fHeig
    m_pFBG->mix_color.a = m_ColorFill[3];
 
    if ( fWidth*m_iRenderWidth <= m_pIcons[indexIcon]->width/4 ||
-        fHeight*m_iRenderHeight <= m_pIcons[indexIcon]->height/4 ) 
+        fHeight*m_iRenderHeight <= m_pIcons[indexIcon]->height/4 )
       fbg_imageDrawAlpha(m_pFBG, m_pIconsMip[indexIcon][1], x,y, fWidth*m_iRenderWidth, fHeight*m_iRenderHeight, 0,0, m_pIconsMip[indexIcon][1]->width, m_pIconsMip[indexIcon][1]->height);
    else if ( fWidth*m_iRenderWidth <= m_pIcons[indexIcon]->width/2 ||
-        fHeight*m_iRenderHeight <= m_pIcons[indexIcon]->height/2 ) 
+        fHeight*m_iRenderHeight <= m_pIcons[indexIcon]->height/2 )
       fbg_imageDrawAlpha(m_pFBG, m_pIconsMip[indexIcon][0], x,y, fWidth*m_iRenderWidth, fHeight*m_iRenderHeight, 0,0, m_pIconsMip[indexIcon][0]->width, m_pIconsMip[indexIcon][0]->height);
    else
       fbg_imageDrawAlpha(m_pFBG, m_pIcons[indexIcon], x,y, fWidth*m_iRenderWidth, fHeight*m_iRenderHeight, 0,0, m_pIcons[indexIcon]->width, m_pIcons[indexIcon]->height);
@@ -623,7 +623,7 @@ void RenderEngineRaw::_drawSimpleText(RenderEngineRawFont* pFont, const char* sz
       }
       if ( xTmp + fWidthCh >= 1.0 )
          break;
-      
+
       int xImg = pFont->chars[(*szText)-pFont->charIdFirst].imgXOffset;
       int yImg = pFont->chars[(*szText)-pFont->charIdFirst].imgYOffset;
       int wImg = pFont->chars[(*szText)-pFont->charIdFirst].width;
@@ -1010,7 +1010,7 @@ void RenderEngineRaw::fillTriangle(float x1, float y1, float x2, float y2, float
    int iy1 = y1 * m_iRenderHeight;
    int iy2 = y2 * m_iRenderHeight;
    int iy3 = y3 * m_iRenderHeight;
-   
+
    int iymin = iy1;
    int iymax = iy1;
 
@@ -1041,7 +1041,7 @@ void RenderEngineRaw::fillTriangle(float x1, float y1, float x2, float y2, float
       drawLine(x3,y3,x1,y1);
       return;
    }
-   
+
    int ixpt, ixpt1, ixpt2;
 
    for( int iy=iymin; iy <= iymax; iy++ )

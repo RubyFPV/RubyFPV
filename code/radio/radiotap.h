@@ -3,7 +3,7 @@
 #include <pcap.h>
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 #include "ieee80211_radiotap.h"
 
@@ -65,4 +65,4 @@ extern int ieee80211_radiotap_iterator_next(struct ieee80211_radiotap_iterator *
 
 #ifdef __cplusplus
 }
-#endif // __cplusplus 
+#endif // __cplusplus

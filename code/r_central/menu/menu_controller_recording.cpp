@@ -45,19 +45,19 @@ MenuControllerRecording::MenuControllerRecording(void)
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.12;
    float dxMargin = 0.03;
 
-   m_pItemsSelect[1] = new MenuItemSelect(L("Recording buffers"), L("When recording, record directly to the persistent storage or to memory first. Record to memory first when having slow performance on the persistent storage. Either way, when video recording ends, the video is saved to persistent storage."));  
+   m_pItemsSelect[1] = new MenuItemSelect(L("Recording buffers"), L("When recording, record directly to the persistent storage or to memory first. Record to memory first when having slow performance on the persistent storage. Either way, when video recording ends, the video is saved to persistent storage."));
    m_pItemsSelect[1]->addSelection(L("Storage"));
    m_pItemsSelect[1]->addSelection(L("Memory"));
    m_pItemsSelect[1]->setIsEditable();
    m_IndexVideoDestination = addMenuItem(m_pItemsSelect[1]);
 
-   m_pItemsSelect[2] = new MenuItemSelect(L("Record Indicator Style"), L("Select which style of record indicator to show on the OSD"));  
+   m_pItemsSelect[2] = new MenuItemSelect(L("Record Indicator Style"), L("Select which style of record indicator to show on the OSD"));
    m_pItemsSelect[2]->addSelection(L("Normal"));
    m_pItemsSelect[2]->addSelection(L("Large"));
    m_pItemsSelect[2]->setIsEditable();
    m_IndexRecordIndicator = addMenuItem(m_pItemsSelect[2]);
 
-   m_pItemsSelect[3] = new MenuItemSelect(L("Recording LED"), L("Select what the recording LED should do when recording is on."));  
+   m_pItemsSelect[3] = new MenuItemSelect(L("Recording LED"), L("Select what the recording LED should do when recording is on."));
    m_pItemsSelect[3]->addSelection(L("Disabled"));
    m_pItemsSelect[3]->addSelection(L("On/Off"));
    m_pItemsSelect[3]->addSelection(L("Blinking"));
@@ -66,7 +66,7 @@ MenuControllerRecording::MenuControllerRecording(void)
 
    addMenuItem(new MenuItemSection(L("Recording Triggers")));
 
-   m_pItemsSelect[4] = new MenuItemSelect(L("Record Button"), L("Select which button to use to trigger start/stop of video recording."));  
+   m_pItemsSelect[4] = new MenuItemSelect(L("Record Button"), L("Select which button to use to trigger start/stop of video recording."));
    m_pItemsSelect[4]->addSelection(L("None"));
    m_pItemsSelect[4]->addSelection(L("QA Button 1"));
    m_pItemsSelect[4]->addSelection(L("QA Button 2"));
@@ -80,7 +80,7 @@ MenuControllerRecording::MenuControllerRecording(void)
    m_pItemsSelect[5]->setIsEditable();
    m_IndexRecordArm = addMenuItem(m_pItemsSelect[5]);
 
-   m_pItemsSelect[6] = new MenuItemSelect(L("Stop recording on Disarm"), L("Stops video recording (if one is started) when the vehicle disarms. It requires an active connection of the vehicle to the flight controller."));  
+   m_pItemsSelect[6] = new MenuItemSelect(L("Stop recording on Disarm"), L("Stops video recording (if one is started) when the vehicle disarms. It requires an active connection of the vehicle to the flight controller."));
    m_pItemsSelect[6]->addSelection(L("No"));
    m_pItemsSelect[6]->addSelection(L("Yes"));
    m_pItemsSelect[6]->setIsEditable();
@@ -172,7 +172,7 @@ MenuControllerRecording::MenuControllerRecording(void)
 
    addMenuItem(new MenuItemSection(L("Screenshots")));
 
-   m_pItemsSelect[0] = new MenuItemSelect(L("Add OSD To Screenshots"), L("When taking a screenshot, OSD info can be included in the picture or not."));  
+   m_pItemsSelect[0] = new MenuItemSelect(L("Add OSD To Screenshots"), L("When taking a screenshot, OSD info can be included in the picture or not."));
    m_pItemsSelect[0]->addSelection(L("No"));
    m_pItemsSelect[0]->addSelection(L("Yes"));
    m_pItemsSelect[0]->setIsEditable();
@@ -192,7 +192,7 @@ void MenuControllerRecording::valuesToUI()
    //m_pItemsSelect[0]->setEnabled((p->iActionQuickButton1==quickActionTakePicture) || (p->iActionQuickButton2==quickActionTakePicture));
 
    m_pItemsSelect[1]->setSelection(p->iVideoDestination);
-  
+
    m_pItemsSelect[2]->setSelection(p->iShowBigRecordButton);
    m_pItemsSelect[3]->setSelection(p->iRecordingLedAction);
 

@@ -79,7 +79,7 @@ void MenuVehicleSelector::onShow()
    else
       m_IndexFavorite = addMenuItem(new MenuItem(L("Add to favorites"), L("Add this vehicle to the list of favorite vehicles. You can switch quickly between favorite vehicles using a Quick Button action.")));
    m_IndexDelete = addMenuItem(new MenuItem(L("Delete"), L("Deletes this vehicle.")));
-  
+
    Menu::onShow();
    log_line("[Menu] Showed vehicle selector for vehicle index: %d, VID: %u, spectator mode? %s", m_IndexSelectedVehicle, pModel->uVehicleId, m_bSpectatorMode?"yes":"no");
 }
@@ -210,7 +210,7 @@ void MenuVehicleSelector::onSelectItem()
       saveControllerModel(g_pCurrentModel);
 
       ruby_set_active_model_id(g_pCurrentModel->uVehicleId);
-      
+
       onMainVehicleChanged(true);
       log_line("[MenuVehicleSelector] Starting new pairing...");
       pairing_start_normal();
@@ -235,7 +235,7 @@ void MenuVehicleSelector::onSelectItem()
          pItem = new MenuItem(L("Remove from favorites"), L("Removes this vehicle from the list of favorite vehicles."));
       else
         pItem = new MenuItem(L("Add to favorites"), L("Add this vehicle to the list of favorite vehicles. You can switch quickly between favorite vehicles using a Quick Button action."));
-      m_pMenuItems[m_IndexFavorite] = pItem;  
+      m_pMenuItems[m_IndexFavorite] = pItem;
 
       save_favorites();
       invalidate();

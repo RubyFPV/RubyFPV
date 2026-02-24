@@ -14,14 +14,14 @@ class MenuVehicleGeneral: public Menu
       virtual void valuesToUI();
       virtual int onBack();
       virtual void onSelectItem();
-            
+
    private:
       MenuItemEdit* m_pItemEditName;
       MenuItemSelect* m_pItemsSelect[30];
       MenuItemSlider* m_pItemsSlider[10];
       int m_IndexVehicleType;
       int m_IndexBoardType;
-      
+
       void populate();
       void addTopDescription();
 };

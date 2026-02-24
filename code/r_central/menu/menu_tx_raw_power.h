@@ -16,7 +16,7 @@ class MenuTXRawPower: public Menu
       virtual void onSelectItem();
 
       bool m_bShowVehicleSide;
-      
+
    protected:
       void addItems();
       void addItemsVehicle();

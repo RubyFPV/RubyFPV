@@ -66,7 +66,7 @@ MenuVehicles::MenuVehicles(void)
 void MenuVehicles::onShow()
 {
    m_Height = 0.0;
-   
+
    if ( (NULL != g_pCurrentModel) && ( 0 != g_uActiveControllerModelVID) )
       log_line("[Menu] MenuVehicles: Current vehicle id: %u (%u)", g_pCurrentModel->uVehicleId, g_uActiveControllerModelVID);
    else
@@ -86,7 +86,7 @@ void MenuVehicles::onShow()
       iCountVehicles += getControllerModelsSpectatorCount();
    if ( m_iLastSelectedVehicle == iCountVehicles )
       m_iLastSelectedVehicle--;
-     
+
    for( int i=0; i<getControllerModelsCount(); i++ )
    {
       Model *p = getModelAtIndex(i);
@@ -240,7 +240,7 @@ void MenuVehicles::onReturnFromChild(int iChildMenuId, int returnValue)
       if ( m_bShowSpectator )
       {
          iModelsCount = getControllerModelsSpectatorCount();
-         
+
          for( int i=0; i<getControllerModelsSpectatorCount(); i++ )
          {
             pModels[i] = getSpectatorModel(i);
@@ -391,7 +391,7 @@ void MenuVehicles::onSelectItem()
 
    m_iLastSelectedVehicle = m_SelectedIndex;
    log_line("[Menu] MenuVehicles: Adding menu selector for vehicle index %d", m_iLastSelectedVehicle);
-   
+
    MenuVehicleSelector* pMenu = new MenuVehicleSelector();
    pMenu->m_IndexSelectedVehicle = m_SelectedIndex;
    pMenu->m_bSpectatorMode = false;

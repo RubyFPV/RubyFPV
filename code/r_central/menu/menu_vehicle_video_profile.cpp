@@ -46,7 +46,7 @@ MenuVehicleVideoProfileSelector::MenuVehicleVideoProfileSelector(void)
    m_Height = 0.0;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.2;
    char szLegend[256];
-   
+
    m_IndexSaveVideoProfile = -1;
    m_IndexCompareProfiles = -1;
 
@@ -80,7 +80,7 @@ MenuVehicleVideoProfileSelector::~MenuVehicleVideoProfileSelector()
 }
 
 void MenuVehicleVideoProfileSelector::onShow()
-{      
+{
    Menu::onShow();
 }
 
@@ -95,7 +95,7 @@ void MenuVehicleVideoProfileSelector::valuesToUI()
 
 void MenuVehicleVideoProfileSelector::Render()
 {
-   RenderPrepare();   
+   RenderPrepare();
    float yTop = RenderFrameAndTitle();
    float y = yTop;
 
@@ -143,7 +143,7 @@ void MenuVehicleVideoProfileSelector::onSelectItem()
       int iMaxFPS = 90;
       if ( g_pCurrentModel->isActiveCameraOpenIPC() )
          iMaxFPS = 120;
-    
+
       for(int i=0; i<iVideoResCount; i++ )
       {
          if ( pResolutions[i].iWidth == g_pCurrentModel->video_params.iVideoWidth )
@@ -181,7 +181,7 @@ void MenuVehicleVideoProfileSelector::onSelectItem()
       }
 
       log_line("Sending to vehicle new user selected video link profile: %s", str_get_video_profile_name(paramsNew.iCurrentVideoProfile));
-      
+
       send_pause_adaptive_to_router(5000);
       send_reset_adaptive_state_to_router(g_pCurrentModel->uVehicleId);
       if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_VIDEO_PARAMETERS, 0, (u8*)&paramsNew, sizeof(video_parameters_t), (u8*)&(g_pCurrentModel->video_link_profiles[0]), MAX_VIDEO_LINK_PROFILES * sizeof(type_video_link_profile)) )

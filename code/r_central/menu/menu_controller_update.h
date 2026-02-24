@@ -7,10 +7,10 @@ class MenuControllerUpdate: public Menu
 {
    public:
       MenuControllerUpdate();
-      virtual void onShow(); 
+      virtual void onShow();
       virtual void Render();
       virtual bool periodicLoop();
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
 
    protected:
@@ -20,7 +20,7 @@ class MenuControllerUpdate: public Menu
    private:
       void addItems();
       MenuItemSelect* m_pItemsSelect[10];
- 
+
       int m_IndexUpdateUSB;
       int m_IndexUpdateNet;
       int m_iMustStartUpdate;

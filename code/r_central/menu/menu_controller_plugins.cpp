@@ -183,7 +183,7 @@ void MenuControllerPlugins::onReturnFromChild(int iChildMenuId, int returnValue)
       log_line("Plugin deletion complete.");
       return;
    }
-   
+
    if ( (5 == iChildMenuId/1000) && (1 == returnValue) && (-1 != m_IndexSelectedPlugin) )
    {
       char* szGUID = get_CorePluginGUID(m_IndexSelectedPlugin);
@@ -198,13 +198,13 @@ void MenuControllerPlugins::onReturnFromChild(int iChildMenuId, int returnValue)
       PH.vehicle_id_src = PACKET_COMPONENT_COMMANDS;
       PH.vehicle_id_dest = PACKET_COMPONENT_COMMANDS;
       PH.total_length = sizeof(t_packet_header);
- 
+
       u8 buffer[MAX_PACKET_TOTAL_SIZE];
       memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
       send_packet_to_router(buffer, PH.total_length);
       return;
    }
-   
+
    if ( (1 == iChildMenuId/1000) && (1 == returnValue) )
    {
       importFromUSB();
@@ -296,7 +296,7 @@ void MenuControllerPlugins::onSelectItem()
       add_menu_to_stack(pMC);
       return;
    }
-   
+
 }
 
 void MenuControllerPlugins::importFromUSB()
@@ -317,7 +317,7 @@ void MenuControllerPlugins::importFromUSB()
    char szFile[1024];
    char szComm[1024];
    log_line("Searching for plugins...");
-   
+
    d = opendir(FOLDER_USB_MOUNT);
    if (!d)
    {
@@ -375,18 +375,18 @@ void MenuControllerPlugins::importFromUSB()
       void (*pFunctionOSDRender)(vehicle_and_telemetry_info_t*, plugin_settings_info_t2*, float, float, float, float);
       char* (*pFunctionOSDGetName)(void);
       char* (*pFunctionOSDGetUID)(void);
-   
+
       pFunctionOSDInit = (void (*)(void*)) dlsym(pLibrary, "init");
       pFunctionOSDRender = (void (*)(vehicle_and_telemetry_info_t*, plugin_settings_info_t2*, float, float, float, float)) dlsym(pLibrary, "render");
       pFunctionOSDGetName = (char* (*)(void)) dlsym(pLibrary, "getName");
       pFunctionOSDGetUID = (char* (*)(void)) dlsym(pLibrary, "getUID");
-      
+
       if ( (NULL != pFunctionOSDInit) && (NULL != pFunctionOSDRender) && (NULL != pFunctionOSDGetName) && (NULL != pFunctionOSDGetUID) )
       {
          dlclose(pLibrary);
          sprintf(szComm, "cp -rf %s/%s %s", FOLDER_USB_MOUNT, dir->d_name, FOLDER_OSD_PLUGINS);
          hw_execute_bash_command(szComm, NULL);
-      
+
          log_line("Found OSD plugin: [%s]", dir->d_name);
          countImportedOSD++;
          countImportedTotal++;
@@ -399,7 +399,7 @@ void MenuControllerPlugins::importFromUSB()
       u32 (*pFunctionCoreRequestCapab)(void);
       const char* (*pFunctionCoreGetName)(void);
       const char* (*pFunctionCoreGetUID)(void);
-   
+
       pFunctionCoreInit = (int (*)(u32, u32)) dlsym(pLibrary, "core_plugin_init");
       pFunctionCoreRequestCapab = (u32 (*)(void)) dlsym(pLibrary, "core_plugin_on_requested_capabilities");
       pFunctionCoreGetName = (const char* (*)(void)) dlsym(pLibrary, "core_plugin_get_name");
@@ -411,7 +411,7 @@ void MenuControllerPlugins::importFromUSB()
          dlclose(pLibrary);
          sprintf(szComm, "cp -rf %s/%s %s", FOLDER_USB_MOUNT, dir->d_name, FOLDER_CORE_PLUGINS);
          hw_execute_bash_command(szComm, NULL);
-      
+
          log_line("Found Core plugin: [%s]", dir->d_name);
          countImportedCore++;
          countImportedTotal++;
@@ -419,7 +419,7 @@ void MenuControllerPlugins::importFromUSB()
       }
       dlclose(pLibrary);
    }
-   
+
    closedir(d);
 
    log_line("Searching for plugins complete.");

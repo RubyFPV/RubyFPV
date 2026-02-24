@@ -113,7 +113,7 @@ void MenuVehicle::onShow()
       m_pMenuItems[m_IndexCamera]->setEnabled(false);
 
    m_IndexVideo = addMenuItem(new MenuItem(L("Video"), L("Change video resolution, fps so on.")));
-   
+
    //if ( NULL != g_pCurrentModel && (!g_pCurrentModel->hasCamera()) )
    //   m_pMenuItems[m_IndexVideo]->setEnabled(false);
    if ( NULL != g_pCurrentModel && g_pCurrentModel->is_spectator )
@@ -130,8 +130,8 @@ void MenuVehicle::onShow()
    m_IndexDataLink = addMenuItem(new MenuItem(L("Auxiliary Data Link"), L("Create and configure a general purpose data link between the vehicle and the controller.")));
    if ( NULL != g_pCurrentModel && g_pCurrentModel->is_spectator )
       m_pMenuItems[m_IndexDataLink]->setEnabled(false);
- 
-   m_IndexRC = addMenuItem(new MenuItem(L("Remote Control"), L("Change your remote control type, channels, protocols and so on."))); 
+
+   m_IndexRC = addMenuItem(new MenuItem(L("Remote Control"), L("Change your remote control type, channels, protocols and so on.")));
    #ifndef FEATURE_ENABLE_RC
    m_pMenuItems[m_IndexRC]->setEnabled(false);
    #endif
@@ -245,7 +245,7 @@ void MenuVehicle::Render()
 
    float xPos = m_RenderXPos + m_sfMenuPaddingX;
    float yPos = m_RenderYPos + m_RenderTitleHeight + 2.0*m_sfMenuPaddingY;
-  
+
    u32 idIcon = osd_getVehicleIcon( g_pCurrentModel->vehicle_type );
 
    /*
@@ -259,7 +259,7 @@ void MenuVehicle::Render()
    if ( 0 == g_uActiveControllerModelVID )
       bConnected = false;
    */
-   
+
    char szLine1[128];
    char szLine2[128];
    char szLine3[128];

@@ -116,7 +116,7 @@ void _log_task(char* szProgramName, int iPID, int iTID, int iTaskCount, int iCor
 
    char szFile[MAX_FILE_PATH_SIZE];
    sprintf(szFile, "/proc/%d/stat", iTID);
-   
+
    FILE* fd = fopen(szFile, "r");
    if ( NULL == fd )
    {
@@ -124,7 +124,7 @@ void _log_task(char* szProgramName, int iPID, int iTID, int iTaskCount, int iCor
          printf("[Can't read TID stat file: %s]\n", szFile);
       return;
    }
-   
+
    char szTmp[64];
    int iTmp = 0;
    long int ilTmp = 0;
@@ -228,7 +228,7 @@ void _log_process(int iPID, int iCoreFilter)
    char szOutput[1024];
    char szFile[MAX_FILE_PATH_SIZE];
    sprintf(szFile, "/proc/%d/stat", iPID);
-   
+
    FILE* fd = fopen(szFile, "r");
    if ( NULL == fd )
    {
@@ -236,7 +236,7 @@ void _log_process(int iPID, int iCoreFilter)
          printf("[Can't read PID stat file: %s]\n", szFile);
       return;
    }
-   
+
    fscanf(fd, "%d %s", &iTmpPID, szProgramName);
    fclose(fd);
 
@@ -314,7 +314,7 @@ void _enum_process(const char* szProcessName, int iCoreFilter)
          _print_proc_line(szProcessName, "",  0, 0, ' ', 0, 0, 0, 0, 0, "", 0, -1);
       return;
    }
-   
+
    szOutput[strlen(szOutput)] = 0;
    char* pToken = szOutput;
    char* pTmp = szOutput;
@@ -399,7 +399,7 @@ void hw_log_processes(int argc, char *argv[])
    printf("(state -> R=running S=sleep D=wait Z=zombie T=stopped W=paging X=dead P=parked I=idle)\n");
    printf("Name            (state)  PID\t TID\t  CPU C S_CLASS  NICE  RT_PRIO RAW_PRIO\n");
    printf("----------------------------------------------------------------------------------\n");
-   
+
    for( int iCore=iCoreFilterStart; iCore <= iCoreFilterEnd; iCore++ )
    {
       _enum_process("ruby_logger", iCore);
@@ -536,14 +536,14 @@ int hw_process_get_current_core(int iPID)
 
    char szFile[MAX_FILE_PATH_SIZE];
    sprintf(szFile, "/proc/%d/stat", iPID);
-   
+
    FILE* fd = fopen(szFile, "r");
    if ( NULL == fd )
    {
       log_softerror_and_alarm("[HwProc] Can't read process stat file [%s] for PID %d, can't read current CPU core.", szFile, iPID);
       return -1;
    }
-   
+
    char szTmp[64];
    int iTmp = 0;
    long int ilTmp = 0;
@@ -589,7 +589,7 @@ void hw_stop_process(const char* szProcName)
       return;
 
    log_line("Stopping process [%s]...", szProcName);
-   
+
    hw_process_get_pids(szProcName, szPIDs);
    removeTrailingNewLines(szPIDs);
    replaceNewLinesToSpaces(szPIDs);
@@ -761,7 +761,7 @@ int hw_execute_process(const char *szCommand, int iTimeoutMs, char* szOutput, in
    int stderr_fds[2];
    pipe(stdout_fds);
    pipe(stderr_fds);
- 
+
    const pid_t pidChild = fork();
    if (0 == pidChild)
    {
@@ -1001,7 +1001,7 @@ int hw_execute_process(const char *szCommand, int iTimeoutMs, char* szOutput, in
          log_line("[HWP-%d] Reading child process stderr (PID: %d) has no more data (res: %d, %d bytes now).", s_iCountExecutions, pidChild, iSelResult, iCountRead);
          break;
       }
-      
+
       if ( FD_ISSET(stderr_fds[0], &readSet) )
       {
          int iRead = read(stderr_fds[0], &(szOutput[iCountRead]), iMaxOutputLength-iCountRead-1);
@@ -1070,7 +1070,7 @@ int hw_launch_process_exec(const char *szFile, const char* szParam1, const char*
       sprintf(szBuff, "%s %s &", szFile, szParam1);
    else
       sprintf(szBuff, "%s %s %s %s %s &", szFile, ((NULL != szParam1)?szParam1:""), ((NULL != szParam2)?szParam2:""), ((NULL != szParam3)?szParam3:""), ((NULL != szParam4)?szParam4:"") );
-   
+
    hw_execute_bash_command(szBuff, NULL);
    return 0;
 
@@ -1318,7 +1318,7 @@ int hw_execute_bash_command_raw(const char* command, char* outBuffer)
 int hw_execute_bash_command_raw_timeout(const char* command, char* outBuffer, u32 uTimeoutMs)
 {
    log_line("Executing command raw timeout %u ms: %s", uTimeoutMs, command);
-   return _hw_execute_bash_command(command, outBuffer, 0, uTimeoutMs); 
+   return _hw_execute_bash_command(command, outBuffer, 0, uTimeoutMs);
 }
 
 int hw_execute_bash_command_raw_silent(const char* command, char* outBuffer)
@@ -1342,7 +1342,7 @@ void hw_execute_ruby_process_wait(const char* szPrefixes, const char* szProcess,
 
    if ( NULL != szOutput )
       szOutput[0] = 0;
-   
+
    char szFullPath[MAX_FILE_PATH_SIZE];
    char szFullPathDebug[MAX_FILE_PATH_SIZE];
    szFullPathDebug[0] = 0;
@@ -1429,7 +1429,7 @@ void hw_execute_ruby_process_wait(const char* szPrefixes, const char* szProcess,
       }
       log_line("Read process output for process (%s): %d bytes in %u ms", szProcess, iCountRead, get_current_timestamp_ms() - uTimeStart);
    }
-   
+
    if ( -1 == pclose(fp) )
       log_softerror_and_alarm("Failed to launch and confirm Ruby process: [%s]", szCommand);
    else
@@ -1520,7 +1520,7 @@ int hw_init_worker_thread_attrs(pthread_attr_t* pAttr, int iDesiredCore, int iSt
    pthread_attr_setdetachstate(pAttr, PTHREAD_CREATE_DETACHED);
    pthread_attr_setinheritsched(pAttr, PTHREAD_INHERIT_SCHED);
    int iRet = 0;
-   
+
    pthread_attr_setinheritsched(pAttr, PTHREAD_EXPLICIT_SCHED);
 
    // If raw prio < 2, set to SCHED_OTHER, prio 0
@@ -1707,7 +1707,7 @@ void hw_set_process_affinity(const char* szProcName, int iExceptThreadId, int iC
 
    sprintf(szComm, "ls /proc/%d/task 2>/dev/null", iPID);
    hw_execute_bash_command_raw_silent(szComm, szOutput);
-   
+
    if ( strlen(szOutput) < 3 )
    {
       log_softerror_and_alarm("[HWP] Failed to set process affinity for process [%s], invalid tasks: [%s].", szProcName, szOutput);
@@ -1751,7 +1751,7 @@ void hw_set_process_affinity(const char* szProcName, int iExceptThreadId, int iC
           else
           {
              sprintf(szComm, "taskset -cp %d-%d %d", iCoreStart, iCoreEnd, iTask);
-             hw_execute_bash_command(szComm, NULL);        
+             hw_execute_bash_command(szComm, NULL);
           }
        }
        // Go to next task in string
@@ -1820,7 +1820,7 @@ void hw_set_current_thread_affinity(const char* szLogPrefix, int iCoreStart, int
             bDifferent = true;
             break;
          }
-      }      
+      }
    }
 
    if ( ! bDifferent )
@@ -1828,7 +1828,7 @@ void hw_set_current_thread_affinity(const char* szLogPrefix, int iCoreStart, int
       log_line("[HWP] CPU affinity for current thread (%s) is unchanged, (on cores: %d-%d)", szLogPrefix, iCoreStart, iCoreEnd);
       return;
    }
-   
+
    if ( 0 != pthread_setaffinity_np(this_thread, sizeof(cpuSetSet), &cpuSetSet) )
       log_line("[HWP] Failed to set cpu affinity for current thread (%s) to cores %d-%d, error: %d, (%s)", szLogPrefix, iCoreStart, iCoreEnd, errno, strerror(errno));
    else
@@ -1841,7 +1841,7 @@ void hw_set_priority_current_proc(int iRawPriority)
    // 0,1 disabled
    // 2...100 RT priority
    // 101..140 nice priority
-   
+
    if ( (iRawPriority < 2) || (iRawPriority > 139) )
       return;
 
@@ -1933,7 +1933,7 @@ int hw_get_current_thread_rt_priority(const char* szLogPrefix)
       iRetValue = params.sched_priority;
       log_line("[HWP] (%s) Current thread policy/priority: %s/%d", szPrefix, str_format_schedule_policy(policy), params.sched_priority);
    }
-   
+
    return iRetValue;
 }
 
@@ -1943,7 +1943,7 @@ void hw_set_current_thread_raw_priority(const char* szLogPrefix, int iNewRawPrio
    // 0,1 disabled
    // 2...100 RT priority
    // 101..140 nice priority
-   
+
    // If 0, set to SCHED_OTHER, prio 0
    if ( iNewRawPriority < 1 )
    {
@@ -2053,7 +2053,7 @@ void hw_set_current_proc_nice_priority(const char* szLogPrefix, int iNewRawPrior
       int iPID = getpid();
       snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "renice -n %d -p %d", iNewRawPriority-120, iPID);
       hw_execute_bash_command(szComm, NULL);
-    
+
       setpriority(PRIO_PROCESS, 0, 120-iNewRawPriority);
    }
 }

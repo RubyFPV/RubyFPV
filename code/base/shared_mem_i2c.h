@@ -9,7 +9,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 typedef struct
 {
@@ -58,5 +58,5 @@ t_shared_mem_i2c_rotary_encoder_buttons_events* shared_mem_i2c_rotary_encoder_bu
 void shared_mem_i2c_rotary_encoder_buttons_events_close(t_shared_mem_i2c_rotary_encoder_buttons_events* pAddress);
 
 #ifdef __cplusplus
-}  
+}
 #endif

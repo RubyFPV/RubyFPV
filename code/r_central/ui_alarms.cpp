@@ -109,7 +109,7 @@ Popup* _get_next_available_alarm_popup(const char* szTitle, int timeout)
          break;
       }
    }
-   
+
    // No more room? remove one
    if ( iPosFree == -1 )
    {
@@ -134,7 +134,7 @@ Popup* _get_next_available_alarm_popup(const char* szTitle, int timeout)
    pNew->setMaxWidth(0.76);
    pNew->setBottomMargin(0.0);
 
-   s_pPopupAlarms[iPosFree] = pNew;   
+   s_pPopupAlarms[iPosFree] = pNew;
    log_line("Add alarm popup on position %d", iPosFree);
 
    return pNew;
@@ -146,7 +146,7 @@ bool _alarms_must_skip(u32 uVehicleId, u32 uAlarms)
    ControllerSettings* pCS = get_ControllerSettings();
    if ( g_bUpdateInProgress )
       return true;
-  
+
    if ( pP->iDebugShowFullRXStats )
       return true;
 
@@ -296,7 +296,7 @@ void alarms_add_from_vehicle(u32 uVehicleId, u32 uAlarms, u32 uFlags1, u32 uFlag
       else
       {
          strcpy(szAlarmText, "Video capture process on vehicle is malfunctioning.");
-         strcpy(szAlarmText2, "A generic error occured. Reinstall your vehicle firmware.");       
+         strcpy(szAlarmText2, "A generic error occured. Reinstall your vehicle firmware.");
       }
    }
 
@@ -318,7 +318,7 @@ void alarms_add_from_vehicle(u32 uVehicleId, u32 uAlarms, u32 uFlags1, u32 uFlag
              sprintf(szAlarmText, "%s Radio interface %u (generic) is not working", szAlarmPrefix, uFlags1);
        }
        else
-          sprintf(szAlarmText, "%s A radio interface is not working ", szAlarmPrefix);     
+          sprintf(szAlarmText, "%s A radio interface is not working ", szAlarmPrefix);
        strcpy(szAlarmText2, "Will try automatic recovery to restore it.");
    }
 
@@ -333,7 +333,7 @@ void alarms_add_from_vehicle(u32 uVehicleId, u32 uAlarms, u32 uFlags1, u32 uFlag
              sprintf(szAlarmText, "%s Radio interface %u (generic) was reinitialized", szAlarmPrefix, uFlags1);
        }
        else
-          sprintf(szAlarmText, "%s A radio interface was reinitialized on the vehicle.", szAlarmPrefix);     
+          sprintf(szAlarmText, "%s A radio interface was reinitialized on the vehicle.", szAlarmPrefix);
    }
 
    if ( uAlarms & ALARM_ID_GENERIC_STATUS_UPDATE )
@@ -356,13 +356,13 @@ void alarms_add_from_vehicle(u32 uVehicleId, u32 uAlarms, u32 uFlags1, u32 uFlag
          sprintf(szAlarmText2, "%s There where parameters changes that required restart of the capture program", szAlarmPrefix);
          warnings_add( uVehicleId, "Video capture was restarted due to changed parameters", g_idIconCamera);
          return;
-      }   
+      }
    }
 
    if ( uAlarms & ALARM_ID_VEHICLE_LOW_STORAGE_SPACE )
    {
-       sprintf(szAlarmText, "%s Is running low on free storage space. %u Mb free", szAlarmPrefix, uFlags1);  
-       strcpy(szAlarmText2, "Try to delete your vehicle logs or check your SD card on the vehicle."); 
+       sprintf(szAlarmText, "%s Is running low on free storage space. %u Mb free", szAlarmPrefix, uFlags1);
+       strcpy(szAlarmText2, "Try to delete your vehicle logs or check your SD card on the vehicle.");
        if ( ! s_bAlarmVehicleLowSpaceMenuShown )
        {
           s_bAlarmVehicleLowSpaceMenuShown = true;
@@ -375,8 +375,8 @@ void alarms_add_from_vehicle(u32 uVehicleId, u32 uAlarms, u32 uFlags1, u32 uFlag
 
    if ( uAlarms & ALARM_ID_VEHICLE_STORAGE_WRITE_ERRROR )
    {
-       sprintf(szAlarmText, "%s The SD card has write errors", szAlarmPrefix);  
-       strcpy(szAlarmText2, "It's recommended you replace the SD card."); 
+       sprintf(szAlarmText, "%s The SD card has write errors", szAlarmPrefix);
+       strcpy(szAlarmText2, "It's recommended you replace the SD card.");
    }
 
    if ( uAlarms & ALARM_ID_RECEIVED_INVALID_RADIO_PACKET )
@@ -511,7 +511,7 @@ void alarms_add_from_vehicle(u32 uVehicleId, u32 uAlarms, u32 uFlags1, u32 uFlag
 
       if ( (uAlarms & ALARM_ID_VEHICLE_VIDEO_TX_OVERLOAD) || (uAlarms & ALARM_ID_VEHICLE_VIDEO_DATA_OVERLOAD) )
          bShowAsWarning = true;
-      
+
       if ( bShowAsWarning )
       {
          warnings_add(0, szAlarmText, uIconId);
@@ -523,7 +523,7 @@ void alarms_add_from_vehicle(u32 uVehicleId, u32 uAlarms, u32 uFlags1, u32 uFlag
          Popup* p = _get_next_available_alarm_popup(szAlarmText, iAlarmTimeoutSeconds);
          p->setFont(g_idFontOSDSmall);
          p->setIconId(uIconId, get_Color_IconNormal());
-         
+
          if ( 0 != szAlarmText2[0] )
             p->addLine(szAlarmText2);
          if ( 0 != szAlarmText3[0] )
@@ -659,17 +659,17 @@ void alarms_add_from_local(u32 uAlarms, u32 uFlags1, u32 uFlags2)
    }
 
    if ( uAlarms & ALARM_ID_RADIO_INTERFACE_DOWN )
-   {  
+   {
        if ( (int)uFlags1 < hardware_get_radio_interfaces_count() )
        {
           radio_hw_info_t* pRadioInfo = hardware_get_radio_info(uFlags1);
-          
+
           char szCardName[128];
           szCardName[0] = 0;
           controllerGetCardUserDefinedNameOrType(pRadioInfo, szCardName);
           if ( 0 == szCardName[0] )
              strcpy(szCardName, "generic");
-                
+
           if ( (NULL != szCardName) && (0 != szCardName[0]) )
              sprintf(szAlarmText, "Radio interface %u (%s) on the controller is not working.", uFlags1+1, szCardName);
           else
@@ -681,27 +681,27 @@ void alarms_add_from_local(u32 uAlarms, u32 uFlags1, u32 uFlags2)
           strcpy(szAlarmText2, L("Will reinitialize radio interfaces..."));
        }
        else
-          strcpy(szAlarmText, "A radio interface on the controller is not working.");     
+          strcpy(szAlarmText, "A radio interface on the controller is not working.");
    }
 
    if ( uAlarms & ALARM_ID_RADIO_INTERFACE_REINITIALIZED )
-   {  
+   {
        if ( (int)uFlags1 < hardware_get_radio_interfaces_count() )
        {
           radio_hw_info_t* pRadioInfo = hardware_get_radio_info(uFlags1);
-          
+
           char szCardName[128];
           controllerGetCardUserDefinedNameOrType(pRadioInfo, szCardName);
           if ( 0 == szCardName[0] )
              strcpy(szCardName, "generic");
-                
+
           if ( (NULL != szCardName) && (0 != szCardName[0]) )
              sprintf(szAlarmText, "Radio interface %u (%s) was reinitialized on the controller.", uFlags1+1, szCardName);
           else
              sprintf(szAlarmText, "Radio interface %u (generic) was reinitialized on the controller.", uFlags1+1);
        }
        else
-          strcpy(szAlarmText, "A radio interface was reinitialized on the controller.");     
+          strcpy(szAlarmText, "A radio interface was reinitialized on the controller.");
    }
 
    if ( uAlarms & ALARM_ID_GENERIC_STATUS_UPDATE )
@@ -765,16 +765,16 @@ void alarms_add_from_local(u32 uAlarms, u32 uFlags1, u32 uFlags2)
 
    if ( uAlarms & ALARM_ID_CONTROLLER_LOW_STORAGE_SPACE )
    {
-       sprintf(szAlarmText, "Controller is running low on free storage space. %u Mb free.", uFlags1);  
-       strcpy(szAlarmText2, "Try to delete your controller logs or some media files or check your SD card."); 
+       sprintf(szAlarmText, "Controller is running low on free storage space. %u Mb free.", uFlags1);
+       strcpy(szAlarmText2, "Try to delete your controller logs or some media files or check your SD card.");
        if ( hardware_is_running_on_runcam_vrx() )
           hardware_led_red_set_blinking_fast(10000);
    }
 
    if ( uAlarms & ALARM_ID_CONTROLLER_STORAGE_WRITE_ERRROR )
    {
-       strcpy(szAlarmText, "The SD card on the controller has write errors.");  
-       strcpy(szAlarmText2, "It's recommended you replace the SD card."); 
+       strcpy(szAlarmText, "The SD card on the controller has write errors.");
+       strcpy(szAlarmText2, "It's recommended you replace the SD card.");
    }
 
    if ( uAlarms & ALARM_ID_RECEIVED_INVALID_RADIO_PACKET )
@@ -785,7 +785,7 @@ void alarms_add_from_local(u32 uAlarms, u32 uFlags1, u32 uFlags2)
 
    static u32 s_uLastTimeAlarmNoRadioInterfacesForRadioLink = 0;
    static u32 s_uLastAlarmNoRadioInterfacesForRadioLinkId = 0;
-   
+
    if ( uAlarms & ALARM_ID_CONTROLLER_NO_INTERFACES_FOR_RADIO_LINK )
    {
       if ( s_uLastAlarmNoRadioInterfacesForRadioLinkId == uFlags1 )
@@ -797,7 +797,7 @@ void alarms_add_from_local(u32 uAlarms, u32 uFlags1, u32 uFlags2)
       sprintf(szAlarmText, "No radio interfaces on this controller can handle the vehicle's radio link %d.", uFlags1+1);
       sprintf(szAlarmText2, "Add more radio interfaces to your controller or change radio links settings.");
    }
-   
+
    if ( uAlarms & ALARM_ID_CONTROLLER_CPU_LOOP_OVERLOAD )
    {
       if ( g_bUpdateInProgress )
@@ -848,7 +848,7 @@ void alarms_add_from_local(u32 uAlarms, u32 uFlags1, u32 uFlags2)
       if ( link_get_last_reconfiguration_end_time() != 0 )
       if ( g_TimeNow < link_get_last_reconfiguration_end_time() + 2000 )
          bShow = false;
-      
+
       static u32 s_TimeLastCPUOverloadAlarmRecording = 0;
       if ( bShow && ( g_TimeNow > s_TimeLastCPUOverloadAlarmRecording + 20000 ) )
       {

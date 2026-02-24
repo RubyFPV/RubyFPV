@@ -99,7 +99,7 @@ void MenuStorage::onShow()
    hw_execute_bash_command(szComm, NULL);
    sprintf(szComm, "chmod 777 %s* 2>/dev/null 1>/dev/null", FOLDER_MEDIA);
    hw_execute_bash_command(szComm, NULL);
-   
+
    media_scan_files();
 
    #if defined(HW_PLATFORM_RASPBERRY) || defined(HW_PLATFORM_RADXA)
@@ -128,7 +128,7 @@ void MenuStorage::onShow()
    m_IndexCopy = addMenuItem(new MenuItem(L("Copy media files to USB memory stick"), L("Copy your screenshots and videos to an external USB memory stick.")));
    m_IndexMove = addMenuItem(new MenuItem(L("Move media files to USB memory stick"), L("Move your screenshots and videos to an external USB memory stick.")));
    m_IndexDelete = addMenuItem(new MenuItem(L("Delete all files"), L("Deletes all videos, pictures from the SD Card.")));
-   
+
    sprintf(szBuff, L("View Screenshots (%d)"), media_get_screenshots_count());
    m_IndexViewPictures = addMenuItem(new MenuItem(szBuff, L("View the screenshots")));
    if ( 0 == media_get_screenshots_count() )
@@ -196,7 +196,7 @@ void MenuStorage::Render()
    float w = 0;
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
    char szBuff[1024];
-  
+
    g_pRenderEngine->setColors(get_Color_MenuText());
    g_pRenderEngine->setStrokeSize(0);
 
@@ -308,7 +308,7 @@ void MenuStorage::Render()
    g_pRenderEngine->setColors(get_Color_MenuText());
 
    float maxWidth = getUsableWidth();
-   
+
    int maxMenuIndex = m_StaticMenuItemsCount-1;
    int indexStartThisPage = m_UIFilesPerPage * m_UIFilesPage;
    if ( m_VideoInfoFilesCount > indexStartThisPage + m_UIFilesPerPage )
@@ -319,7 +319,7 @@ void MenuStorage::Render()
    //y += height_text*0.4;
 
    sprintf(szBuff, "Page %d of %d", m_UIFilesPage+1,1+(m_VideoInfoFilesCount/m_UIFilesPerPage));
-   g_pRenderEngine->drawTextLeft(x+maxWidth-2*m_sfMenuPaddingX, y, g_idFontMenu, szBuff); 
+   g_pRenderEngine->drawTextLeft(x+maxWidth-2*m_sfMenuPaddingX, y, g_idFontMenu, szBuff);
 
    m_pMenuItems[m_StaticMenuItemsCount-2]->Render(m_RenderXPos + m_sfMenuPaddingX, y, m_SelectedIndex == (maxMenuIndex-1), m_fSelectionWidth*0.34);
    m_pMenuItems[m_StaticMenuItemsCount-1]->Render(m_RenderXPos + 2.0*m_sfMenuPaddingX + m_fSelectionWidth*0.34, y, m_SelectedIndex == (maxMenuIndex), m_fSelectionWidth*0.34);
@@ -337,7 +337,7 @@ void MenuStorage::onMoveUp(bool bIgnoreReversion)
          m_ViewScreenShotIndex = 0;
 
       char szFile[MAX_FILE_PATH_SIZE];
-      snprintf(szFile, sizeof(szFile)/sizeof(szFile[0]), "%s%s", FOLDER_MEDIA, m_szPicturesFiles[m_ViewScreenShotIndex]); 
+      snprintf(szFile, sizeof(szFile)/sizeof(szFile[0]), "%s%s", FOLDER_MEDIA, m_szPicturesFiles[m_ViewScreenShotIndex]);
       g_pRenderEngine->freeImage(m_ScreenshotImageId);
       m_ScreenshotImageId = g_pRenderEngine->loadImage(szFile);
 
@@ -355,12 +355,12 @@ void MenuStorage::onMoveUp(bool bIgnoreReversion)
       m_SelectedIndex--;
    else
       m_SelectedIndex = maxMenuIndex;
-   
+
    onFocusedItemChanged();
 }
 
 void MenuStorage::onMoveDown(bool bIgnoreReversion)
-{ 
+{
    if ( m_ViewScreenShotIndex != -1 )
    {
       m_ViewScreenShotIndex--;
@@ -368,7 +368,7 @@ void MenuStorage::onMoveDown(bool bIgnoreReversion)
          m_ViewScreenShotIndex = media_get_screenshots_count()-1;
 
       char szFile[MAX_FILE_PATH_SIZE];
-      snprintf(szFile, sizeof(szFile)/sizeof(szFile[0]), "%s%s", FOLDER_MEDIA, m_szPicturesFiles[m_ViewScreenShotIndex]); 
+      snprintf(szFile, sizeof(szFile)/sizeof(szFile[0]), "%s%s", FOLDER_MEDIA, m_szPicturesFiles[m_ViewScreenShotIndex]);
       g_pRenderEngine->freeImage(m_ScreenshotImageId);
       m_ScreenshotImageId = g_pRenderEngine->loadImage(szFile);
 
@@ -429,7 +429,7 @@ void MenuStorage::onReturnFromChild(int iChildMenuId, int returnValue)
       if ( 0 < strlen(FOLDER_MEDIA) )
       {
          snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "rm -rf %s* /dev/null 2>&1", FOLDER_MEDIA);
-         hw_execute_bash_command(szComm, NULL);   
+         hw_execute_bash_command(szComm, NULL);
       }
       onShow();
       return;
@@ -723,7 +723,7 @@ bool MenuStorage::moveVideos(bool bDelete)
 
       snprintf(szCommand, sizeof(szCommand)/sizeof(szCommand[0]), "./ruby_video_proc %s%s %s%s &", FOLDER_MEDIA, m_szVideoInfoFiles[i], FOLDER_RUBY_TEMP, szOutFile);
       hw_execute_bash_command(szCommand, NULL);
-      
+
       g_TimeNow = get_current_timestamp_ms();
       u32 uTimeStart = g_TimeNow;
 
@@ -755,10 +755,10 @@ bool MenuStorage::moveVideos(bool bDelete)
 
       log_line("Finished processing video %s", m_szVideoInfoFiles[i]);
       hardware_sleep_ms(100);
-      
+
       snprintf(szCommand, sizeof(szCommand)/sizeof(szCommand[0]), "mv -f %s%s %sRuby/%s", FOLDER_RUBY_TEMP, szOutFile, FOLDER_USB_MOUNT, szOutFile);
       hw_execute_bash_command(szCommand, NULL);
-      
+
       snprintf(szFile, sizeof(szFile)/sizeof(szFile[0]), "%sRuby/%s", FOLDER_USB_MOUNT, szOutFile);
       if ( access(szFile, R_OK) == -1 )
          log_softerror_and_alarm("Failed to access the output video file [%s]. Not written to USB stick", szFile);
@@ -954,7 +954,7 @@ void MenuStorage::onSelectItem()
    }
    if ( m_IndexMove == m_SelectedIndex )
    {
-      flowCopyMoveFiles(true);   
+      flowCopyMoveFiles(true);
       return;
    }
    if ( m_IndexDelete == m_SelectedIndex )
@@ -974,7 +974,7 @@ void MenuStorage::onSelectItem()
       m_ViewScreenShotIndex = media_get_screenshots_count()-1;
 
       char szFile[MAX_FILE_PATH_SIZE];
-      snprintf(szFile, sizeof(szFile)/sizeof(szFile[0]), "%s%s", FOLDER_MEDIA, m_szPicturesFiles[m_ViewScreenShotIndex]); 
+      snprintf(szFile, sizeof(szFile)/sizeof(szFile[0]), "%s%s", FOLDER_MEDIA, m_szPicturesFiles[m_ViewScreenShotIndex]);
       log_line("Menu: Loading screenshot: %s", szFile );
       m_ScreenshotImageId = g_pRenderEngine->loadImage(szFile);
       if ( (0 != m_ScreenshotImageId) && (MAX_U32 != m_ScreenshotImageId) )

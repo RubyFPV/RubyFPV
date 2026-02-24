@@ -36,7 +36,7 @@
 #include "../base/base.h"
 #include "../base/hardware.h"
 #include <errno.h>
-#include <fcntl.h> 
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -143,7 +143,7 @@ int64_t _ruby_drm_get_object_property_value(drmModeObjectPropertiesPtr pProps, c
    drmModePropertyPtr prop;
    uint64_t uValue = 0;
    int iFound = 0;
-   
+
    for (int i = 0; (i < pProps->count_props) && (!iFound); i++)
    {
       prop = drmModeGetProperty(s_fdDRM, pProps->props[i]);
@@ -212,20 +212,20 @@ int _ruby_drm_core_enumerate_find_resources()
 {
    if ( s_fdDRM < 0 )
       return -1;
-  
+
    s_DRMRuntimeState.pAllDRMResources = drmModeGetResources(s_fdDRM);
    if ( !s_DRMRuntimeState.pAllDRMResources )
    {
       log_softerror_and_alarm("[DRMCore] Cannot retrieve DRM resources (%d)", errno);
       return -errno;
    }
- 
+
    if ( s_DRMRuntimeState.pAllDRMResources->count_connectors <= 0 )
    {
       log_softerror_and_alarm("[DRMCore] No connectors available (%d)", errno);
       return -1;
    }
- 
+
    log_line("[DRMCore] (Enumerate find resources) Finding resources (%d connectors, %d crtcs)...",
       s_DRMRuntimeState.pAllDRMResources->count_connectors, s_DRMRuntimeState.pAllDRMResources->count_crtcs);
 
@@ -276,7 +276,7 @@ int _ruby_drm_core_enumerate_find_resources()
              s_DRMRuntimeState.targetModeInfo = s_DRMRuntimeState.pConnector->modes[j];
 
              memcpy(&s_DRMDisplayAttributes.currentMode, &s_DRMRuntimeState.pConnector->modes[j], sizeof(s_DRMDisplayAttributes.currentMode));
-             
+
              drmModeCreatePropertyBlob(s_fdDRM, &s_DRMDisplayAttributes.currentMode, sizeof(s_DRMDisplayAttributes.currentMode), &s_DRMRuntimeState.uModeIdBlob);
 
              log_line("[DRMCore] Using this mode. Index %d", j);
@@ -303,7 +303,7 @@ int _ruby_drm_core_enumerate_find_resources()
          s_DRMRuntimeState.targetModeInfo = s_DRMRuntimeState.pConnector->modes[0];
 
          memcpy(&s_DRMDisplayAttributes.currentMode, &s_DRMRuntimeState.pConnector->modes[0], sizeof(s_DRMDisplayAttributes.currentMode));
-         
+
          drmModeCreatePropertyBlob(s_fdDRM, &s_DRMDisplayAttributes.currentMode, sizeof(s_DRMDisplayAttributes.currentMode), &s_DRMRuntimeState.uModeIdBlob);
       }
 
@@ -328,7 +328,7 @@ int _ruby_drm_core_enumerate_find_resources()
    {
       s_DRMRuntimeState.pCRTc = drmModeGetCrtc(s_fdDRM, s_DRMRuntimeState.pEncoder->crtc_id);
       s_DRMRuntimeState.pOriginalCRTc = s_DRMRuntimeState.pCRTc;
-      s_DRMRuntimeState.objInfoCRTc.uObjId = s_DRMRuntimeState.pEncoder->crtc_id;  
+      s_DRMRuntimeState.objInfoCRTc.uObjId = s_DRMRuntimeState.pEncoder->crtc_id;
       s_DRMRuntimeState.objInfoCRTc.iObjIndex = -1;
       for (int i = 0; i < s_DRMRuntimeState.pAllDRMResources->count_crtcs; i++)
       {
@@ -337,7 +337,7 @@ int _ruby_drm_core_enumerate_find_resources()
             s_DRMRuntimeState.objInfoCRTc.iObjIndex = i;
             break;
          }
-      } 
+      }
       log_line("[DRMCore] Found CRTc for encoder. crtc id: %u, crt index: %d",
          s_DRMRuntimeState.pEncoder->crtc_id, s_DRMRuntimeState.objInfoCRTc.iObjIndex);
    }
@@ -360,7 +360,7 @@ int _ruby_drm_core_enumerate_find_resources()
                 i, s_DRMRuntimeState.pConnector->encoders[i], errno);
             continue;
          }
-         
+
          s_DRMRuntimeState.objInfoCRTc.uObjId = 0xFFFFFFFF;
          for (int j = 0; j < s_DRMRuntimeState.pAllDRMResources->count_crtcs; j++)
          {
@@ -469,7 +469,7 @@ int _ruby_drm_find_target_plane()
          break;
 
       drmModeFreePlane(s_DRMRuntimeState.pPlane);
-   } 
+   }
 
    if ( s_DRMRuntimeState.objInfoPlane.uObjId != 0xFFFFFFFF )
       log_line("[DRMCore] Found plane format for format %s: plane id %d, plane index %d",
@@ -477,7 +477,7 @@ int _ruby_drm_find_target_plane()
          s_DRMRuntimeState.objInfoPlane.uObjId, s_DRMRuntimeState.objInfoPlane.iObjIndex);
    else
    {
-      log_softerror_and_alarm("[DRMCore] Can't find suitable plane for current display/crt.");   
+      log_softerror_and_alarm("[DRMCore] Can't find suitable plane for current display/crt.");
       return -1;
    }
 
@@ -493,7 +493,7 @@ int _ruby_drm_create_drm_surface_buffer(type_drm_buffer* pOutputBufferInfo)
    struct drm_mode_create_dumb creq;
    struct drm_mode_destroy_dumb dreq;
    struct drm_mode_map_dumb mreq;
- 
+
    int iRet = 0;
    uint32_t handles[4] = {0}, pitches[4] = {0}, offsets[4] = {0};
 
@@ -533,7 +533,7 @@ int _ruby_drm_create_drm_surface_buffer(type_drm_buffer* pOutputBufferInfo)
    if ( iRet )
    {
       log_softerror_and_alarm("[DRMCore] Cannot map buffer (%d)", errno);
-      drmModeRmFB(s_fdDRM, pOutputBufferInfo->uBufferId); 
+      drmModeRmFB(s_fdDRM, pOutputBufferInfo->uBufferId);
       memset(&dreq, 0, sizeof(dreq));
       dreq.handle = pOutputBufferInfo->uHandle;
       drmIoctl(s_fdDRM, DRM_IOCTL_MODE_DESTROY_DUMB, &dreq);
@@ -545,7 +545,7 @@ int _ruby_drm_create_drm_surface_buffer(type_drm_buffer* pOutputBufferInfo)
    if ( pOutputBufferInfo->pData == MAP_FAILED )
    {
       log_softerror_and_alarm("[DRMCore] Cannot mmap buffer (%d)", errno);
-      drmModeRmFB(s_fdDRM, pOutputBufferInfo->uBufferId); 
+      drmModeRmFB(s_fdDRM, pOutputBufferInfo->uBufferId);
       memset(&dreq, 0, sizeof(dreq));
       dreq.handle = pOutputBufferInfo->uHandle;
       drmIoctl(s_fdDRM, DRM_IOCTL_MODE_DESTROY_DUMB, &dreq);
@@ -553,7 +553,7 @@ int _ruby_drm_create_drm_surface_buffer(type_drm_buffer* pOutputBufferInfo)
    }
 
    memset(pOutputBufferInfo->pData, 0, pOutputBufferInfo->uSize);
- 
+
    log_line("[DRMCore] Created new surface buffer, size: %d, w/h: %d/%d, stride: %d, handle: %u, buffer id: %u",
       pOutputBufferInfo->uSize, pOutputBufferInfo->uWidth, pOutputBufferInfo->uHeight,
       pOutputBufferInfo->uStride, pOutputBufferInfo->uHandle, pOutputBufferInfo->uBufferId);
@@ -628,13 +628,13 @@ int ruby_drm_core_is_display_connected()
       log_softerror_and_alarm("[DRMCore] Cannot retrieve DRM resources (%d)", errno);
       return -errno;
    }
- 
+
    if ( pAllDRMResources->count_connectors <= 0 )
    {
       log_softerror_and_alarm("[DRMCore] No connectors available (%d)", errno);
       return -1;
    }
- 
+
    log_line("[DRMCore] (Check display connected) Finding resources (%d connectors, %d crtcs)...",
       pAllDRMResources->count_connectors, pAllDRMResources->count_crtcs);
 
@@ -668,7 +668,7 @@ int ruby_drm_core_is_display_connected()
          }
          return 1;
       }
-      
+
       drmModeFreeConnector(pConnector);
       pConnector = NULL;
    }
@@ -729,7 +729,7 @@ int ruby_drm_core_init(int iPlaneIndex, uint32_t uFormat, int iWidth, int iHeigh
    s_DRMRuntimeState.iVideoSourceHeight = -1;
 
    _ruby_drm_open_device();
-   
+
    _ruby_drm_core_enumerate_find_resources();
    _ruby_drm_find_target_plane();
 
@@ -740,7 +740,7 @@ int ruby_drm_core_init(int iPlaneIndex, uint32_t uFormat, int iWidth, int iHeigh
    _ruby_drm_get_object_properties(&s_DRMRuntimeState.objInfoPlane);
 
    s_DRMRuntimeState.pAtomicRequest = drmModeAtomicAlloc();
-   
+
    //int64_t iZPos = _ruby_drm_get_object_property_value(s_DRMRuntimeState.objInfoPlane.pProperties, "zpos");
 
    _ruby_drm_create_drm_surface_buffer(&s_DRMRuntimeState.drawBuffers[0]);
@@ -775,7 +775,7 @@ int ruby_drm_core_uninit()
   return;
  }
  ret = drmModeAtomicCommit(fd, output_list->video_request, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
- if (ret < 0) 
+ if (ret < 0)
   fprintf(stderr, "modeset atomic commit failed for plane %d, %m\n", output_list->video_plane.id);
 */
 //////////
@@ -783,7 +783,7 @@ int ruby_drm_core_uninit()
    _ruby_drm_free_object_properties(&s_DRMRuntimeState.objInfoPlane);
    _ruby_drm_free_object_properties(&s_DRMRuntimeState.objInfoCRTc);
    _ruby_drm_free_object_properties(&s_DRMRuntimeState.objInfoConnector);
-   
+
    if ( NULL != s_DRMRuntimeState.pPlanesResources )
       drmModeFreePlaneResources(s_DRMRuntimeState.pPlanesResources);
    s_DRMRuntimeState.pPlanesResources = NULL;
@@ -846,7 +846,7 @@ uint32_t ruby_drm_core_get_back_draw_buffer_id()
 int ruby_drm_swap_mainback_buffers()
 {
    s_DRMRuntimeState.iActiveOnScreenDrawBuffer = 1 - s_DRMRuntimeState.iActiveOnScreenDrawBuffer;
-   
+
    drmModeAtomicSetCursor(s_DRMRuntimeState.pAtomicRequest, 0);
 
    ruby_drm_set_object_property(&s_DRMRuntimeState.objInfoPlane, "FB_ID", s_DRMRuntimeState.drawBuffers[s_DRMRuntimeState.iActiveOnScreenDrawBuffer].uBufferId );
@@ -964,7 +964,7 @@ int ruby_drm_core_set_plane_properties_and_buffer(uint32_t uBufferId)
    ruby_drm_set_object_property(&s_DRMRuntimeState.objInfoPlane, "CRTC_Y", uCrtY );
    ruby_drm_set_object_property(&s_DRMRuntimeState.objInfoPlane, "CRTC_W", uCrtW );
    ruby_drm_set_object_property(&s_DRMRuntimeState.objInfoPlane, "CRTC_H", uCrtH );
-   
+
    ruby_drm_set_object_property(&s_DRMRuntimeState.objInfoPlane, "SRC_X", 0 );
    ruby_drm_set_object_property(&s_DRMRuntimeState.objInfoPlane, "SRC_Y", 0 );
    ruby_drm_set_object_property(&s_DRMRuntimeState.objInfoPlane, "SRC_W", uSrcWidth<<16 );
@@ -1015,11 +1015,11 @@ int ruby_drm_set_object_property(type_drm_object_info* pObject, const char *szNa
       log_softerror_and_alarm("[DRMCore] Can't set object property. Object id %u has no property named %s", pObject->uObjId, szName);
       return -EINVAL;
    }
- 
+
    if ( 0 != strcmp(szName, "FB_ID") )
       log_line("[DRMCore] Set object id %u property %s (prop index %d) value to: %u",
           pObject->uObjId, szName, iPropIndex, (u32)uValue);
- 
+
    return drmModeAtomicAddProperty(s_DRMRuntimeState.pAtomicRequest, pObject->uObjId, uPropId, uValue);
 }
 

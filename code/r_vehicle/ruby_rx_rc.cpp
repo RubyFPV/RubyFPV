@@ -52,13 +52,13 @@
 #include <sys/resource.h>
 #include <semaphore.h>
 
-Model sModelVehicle; 
+Model sModelVehicle;
 
 int s_fIPC_FromRouter = -1;
 
 u8 s_BufferRCFromRouter[MAX_PACKET_TOTAL_SIZE];
 u8 s_PipeTmpBufferRCFromRouter[MAX_PACKET_TOTAL_SIZE];
-int s_PipeTmpBufferRCFromRouterPos = 0;    
+int s_PipeTmpBufferRCFromRouterPos = 0;
 
 t_packet_header_rc_full_frame_upstream s_LastReceivedRCFrame;
 
@@ -130,8 +130,8 @@ void on_failsafe_cleared()
    s_pPHDownstreamInfoRC->is_failsafe = 0;
 }
 
-void handle_sigint_rc(int sig) 
-{ 
+void handle_sigint_rc(int sig)
+{
    log_line("--------------------------");
    log_line("Caught signal to stop: %d", sig);
    log_line("--------------------------");
@@ -149,7 +149,7 @@ int r_start_rx_rc(int argc, char *argv[])
    signal(SIGINT, handle_sigint_rc);
    signal(SIGTERM, handle_sigint_rc);
    signal(SIGQUIT, handle_sigint_rc);
-   
+
    s_fIPC_FromRouter = ruby_open_ipc_channel_read_endpoint(IPC_CHANNEL_TYPE_ROUTER_TO_RC);
    if ( s_fIPC_FromRouter < 0 )
       return -1;
@@ -165,8 +165,8 @@ int r_start_rx_rc(int argc, char *argv[])
    {
       log_error_and_alarm("Can't load current model vehicle. Exiting.");
       return -1;
-   } 
-   
+   }
+
    s_pSemaphoreStop = sem_open(SEMAPHORE_STOP_VEHICLE_RC_RX, O_CREAT, S_IWUSR | S_IRUSR, 0);
    if ( (NULL == s_pSemaphoreStop) || (SEM_FAILED == s_pSemaphoreStop) )
       log_error_and_alarm("Failed to open semaphore: %s", SEMAPHORE_STOP_VEHICLE_RC_RX);
@@ -180,7 +180,7 @@ int r_start_rx_rc(int argc, char *argv[])
       hw_set_priority_current_proc(sModelVehicle.processesPriorities.iThreadPriorityRC);
    if ( sModelVehicle.processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_AFFINITY_CORES )
       hw_set_current_thread_affinity("rc_rx", sModelVehicle.processesPriorities.iCoreRC, sModelVehicle.processesPriorities.iCoreRC);
-  
+
    s_pPHDownstreamInfoRC = shared_mem_rc_downstream_info_open_write();
    if ( NULL == s_pPHDownstreamInfoRC )
       log_softerror_and_alarm("Failed to open RC Download info shared memory for write.");
@@ -233,7 +233,7 @@ int r_start_rx_rc(int argc, char *argv[])
 
    int iSleepIntervalMS = 50;
 
-   while (!g_bQuit) 
+   while (!g_bQuit)
    {
       g_uLoopCounter++;
       hardware_sleep_ms(iSleepIntervalMS);
@@ -246,7 +246,7 @@ int r_start_rx_rc(int argc, char *argv[])
          g_bQuit = true;
          break;
       }
-   
+
       g_TimeNow = get_current_timestamp_ms();
       u32 tTime0 = g_TimeNow;
 
@@ -264,7 +264,7 @@ int r_start_rx_rc(int argc, char *argv[])
          else
             log_line("Opened RC Download info shared memory for write: success.");
          if ( NULL != s_pPHDownstreamInfoRC )
-            memset((u8*)s_pPHDownstreamInfoRC, 0, sizeof(t_packet_header_rc_info_downstream)); 
+            memset((u8*)s_pPHDownstreamInfoRC, 0, sizeof(t_packet_header_rc_info_downstream));
       }
 
       if ( NULL != s_pPHDownstreamInfoRC )
@@ -427,13 +427,13 @@ int r_start_rx_rc(int argc, char *argv[])
    }
 
    log_line("Stopping...");
-   
+
    shared_mem_rc_downstream_info_close(s_pPHDownstreamInfoRC);
    shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_RC_RX, g_pProcessStats);
 
    ruby_close_ipc_channel(s_fIPC_FromRouter);
    s_fIPC_FromRouter = -1;
- 
+
    if ( NULL != s_pSemaphoreStop )
       sem_close(s_pSemaphoreStop);
    sem_unlink(SEMAPHORE_STOP_VEHICLE_RC_RX);
@@ -441,4 +441,4 @@ int r_start_rx_rc(int argc, char *argv[])
    log_line("Stopped.Exit");
    log_line("-----------------------");
    return 0;
-} 
+}

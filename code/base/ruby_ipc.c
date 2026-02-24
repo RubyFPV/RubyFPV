@@ -199,7 +199,7 @@ int ruby_init_ipc_channels()
    char szBuff[256];
    sprintf(szBuff, "mkfifo %s", FIFO_RUBY_CAMERA1);
    hw_execute_bash_command(szBuff, NULL);
-      
+
    sprintf(szBuff, "mkfifo %s", FIFO_RUBY_AUDIO1);
    hw_execute_bash_command(szBuff, NULL);
 
@@ -253,7 +253,7 @@ int ruby_init_ipc_channels()
 void ruby_clear_all_ipc_channels()
 {
    log_line("[IPC] Clearing all IPC channels...");
-   
+
    #ifdef RUBY_USES_MSGQUEUES
 
    for( int i=0; i<s_iRubyIPCChannelsCount; i++ )
@@ -308,7 +308,7 @@ int ruby_open_ipc_channel_write_endpoint(int nChannelType)
       log_softerror_and_alarm("[IPC] Failed to set nonblock flag on PIC channel %s pipe write endpoint.", _ruby_ipc_get_channel_name(nChannelType));
 
    log_line("[IPC] FIFO write endpoint pipe flags: %s", str_get_pipe_flags(fcntl(s_iRubyIPCChannelsFd[s_iRubyIPCChannelsCount], F_GETFL)));
-   
+
    #endif
 
    #ifdef RUBY_USES_MSGQUEUES
@@ -351,7 +351,7 @@ int ruby_open_ipc_channel_write_endpoint(int nChannelType)
    s_iRubyIPCChannelsUniqueIdCounter++;
 
    s_iRubyIPCChannelsCount++;
-   
+
    log_line("[IPC] Opened IPC channel %s write endpoint: success, fd: %d, id: %d. (%d channels currently opened).",
       _ruby_ipc_get_channel_name(nChannelType), s_iRubyIPCChannelsFd[s_iRubyIPCChannelsCount-1], s_iRubyIPCChannelsUniqueIds[s_iRubyIPCChannelsCount-1], s_iRubyIPCChannelsCount);
    _ruby_ipc_log_channel_info(nChannelType, s_iRubyIPCChannelsUniqueIds[s_iRubyIPCChannelsCount-1], s_iRubyIPCChannelsFd[s_iRubyIPCChannelsCount-1]);
@@ -437,7 +437,7 @@ int ruby_open_ipc_channel_read_endpoint(int nChannelType)
    s_iRubyIPCChannelsUniqueIdCounter++;
 
    s_iRubyIPCChannelsCount++;
-   
+
    log_line("[IPC] Opened IPC channel %s read endpoint: success, fd: %d, id: %d. (%d channels currently opened).",
       _ruby_ipc_get_channel_name(nChannelType), s_iRubyIPCChannelsFd[s_iRubyIPCChannelsCount-1], s_iRubyIPCChannelsUniqueIds[s_iRubyIPCChannelsCount-1], s_iRubyIPCChannelsCount);
    _ruby_ipc_log_channel_info(nChannelType, s_iRubyIPCChannelsUniqueIds[s_iRubyIPCChannelsCount-1], s_iRubyIPCChannelsFd[s_iRubyIPCChannelsCount-1]);
@@ -492,7 +492,7 @@ int ruby_close_ipc_channel(int iChannelUniqueId)
 
    }
    s_iRubyIPCChannelsCount--;
-  
+
    _ruby_ipc_log_channels();
    return 1;
 }
@@ -545,12 +545,12 @@ int ruby_ipc_channel_send_message(int iChannelUniqueId, u8* pMessage, int iLengt
       return 0;
    }
 
-   u32 crc = base_compute_crc32(pMessage + sizeof(u32), iLength-sizeof(u32)); 
+   u32 crc = base_compute_crc32(pMessage + sizeof(u32), iLength-sizeof(u32));
    u32* pTmp = (u32*)pMessage;
    *pTmp = crc;
 
    int res = 0;
-   
+
    #ifdef PROFILE_IPC
    u32 uTimeStart = get_current_timestamp_ms();
    #endif
@@ -562,14 +562,14 @@ int ruby_ipc_channel_send_message(int iChannelUniqueId, u8* pMessage, int iLengt
    #endif
 
    #ifdef RUBY_USES_MSGQUEUES
-   
+
    type_ipc_message_buffer msg;
 
    msg.type = 1;
    msg.data[4] = s_uRubyIPCChannelsMsgId[iFoundIndex];
-   msg.data[5] = ((u32)iLength) & 0xFF; 
+   msg.data[5] = ((u32)iLength) & 0xFF;
    msg.data[6] = (((u32)iLength)>>8) & 0xFF;
-   memcpy((u8*)&(msg.data[7]), pMessage, iLength); 
+   memcpy((u8*)&(msg.data[7]), pMessage, iLength);
    u32 uCRC = base_compute_crc32((u8*)&(msg.data[4]), iLength+3);
    memcpy((u8*)&(msg.data[0]), (u8*)&uCRC, sizeof(u32));
 
@@ -591,7 +591,7 @@ int ruby_ipc_channel_send_message(int iChannelUniqueId, u8* pMessage, int iLengt
          break;
          //log_line("[IPC] Send IPC message on channel %s: %d bytes, crc: %u", _ruby_ipc_get_channel_name(s_iRubyIPCChannelsType[iFoundIndex]), iLength, uCRC);
       }
-   
+
       res = 0;
 
       iRetryWriteOnly = 0;
@@ -742,9 +742,9 @@ u8* ruby_ipc_try_read_message(int iChannelUniqueId, u8* pTempBuffer, int* pTempB
    }
    else
    {
-      fd_set readset; 
+      fd_set readset;
       struct timeval timePipeInput;
-      
+
       FD_ZERO(&readset);
       FD_SET(iChannelFd, &readset);
 

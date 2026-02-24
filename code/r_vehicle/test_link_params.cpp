@@ -93,18 +93,18 @@ void _test_link_end_and_notify()
 
    memcpy(&(g_pCurrentModel->radioLinksParams), &s_RadioLinksParamsToTest, sizeof(type_radio_links_parameters));
    g_pCurrentModel->validateRadioSettings();
-   
+
    log_line("[TestLink-%d] Current radio power levels:", s_iTestLinkCurrentRunCount);
    for( int i=0; i<g_pCurrentModel->radioInterfacesParams.interfaces_count; i++ )
       log_line("[TestLink-%d] Radio interface %d raw power level: %d", s_iTestLinkCurrentRunCount, i+1, g_pCurrentModel->radioInterfacesParams.interface_raw_power[i]);
-      
+
    log_line("[TestLink-%d] Current radio interfaces count: RTL8812AU: %d, RTL8812EU: %d, RTL8733BU: %d, Atheros: %d",
       s_iTestLinkCurrentRunCount, hardware_radio_has_rtl8812au_cards(), hardware_radio_has_rtl8812eu_cards(), hardware_radio_has_rtl8733bu_cards(), hardware_radio_has_atheros_cards());
 
    for( int i=0; i<g_pCurrentModel->radioLinksParams.links_count; i++ )
    {
       log_line("[TestLink-%d] Radio Link %d data rates: video %d, downlink: %d, uplink %d",
-          s_iTestLinkCurrentRunCount, s_iTestLinkIndex+1, 
+          s_iTestLinkCurrentRunCount, s_iTestLinkIndex+1,
           g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[i],
           g_pCurrentModel->radioLinksParams.downlink_datarate_data_bps[i],
           g_pCurrentModel->radioLinksParams.uplink_datarate_data_bps[i]);
@@ -123,7 +123,7 @@ void _test_link_end_and_notify()
          log_line("[TestLink-%d] Must adjust current video profile bitrate (%.2f Mbps) to max allowed on current links: %.1f Mbps",
             s_iTestLinkCurrentRunCount,
             g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS/1000.0/1000.0, uMaxVideoBitrate/1000.0/1000.0);
-      
+
          type_video_link_profile oldVideoLinkProfiles[MAX_VIDEO_LINK_PROFILES];
          memcpy(&(oldVideoLinkProfiles[0]), &(g_pCurrentModel->video_link_profiles[0]), MAX_VIDEO_LINK_PROFILES*sizeof(type_video_link_profile));
          g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS = uMaxVideoBitrate;
@@ -159,7 +159,7 @@ void _test_link_end_and_notify()
    ruby_ipc_channel_send_message(s_fIPCRouterToCommands, (u8*)&PH, PH.total_length);
    if ( g_pCurrentModel->rc_params.uRCFlags & RC_FLAGS_ENABLED )
       ruby_ipc_channel_send_message(s_fIPCRouterToRC, (u8*)&PH, PH.total_length);
-   
+
    if ( NULL != g_pProcessStats )
       g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
 
@@ -170,7 +170,7 @@ void _test_link_pause_interfaces()
 {
    if ( s_bTestLinkPausedInterfaces )
       return;
-   
+
    s_bTestLinkPausedInterfaces = true;
 
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
@@ -212,11 +212,11 @@ void _test_link_resume_interfaces()
       radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(i);
       if ( NULL == pRadioHWInfo )
          continue;
-      
+
       if ( s_bMustResumeRadioInterfacesForWrite[i] )
          radio_tx_resume_radio_interface(i);
       s_bMustResumeRadioInterfacesForWrite[i] = false;
-      
+
       if ( s_bMustResumeRadioInterfacesForRead[i] )
          radio_rx_resume_interface(i);
       s_bMustResumeRadioInterfacesForRead[i] = false;
@@ -310,7 +310,7 @@ static void * _thread_test_link_worker_apply(void *argument)
    g_pCurrentModel->logVehicleRadioLinkDifferences(szPrefix, &s_RadioLinksParamsOriginal, &s_RadioLinksParamsToTest);
 
    radio_links_apply_settings(g_pCurrentModel, s_iTestLinkIndex, &s_RadioLinksParamsOriginal, &s_RadioLinksParamsToTest);
-        
+
    log_line("[TestLink-%d] Finished worker thread to update radio interfaces for vehicle radio link %d.", s_iTestLinkCurrentRunCount, s_iTestLinkIndex+1);
    s_bApplyRadioParamsInProgress = false;
    return NULL;
@@ -322,11 +322,11 @@ static void * _thread_test_link_worker_revert(void *argument)
    log_line("[TestLink-%d] Started worker thread to revert radio interfaces for vehicle radio link %d.", s_iTestLinkCurrentRunCount, s_iTestLinkIndex+1);
    hw_log_current_thread_attributes("test link revert");
    char szPrefix[32];
-   sprintf(szPrefix, "[TestLink-%d]", s_iTestLinkCurrentRunCount);   
+   sprintf(szPrefix, "[TestLink-%d]", s_iTestLinkCurrentRunCount);
    g_pCurrentModel->logVehicleRadioLinkDifferences(szPrefix, &s_RadioLinksParamsToTest, &s_RadioLinksParamsOriginal);
 
    radio_links_apply_settings(g_pCurrentModel, s_iTestLinkIndex, &s_RadioLinksParamsToTest, &s_RadioLinksParamsOriginal);
-        
+
    log_line("[TestLink-%d] Finished worker thread to revert radio interfaces for vehicle radio link %d.", s_iTestLinkCurrentRunCount, s_iTestLinkIndex+1);
    s_bApplyRadioParamsInProgress = false;
    return NULL;
@@ -662,7 +662,7 @@ void test_link_process_received_message(int iInterfaceIndex, u8* pPacketBuffer)
          _test_link_end_and_notify();
          return;
       }
-   
+
       s_iTestLinkCurrentStepSendCount++;
 
       t_packet_header PH;
@@ -679,7 +679,7 @@ void test_link_process_received_message(int iInterfaceIndex, u8* pPacketBuffer)
       uBuffer[sizeof(t_packet_header)+3] = (u8)s_iTestLinkCurrentRunCount;
       uBuffer[sizeof(t_packet_header)+4] = PACKET_TYPE_TEST_RADIO_LINK_COMMAND_END;
       uBuffer[sizeof(t_packet_header)+5] = 1;
-      
+
       packets_queue_add_packet(&g_QueueRadioPacketsOut, uBuffer);
       log_line("[TestLink-%d] Sent end reply message (count %u) to controller", s_iTestLinkCurrentRunCount, s_iTestLinkCurrentStepSendCount);
 
@@ -724,7 +724,7 @@ void test_link_loop()
       if ( g_TimeNow > s_uTimeEndCurrentStep )
       {
          log_line("[TestLink-%d] Not able to apply radio params (timed out). Ending flow.", s_iTestLinkCurrentRunCount);
-         
+
          if ( ! s_bTestLinkOnlyFreqChanged )
             _test_link_reopen_interfaces();
          _test_link_resume_interfaces();
@@ -826,7 +826,7 @@ void test_link_loop()
          uBuffer[sizeof(t_packet_header)+3] = (u8)s_iTestLinkCurrentRunCount;
          uBuffer[sizeof(t_packet_header)+4] = PACKET_TYPE_TEST_RADIO_LINK_COMMAND_END;
          uBuffer[sizeof(t_packet_header)+5] = 1;
-         
+
          packets_queue_add_packet(&g_QueueRadioPacketsOut, uBuffer);
          log_line("[TestLink-%d] Sent end reply message (count %u) to controller", s_iTestLinkCurrentRunCount, s_iTestLinkCurrentStepSendCount);
       }

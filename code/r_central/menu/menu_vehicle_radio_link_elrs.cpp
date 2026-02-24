@@ -49,12 +49,12 @@ MenuVehicleRadioLinkELRS::MenuVehicleRadioLinkELRS(int iRadioLink)
    m_yPos = 0.1;
    m_iRadioLink = iRadioLink;
 
-   
+
    if ( g_pCurrentModel->radioLinksParams.link_capabilities_flags[m_iRadioLink] & RADIO_HW_CAPABILITY_FLAG_USED_FOR_RELAY )
       log_line("Opening menu for relay radio link %d ...", m_iRadioLink+1);
    else
       log_line("Opening menu for radio link %d ...", m_iRadioLink+1);
-    
+
    char szBuff[256];
 
    sprintf(szBuff, "Vehicle ELRS Radio Link %d Parameters", m_iRadioLink+1);
@@ -72,7 +72,7 @@ MenuVehicleRadioLinkELRS::MenuVehicleRadioLinkELRS(int iRadioLink)
    log_line("Opened menu to configure ELRS radio link %d, used by radio interface %d on the model side.", m_iRadioLink+1, iRadioInterfaceId+1);
 
    m_bHasValidInterface = true;
-   
+
    addMenuItem(new MenuItemText("Use ELRS configurator to fully configure your ELRS radio module."));
    addMenuItem(new MenuItemText("Set the Ruby air data rate for this ELRS radio link (using the option below) to match the air datrate you set in your ELRS module."));
 
@@ -92,7 +92,7 @@ MenuVehicleRadioLinkELRS::MenuVehicleRadioLinkELRS(int iRadioLink)
          sprintf(szBuff, "%d kbps", (iAirRate)/1000);
       m_pItemsSelect[2]->addSelection(szBuff);
    }
-   
+
    m_pItemsSelect[2]->setIsEditable();
    m_IndexAirDataRate = addMenuItem(m_pItemsSelect[2]);
 
@@ -126,7 +126,7 @@ void MenuVehicleRadioLinkELRS::valuesToUI()
    m_pItemsSlider[0]->setCurrentValue(pCS->iSiKPacketSize);
 
    u32 uLinkCapabilities = g_pCurrentModel->radioLinksParams.link_capabilities_flags[m_iRadioLink];
-   
+
    if ( uLinkCapabilities & RADIO_HW_CAPABILITY_FLAG_USED_FOR_RELAY )
    {
       log_line("Menu: Radio serial link %d is used for relay. No values to update.", m_iRadioLink+1);
@@ -149,7 +149,7 @@ void MenuVehicleRadioLinkELRS::valuesToUI()
       m_pItemsSelect[2]->setEnabled(false);
       m_pItemsSlider[0]->setEnabled(false);
    }
- 
+
    log_line("Menu: Radio ELRS link %d current air data rates: %d/%d", m_iRadioLink+1, g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[m_iRadioLink], g_pCurrentModel->radioLinksParams.downlink_datarate_data_bps[m_iRadioLink]);
    int selectedIndex = 0;
    for( int i=0; i<getSiKAirDataRatesCount(); i++ )
@@ -189,7 +189,7 @@ void MenuVehicleRadioLinkELRS::sendRadioLinkFlags(int linkIndex)
    if ( (indexRate < 0) || (indexRate >= getSiKAirDataRatesCount()) )
       return;
    datarate_bps = getSiKAirDataRates()[indexRate];
-     
+
    u8 buffer[64];
    u32* p = (u32*)&(buffer[0]);
    *p = (u32)linkIndex;
@@ -200,7 +200,7 @@ void MenuVehicleRadioLinkELRS::sendRadioLinkFlags(int linkIndex)
    *pi = datarate_bps;
    pi++;
    *pi = datarate_bps;
- 
+
    memcpy(&g_LastGoodRadioLinksParams, &(g_pCurrentModel->radioLinksParams), sizeof(type_radio_links_parameters));
 
    g_pCurrentModel->radioLinksParams.link_radio_flags_tx[linkIndex] = uRadioFlags;
@@ -210,7 +210,7 @@ void MenuVehicleRadioLinkELRS::sendRadioLinkFlags(int linkIndex)
    saveControllerModel(g_pCurrentModel);
 
    send_model_changed_message_to_router(MODEL_CHANGED_RADIO_LINK_FRAMES_FLAGS, linkIndex);
-   
+
    char szBuff[128];
    str_get_radio_frame_flags_description(uRadioFlags, szBuff);
    log_line("Sending to vehicle new radio link flags for radio link %d: %s and datarates: %d/%d", linkIndex+1, szBuff, datarate_bps, datarate_bps);
@@ -218,11 +218,11 @@ void MenuVehicleRadioLinkELRS::sendRadioLinkFlags(int linkIndex)
    if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_RADIO_LINK_FLAGS, 0, buffer, 2*sizeof(u32) + 2*sizeof(int)) )
    {
       valuesToUI();
-      memcpy(&(g_pCurrentModel->radioLinksParams), &g_LastGoodRadioLinksParams, sizeof(type_radio_links_parameters));            
+      memcpy(&(g_pCurrentModel->radioLinksParams), &g_LastGoodRadioLinksParams, sizeof(type_radio_links_parameters));
    }
    else
    {
-      link_set_is_reconfiguring_radiolink(linkIndex, false, true, true); 
+      link_set_is_reconfiguring_radiolink(linkIndex, false, true, true);
       warnings_add_configuring_radio_link(linkIndex, "Changing radio link flags");
    }
 }

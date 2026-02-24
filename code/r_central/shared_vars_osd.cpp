@@ -31,11 +31,11 @@ void shared_vars_osd_update()
          continue;
       if ( ! pRadioHWInfo->isHighCapacityInterface )
          continue;
-      
+
       int iRadioDBM = g_SMControllerRTInfo.radioInterfacesSignals[i].iMaxDBMVideoForInterface;
       int iSNR = g_SMControllerRTInfo.radioInterfacesSignals[i].iMaxSNRVideoForInterface;
       u32 uTimeUpdate = g_SMControllerRTInfo.radioInterfacesSignals[i].uLastUpdateTimeVideo;
-      
+
       if ( (NULL == pActiveModel) || (! pActiveModel->hasCamera()) )
       {
          iRadioDBM = g_SMControllerRTInfo.radioInterfacesSignals[i].iMaxDBMDataForInterface;

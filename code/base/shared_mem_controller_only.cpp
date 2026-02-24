@@ -103,7 +103,7 @@ void reset_video_stream_stats_detected_info(shared_mem_video_stream_stats* pVSSt
 shared_mem_radio_rx_queue_info* shared_mem_radio_rx_queue_info_open_for_read()
 {
    void *retVal = open_shared_mem(SHARED_MEM_RADIO_RX_QUEUE_INFO_STATS, sizeof(shared_mem_radio_rx_queue_info), 1);
-   return (shared_mem_radio_rx_queue_info*)retVal; 
+   return (shared_mem_radio_rx_queue_info*)retVal;
 }
 
 shared_mem_radio_rx_queue_info* shared_mem_radio_rx_queue_info_open_for_write()

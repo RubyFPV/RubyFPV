@@ -13,14 +13,14 @@ class MenuVehicleInstrumentsGeneral: public Menu
       virtual void onSelectItem();
       virtual void onItemValueChanged(int itemIndex);
       virtual void valuesToUI();
-            
+
    private:
       MenuItemSlider* m_pItemsSlider[15];
       MenuItemSelect* m_pItemsSelect[20];
       MenuItemRange* m_pItemsRange[15];
 
       int m_nOSDIndex;
-      
+
       int m_IndexAHISize;
       int m_IndexAHIStrokeSize;
 

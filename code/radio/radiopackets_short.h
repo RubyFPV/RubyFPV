@@ -25,5 +25,5 @@ void radio_packet_short_init(t_packet_header_short* pPHS);
 u8 radio_packets_short_get_next_id_for_radio_interface(int iInterfaceIndex);
 int radio_buffer_is_valid_short_packet(u8* pBuffer, int iLength);
 #ifdef __cplusplus
-}  
+}
 #endif

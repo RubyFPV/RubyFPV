@@ -7,7 +7,7 @@
 #include <sys/resource.h>
 #include <stdio.h>
 #include <sys/stat.h>
-#include <sys/socket.h> 
+#include <sys/socket.h>
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/socket.h>
@@ -19,12 +19,12 @@
 bool bQuit = false;
 
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    bQuit = true;
-} 
-  
+}
+
 int main(int argc, char *argv[])
 {
    signal(SIGINT, handle_sigint);
@@ -47,10 +47,10 @@ int main(int argc, char *argv[])
    udpport = atoi(argv[1]);
    udpportout = atoi(argv[2]);
 
-   
+
    int socket_input;
    struct sockaddr_in server_addr_input, client_addr_input;
-	
+
    socket_input = socket(AF_INET , SOCK_DGRAM, 0);
    if (socket_input == -1)
    {
@@ -60,11 +60,11 @@ int main(int argc, char *argv[])
 
    memset(&server_addr_input, 0, sizeof(server_addr_input));
    memset(&client_addr_input, 0, sizeof(client_addr_input));
-    
+
    server_addr_input.sin_family = AF_INET;
    server_addr_input.sin_addr.s_addr = inet_addr("192.168.1.2");//INADDR_ANY;
    server_addr_input.sin_port = htons( udpport );
-	
+
    client_addr_input.sin_family = AF_INET;
    client_addr_input.sin_addr.s_addr = inet_addr("192.168.1.2");//INADDR_ANY;
    client_addr_input.sin_port = htons( udpport );
@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
    */
    int socketfd_output;
    struct sockaddr_in server_addr_output;
- 
+
    socketfd_output = socket(AF_INET , SOCK_DGRAM, 0);
    if (socketfd_output == -1)
    {
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
    }
 
    memset(&server_addr_output, 0, sizeof(server_addr_output));
-    
+
    server_addr_output.sin_family = AF_INET;
    server_addr_output.sin_addr.s_addr = inet_addr("127.0.0.1");
    server_addr_output.sin_port = htons( udpportout );
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
    u32 uBytesRead = 0;
    u32 uBytesWritten = 0;
    u32 uLoopsPerSec = 0;
-   
+
    while (!bQuit)
    {
       uTimeNow = get_current_timestamp_ms();
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
 
       u8 uBuffer[2025];
       socklen_t len = sizeof(client_addr_input);
-      int nRecv = recvfrom(socket_input, uBuffer, 1500, 
+      int nRecv = recvfrom(socket_input, uBuffer, 1500,
                 MSG_WAITALL, ( struct sockaddr *) &client_addr_input,
                 &len);
       //int nRecv = recv(socket_input, szBuff, 1024, )

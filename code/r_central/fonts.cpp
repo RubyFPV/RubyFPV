@@ -64,7 +64,7 @@ u32 g_idFontMenuLarge = 0;
 extern u32 s_uRenderEngineUIFontIdSmall;
 extern u32 s_uRenderEngineUIFontIdRegular;
 extern u32 s_uRenderEngineUIFontIdBig;
-  
+
 #include "fonts.h"
 #include "shared_vars.h"
 
@@ -147,7 +147,7 @@ bool loadAllFonts(bool bReloadMenuFonts)
    }
 
    s_bFontsInitialized = true;
-   
+
    if ( bReloadMenuFonts )
    {
       log_line("Loading menu fonts...");
@@ -181,7 +181,7 @@ bool loadAllFonts(bool bReloadMenuFonts)
 void free_all_fonts()
 {
    log_line("Cleaning up previous fonts for menus (%d fonts)...", s_iListMenuFontSizesCount);
-   
+
    for( int i=0; i<s_iListMenuFontSizesCount; i++ )
       g_pRenderEngine->freeRawFont(s_ListMenuFontSizes[i]);
    s_iListMenuFontSizesCount = 0;
@@ -198,7 +198,7 @@ void _applyNewFontToExistingPopups(u32 uFontIdOld, u32 uFontIdNew)
       Popup* p = popups_get_at(i);
       if ( p && ( p->getFontId() == uFontIdOld) )
          p->setFont(uFontIdNew);
-      
+
    }
 
    for( int i=0; i<popups_get_topmost_count(); i++ )
@@ -249,38 +249,38 @@ void applyFontScaleChanges()
    _applyNewFontToExistingPopups(g_idFontMenuLarge, uFontId);
    log_line("Switching font menu big from font id %u to font id %u", g_idFontMenuLarge, uFontId);
    g_idFontMenuLarge = uFontId;
-   
+
    log_line("Applying OSD font size of: %d pixels (screen height: %d pixels)", (int)(hScreen * fOSDFontSize), (int) hScreen);
 
    uFontId = _getBestMatchingFontHeight(s_ListOSDFontSizes, s_iListOSDFontSizesCount, hScreen * fOSDFontSize * fOSDScale );
    _applyNewFontToExistingPopups(g_idFontOSD, uFontId);
    g_idFontOSD = uFontId;
-   
+
    uFontId = _getBestMatchingFontHeight(s_ListOSDFontSizes, s_iListOSDFontSizesCount, hScreen * fOSDFontSize * fOSDScale * 1.25);
    _applyNewFontToExistingPopups(g_idFontOSDBig, uFontId);
    g_idFontOSDBig = uFontId;
-   
+
    uFontId = _getBestMatchingFontHeight(s_ListOSDFontSizes, s_iListOSDFontSizesCount, hScreen * fOSDFontSize * fOSDScale * 0.74);
    _applyNewFontToExistingPopups(g_idFontOSDSmall, uFontId);
    g_idFontOSDSmall = uFontId;
-   
+
    uFontId = _getBestMatchingFontHeight(s_ListOSDFontSizes, s_iListOSDFontSizesCount, hScreen * fOSDFontSize * fOSDScale * 0.5);
    _applyNewFontToExistingPopups(g_idFontOSDExtraSmall, uFontId);
    g_idFontOSDExtraSmall = uFontId;
-   
+
 
    uFontId = _getBestMatchingFontHeight(s_ListOSDFontSizes, s_iListOSDFontSizesCount, hScreen * fOSDFontSize * fOSDScale );
    _applyNewFontToExistingPopups(g_idFontOSDWarnings, uFontId);
    g_idFontOSDWarnings = uFontId;
-   
+
    uFontId = _getBestMatchingFontHeight(s_ListOSDFontSizes, s_iListOSDFontSizesCount, hScreen * fOSDFontSize * fOSDStatsScale * 0.8 );
    _applyNewFontToExistingPopups(g_idFontStats, uFontId);
    g_idFontStats = uFontId;
-   
+
    uFontId = _getBestMatchingFontHeight(s_ListOSDFontSizes, s_iListOSDFontSizesCount, hScreen * fOSDFontSize * fOSDStatsScale * 0.8 * 0.75);
    _applyNewFontToExistingPopups(g_idFontStatsSmall, uFontId);
    g_idFontStatsSmall = uFontId;
-   
+
    s_uRenderEngineUIFontIdRegular = g_idFontOSD;
    s_uRenderEngineUIFontIdSmall = g_idFontOSDSmall;
    s_uRenderEngineUIFontIdBig = g_idFontOSDBig;

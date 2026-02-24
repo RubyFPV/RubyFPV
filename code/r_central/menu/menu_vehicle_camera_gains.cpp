@@ -48,17 +48,17 @@ MenuVehicleCameraGains::MenuVehicleCameraGains(void)
 
    if ( NULL != g_pCurrentModel && pCamProfile->whitebalance != 0 )
       addMenuItem(new MenuItemLegend("Warning", "Analog gains are ignored if AWB is not turned off.", 0) );
-   
 
-   m_pItemsRange[0] = new MenuItemRange("Analog Gain:", "Analog gain of the camera sensor when AWB is turned off.", 1.0, 8.0, pCamProfile->analogGain, 0.1 );  
+
+   m_pItemsRange[0] = new MenuItemRange("Analog Gain:", "Analog gain of the camera sensor when AWB is turned off.", 1.0, 8.0, pCamProfile->analogGain, 0.1 );
    m_pItemsRange[0]->setSufix("");
    m_IndexGain = addMenuItem(m_pItemsRange[0]);
 
-   m_pItemsRange[1] = new MenuItemRange("Blue Gain:", "Blue gain when AWB is turned off.", 0.0, 5.0, pCamProfile->awbGainB, 0.1 );  
+   m_pItemsRange[1] = new MenuItemRange("Blue Gain:", "Blue gain when AWB is turned off.", 0.0, 5.0, pCamProfile->awbGainB, 0.1 );
    m_pItemsRange[1]->setSufix("");
    m_IndexGainB = addMenuItem(m_pItemsRange[1]);
 
-   m_pItemsRange[2] = new MenuItemRange("Red Gain:", "Red gain when AWB is turned off.", 0.0, 5.0, pCamProfile->awbGainR, 0.1 );  
+   m_pItemsRange[2] = new MenuItemRange("Red Gain:", "Red gain when AWB is turned off.", 0.0, 5.0, pCamProfile->awbGainR, 0.1 );
    m_pItemsRange[2]->setSufix("");
    m_IndexGainR = addMenuItem(m_pItemsRange[2]);
 }
@@ -115,7 +115,7 @@ void MenuVehicleCameraGains::onSelectItem()
       type_camera_parameters cparams;
       memcpy(&cparams, &(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera]), sizeof(type_camera_parameters));
       int iProfile = g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].iCurrentProfile;
-   
+
       cparams.profiles[iProfile].analogGain = m_pItemsRange[0]->getCurrentValue();
       if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_CAMERA_PARAMETERS, g_pCurrentModel->iCurrentCamera, (u8*)(&cparams), sizeof(type_camera_parameters)) )
          valuesToUI();

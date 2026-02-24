@@ -7,10 +7,10 @@ class MenuSystem: public Menu
 {
    public:
       MenuSystem();
-      virtual void onShow(); 
+      virtual void onShow();
       virtual void Render();
       virtual void valuesToUI();
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
 
    private:

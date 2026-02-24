@@ -51,7 +51,7 @@ MenuVehicleOSDPlugins::MenuVehicleOSDPlugins(void)
    char szBuff[128];
    sprintf(szBuff, "OSD Plugins Settings (%s)", str_get_osd_screen_name(g_pCurrentModel->osd_params.iCurrentOSDScreen));
    setTitle(szBuff);
-   
+
    for( int i=0; i<MAX_OSD_CUSTOM_PLUGINS; i++ )
    {
       m_pItemsSelect[i] = NULL;

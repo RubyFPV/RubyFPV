@@ -156,7 +156,7 @@ void _process_upload_send_status_to_controller(u8 uStatus, int iRepeatCount)
    PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
    PH.vehicle_id_dest = g_pCurrentModel->uControllerId;
    PH.total_length = sizeof(t_packet_header)+sizeof(u8)+sizeof(u32);
-   
+
    u8 buffer[MAX_PACKET_TOTAL_SIZE];
    memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
    memcpy(buffer+sizeof(t_packet_header), (u8*)&uStatus, sizeof(u8));
@@ -189,7 +189,7 @@ static void * _thread_process_upload(void *argument)
    log_line("[ProcessUploadTh] Started update thread...");
    s_bProcessUploadInProgress = true;
    hw_log_current_thread_attributes("process upload");
-   
+
    char szFile[MAX_FILE_PATH_SIZE];
    char szComm[512];
 
@@ -211,7 +211,7 @@ static void * _thread_process_upload(void *argument)
       g_pCurrentModel->uControllerId = uControllerId;
 
    _process_upload_send_status_to_controller(OTA_UPDATE_STATUS_START_PROCESSING, 5);
-   
+
    #if defined(HW_PLATFORM_RASPBERRY) || defined(HW_PLATFORM_RADXA)
    log_line("Save received update archive for backup...");
    sprintf(szComm, "rm -rf %slast_update_received.tar 2>&1", FOLDER_UPDATES);
@@ -232,7 +232,7 @@ static void * _thread_process_upload(void *argument)
    log_line("ruby_rt_vehicle: [%s]", szOutput);
    hw_execute_ruby_process_wait(NULL, "ruby_tx_telemetry", "-ver", szOutput, 1);
    log_line("ruby_tx_telemetry: [%s]", szOutput);
-   
+
    sprintf(szComm, "chmod 777 %sruby* 2>/dev/null", FOLDER_BINARIES);
    hw_execute_bash_command(szComm, NULL);
    sprintf(szComm, "chmod 777 %sonyx* 2>/dev/null", FOLDER_BINARIES);
@@ -249,7 +249,7 @@ static void * _thread_process_upload(void *argument)
    log_line("Running on OpenIPC hardware");
    sprintf(szComm, "tar -C %s -xf %s 2>&1 1>/dev/null", FOLDER_RUBY_TEMP, s_szUpdateArchiveFile);
    #endif
-   
+
    hardware_sleep_ms(500);
    _process_upload_send_status_to_controller(OTA_UPDATE_STATUS_UNPACK, 10);
 
@@ -259,7 +259,7 @@ static void * _thread_process_upload(void *argument)
    {
       s_bThreadProcessArchiveFinished = true;
       log_softerror_and_alarm("[ProcessUploadTh] Failed to create thread archive processing.");
-      log_line("Extracting binaries to location: %s", FOLDER_RUBY_TEMP);   
+      log_line("Extracting binaries to location: %s", FOLDER_RUBY_TEMP);
       hw_execute_bash_command_raw(szComm, NULL);
       //system(szComm);
       log_line("Done extracting to location: %s", FOLDER_RUBY_TEMP);
@@ -406,7 +406,7 @@ static void * _thread_process_upload(void *argument)
       log_line("Update binary is present [%s]", szFile);
    else
       log_line("Update binary is NOT present [%s]", szFile);
-     
+
    #if defined (HW_PLATFORM_OPENIPC_CAMERA)
    if ( access( szFile, R_OK ) != -1 )
    {
@@ -450,7 +450,7 @@ static void * _thread_process_upload(void *argument)
       hardware_sleep_ms(100);
 
    log_line("Cleanup and reboot");
-   
+
    _sw_update_close_remove_temp_files();
 
 
@@ -461,7 +461,7 @@ static void * _thread_process_upload(void *argument)
    char szDriver[MAX_FILE_PATH_SIZE];
    strcpy(szDriver, FOLDER_BINARIES);
    strcat(szDriver, "drivers/8812eu-oipc.ko");
-   
+
    if ( access(szDriver, R_OK) != -1 )
    {
       sprintf(szComm, "mv -f %s /lib/modules/$(uname -r)/extra/", szDriver);
@@ -475,7 +475,7 @@ static void * _thread_process_upload(void *argument)
 
    strcpy(szDriver, FOLDER_BINARIES);
    strcat(szDriver, "drivers/88XXau-oipc.ko");
-   
+
    if ( access(szDriver, R_OK) != -1 )
    {
       sprintf(szComm, "mv -f %s /lib/modules/$(uname -r)/extra/", szDriver);
@@ -488,7 +488,7 @@ static void * _thread_process_upload(void *argument)
       log_line("No new RTL8812AU driver in file [%s]", szDriver);
    #endif
    */
-   
+
    // Drivers are installed after reboot
    //hardware_install_drivers(0);
    // End check and update drivers
@@ -510,7 +510,7 @@ void process_sw_upload_new(u32 command_param, u8* pBuffer, int length)
       log_softerror_and_alarm("Received SW Upload packet of invalid minimum size: %d bytes", length);
       _sw_update_close_remove_temp_files();
       sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED, 0, 0);
-      return;             
+      return;
    }
 
    if ( process_sw_did_finish_successfully() )
@@ -525,7 +525,7 @@ void process_sw_upload_new(u32 command_param, u8* pBuffer, int length)
    if ( NULL != g_pProcessStats )
       g_pProcessStats->lastActiveTime = g_TimeNow;
    s_uLastTimeReceivedAnySoftwareBlock = g_TimeNow;
-   
+
    bool bSendAck = (bool) command_param;
 
    log_line("Recv sw pkg seg %d, is last:%d, block size: %d bytes, this block size: %d bytes, total size: %d bytes",
@@ -548,7 +548,7 @@ void process_sw_upload_new(u32 command_param, u8* pBuffer, int length)
       log_softerror_and_alarm("Received SW Upload packet of invalid size: %d bytes, total length: %d bytes.", params->block_length, params->total_size);
       _sw_update_close_remove_temp_files();
       sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED, 0, 0);
-      return;             
+      return;
    }
 
    if ( ! s_bSoftwareUpdateStoppedVideoPipeline )

@@ -5,7 +5,7 @@ class MenuSystemHardware: public Menu
 {
    public:
       MenuSystemHardware();
-      virtual void onShow(); 
+      virtual void onShow();
       virtual void Render();
       virtual bool periodicLoop();
       virtual void onSelectItem();

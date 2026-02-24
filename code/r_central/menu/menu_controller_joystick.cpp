@@ -52,7 +52,7 @@ MenuControllerJoystick::MenuControllerJoystick(int joystickIndex)
    m_Height = 0.71;
    m_xPos = 0.14;
    m_yPos = 0.1;
-   
+
    m_JoystickIndex = joystickIndex;
    m_bIsCalibratingCenters = false;
    m_bIsCalibratingAxes = false;
@@ -229,7 +229,7 @@ void MenuControllerJoystick::Render()
    else if ( (NULL != m_pJoystick) && (! m_pJoystick->bCalibrated) )
        m_fTopTextHeight += 1.2*g_pRenderEngine->drawMessageLines(m_xPos+m_sfMenuPaddingX, y+m_fTopTextHeight, "This input device is not calibrated! Calibrate it before you can use it.", MENU_TEXTLINE_SPACING, getUsableWidth(), g_idFontMenu);
    y += (1.7+2.0)*height_text;
-   
+
    if ( NULL == m_pJoystick )
    {
       g_pRenderEngine->setColors(get_Color_MenuText());
@@ -348,7 +348,7 @@ void MenuControllerJoystick::onSelectItem()
 
             save_ControllerInterfacesSettings();
             send_model_changed_message_to_router(MODEL_CHANGED_GENERIC, 0);
-         
+
             if ( NULL != m_pPopupCal )
             {
                popups_remove(m_pPopupCal);
@@ -387,7 +387,7 @@ void MenuControllerJoystick::onSelectItem()
       return;
 
    if ( m_IndexBack == m_SelectedIndex )
-      menu_stack_pop(0);   
+      menu_stack_pop(0);
 
    if ( (-1 != m_IndexCalibrate) && (m_IndexCalibrate == m_SelectedIndex) )
    {

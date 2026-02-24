@@ -25,7 +25,7 @@ freely, subject to the following restrictions:
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 #ifndef LODEPNG_H
 #define LODEPNG_H
@@ -1774,4 +1774,4 @@ Copyright (c) 2005-2018 Lode Vandevenne
 */
 #ifdef __cplusplus
 }
-#endif // __cplusplus  
+#endif // __cplusplus

@@ -21,7 +21,7 @@ class MenuChannelsSelect: public Menu
       virtual void Render();
       virtual int onBack();
       virtual void onSelectItem();
-            
+
    private:
       MenuItemSlider* m_pItemsSlider[4];
       MenuItemSelect* m_pItemsSelect[14];

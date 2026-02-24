@@ -22,7 +22,7 @@ bool quit = false;
 
 bool bSummary = false;
 bool bOnlyErrors = false;
-   
+
 fd_set g_Readset;
 
 u32 g_uStreamsLastPacketIndex[MAX_RADIO_STREAMS];
@@ -40,21 +40,21 @@ shared_mem_radio_stats g_SM_RadioStats;
 uint8_t rx_secretkey[crypto_box_SECRETKEYBYTES];
 uint8_t tx_publickey[crypto_box_PUBLICKEYBYTES];
 uint8_t session_key[crypto_aead_chacha20poly1305_KEYBYTES];
-fec_t* pFEC = NULL; 
+fec_t* pFEC = NULL;
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    quit = true;
-} 
+}
 
 void process_packet(int iInterfaceIndex)
 {
    //printf("x");
    fflush(stdout);
-         
+
    int nLength = 0;
-   u8* pBuffer = radio_process_wlan_data_in(iInterfaceIndex, &nLength, NULL, g_TimeNow); 
+   u8* pBuffer = radio_process_wlan_data_in(iInterfaceIndex, &nLength, NULL, g_TimeNow);
    if ( NULL == pBuffer )
    {
       printf("NULL receive buffer. Ignoring...\n");
@@ -81,7 +81,7 @@ void process_packet(int iInterfaceIndex)
       {
           printf("Unable to decrypt session key!\n");
           return;
-      } 
+      }
       printf("EC scheme: %d/%d\n", sessionData.uK, sessionData.uN);
 
       if ( 0 != memcmp(session_key, sessionData.sessionKey, sizeof(session_key)) )
@@ -91,9 +91,9 @@ void process_packet(int iInterfaceIndex)
          if ( NULL != pFEC )
             zfec_free(pFEC);
 
-         pFEC = zfec_new(sessionData.uK, sessionData.uN); 
+         pFEC = zfec_new(sessionData.uK, sessionData.uN);
          printf("Created new EC, %d/%d", sessionData.uK, sessionData.uN);
-      } 
+      }
    }
    else
    {
@@ -113,7 +113,7 @@ void process_packet(int iInterfaceIndex)
     }
 
     u32 u = be64toh(block_hdr->uDataNonce);
- 
+
     printf("bytes: %d, block %u, fragment %u\n", nLength, u>>8, u & 0xFF);
    }
 }
@@ -124,7 +124,7 @@ int try_read_packets(int iInterfaceIndex)
    struct timeval to;
    to.tv_sec = 0;
    to.tv_usec = miliSec*1000;
-            
+
    int maxfd = -1;
    FD_ZERO(&g_Readset);
    for(int i=0; i<hardware_get_radio_interfaces_count(); ++i)
@@ -137,7 +137,7 @@ int try_read_packets(int iInterfaceIndex)
          FD_SET(pNICInfo->runtimeInterfaceInfoRx.selectable_fd, &g_Readset);
          if ( pNICInfo->runtimeInterfaceInfoRx.selectable_fd > maxfd )
             maxfd = pNICInfo->runtimeInterfaceInfoRx.selectable_fd;
-      } 
+      }
    }
 
    int nResult = select(maxfd+1, &g_Readset, NULL, NULL, &to);
@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
       printf(" default port id is 0\n");
       return -1;
    }
-   
+
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
@@ -167,12 +167,12 @@ int main(int argc, char *argv[])
    if ( argc > 2 )
    if ( atoi(argv[3]) > 0 )
       iLinkId = atoi(argv[3]);
-   
+
    if ( argc > 3 )
    if ( atoi(argv[4]) > 0 )
       iPortId = atoi(argv[4]);
 
-   
+
    log_init("RX_TEST_PORT_WFB");
    log_enable_stdout();
    hardware_enumerate_radio_interfaces();
@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
 
    memcpy( rx_secretkey, get_openipc_key1(), crypto_box_SECRETKEYBYTES);
    memcpy( tx_publickey, get_openipc_key2(), crypto_box_SECRETKEYBYTES);
-   memset(session_key, 0, sizeof(session_key)); 
+   memset(session_key, 0, sizeof(session_key));
 
    printf("\nLoaded keys.\n");
    if ( -1 == iInterfaceIndex )
@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
       return -1;
    }
 
-   
+
    for( int i=0; i<MAX_RADIO_STREAMS; i++ )
    {
       g_uStreamsLastPacketIndex[i] = MAX_U32;
@@ -252,10 +252,10 @@ int main(int argc, char *argv[])
 
    printf("\nStart receiving on lan: %s (interface %d), %d Mhz, link id: %d, port id: %d\n", szCard, iInterfaceIndex+1, iFreq, iLinkId, iPortId);
    printf("\nLooking for any stream\n");
-  
+
    printf("\n\n\nStarted.\nWaiting for data...\n\n\n");
    fflush(stdout);
-   
+
    while (!quit)
    {
       g_TimeNow = get_current_timestamp_ms();

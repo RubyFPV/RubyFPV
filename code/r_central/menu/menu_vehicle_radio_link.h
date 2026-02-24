@@ -15,7 +15,7 @@ class MenuVehicleRadioLink: public Menu
       virtual void onShow();
       virtual int onBack();
       virtual void onVehicleCommandFinished(u32 uCommandId, u32 uCommandType, bool bSucceeded);
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
       void onChangeRadioConfigFinished(bool bSucceeded);
 

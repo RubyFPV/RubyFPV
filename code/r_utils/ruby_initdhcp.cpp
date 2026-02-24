@@ -64,7 +64,7 @@ void configureDHCP()
 
    szBuff[0] = 0;
    if( access( "/sys/class/net/eth0/carrier", R_OK ) != -1 )
-   { 
+   {
       hw_execute_bash_command_silent("cat /sys/class/net/eth0/carrier 2>/dev/null | grep 1", szBuff);
       removeTrailingNewLines(szBuff);
    }
@@ -82,14 +82,14 @@ void configureDHCP()
       sprintf(szBuff, "nice pump -i eth0 --no-ntp -h Ruby%s 2>&1 1>/dev/null", szType);
       hw_execute_bash_command(szBuff, NULL);
       #endif
-      //ETHCLIENTIP=`ip addr show eth0 | grep -Po 'inet \K[\d.]+'`            
+      //ETHCLIENTIP=`ip addr show eth0 | grep -Po 'inet \K[\d.]+'`
       //echo "Ethernet IP: $ETHCLIENTIP"
-      //ping -n -q -c 1 1.1.1.1 
+      //ping -n -q -c 1 1.1.1.1
 
       log_line("DHCP is enabled. Activated it.");
    }
    else
-      log_line("No ethernet connection detected!");		
+      log_line("No ethernet connection detected!");
 }
 
 void _check_set_fixed_ip()
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
    bool bNow = false;
    if ( strcmp(argv[argc-1], "-now") == 0 )
       bNow = true;
-   
+
    if ( bNow )
       sleep(1);
    else
@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
    #if defined HW_PLATFORM_RASPBERRY
    configureDHCP();
    #endif
-   
+
    hw_execute_bash_command_raw("ls /sys/class/net/", szOutput);
    log_line("Network devices found: [%s]", szOutput);
 
@@ -228,4 +228,4 @@ int main(int argc, char *argv[])
    log_line("pump proc: (%s)", szOutput);
    log_line("Done DHCP config process.");
    return (0);
-} 
+}

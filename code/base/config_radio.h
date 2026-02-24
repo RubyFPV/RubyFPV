@@ -60,7 +60,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 u32* getChannels433();
 int getChannels433Count();
@@ -102,5 +102,5 @@ int getRadioMinimSNRForDataRate(int iDatarate);
 int getRadioMinimDBMForDataRate(int iDatarate);
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

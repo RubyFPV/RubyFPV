@@ -28,12 +28,12 @@ class MenuVehicleRCExpo: public Menu
       virtual void onItemValueChanged(int itemIndex);
       virtual void onSelectItem();
       virtual void valuesToUI();
-            
+
    private:
       void computeDisplayCurve(int nChannel);
 
       MenuItemSelect* m_pItemsSelect[10];
-      MenuItemSlider* m_pItemsSlider[10];      
+      MenuItemSlider* m_pItemsSlider[10];
       t_menu_group_rc_expo m_ItemsChannels[24];
       int m_ChannelCount;
 

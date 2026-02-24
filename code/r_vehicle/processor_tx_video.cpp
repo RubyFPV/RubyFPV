@@ -70,7 +70,7 @@ ProcessorTxVideo::ProcessorTxVideo(int iVideoStreamIndex, int iCameraIndex)
       m_BitrateHistorySamples[i].uTotalBitrateBPS = 0;
       m_BitrateHistorySamples[i].uVideoBitrateBPS = 0;
    }
-   
+
    m_uVideoBitrateKbAverageSum = 0;
    m_uTotalVideoBitrateKbAverageSum = 0;
    m_uVideoBitrateAverage = 0;
@@ -103,7 +103,7 @@ bool ProcessorTxVideo::uninit()
       return true;
 
    log_line("[VideoTX] Uninitialize video processor Tx instance number %d.", m_iInstanceIndex+1);
-   
+
    m_bInitialized = false;
    return true;
 }
@@ -129,7 +129,7 @@ u32 ProcessorTxVideo::getCurrentVideoBitrateAverageLastMs(u32 uMilisec)
    int iIndex = m_iVideoBitrateSampleIndex;
 
    u32 uTime0 = m_BitrateHistorySamples[iIndex].uTimeStampTaken;
-   
+
    while ( (uCount < MAX_VIDEO_BITRATE_HISTORY_VALUES) && (m_BitrateHistorySamples[iIndex].uTimeStampTaken >= (uTime0 - uMilisec)) )
    {
       uSumKb += m_BitrateHistorySamples[iIndex].uVideoBitrateBPS/1000;
@@ -161,9 +161,9 @@ u32 ProcessorTxVideo::getCurrentTotalVideoBitrateAverageLastMs(u32 uMilisec)
    u32 uSumKb = 0;
    u32 uCount = 0;
    int iIndex = m_iVideoBitrateSampleIndex;
-   
+
    u32 uTime0 = m_BitrateHistorySamples[iIndex].uTimeStampTaken;
-   
+
    while ( (uCount < MAX_VIDEO_BITRATE_HISTORY_VALUES) && (m_BitrateHistorySamples[iIndex].uTimeStampTaken >= (uTime0 - uMilisec)) )
    {
       uSumKb += m_BitrateHistorySamples[iIndex].uTotalBitrateBPS/1000;
@@ -192,7 +192,7 @@ void ProcessorTxVideo::periodicLoop()
 
    m_uVideoBitrateKbAverageSum -= m_BitrateHistorySamples[m_iVideoBitrateSampleIndex].uVideoBitrateBPS/1000;
    m_uTotalVideoBitrateKbAverageSum -= m_BitrateHistorySamples[m_iVideoBitrateSampleIndex].uTotalBitrateBPS/1000;
-  
+
    if ( 0 != uDeltaTime )
    {
       m_BitrateHistorySamples[m_iVideoBitrateSampleIndex].uVideoBitrateBPS = ((s_lCountBytesVideoIn * 8) / uDeltaTime) * 1000;
@@ -202,10 +202,10 @@ void ProcessorTxVideo::periodicLoop()
 
    m_uVideoBitrateKbAverageSum += m_BitrateHistorySamples[m_iVideoBitrateSampleIndex].uVideoBitrateBPS/1000;
    m_uTotalVideoBitrateKbAverageSum += m_BitrateHistorySamples[m_iVideoBitrateSampleIndex].uTotalBitrateBPS/1000;
-  
+
    m_uVideoBitrateAverage = 1000*(m_uVideoBitrateKbAverageSum/MAX_VIDEO_BITRATE_HISTORY_VALUES);
    m_uTotalVideoBitrateAverage = 1000*(m_uTotalVideoBitrateKbAverageSum/MAX_VIDEO_BITRATE_HISTORY_VALUES);
-   
+
    s_lCountBytesVideoIn = 0;
    s_lCountBytesSend = 0;
 }
@@ -225,7 +225,7 @@ void _log_encoding_scheme()
       // higher 4 bits: user selected video profile
 
       strcpy(szScheme, str_get_video_profile_name(s_CurrentPHVF.video_link_profile & 0x0F));
-      
+
       sprintf(szVideoStream, "[%d]", (s_CurrentPHVF.video_link_profile>>4) & 0x0F );
       u32 uValueDup = (s_CurrentPHVF.uProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_MASK_RETRANSMISSIONS_DUPLICATION_PERCENT) >> 16;
 
@@ -268,7 +268,7 @@ bool process_data_tx_video_command(int iRadioInterface, u8* pPacketBuffer)
       memcpy(&uRetrId, &pPacketBuffer[sizeof(t_packet_header)], sizeof(u32));
       u8 uFlags = pPacketBuffer[sizeof(t_packet_header) + sizeof(u32) + sizeof(u8)];
       u8 uCount = pPacketBuffer[sizeof(t_packet_header) + sizeof(u32) + 2*sizeof(u8)];
-      
+
       if ( uRetrId == s_uLastRecvRetransmissionId )
       {
          log_line("[TxVideoProc] Received duplicate retr request id %u from controller for %d packets, flags: %s %s, last request was %u ms ago. Ignored.",
@@ -336,7 +336,7 @@ bool process_data_tx_video_command(int iRadioInterface, u8* pPacketBuffer)
    {
       if ( pPH->total_length < sizeof(t_packet_header) + 2*sizeof(u32) + 3*sizeof(u8) + 2*sizeof(int) + sizeof(u16) )
          return true;
-      
+
       u32 uRequestId = 0;
       u8 uFlags = 0;
       u8 uVideoStreamIndex = 0;

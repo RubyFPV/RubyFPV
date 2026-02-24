@@ -42,7 +42,7 @@
 #include <dirent.h>
 
 
-typedef struct 
+typedef struct
 {
    const char* szFriendlyName;
    const char* szBinFile;
@@ -50,7 +50,7 @@ typedef struct
    int iMenuSelectionIndex;
 } type_camera_bin_mapping;
 
-static type_camera_bin_mapping s_CameraBinFilesMapping[] = 
+static type_camera_bin_mapping s_CameraBinFilesMapping[] =
 {
   {"RunCam", "imx415_runcam_20240717", true, -1},
   {"FPV-2", "imx415_ssc338q_20240613", true, -1},
@@ -130,7 +130,7 @@ void MenuVehicleCamera::onShow()
 {
    log_line("MenuVehicleCamera: onShow start...");
    int iTmp = getSelectedMenuItemIndex();
-   
+
    addItems();
 
    Menu::onShow();
@@ -173,7 +173,7 @@ void MenuVehicleCamera::addItems()
 
    char* szCamName = g_pCurrentModel->getCameraName(g_pCurrentModel->iCurrentCamera);
    log_line("Current camera (%d) name: [%s]", g_pCurrentModel->iCurrentCamera, szCamName);
-   
+
    if ( (NULL != szCamName) && (0 != szCamName[0]) )
    {
       strcat(szCam, " (");
@@ -253,7 +253,7 @@ void MenuVehicleCamera::addItems()
    m_IndexProfile = -1;
    if ( ! m_bShowCompact )
    {
-      m_pItemsSelect[0] = new MenuItemSelect(L("Profile")); 
+      m_pItemsSelect[0] = new MenuItemSelect(L("Profile"));
       for( int i=0; i<MODEL_CAMERA_PROFILES; i++ )
       {
          char szBuff[32];
@@ -269,7 +269,7 @@ void MenuVehicleCamera::addItems()
    if ( ! m_bShowCompact )
       m_pItemsSlider[0]->setMargin(fMargin);
    m_IndexBrightness = addMenuItem(m_pItemsSlider[0]);
- 
+
    m_pItemsSlider[1] = new MenuItemSlider(L("Contrast"), 0,100,0, fSliderWidth);
    if ( ! m_bShowCompact )
       m_pItemsSlider[1]->setMargin(fMargin);
@@ -368,7 +368,7 @@ void MenuVehicleCamera::addItems()
          m_pItemsSelect[7]->setIsEditable();
          m_pItemsSelect[7]->setMargin(fMargin);
          m_IndexShutterMode = addMenuItem(m_pItemsSelect[7]);
-      
+
          m_pItemsSlider[6] = new MenuItemSlider("Shutter Speed", "Sets the shutter speed to 1/x of a second", 30,5000,1000, fSliderWidth);
          m_pItemsSlider[6]->setStep(30);
          m_pItemsSlider[6]->setMargin(fMargin);
@@ -383,7 +383,7 @@ void MenuVehicleCamera::addItems()
          m_pItemsSelect[22]->setMargin(fMargin);
          m_IndexOpenIPC3A = addMenuItem(m_pItemsSelect[22]);
 
-         m_pItemsSelect[7] = new MenuItemSelect(L("Shutter Speed Mode"), L("Sets the shutter speed to be auto controllerd by camera or manual set by user."));  
+         m_pItemsSelect[7] = new MenuItemSelect(L("Shutter Speed Mode"), L("Sets the shutter speed to be auto controllerd by camera or manual set by user."));
          m_pItemsSelect[7]->addSelection(L("Auto"));
          m_pItemsSelect[7]->addSelection(L("Manual"));
          m_pItemsSelect[7]->setIsEditable();
@@ -398,7 +398,7 @@ void MenuVehicleCamera::addItems()
 
    if ( g_pCurrentModel->isActiveCameraCSI() )
    {
-      m_pItemsSelect[2] = new MenuItemSelect(L("Exposure"));  
+      m_pItemsSelect[2] = new MenuItemSelect(L("Exposure"));
       m_pItemsSelect[2]->addSelection(L("Auto"));
       m_pItemsSelect[2]->addSelection("Night");
       m_pItemsSelect[2]->addSelection("Back Light");
@@ -482,7 +482,7 @@ void MenuVehicleCamera::addItems()
       m_IndexVideoStab = addMenuItem(m_pItemsSelect[8]);
    }
 
-   m_pItemsSelect[9] = new MenuItemSelect(L("Flip camera"), L("Flips the camera video output upside down."));  
+   m_pItemsSelect[9] = new MenuItemSelect(L("Flip camera"), L("Flips the camera video output upside down."));
    m_pItemsSelect[9]->addSelection(L("No"));
    m_pItemsSelect[9]->addSelection(L("Yes"));
    m_pItemsSelect[9]->setIsEditable();
@@ -676,7 +676,7 @@ void MenuVehicleCamera::updateUIValues()
                m_pItemsSlider[6]->setEnabled(false);
                m_pItemsSlider[6]->setCurrentValue(-g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].iShutterSpeed);
             }
-         } 
+         }
          else
          {
             m_pItemsSelect[7]->setSelectedIndex(1);
@@ -706,16 +706,16 @@ void MenuVehicleCamera::updateUIValues()
    if ( g_pCurrentModel->isActiveCameraCSI() )
    if ( (m_IndexExposureMode != -1) && (m_pItemsSelect[2] != NULL) )
       m_pItemsSelect[2]->setSelection(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].exposure);
-   
+
    if ( (m_IndexMetering != -1) && (m_pItemsSelect[4] != NULL) )
       m_pItemsSelect[4]->setSelection(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].metering);
-   
+
    if ( (m_IndexDRC != -1) && (m_pItemsSelect[5] != NULL) )
       m_pItemsSelect[5]->setSelection(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].drc);
 
    if ( (-1 != m_IndexISO) && (NULL != m_pItemsSelect[6]) )
       m_pItemsSelect[6]->setSelection(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].iso != 0);
-   
+
    if ( (-1 != m_IndexISOValue) && (NULL != m_pItemsSlider[5]) )
    {
       m_pItemsSlider[5]->setCurrentValue((int)g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].iso);
@@ -724,7 +724,7 @@ void MenuVehicleCamera::updateUIValues()
 
    if ( (-1 != m_IndexEV) && (NULL != m_pItemsSelect[1]) )
       m_pItemsSelect[1]->setSelection(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].ev != 0);
- 
+
    if ( (-1 != m_IndexEVValue) && (NULL != m_pItemsSlider[4]) )
    {
       m_pItemsSlider[4]->setCurrentValue(((int)g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].profiles[iCameraProfileIndex].ev)-11);
@@ -757,7 +757,7 @@ void MenuVehicleCamera::updateUIValues()
 void MenuVehicleCamera::valuesToUI()
 {
    int iTmp = getSelectedMenuItemIndex();
-   
+
    addItems();
 
    if ( (iTmp >= 0) && (iTmp <m_ItemsCount) )
@@ -805,7 +805,7 @@ bool MenuVehicleCamera::canSendLiveUpdates(int iItemIndex)
    if ( hardware_board_is_openipc(g_pCurrentModel->hwCapabilities.uBoardType) )
    if ( ! hardware_board_is_goke(g_pCurrentModel->hwCapabilities.uBoardType) )
       return true;
-     
+
    return false;
 }
 
@@ -848,7 +848,7 @@ void MenuVehicleCamera::sendCameraParams(int itemIndex, bool bQuick)
 
    if ( -1 != m_IndexIRCut )
    if ( (m_IndexIRCut == itemIndex) || (itemIndex == -1) )
-   {    
+   {
       if ( 0 == m_pItemsSelect[20]->getSelectedIndex() )
          cparams.profiles[iProfile].uFlags &= ~CAMERA_FLAG_IR_FILTER_OFF;
       else
@@ -861,7 +861,7 @@ void MenuVehicleCamera::sendCameraParams(int itemIndex, bool bQuick)
       if ( 1 == m_pItemsSelect[22]->getSelectedIndex() )
          cparams.profiles[iProfile].uFlags &= ~CAMERA_FLAG_OPENIPC_3A_FPV;
       else
-         cparams.profiles[iProfile].uFlags |= CAMERA_FLAG_OPENIPC_3A_FPV; 
+         cparams.profiles[iProfile].uFlags |= CAMERA_FLAG_OPENIPC_3A_FPV;
    }
    if (-1 != m_IndexOpenIPCDayNight)
    if ((m_IndexOpenIPCDayNight == itemIndex) || (itemIndex == -1))
@@ -906,7 +906,7 @@ void MenuVehicleCamera::sendCameraParams(int itemIndex, bool bQuick)
    {
       cparams.profiles[iProfile].ev = (m_pItemsSelect[1]->getSelectedIndex() == 0)?0:11;
       if ( m_pItemsSelect[1]->getSelectedIndex() != 0 )
-         cparams.profiles[iProfile].ev = m_pItemsSlider[4]->getCurrentValue()+11;    
+         cparams.profiles[iProfile].ev = m_pItemsSlider[4]->getCurrentValue()+11;
    }
 
    if ( g_pCurrentModel->isActiveCameraCSI() )
@@ -956,7 +956,7 @@ void MenuVehicleCamera::sendCameraParams(int itemIndex, bool bQuick)
 
    if ( (m_IndexWDR != -1) && (m_pItemsSelect[14] != NULL) )
       cparams.profiles[iProfile].wdr = m_pItemsSelect[14]->getSelectedIndex();
-  
+
    if ( NULL != m_pItemsSelect[9] )
       cparams.profiles[iProfile].flip_image = m_pItemsSelect[9]->getSelectedIndex();
 
@@ -967,7 +967,7 @@ void MenuVehicleCamera::sendCameraParams(int itemIndex, bool bQuick)
          m_bDidAnyLiveUpdates = true;
          memcpy(&(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera]), &cparams, sizeof(type_camera_parameters));
          handle_commands_send_single_oneway_command(2, COMMAND_ID_SET_CAMERA_PARAMETERS, g_pCurrentModel->iCurrentCamera, (u8*)(&cparams), sizeof(type_camera_parameters));
-         //saveControllerModel(g_pCurrentModel);  
+         //saveControllerModel(g_pCurrentModel);
       }
    }
    else
@@ -1016,7 +1016,7 @@ bool MenuVehicleCamera::binCalibrationFileIsUserFile(const char* szBinCalibratio
       if ( 0 == strcmp(szBinCalibrationFile, &(s_szUserCalibrationFiles[i][0])) )
          return true;
    }
-   return false;   
+   return false;
 }
 
 void MenuVehicleCamera::populateUserCalibrationFiles()
@@ -1096,7 +1096,7 @@ void MenuVehicleCamera::populateUserCalibrationFiles()
    }
 
    log_line("MenuVehicleCamera: Added %d user calibration files.", m_iCountUserCalibrationFiles);
-   
+
    if ( 0 != g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].szCameraBinProfileName[0] )
    if ( ! binCalibrationFileIsStandardFile(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].szCameraBinProfileName) )
    if ( ! binCalibrationFileIsUserFile(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].szCameraBinProfileName) )
@@ -1108,7 +1108,7 @@ void MenuVehicleCamera::populateUserCalibrationFiles()
    m_iSelectionIndexImportCalibrationFiles = m_pItemsSelect[23]->addSelection(L("Import additional files"));
    if ( m_iCountUserCalibrationFiles > 0 )
       m_pItemsSelect[23]->addSelection(L("Delete all custom files"));
-   
+
    m_pItemsSelect[23]->setIsEditable();
    m_IndexOpenIPCBinProfile = addMenuItem(m_pItemsSelect[23]);
 }
@@ -1199,7 +1199,7 @@ void MenuVehicleCamera::importCalibrationFiles()
       snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %s %s%s",
          szFile, FOLDER_CALIBRATION_FILES, dir->d_name);
       hw_execute_bash_command(szComm, NULL);
-   }   
+   }
    closedir(d);
 
    hardware_unmount_usb();
@@ -1449,7 +1449,7 @@ void MenuVehicleCamera::onCalibrationFileSelectionChanged()
             return;
          }
       }
-      return;    
+      return;
    }
 }
 
@@ -1468,7 +1468,7 @@ void MenuVehicleCamera::onReturnFromChild(int iChildMenuId, int returnValue)
    Menu::onReturnFromChild(iChildMenuId, returnValue);
 
    log_line("MenuVehicleCamera: Returned from child id: %d, return value: %d", iChildMenuId, returnValue);
-   
+
    // Delete all user calibration files
    if ( (1 == iChildMenuId/1000) && (1 == returnValue) )
    {
@@ -1682,7 +1682,7 @@ void MenuVehicleCamera::onSelectItem()
 
    if ( (-1 != m_IndexCalibrateHDMI) && (m_IndexCalibrateHDMI == m_SelectedIndex) )
    {
-      add_menu_to_stack(new MenuCalibrateHDMI());      
+      add_menu_to_stack(new MenuCalibrateHDMI());
       return;
    }
 

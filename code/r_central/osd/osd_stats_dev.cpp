@@ -50,7 +50,7 @@ float osd_render_stats_adaptive_video_get_height()
 {
    float height_text = g_pRenderEngine->textHeight(s_idFontStats);
    float hGraph = height_text * 2.0;
-   
+
    float height = 2.0 *s_fOSDStatsMargin*1.1 + 0.9*height_text*s_OSDStatsLineSpacing;
 
    if ( NULL == g_pCurrentModel || NULL == g_pSM_RouterVehiclesRuntimeInfo )
@@ -64,7 +64,7 @@ float osd_render_stats_adaptive_video_get_height()
 float osd_render_stats_adaptive_video_get_width()
 {
    float width = g_pRenderEngine->textWidth(s_idFontStats, "AAAAAAAA AAAAAAAA AAAAAAAA AAA");
-   
+
    width += 2.0*s_fOSDStatsMargin/g_pRenderEngine->getAspectRatio();
 
    if ( g_fOSDStatsForcePanelWidth > 0.01 )
@@ -76,7 +76,7 @@ void osd_render_stats_adaptive_video(float xPos, float yPos)
 {
    Model* pActiveModel = osd_get_current_data_source_vehicle_model();
    u32 uActiveVehicleId = osd_get_current_data_source_vehicle_id();
-   
+
    int iIndexVehicleRuntimeInfo = -1;
 
    shared_mem_video_stream_stats* pVDS = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, uActiveVehicleId);
@@ -86,7 +86,7 @@ void osd_render_stats_adaptive_video(float xPos, float yPos)
          iIndexVehicleRuntimeInfo = i;
    }
    if ( (NULL == pVDS) || (NULL == pActiveModel) || (-1 == iIndexVehicleRuntimeInfo) )
-      return; 
+      return;
 
    float height_text = g_pRenderEngine->textHeight(s_idFontStats);
    float height_text_small = g_pRenderEngine->textHeight(s_idFontStatsSmall);
@@ -128,7 +128,7 @@ float osd_render_stats_graphs_vehicle_tx_gap_get_width()
       return g_fOSDStatsForcePanelWidth;
 
    float width = g_pRenderEngine->textWidth(s_idFontStats, "AAAAAAAA AAAAAAAA AAAAAAA");
-   
+
    width += 2.0*s_fOSDStatsMargin/g_pRenderEngine->getAspectRatio();
    return width;
 }
@@ -144,7 +144,7 @@ void  osd_render_stats_graphs_vehicle_tx_gap(float xPos, float yPos)
 
    float width = osd_render_stats_graphs_vehicle_tx_gap_get_width();
    float height = osd_render_stats_graphs_vehicle_tx_gap_get_height();
-   
+
    osd_set_colors_background_fill(g_fOSDStatsBgTransparency);
    g_pRenderEngine->drawRoundRect(xPos, yPos, width, height, 1.5*POPUP_ROUND_MARGIN);
    osd_set_colors();
@@ -155,7 +155,7 @@ void  osd_render_stats_graphs_vehicle_tx_gap(float xPos, float yPos)
    width -= 2*s_fOSDStatsMargin/g_pRenderEngine->getAspectRatio();
 
    g_pRenderEngine->drawText(xPos, yPos, s_idFontStats, "Vehicle Tx Stats");
-   
+
    osd_set_colors();
 
    if ( ! g_bGotStatsVehicleTx )
@@ -163,7 +163,7 @@ void  osd_render_stats_graphs_vehicle_tx_gap(float xPos, float yPos)
       g_pRenderEngine->drawText(xPos, yPos, s_idFontStats, "No Data.");
       return;
    }
-   
+
    float rightMargin = xPos + width;
    float marginH = 0.0;
    float widthMax = width - marginH - 0.001;
@@ -176,10 +176,10 @@ void  osd_render_stats_graphs_vehicle_tx_gap(float xPos, float yPos)
    sprintf(szBuff,"%.1f seconds, ", (((float)g_PHVehicleTxHistory.uCountValues) * g_PHVehicleTxHistory.iSliceInterval)/1000.0);
    g_pRenderEngine->drawTextLeft(rightMargin-w, yPos, s_idFontStatsSmall, szBuff);
    w += g_pRenderEngine->textWidth(s_idFontStatsSmall, szBuff);
-   
+
    float y = yPos + height_text*1.3*s_OSDStatsLineSpacing;
 
-   // First graph 
+   // First graph
 
    g_pRenderEngine->drawTextLeft(rightMargin, y-0.2*height_text, s_idFontStats, "Tx Min/Max/Avg Gaps (ms)");
    y += height_text_small + height_text*0.2;
@@ -261,7 +261,7 @@ void  osd_render_stats_graphs_vehicle_tx_gap(float xPos, float yPos)
       g_pRenderEngine->drawLine(xPos+dxGraph+i, y+hGraph*0.5, xPos + dxGraph + i + 2.0*wPixel, y+hGraph*0.5);
       g_pRenderEngine->drawLine(xPos+dxGraph+i, y+hGraph*0.75, xPos + dxGraph + i + 2.0*wPixel, y+hGraph*0.75);
    }
-     
+
    for( int k=0; k<g_PHVehicleTxHistory.uCountValues; k++ )
    {
       if ( 0xFF == g_PHVehicleTxHistory.historyTxGapMaxMiliseconds[k] )
@@ -345,7 +345,7 @@ void  osd_render_stats_graphs_vehicle_tx_gap(float xPos, float yPos)
       g_pRenderEngine->drawLine(xPos+dxGraph+i, y, xPos + dxGraph + i + 2.0*wPixel, y);
       g_pRenderEngine->drawLine(xPos+dxGraph+i, y+hGraph2*0.5, xPos + dxGraph + i + 2.0*wPixel, y+hGraph2*0.5);
    }
-     
+
    for( int k=0; k<g_PHVehicleTxHistory.uCountValues; k++ )
    {
       if ( 0xFF == g_PHVehicleTxHistory.historyTxPackets[k] )
@@ -406,7 +406,7 @@ void  osd_render_stats_graphs_vehicle_tx_gap(float xPos, float yPos)
       g_pRenderEngine->drawLine(xPos+dxGraph+i, y, xPos + dxGraph + i + 2.0*wPixel, y);
       g_pRenderEngine->drawLine(xPos+dxGraph+i, y+hGraph2*0.5, xPos + dxGraph + i + 2.0*wPixel, y+hGraph2*0.5);
    }
-     
+
    for( int k=0; k<g_PHVehicleTxHistory.uCountValues; k++ )
    {
       if ( 0xFF == g_PHVehicleTxHistory.historyVideoPacketsGapMax[k] )
@@ -505,14 +505,14 @@ float osd_render_stats_dev_adaptive_video_info(float xPos, float yPos, float fWi
    char szBuff[128];
    float height_text = g_pRenderEngine->textHeight(s_idFontStats);
    float height_text_small = g_pRenderEngine->textHeight(s_idFontStatsSmall);
-   
+
    float fRightMargin = xPos + fWidth;
-   
+
    g_pRenderEngine->setColors(get_Color_Dev());
 
-  
+
    g_pRenderEngine->drawText(xPos, yPos, s_idFontStats, "Adaptive/Keyframe Info");
-   
+
    yPos += height_text*s_OSDStatsLineSpacing;
 
    return osd_render_stats_dev_adaptive_video_get_height();

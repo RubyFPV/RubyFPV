@@ -27,7 +27,7 @@
 */
 #ifdef __cplusplus
 extern "C" {
-#endif  
+#endif
 
 #ifndef FB_GRAPHICS_H
 #define FB_GRAPHICS_H
@@ -285,7 +285,7 @@ extern "C" {
         struct _fbg_freelist_data *fbg_freelist_data;
 
         //! Temporary task data
-        struct _fbg_freelist_data *tmp_fbg_freelist_data; 
+        struct _fbg_freelist_data *tmp_fbg_freelist_data;
 #endif
 
         //! thread <> main thread synchronization
@@ -870,4 +870,4 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif // __cplusplus  
+#endif // __cplusplus

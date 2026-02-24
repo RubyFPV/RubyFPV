@@ -12,7 +12,7 @@ class MenuVehicleRadioLinkELRS: public Menu
       virtual void Render();
       virtual void onShow();
       virtual void onSelectItem();
-            
+
    private:
       void sendRadioLinkFlags(int linkIndex);
 

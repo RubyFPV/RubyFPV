@@ -310,7 +310,7 @@ void MenuItem::RenderBaseTitle(float xPos, float yPos, bool bSelected, float fWi
    m_RenderLastX = xPos;
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
    float width_text = m_RenderTitleWidth;
-    
+
    float selectionMarginX = Menu::getSelectionPaddingX();
    float selectionMarginY = Menu::getSelectionPaddingY();
 
@@ -352,7 +352,7 @@ void MenuItem::RenderBaseTitle(float xPos, float yPos, bool bSelected, float fWi
       g_pRenderEngine->setColors(get_Color_IconError());
       g_pRenderEngine->drawText(xPos + m_fMarginX, yPos+g_pRenderEngine->getPixelHeight()*0.2, g_idFontMenu, szTmp);
    }
-   
+
    float xEnd = xPos + width_text - 2.0*g_pRenderEngine->getPixelWidth();
    float yEnd = yPos + height_text*0.5;
 
@@ -369,7 +369,7 @@ void MenuItem::RenderBaseTitle(float xPos, float yPos, bool bSelected, float fWi
          g_pRenderEngine->setColors(get_Color_MenuItemSelectedText());
       if ( ! m_bEnabled )
          g_pRenderEngine->setColors(get_Color_MenuItemDisabledText());
-  
+
       float size = height_text*0.28;
 
       //g_pRenderEngine->drawTriangle(xEnd,yEnd, xEnd-size, yEnd+size, xEnd-size, yEnd-size);

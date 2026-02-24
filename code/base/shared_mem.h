@@ -37,7 +37,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 #define PROCESS_ALARM_NONE 0
 #define PROCESS_ALARM_RADIO_INTERFACE_BEHIND 1
@@ -97,7 +97,7 @@ typedef struct
    u16 uVideoBitrateKb; // only video data
    u16 uVideoBitrateAvgKb; // only video data
    u16 uTotalVideoBitrateAvgKb; // video data + EC + radio headers
-   u8  uVideoProfileSwitches; // bit 0..3 - level, bit 4..7 - profile 
+   u8  uVideoProfileSwitches; // bit 0..3 - level, bit 4..7 - profile
 } ALIGN_STRUCT_SPEC_INFO shared_mem_dev_video_bitrate_history_datapoint;
 
 typedef struct
@@ -182,5 +182,5 @@ void update_shared_mem_video_frames_stats(shared_mem_video_frames_stats* pSMVISt
 void update_shared_mem_video_frames_stats_on_new_frame(shared_mem_video_frames_stats* pSMVFStats, u32 uLastFrameSizeBytes, int iFrameType, int iDetectedSlices, int iDetectedFPS, u32 uTimeNow);
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

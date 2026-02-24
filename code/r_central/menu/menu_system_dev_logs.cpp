@@ -56,7 +56,7 @@ MenuSystemDevLogs::MenuSystemDevLogs(void)
 {
    m_Width = 0.34;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.16;
-   
+
    m_pItemsSelect[0] = new MenuItemSelect(L("Log System (Controller)"), L("Sets the type of log system to use: directly to files or using a service. Requires a reboot after the change."));
    m_pItemsSelect[0]->addSelection(L("Files"));
    m_pItemsSelect[0]->addSelection(L("Service"));
@@ -107,7 +107,7 @@ void MenuSystemDevLogs::valuesToUI()
    Preferences* pP = get_Preferences();
 
    m_pItemsSelect[0]->setSelectedIndex(1);
-         
+
    if ( NULL == g_pCurrentModel )
    {
       m_pItemsSelect[6]->setEnabled(false);
@@ -220,7 +220,7 @@ void MenuSystemDevLogs::exportAllLogs()
    g_TimeNow = get_current_timestamp_ms();
    render_all(g_TimeNow);
    ruby_signal_alive();
-      
+
    hw_execute_bash_command("mkdir -p tmp/exportcontrollerlogs", NULL);
    hw_execute_bash_command("chmod 777 tmp/exportcontrollerlogs", NULL);
    hw_execute_bash_command("rm -rf tmp/exportcontrollerlogs/* 2>/dev/null", NULL);
@@ -271,7 +271,7 @@ void MenuSystemDevLogs::onReturnFromChild(int iChildMenuId, int returnValue)
    {
       exportAllLogs();
       return;
-   }   
+   }
 
    // Delete controller logs
    if ( (2 == iChildMenuId/1000) && (1 == returnValue) )
@@ -279,7 +279,7 @@ void MenuSystemDevLogs::onReturnFromChild(int iChildMenuId, int returnValue)
       hw_execute_bash_command("rm -rf logs/*", NULL);
       addMessage("Done. All controller logs have been cleared.");
       return;
-   }   
+   }
 
    // Delete vehicle logs
    if ( (3 == iChildMenuId/1000) && (1 == returnValue) )
@@ -289,7 +289,7 @@ void MenuSystemDevLogs::onReturnFromChild(int iChildMenuId, int returnValue)
       else
          addMessage("Done. All vehicle logs have been cleared.");
       return;
-   }   
+   }
 }
 
 
@@ -338,7 +338,7 @@ void MenuSystemDevLogs::onSelectItem()
          uFlags |= MODEL_FLAG_DISABLE_ALL_LOGS;
       }
       if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_MODEL_FLAGS, uFlags, NULL, 0) )
-         valuesToUI();  
+         valuesToUI();
       return;
    }
 

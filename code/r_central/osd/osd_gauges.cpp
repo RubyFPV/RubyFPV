@@ -56,7 +56,7 @@ void osd_show_HID()
    }
 
    float height_text_small = osd_getFontHeightSmall();
-   
+
    float fAxeSizeV = 0.1*osd_getScaleOSD();
    float fAxeSizeH = fAxeSizeV/g_pRenderEngine->getAspectRatio();
    float fCornerV = fAxeSizeV*0.05;
@@ -159,7 +159,7 @@ void osd_show_HID()
    else
       percentY1 = 0.0;
 
-  
+
    fDiv = (float)g_pCurrentModel->rc_params.rcChMax[3] - (float)g_pCurrentModel->rc_params.rcChMin[3];
    if ( fDiv > 0.0001 )
       percentX2 = ((float)g_SM_DownstreamInfoRC.rc_channels[3] - (float)g_pCurrentModel->rc_params.rcChMin[3]) / fDiv;

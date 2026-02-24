@@ -222,7 +222,7 @@ void controller_rt_info_init(controller_runtime_info* pCRTInfo)
    log_line("controller_runtime_info total size: %d", sizeof(controller_runtime_info));
    log_line("controller_runtime_info dbm size: %d", sizeof(pCRTInfo->radioInterfacesSignalInfoVideo));
    memset(pCRTInfo, 0, sizeof(controller_runtime_info));
-   
+
    pCRTInfo->uUpdateIntervalMs = SYSTEM_RT_INFO_UPDATE_INTERVAL_MS;
    pCRTInfo->uCurrentSliceStartTime = 0;
    pCRTInfo->iCurrentIndex = 0;
@@ -325,7 +325,7 @@ int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, u32
 
    // ------------------------------------------------
    // Begin Compute derived values
-   
+
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
    {
       if ( (pRTInfo->radioInterfacesSignalInfoVideo[pRTInfo->iCurrentIndex][i].iDbmMax > -500) && (pRTInfo->radioInterfacesSignalInfoVideo[pRTInfo->iCurrentIndex][i].iDbmMax < 500) )
@@ -338,7 +338,7 @@ int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, u32
              pRTInfo->radioInterfacesSignals[i].iMaxDBMVideoForInterface = (pRTInfo->radioInterfacesSignals[i].iMaxDBMVideoForInterface*60 + pRTInfo->radioInterfacesSignalInfoVideo[pRTInfo->iCurrentIndex][i].iDbmMax*40)/100;
          pRTInfo->radioInterfacesSignals[i].uLastUpdateTimeVideo = uTimeNowMs;
       }
-      
+
       if ( (pRTInfo->radioInterfacesSignalInfoVideo[pRTInfo->iCurrentIndex][i].iSNRMax > -500) && (pRTInfo->radioInterfacesSignalInfoVideo[pRTInfo->iCurrentIndex][i].iSNRMax < 500) )
       {
          if ( (pRTInfo->radioInterfacesSignals[i].uLastUpdateTimeVideo == 0) ||
@@ -349,7 +349,7 @@ int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, u32
              pRTInfo->radioInterfacesSignals[i].iMaxSNRVideoForInterface = (pRTInfo->radioInterfacesSignals[i].iMaxSNRVideoForInterface*60 + pRTInfo->radioInterfacesSignalInfoVideo[pRTInfo->iCurrentIndex][i].iSNRMax*40)/100;
          pRTInfo->radioInterfacesSignals[i].uLastUpdateTimeVideo = uTimeNowMs;
       }
-      
+
       if ( pRTInfo->radioInterfacesSignals[i].uLastUpdateTimeVideo < uTimeNowMs-200 )
       {
          pRTInfo->radioInterfacesSignals[i].iMaxDBMVideoForInterface = 1000;
@@ -366,7 +366,7 @@ int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, u32
              pRTInfo->radioInterfacesSignals[i].iMaxDBMDataForInterface = (pRTInfo->radioInterfacesSignals[i].iMaxDBMDataForInterface*60 + pRTInfo->radioInterfacesSignalInfoData[pRTInfo->iCurrentIndex][i].iDbmMax*40)/100;
          pRTInfo->radioInterfacesSignals[i].uLastUpdateTimeData = uTimeNowMs;
       }
-      
+
       if ( (pRTInfo->radioInterfacesSignalInfoData[pRTInfo->iCurrentIndex][i].iSNRMax > -500) && (pRTInfo->radioInterfacesSignalInfoData[pRTInfo->iCurrentIndex][i].iSNRMax < 500) )
       {
          if ( (pRTInfo->radioInterfacesSignals[i].uLastUpdateTimeData == 0) ||
@@ -377,7 +377,7 @@ int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, u32
              pRTInfo->radioInterfacesSignals[i].iMaxSNRDataForInterface = (pRTInfo->radioInterfacesSignals[i].iMaxSNRDataForInterface*60 + pRTInfo->radioInterfacesSignalInfoData[pRTInfo->iCurrentIndex][i].iSNRMax*40)/100;
          pRTInfo->radioInterfacesSignals[i].uLastUpdateTimeData = uTimeNowMs;
       }
-      
+
       if ( pRTInfo->radioInterfacesSignals[i].uLastUpdateTimeData < uTimeNowMs-1000 )
       {
          pRTInfo->radioInterfacesSignals[i].iMaxDBMDataForInterface = 1000;
@@ -406,7 +406,7 @@ int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, u32
          {
             pRTInfo->radioInterfacesSignals[i].iMaxSNRForInterface = pRTInfo->radioInterfacesSignals[i].iMaxSNRDataForInterface;
             pRTInfo->radioInterfacesSignals[i].uLastUpdateTime = uTimeNowMs;
-         }       
+         }
       }
    }
 
@@ -444,7 +444,7 @@ int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, u32
    pRTInfo->uTxLastDeltaTime[iIndex] = 0;
    pRTInfo->uTxPackets[iIndex] = 0;
    pRTInfo->uTxHighPriorityPackets[iIndex] = 0;
- 
+
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
    {
       for( int k=0; k<MAX_RADIO_INTERFACES; k++ )

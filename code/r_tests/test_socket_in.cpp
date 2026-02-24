@@ -5,17 +5,17 @@
 #include <time.h>
 #include <sys/resource.h>
 #include <stdio.h>
-#include <sys/socket.h> 
+#include <sys/socket.h>
 
 
 bool bQuit = false;
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    bQuit = true;
-} 
-  
+}
+
 int main(int argc, char *argv[])
 {
    signal(SIGINT, handle_sigint);
@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 
    int socket_server, socket_client;
    struct sockaddr_in server_addr, client_addr;
-	
+
    socket_server = socket(AF_INET , SOCK_DGRAM, 0);
    if (socket_server == -1)
    {
@@ -48,11 +48,11 @@ int main(int argc, char *argv[])
 
    memset(&server_addr, 0, sizeof(server_addr));
    memset(&client_addr, 0, sizeof(client_addr));
-    
+
    server_addr.sin_family = AF_INET;
    server_addr.sin_addr.s_addr = INADDR_ANY;
    server_addr.sin_port = htons( port );
-	
+
    client_addr.sin_family = AF_INET;
    client_addr.sin_addr.s_addr = INADDR_ANY;
    client_addr.sin_port = htons( port );
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
    {
       char szBuff[2025];
       socklen_t len = sizeof(client_addr);
-      int nRecv = recvfrom(socket_server, szBuff, 1600, 
+      int nRecv = recvfrom(socket_server, szBuff, 1600,
                 MSG_WAITALL, ( struct sockaddr *) &client_addr,
                 &len);
       //int nRecv = recv(socket_server, szBuff, 1024, )

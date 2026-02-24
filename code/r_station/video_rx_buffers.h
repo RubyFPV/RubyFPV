@@ -66,7 +66,7 @@ class VideoRxPacketsBuffer
       bool init(Model* pModel);
       bool uninit();
       void emptyBuffers(const char* szReason);
-      
+
       bool hasVideoPacket(u32 uVideoBlockIndex, u32 uVideoBlockPacketIndex);
       // Returns true if the packet was added
       bool checkAddVideoPacket(u8* pPacket, int iPacketLength);

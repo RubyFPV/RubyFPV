@@ -158,7 +158,7 @@ class Menu
      static float getSelectionPaddingX();
      static float getSelectionPaddingY();
      static float getScaleFactor();
-     
+
      float m_xPos; float m_yPos;
      float m_Width; float m_Height;
      char m_szTitle[256];
@@ -210,7 +210,7 @@ class Menu
      void disableBackAction();
      void enableBackAction();
      bool hasDisabledBackAction();
-     
+
      virtual bool periodicLoop();
      virtual float RenderFrameAndTitle();
      virtual float RenderFrameAndTitleSticky();
@@ -242,7 +242,7 @@ class Menu
      void resetRenderXPos();
      void startAnimationOnChildMenuAdd();
      void startAnimationOnChildMenuClosed();
-     
+
      void addMessageWithTitle(int iId, const char* szTitle, const char* szMessage);
      void addMessage(const char* szMessage);
      void addMessage(int iId, const char* szMessage);
@@ -282,7 +282,7 @@ class Menu
      static float m_sfSelectionPaddingX;
      static float m_sfSelectionPaddingY;
      static float m_sfScaleFactor;
-     
+
      bool m_bInvalidated;
      bool m_bFullWidthSelection;
      bool m_bFirstShow;
@@ -316,7 +316,7 @@ class Menu
      float m_fRenderItemsStopYPos;
      float m_fExtraHeightStart;
      float m_fExtraHeightEnd;
-     
+
      float m_fRenderScrollBarsWidth;
      bool  m_bEnableScrolling;
      bool  m_bHasScrolling;
@@ -329,7 +329,7 @@ class Menu
      u32 m_uOnShowTime;
      u32 m_uOnChildAddTime;
      u32 m_uOnChildCloseTime;
-     
+
      u32 m_bIsAnimationInProgress;
      u32 m_uAnimationStartTime;
      u32 m_uAnimationLastStepTime;

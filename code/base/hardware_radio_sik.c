@@ -123,7 +123,7 @@ int hardware_radio_sik_reinitialize_serial_ports()
       radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(i);
       if ( NULL == pRadioHWInfo )
          continue;
-    
+
       log_line("[HW-RSK] SiK radio interface %d, name %s, driver: %s, MAC: %s", i+1, pRadioHWInfo->szName, pRadioHWInfo->szDriver, pRadioHWInfo->szMAC);
       strcpy(&(szSiKInterfacesPorts[iCurrentSiKInterfacesCount][0]), pRadioHWInfo->szDriver);
       iCurrentSiKInterfacesCount++;
@@ -140,7 +140,7 @@ int hardware_radio_sik_reinitialize_serial_ports()
          continue;
       if ( pSerialPort->iPortUsage != SERIAL_PORT_USAGE_SIK_RADIO )
          continue;
-      radio_hw_info_t* pSiKRadio = hardware_radio_sik_get_from_serial_port(pSerialPort->szPortDeviceName); 
+      radio_hw_info_t* pSiKRadio = hardware_radio_sik_get_from_serial_port(pSerialPort->szPortDeviceName);
       if ( NULL == pSiKRadio )
          continue;
       log_line("[HW-RSK] Serial port %d: %s used for SiK radio interface %s", i+1, pSerialPort->szPortDeviceName, pSiKRadio->szName);
@@ -215,7 +215,7 @@ int hardware_radio_sik_reinitialize_serial_ports()
          iIndex--;
       }
    }
-   
+
    if ( bTryDefault || (0 == szDrivers[0]) )
    {
       log_line("[Hardware Radio] Doing default USB serial reinitialization.");
@@ -240,7 +240,7 @@ int hardware_radio_sik_reinitialize_serial_ports()
       hw_execute_bash_command("modprobe cp210x 2>&1", NULL);
       hw_execute_bash_command("modprobe pl2303 2>&1", NULL);
    }
-   
+
    log_line("[HW-RSK] Reinitialized serial ports drivers.");
 
    int iAllTheSame = 1;
@@ -273,18 +273,18 @@ int hardware_radio_sik_enter_command_mode(int iSerialPortFile, int iBaudRate, sh
       return 0;
 
    // First, empty the receiving buffers for any accumulated pending data in it, if any data can be received.
-   
+
    u8 bufferResponse[4024];
    int iBufferSize = 4023;
-   
+
    struct timeval to;
    to.tv_sec = 0;
    to.tv_usec = 50;
 
-   fd_set readset;   
+   fd_set readset;
    FD_ZERO(&readset);
    FD_SET(iSerialPortFile, &readset);
-   
+
    int res = select(iSerialPortFile+1, &readset, NULL, NULL, &to);
    if ( res > 0 )
    if ( FD_ISSET(iSerialPortFile, &readset) )
@@ -300,7 +300,7 @@ int hardware_radio_sik_enter_command_mode(int iSerialPortFile, int iBaudRate, sh
       log_softerror_and_alarm("[HW-RSK] Failed to send to SiK radio AT command mode change.");
       return 0;
    }
-   
+
    log_line("[HW-RSK] Sent SiK command to enter AT command mode...");
 
    if ( NULL != pProcessStats )
@@ -313,7 +313,7 @@ int hardware_radio_sik_enter_command_mode(int iSerialPortFile, int iBaudRate, sh
    int iReceivedAnyData = 0;
    int iFoundResponse = 0;
    int iBufferPos = 0;
-   
+
    memset(bufferResponse, 0, iBufferSize);
 
    int iRetryCounter = 0;
@@ -325,7 +325,7 @@ int hardware_radio_sik_enter_command_mode(int iSerialPortFile, int iBaudRate, sh
       u32 uTimeNow = get_current_timestamp_ms();
       if ( uTimeNow >= uTimeEnd )
             break;
-      
+
       // Wait max 200 milisec
       to.tv_sec = 0;
       to.tv_usec = (uTimeEnd - uTimeNow)*1000;
@@ -336,7 +336,7 @@ int hardware_radio_sik_enter_command_mode(int iSerialPortFile, int iBaudRate, sh
          log_line("[HW-RSK] Waiting (try %d) for read data for %d milisec, at buffer pos %d (of %d bytes)...", iRetryCounter, to.tv_usec/1000, iBufferPos, iBufferSize);
       FD_ZERO(&readset);
       FD_SET(iSerialPortFile, &readset);
-      
+
       res = select(iSerialPortFile+1, &readset, NULL, NULL, &to);
 
       if ( (res <= 0) || (! FD_ISSET(iSerialPortFile, &readset)) )
@@ -458,7 +458,7 @@ int hardware_radio_sik_enter_command_mode(int iSerialPortFile, int iBaudRate, sh
       return 0;
    }
 
-   
+
    log_line("[HW-RSK] SiK radio entered in AT command mode successfully at bautrate %d.", iBaudRate);
    return 1;
 }
@@ -473,9 +473,9 @@ int _hardware_radio_sik_get_all_params(radio_hw_info_t* pRadioInfo, int iSerialP
       log_softerror_and_alarm("[HW-RSK] Failed to enter SiK radio into AT command mode.");
       return 0;
    }
-   
+
    log_line("[HW-RSK] Getting SiK radio info from device...");
-   
+
    u8 bufferResponse[1024];
 
    if ( hardware_radio_sik_send_command(iSerialPortFile, "ATI", bufferResponse, 255) )
@@ -542,7 +542,7 @@ int _hardware_radio_sik_get_all_params(radio_hw_info_t* pRadioInfo, int iSerialP
    }
 
    // Get parameters 0 to 15
-   
+
    int iMaxParam = 16;
    if ( iMaxParam > MAX_RADIO_HW_PARAMS )
       iMaxParam = MAX_RADIO_HW_PARAMS;
@@ -594,7 +594,7 @@ int _hardware_radio_sik_get_all_params(radio_hw_info_t* pRadioInfo, int iSerialP
 int hardware_radio_sik_detect_interfaces()
 {
    log_line("[HW-RSK]: Enumerating Sik radios...");
-   
+
    s_iSiKRadioCount = 0;
    s_iSiKRadioLastKnownCount = 0;
 
@@ -652,7 +652,7 @@ int hardware_radio_sik_save_configuration()
    }
 
    log_line("[HW-RSK]: Saving current SiK radios configuration (%d SiK radio interfaces).", s_iSiKRadioCount);
-   
+
    char szFile[MAX_FILE_PATH_SIZE];
    strcpy(szFile, FOLDER_CONFIG);
    strcat(szFile, FILE_CONFIG_LAST_SIK_RADIOS_DETECTED);
@@ -798,7 +798,7 @@ radio_hw_info_t* hardware_radio_sik_try_detect_on_port(const char* szSerialPort)
       log_line("[HW-RSK]: Device [%s] is not present.", szDevName);
       return NULL;
    }
-   
+
    int iBaudRatesList[64];
    int iBaudRatesCount = 0;
 
@@ -830,7 +830,7 @@ radio_hw_info_t* hardware_radio_sik_try_detect_on_port(const char* szSerialPort)
 
       static radio_hw_info_t s_radioHWInfoSikTemp;
       memset((u8*)&s_radioHWInfoSikTemp, 0, sizeof(radio_hw_info_t));
-      
+
       if ( ! _hardware_radio_sik_get_all_params(&s_radioHWInfoSikTemp, iSerialPort, iSpeed, NULL, 1) )
       {
          log_line("[HW-RSK] Closed serial port fd %d", iSerialPort);
@@ -869,7 +869,7 @@ radio_hw_info_t* hardware_radio_sik_try_detect_on_port(const char* szSerialPort)
 
       // Found SiK device that answered to AT commands mode.
       // Populate info about device
-      
+
       log_line("[HW-RSK] Closed serial port fd %d", iSerialPort);
       close(iSerialPort);
 
@@ -882,12 +882,12 @@ radio_hw_info_t* hardware_radio_sik_try_detect_on_port(const char* szSerialPort)
       s_radioHWInfoSikTemp.isHighCapacityInterface = 0;
       s_radioHWInfoSikTemp.isEnabled = 1;
       s_radioHWInfoSikTemp.isTxCapable = 1;
-      
+
       strcpy(s_radioHWInfoSikTemp.szName, "SiK Radio");
       strcpy(s_radioHWInfoSikTemp.szUSBPort, "T");
       strcpy(s_radioHWInfoSikTemp.szDriver, szDevName);
       sprintf(s_radioHWInfoSikTemp.szProductId, "%u", s_radioHWInfoSikTemp.uHardwareParamsList[0]);
-      
+
       s_radioHWInfoSikTemp.uCurrentFrequencyKhz = s_radioHWInfoSikTemp.uHardwareParamsList[SIK_PARAM_INDEX_FREQ_MIN];
       if ( s_radioHWInfoSikTemp.uHardwareParamsList[SIK_PARAM_INDEX_FREQ_MIN] >= 400000 )
       if ( s_radioHWInfoSikTemp.uHardwareParamsList[SIK_PARAM_INDEX_FREQ_MAX] <= 460000 )
@@ -905,7 +905,7 @@ radio_hw_info_t* hardware_radio_sik_try_detect_on_port(const char* szSerialPort)
       // Mark the serial port as used for a hardware radio interface
 
       log_line("[HW-RSK]: Mark serial device [%s] as used for a radio interface.", szDevName);
-      
+
       for( int k=0; k<hardware_serial_get_ports_count(); k++ )
       {
          hw_serial_port_info_t* pSerial = hardware_get_serial_port_info(k);
@@ -923,7 +923,7 @@ radio_hw_info_t* hardware_radio_sik_try_detect_on_port(const char* szSerialPort)
       return &s_radioHWInfoSikTemp;
    }
 
-   return NULL; 
+   return NULL;
 }
 
 // Returns number of bytes in response
@@ -951,7 +951,7 @@ int hardware_radio_sik_send_command(int iSerialPortFile, const char* szCommand, 
       log_softerror_and_alarm("[HW-RSK] Failed to send SiK command to serial port.");
       return 0;
    }
-   
+
    log_line("[HW-RSK] Sent SiK radio command: [%s] (%d bytes)...", szCommand, iSent);
 
    if ( 0 == strcmp(szCommand, "ATZ") )
@@ -1001,7 +1001,7 @@ int hardware_radio_sik_send_command(int iSerialPortFile, const char* szCommand, 
    }
 
    // Keep only last line from response
-   
+
    for( int i=iLen-1; i>=0; i-- )
    {
       if ( buff[i] == 10 || buff[i] == 13 )
@@ -1013,7 +1013,7 @@ int hardware_radio_sik_send_command(int iSerialPortFile, const char* szCommand, 
           break;
       }
    }
-   
+
    if ( iLen >= iMaxResponseLength )
       iLen = iMaxResponseLength-1;
    memcpy(bufferResponse, buff, iLen);
@@ -1053,7 +1053,7 @@ int hardware_radio_sik_get_real_serial_baudrate(int iSiKBaudRate)
       return 64000;
    if ( iSiKBaudRate == 96 )
       return 96000;
-   
+
    if ( iSiKBaudRate == 111 )
       return 111200;
    if ( iSiKBaudRate == 115 )
@@ -1061,10 +1061,10 @@ int hardware_radio_sik_get_real_serial_baudrate(int iSiKBaudRate)
 
    if ( iSiKBaudRate == 128 )
       return 128000;
- 
+
    if ( iSiKBaudRate == 250 )
       return 250000;
-   
+
    return 57600;
 }
 
@@ -1134,16 +1134,16 @@ static void * _thread_sik_get_all_params_async(void *argument)
    }
 
    log_line("[HardwareSiKConfig] Started thread to get config async.");
-         
+
    int iResult = hardware_radio_sik_get_all_params(pRadioHWInfo, NULL);
    if ( 1 != iResult )
       iResult = hardware_radio_sik_get_all_params(pRadioHWInfo, NULL);
-   
+
    if ( iResult != 1 )
       *piResult = -1;
    else
       *piResult = 1;
-            
+
    log_line("[HardwareSiKConfig] Finished thread to get config async.");
 
    s_iGetSiKConfigAsyncRunning = 0;
@@ -1178,7 +1178,7 @@ int hardware_radio_sik_get_all_params(radio_hw_info_t* pRadioInfo, shared_mem_pr
       return 0;
 
    hw_serial_port_info_t* pSerialPort = hardware_get_serial_port_info_from_serial_port_name(pRadioInfo->szDriver);
-  
+
    if ( NULL == pSerialPort )
    {
       log_error_and_alarm("[HW-RSK] Failed to find serial port configuration for SiK radio %s.", pRadioInfo->szDriver);
@@ -1285,7 +1285,7 @@ int hardware_radio_sik_set_serial_speed(radio_hw_info_t* pRadioInfo, int iSerial
    }
 
    hw_serial_port_info_t* pSerialPort = hardware_get_serial_port_info_from_serial_port_name(pRadioInfo->szDriver);
-   
+
    if ( NULL == pSerialPort )
    {
       log_error_and_alarm("[HW-RSK] Failed to find serial port configuration for SiK radio %s.", pRadioInfo->szDriver);
@@ -1307,7 +1307,7 @@ int hardware_radio_sik_set_serial_speed(radio_hw_info_t* pRadioInfo, int iSerial
       close(iSerialPort);
       return 0;
    }
-   
+
    // Send params
 
    if ( _hardware_radio_sik_set_parameter(iSerialPort, SIK_PARAM_INDEX_LOCAL_SPEED, hardware_radio_sik_get_encoded_serial_baudrate(iNewSerialSpeed)) )
@@ -1316,7 +1316,7 @@ int hardware_radio_sik_set_serial_speed(radio_hw_info_t* pRadioInfo, int iSerial
       pProcessStats->lastActiveTime = get_current_timestamp_ms();
 
    // Exit AT command mode
-   
+
    hardware_radio_sik_save_settings_to_flash(iSerialPort);
 
    if ( NULL != pProcessStats )
@@ -1336,15 +1336,15 @@ int hardware_radio_sik_set_frequency(radio_hw_info_t* pRadioInfo, u32 uFrequency
       return 0;
    if ( ! hardware_radio_is_sik_radio(pRadioInfo) )
       return 0;
-   
+
    if ( uFrequencyKhz == 0 )
       uFrequencyKhz = pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_FREQ_MIN];
-   
-   int iRes = hardware_radio_sik_set_params(pRadioInfo, 
+
+   int iRes = hardware_radio_sik_set_params(pRadioInfo,
        uFrequencyKhz,
        DEFAULT_RADIO_SIK_FREQ_SPREAD, DEFAULT_RADIO_SIK_CHANNELS, DEFAULT_RADIO_SIK_NETID,
        hardware_radio_sik_get_real_air_baudrate(pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_AIRSPEED]),
-       pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_TXPOWER], 
+       pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_TXPOWER],
        pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_ECC],
        pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_LBT],
        pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_MCSTR],
@@ -1367,7 +1367,7 @@ int hardware_radio_sik_set_tx_power(radio_hw_info_t* pRadioInfo, u32 uTxPower, s
       pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_CHANNELS],
       pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_NETID],
       hardware_radio_sik_get_real_air_baudrate(pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_AIRSPEED]),
-      uTxPower, 
+      uTxPower,
       pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_ECC],
       pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_LBT],
       pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_MCSTR], pProcessStats);
@@ -1380,7 +1380,7 @@ int hardware_radio_sik_set_frequency_txpower_airspeed_lbt_ecc(radio_hw_info_t* p
       return 0;
    if ( ! hardware_radio_is_sik_radio(pRadioInfo) )
       return 0;
-   
+
    if ( uFrequency == 0 )
       uFrequency = pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_FREQ_MIN];
    else if ( uFrequency < 10000 )
@@ -1388,12 +1388,12 @@ int hardware_radio_sik_set_frequency_txpower_airspeed_lbt_ecc(radio_hw_info_t* p
 
    if ( (uTxPower == 0) || (uTxPower > 30) )
       uTxPower = DEFAULT_RADIO_SIK_TX_POWER;
-   
+
    int iRes = hardware_radio_sik_set_params(pRadioInfo,
       uFrequency,
       DEFAULT_RADIO_SIK_FREQ_SPREAD, DEFAULT_RADIO_SIK_CHANNELS, DEFAULT_RADIO_SIK_NETID,
       uAirSpeed,
-      uTxPower, 
+      uTxPower,
       uECC, uLBT, uMCSTR, pProcessStats);
    return iRes;
 }
@@ -1426,7 +1426,7 @@ int hardware_radio_sik_set_params(radio_hw_info_t* pRadioInfo, u32 uFrequencyKhz
       iAnyChanged = 1;
    if ( pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_FREQ_MAX] != (uFrequencyKhz + uFreqSpread) )
       iAnyChanged = 1;
-   
+
    // Duty Cycle
    if ( pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_DUTYCYCLE] != 100 )
       iAnyChanged = 1;
@@ -1440,7 +1440,7 @@ int hardware_radio_sik_set_params(radio_hw_info_t* pRadioInfo, u32 uFrequencyKhz
    // Max Window
    if ( pRadioInfo->uHardwareParamsList[15] != 50 )
       iAnyChanged = 1;
-   
+
    if ( ! iAnyChanged )
    {
       log_line("[HW-RSK]: SiK Radio all params are unchanged. Set SiK radio interface %d to frequency %s, channels: %u, freq spread: %.1f Mhz, NetId: %u, AirSpeed: %u bps, ECC/LBT/MCSTR: %u/%u/%u, param[6]=%u",
@@ -1452,7 +1452,7 @@ int hardware_radio_sik_set_params(radio_hw_info_t* pRadioInfo, u32 uFrequencyKhz
    //hardware_radio_sik_get_all_params(pRadioInfo, pProcessStats);
 
    hw_serial_port_info_t* pSerialPort = hardware_get_serial_port_info_from_serial_port_name(pRadioInfo->szDriver);
-   
+
    if ( NULL == pSerialPort )
    {
       log_error_and_alarm("[HW-RSK] Failed to find serial port configuration for SiK radio %s.", pRadioInfo->szDriver);
@@ -1484,7 +1484,7 @@ int hardware_radio_sik_set_params(radio_hw_info_t* pRadioInfo, u32 uFrequencyKhz
       }
 
       // Send params
-      
+
       iFailed = 0;
 
       if ( pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_AIRSPEED] != (u32)hardware_radio_sik_get_encoded_air_baudrate(uAirSpeed) )
@@ -1527,7 +1527,7 @@ int hardware_radio_sik_set_params(radio_hw_info_t* pRadioInfo, u32 uFrequencyKhz
          if ( NULL != pProcessStats )
             pProcessStats->lastActiveTime = get_current_timestamp_ms();
       }
-      
+
       if ( pRadioInfo->uHardwareParamsList[SIK_PARAM_INDEX_FREQ_MIN] != uFrequencyKhz )
       {
          if ( _hardware_radio_sik_set_parameter(iSerialPort, SIK_PARAM_INDEX_FREQ_MIN, uFrequencyKhz) )
@@ -1647,7 +1647,7 @@ int hardware_radio_sik_open_for_read_write(int iHWRadioInterfaceIndex)
    }
 
    hw_serial_port_info_t* pSerialPort = hardware_get_serial_port_info_from_serial_port_name(pRadioInfo->szDriver);
-  
+
    if ( NULL == pSerialPort )
    {
       log_error_and_alarm("[HW-RSK] Open: Failed to find serial port configuration for SiK radio %s.", pRadioInfo->szDriver);

@@ -341,7 +341,7 @@ int controller_count_asignable_radio_interfaces_to_vehicle_radio_link(Model* pMo
       return -14;
    if ( ! (pModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLinkId] & RADIO_HW_CAPABILITY_FLAG_CAN_TX) )
       return -15;
-   
+
    for( int iInterface = 0; iInterface < hardware_get_radio_interfaces_count(); iInterface++ )
    {
       radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(iInterface);
@@ -387,7 +387,7 @@ int tx_powers_get_max_usable_power_mw_for_controller()
 {
    // Select the max mw power for any present card
    int iMaxPowerMw = 10;
-   
+
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
    {
       if ( ! hardware_radio_index_is_wifi_radio(i) )

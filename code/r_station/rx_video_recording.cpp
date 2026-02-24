@@ -45,7 +45,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "../radio/fec.h" 
+#include "../radio/fec.h"
 
 #include "../base/base.h"
 #include "../base/config.h"
@@ -122,11 +122,11 @@ void _recording_send_status_to_central(u8 uStatus, u8 uErrorLevel, const char* s
       {
          buffer[sizeof(t_packet_header)+1] = uErrorLevel;
          strcpy((char*)(&buffer[sizeof(t_packet_header)+2]), szError);
-      }    
+      }
    }
 
    radio_packet_compute_crc(buffer, PH.total_length);
-   
+
    if ( NULL != g_pProcessStats )
       g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
 
@@ -157,7 +157,7 @@ bool _recording_write_info_file(u32 uDurrationMs)
       log_softerror_and_alarm("[VideoRecording-Th] Failed to create video info file %s", szFile);
       return false;
    }
-   
+
    fprintf(fd, "%s\n", s_szFileRecordingOutput);
    fprintf(fd, "%d %d\n", s_iRecordingFPS, (int)(uDurrationMs/1000));
    fprintf(fd, "%d %d\n", s_iRecordingWidth, s_iRecordingHeight);
@@ -459,7 +459,7 @@ void* _thread_video_recording(void *argument)
       log_line("[VideoRecording-Th] Exit recording thread.");
       return NULL;
    }
-   
+
    _recording_send_status_to_central(2, 0, NULL);
    _recording_send_status_to_central(0xFF, 0, "Processing video recording file...");
 
@@ -486,7 +486,7 @@ void* _thread_video_recording(void *argument)
       }
       break;
    }
-      
+
    log_line("[VideoRecording-Th] Video processing process finished.");
 
    char szFile[512];
@@ -514,7 +514,7 @@ void* _thread_video_recording(void *argument)
 
    sprintf(szComm, "rm -rf %s%s 2>/dev/null", FOLDER_RUBY_TEMP, FILE_TEMP_VIDEO_FILE_PROCESS_ERROR);
    hw_execute_bash_command(szComm, NULL );
-  
+
    log_line("[VideoRecording-Th] Exit recording thread.");
 
    _recording_send_status_to_central(0, 0, NULL);

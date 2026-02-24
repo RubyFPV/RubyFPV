@@ -82,7 +82,7 @@ MenuVehicleVideoBidirectional::MenuVehicleVideoBidirectional(void)
    m_pItemsRadio[0]->useSmallLegend(true);
    m_IndexOneWay = addMenuItem(m_pItemsRadio[0]);
 
-   m_pItemsSelect[4] = new MenuItemSelect(L("Retransmissions"), L("Enable retransmissions of video data."));  
+   m_pItemsSelect[4] = new MenuItemSelect(L("Retransmissions"), L("Enable retransmissions of video data."));
    m_pItemsSelect[4]->addSelection(L("Off"));
    m_pItemsSelect[4]->addSelection(L("On"));
    m_pItemsSelect[4]->setIsEditable();
@@ -91,7 +91,7 @@ MenuVehicleVideoBidirectional::MenuVehicleVideoBidirectional(void)
    m_IndexRetransmissionsFast = -1;
    m_IndexRetransmissionsGuardInterval = -1;
    /*
-   m_pItemsSelect[6] = new MenuItemSelect(L("Retransmissions Algorithm"), L("Change the way retransmissions are requested."));  
+   m_pItemsSelect[6] = new MenuItemSelect(L("Retransmissions Algorithm"), L("Change the way retransmissions are requested."));
    m_pItemsSelect[6]->addSelection(L("Regular"));
    m_pItemsSelect[6]->addSelection(L("Aggressive"));
    m_pItemsSelect[6]->setIsEditable();
@@ -110,7 +110,7 @@ MenuVehicleVideoBidirectional::MenuVehicleVideoBidirectional(void)
    m_IndexAdaptiveUseControllerToo = -1;
    m_IndexVideoLinkLost = -1;
 
-   m_pItemsSelect[2] = new MenuItemSelect(L("Adaptive Video Quality"), L("Reduce the video quality when radio link quality goes down."));  
+   m_pItemsSelect[2] = new MenuItemSelect(L("Adaptive Video Quality"), L("Reduce the video quality when radio link quality goes down."));
    m_pItemsSelect[2]->addSelection("Off");
    m_pItemsSelect[2]->addSelection("On");
    m_pItemsSelect[2]->setIsEditable();
@@ -153,7 +153,7 @@ MenuVehicleVideoBidirectional::MenuVehicleVideoBidirectional(void)
       m_pItemsSlider[0] = new MenuItemSlider(L("Auto Adjustment Strength"), L("How aggressive should the auto video link adjustments be (adaptive video and auto keyframe). 1 is the slowest adjustment strength, 10 is the fastest and most aggressive adjustment strength."), 1,10,5, fSliderWidth);
       m_pItemsSlider[0]->setMargin(dxMargin);
       m_IndexAdaptiveAdjustmentStrength = addMenuItem(m_pItemsSlider[0]);
-      
+
       log_line("MenuVehicleVideoBidirectional: Adaptive strength menu item index: %d", m_IndexAdaptiveAdjustmentStrength);
       ControllerSettings* pCS = get_ControllerSettings();
       if ( pCS->iDeveloperMode )
@@ -212,7 +212,7 @@ MenuVehicleVideoBidirectional::MenuVehicleVideoBidirectional(void)
       }
 
       /*
-      m_pItemsSelect[9] = new MenuItemSelect(L("Use Controller Feedback"), L("When vehicle adjusts video link params, use the feedback from the controller too in deciding the best video link params to be used."));  
+      m_pItemsSelect[9] = new MenuItemSelect(L("Use Controller Feedback"), L("When vehicle adjusts video link params, use the feedback from the controller too in deciding the best video link params to be used."));
       m_pItemsSelect[9]->addSelection(L("No"));
       m_pItemsSelect[9]->addSelection(L("Yes"));
       m_pItemsSelect[9]->setIsEditable();
@@ -221,7 +221,7 @@ MenuVehicleVideoBidirectional::MenuVehicleVideoBidirectional(void)
       */
 
       /*
-      m_pItemsSelect[10] = new MenuItemSelect(L("Lower Quality On Link Lost"), L("When vehicle looses connection from the controller, go to a lower video quality and lower radio datarate."));  
+      m_pItemsSelect[10] = new MenuItemSelect(L("Lower Quality On Link Lost"), L("When vehicle looses connection from the controller, go to a lower video quality and lower radio datarate."));
       m_pItemsSelect[10]->addSelection(L("No"));
       m_pItemsSelect[10]->addSelection(L("Yes"));
       m_pItemsSelect[10]->setIsEditable();
@@ -308,7 +308,7 @@ void MenuVehicleVideoBidirectional::valuesToUI()
       if ( -1 != m_IndexRetransmissionsGuardInterval )
          m_pItemsSlider[8]->setEnabled(false);
    }
-   
+
    if ( -1 != m_IndexRetransmissionsFast )
       m_pItemsSelect[6]->setSelectedIndex((uProfileFlags & VIDEO_PROFILE_FLAG_RETRANSMISSIONS_AGGRESIVE)?1:0);
    if ( -1 != m_IndexRetransmissionsGuardInterval )
@@ -439,7 +439,7 @@ void MenuVehicleVideoBidirectional::_updateDevValues()
    if ( NULL != m_pMenuItemTimeToSwitchUp )
    {
       sprintf(szText, "Good interval to switch up: %u ms", m_AdaptiveMetrics.uMinimumGoodTimeToSwitchHigher);
-      m_pMenuItemTimeToSwitchUp->setTitle(szText);    
+      m_pMenuItemTimeToSwitchUp->setTitle(szText);
    }
 
    if ( NULL != m_pMenuItemRetr )
@@ -471,7 +471,7 @@ void MenuVehicleVideoBidirectional::_updateDevValues()
 void MenuVehicleVideoBidirectional::Render()
 {
    RenderPrepare();
-   
+
    float yTop = RenderFrameAndTitle();
    float y = yTop;
 
@@ -549,7 +549,7 @@ void MenuVehicleVideoBidirectional::sendVideoSettings(bool bIsInlineFastChange)
          profileNew.uProfileEncodingFlags |= VIDEO_PROFILE_ENCODING_FLAG_ENABLE_ADAPTIVE_VIDEO_LINK;
          if ( -1 != m_IndexAdaptiveAdjustmentStrength )
             profileNew.iAdaptiveAdjustmentStrength = m_pItemsSlider[0]->getCurrentValue();
-    
+
          if ( -1 != m_IndexAdaptiveVideoLevel )
          {
             if ( 0 == m_pItemsSelect[5]->getSelectedIndex() )
@@ -690,7 +690,7 @@ void MenuVehicleVideoBidirectional::onSelectItem()
          addMessage2(0, L("Incompatible settings"), L("You have disabled all the radio uplinks. Adaptive video mode is not possible without any radio uplink. Enable radio uplinks from Menu->Vehicle->Radio."));
          valuesToUI();
          return;
-      } 
+      }
       m_pItemsRadio[0]->setSelectedIndex(iIndex);
       sendVideoSettings(false);
    }
@@ -700,7 +700,7 @@ void MenuVehicleVideoBidirectional::onSelectItem()
       sendVideoSettings(false);
       return;
    }
-   
+
    if ( (-1 != m_IndexAdaptiveVideo) && (m_IndexAdaptiveVideo == m_SelectedIndex) )
    if ( hardware_board_is_goke(g_pCurrentModel->hwCapabilities.uBoardType) )
    {
@@ -710,7 +710,7 @@ void MenuVehicleVideoBidirectional::onSelectItem()
    }
 
    if ( (m_IndexRetransmissions == m_SelectedIndex) ||
-        ((-1 != m_IndexRetransmissionsGuardInterval) && (m_IndexRetransmissionsGuardInterval == m_SelectedIndex)) || 
+        ((-1 != m_IndexRetransmissionsGuardInterval) && (m_IndexRetransmissionsGuardInterval == m_SelectedIndex)) ||
         ((-1 != m_IndexVideoLinkLost) && (m_IndexVideoLinkLost == m_SelectedIndex)) )
    {
       sendVideoSettings(false);

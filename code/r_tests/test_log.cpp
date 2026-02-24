@@ -6,12 +6,12 @@
 
 bool bQuit = false;
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    bQuit = true;
-} 
-  
+}
+
 int main(int argc, char *argv[])
 {
    signal(SIGINT, handle_sigint);
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
    hw_execute_process("find /home/", 0, NULL, 0);
    hw_execute_process("find /home/", 0, szOutput256, sizeof(szOutput256)/sizeof(szOutput256[0]));
    log_line("Output: [%s]", szOutput256);
-  */ 
+  */
    //hw_execute_process("find /usr/", 0, szOutput256, sizeof(szOutput256)/sizeof(szOutput256[0]));
    //log_line("Output: [%s]", szOutput256);
    //hw_execute_process("find /usr/", 0, szOutput4k, sizeof(szOutput4k)/sizeof(szOutput4k[0]));

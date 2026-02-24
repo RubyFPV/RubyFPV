@@ -425,7 +425,7 @@ void warnings_add_configuring_radio_link(int iRadioLink, const char* szMessage)
       return;
 
    strcpy(s_szLastMessageConfigureRadioLink, szMessage);
-   
+
    if ( NULL != s_PopupConfigureRadioLink )
       return;
 
@@ -502,7 +502,7 @@ void warnings_add_unsupported_video(u32 uVehicleId, u32 uType)
 
       char szText[256];
       strcpy(szText, L("Your vehicle is sending H265 video. Your controller does not support H265 video decoding. Switch your vehicle to H264 video encoding from vehicle's Video menu."));
-      
+
       if ( NULL == s_pMenuUnsupportedVideo )
       {
          s_pMenuUnsupportedVideo = new MenuConfirmation(L("Unsupported Video Type"), szText, 0, true);

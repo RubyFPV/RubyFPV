@@ -33,7 +33,7 @@ extern Model* g_pCurrentModel;
 extern shared_mem_process_stats* g_pProcessStats;
 
 extern t_packet_queue s_QueueControlPackets;
- 
+
 extern int s_fIPCRouterToCommands;
 extern int s_fIPCRouterFromCommands;
 extern int s_fIPCRouterToTelemetry;

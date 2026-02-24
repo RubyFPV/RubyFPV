@@ -49,11 +49,11 @@
 #include <endian.h>
 #include <fcntl.h>
 #include <sys/mman.h>
-#include <time.h> 
+#include <time.h>
 
 static int s_iLastCairoFontFamilyId = -1;
 static bool s_bLastCairoFontStyleBold = false;
-   
+
 RenderEngineCairo::RenderEngineCairo()
 :RenderEngine()
 {
@@ -71,17 +71,17 @@ RenderEngineCairo::RenderEngineCairo()
     m_fPixelWidth, m_fPixelHeight);
    type_drm_buffer* pMainDisplayBuffer = ruby_drm_core_get_main_draw_buffer();
    type_drm_buffer* pBackDisplayBuffer = ruby_drm_core_get_back_draw_buffer();
-   
+
    log_line("[RenderEngineCairo] Display buffers size: front: %d x %d, back: %d x %d",
       pMainDisplayBuffer->uWidth, pMainDisplayBuffer->uHeight,
       pBackDisplayBuffer->uWidth, pBackDisplayBuffer->uHeight );
-   
+
    m_uRenderDrawSurfacesIds[0] = pMainDisplayBuffer->uBufferId;
    m_uRenderDrawSurfacesIds[1] = pBackDisplayBuffer->uBufferId;
 
-   m_pMainCairoSurface[0] = cairo_image_surface_create_for_data (pMainDisplayBuffer->pData, CAIRO_FORMAT_ARGB32, 
+   m_pMainCairoSurface[0] = cairo_image_surface_create_for_data (pMainDisplayBuffer->pData, CAIRO_FORMAT_ARGB32,
        pMainDisplayBuffer->uWidth, pMainDisplayBuffer->uHeight, pMainDisplayBuffer->uStride);
-   m_pMainCairoSurface[1] = cairo_image_surface_create_for_data (pBackDisplayBuffer->pData, CAIRO_FORMAT_ARGB32, 
+   m_pMainCairoSurface[1] = cairo_image_surface_create_for_data (pBackDisplayBuffer->pData, CAIRO_FORMAT_ARGB32,
        pBackDisplayBuffer->uWidth, pBackDisplayBuffer->uHeight, pBackDisplayBuffer->uStride);
    if ( (NULL == m_pMainCairoSurface[0]) || (NULL == m_pMainCairoSurface[1]) )
       log_softerror_and_alarm("[RenderEngineCairo] Failed to create main and back cairo surfaces.");
@@ -91,7 +91,7 @@ RenderEngineCairo::RenderEngineCairo()
    m_pCairoCtx = NULL;
    m_pCairoTempCtx = NULL;
    m_fStrokeSizePx = 1.0;
-   
+
    m_iCountImages = 0;
    m_iCountIcons = 0;
    m_CurrentImageId = 0;
@@ -104,7 +104,7 @@ RenderEngineCairo::~RenderEngineCairo()
 {
    if ( NULL != m_pCairoCtx )
       cairo_destroy(m_pCairoCtx);
-   m_pCairoCtx = NULL; 
+   m_pCairoCtx = NULL;
 
    if ( NULL != m_pMainCairoSurface[0] )
       cairo_surface_destroy(m_pMainCairoSurface[0]);
@@ -137,14 +137,14 @@ void RenderEngineCairo::startFrame()
 
    s_iLastCairoFontFamilyId = -1;
    s_bLastCairoFontStyleBold = false;
-   
+
    type_drm_buffer* pOutputBufferInfo = ruby_drm_core_get_back_draw_buffer();
-   
+
    memset(pOutputBufferInfo->pData, m_uClearBufferByte, pOutputBufferInfo->uSize);
-   
+
    if ( NULL != m_pCairoCtx )
       cairo_destroy(m_pCairoCtx);
-   m_pCairoCtx = NULL; 
+   m_pCairoCtx = NULL;
 
    if ( pOutputBufferInfo->uBufferId == m_uRenderDrawSurfacesIds[0] )
    if ( NULL != m_pMainCairoSurface[0] )
@@ -168,7 +168,7 @@ void RenderEngineCairo::endFrame()
 
    if ( NULL != m_pCairoCtx )
       cairo_destroy(m_pCairoCtx);
-   m_pCairoCtx = NULL; 
+   m_pCairoCtx = NULL;
 
    if ( NULL != m_pCairoTempCtx )
       cairo_destroy(m_pCairoTempCtx);
@@ -209,7 +209,7 @@ cairo_t* RenderEngineCairo::_createTempDrawContext()
    s_bLastCairoFontStyleBold = false;
 
    type_drm_buffer* pOutputBufferInfo = ruby_drm_core_get_back_draw_buffer();
-   
+
    if ( pOutputBufferInfo->uBufferId == m_uRenderDrawSurfacesIds[0] )
    if ( NULL != m_pMainCairoSurface[0] )
       m_pCairoTempCtx = cairo_create(m_pMainCairoSurface[0]);
@@ -394,7 +394,7 @@ int RenderEngineCairo::getImageWidth(u32 uImageId)
    }
    if ( (-1 == indexImage) || (NULL == m_pImages[indexImage]) )
       return 0;
-  
+
    return (int)cairo_image_surface_get_width(m_pImages[indexImage]);
 }
 
@@ -414,7 +414,7 @@ int RenderEngineCairo::getImageHeight(u32 uImageId)
    }
    if ( (-1 == indexImage) || (NULL == m_pImages[indexImage]) )
       return 0;
-  
+
    return (int)cairo_image_surface_get_height(m_pImages[indexImage]);
 }
 
@@ -481,7 +481,7 @@ void RenderEngineCairo::drawImage(float xPos, float yPos, float fWidth, float fH
       return;
    if ( NULL == m_pImages[indexImage] )
       return;
-  
+
    double scaleX = cairo_image_surface_get_width(m_pImages[indexImage]) / (float) m_iRenderWidth;
    double scaleY = cairo_image_surface_get_height(m_pImages[indexImage]) / (float) m_iRenderHeight;
    cairo_scale(m_pCairoCtx, 1.0/scaleX, 1.0/scaleY);
@@ -511,7 +511,7 @@ void RenderEngineCairo::drawImageAlpha(float xPos, float yPos, float fWidth, flo
       return;
    if ( NULL == m_pImages[indexImage] )
       return;
- 
+
    //if ( uAlpha == 255 )
       drawImage(xPos, yPos, fWidth, fHeight, uImageId);
    /*
@@ -549,7 +549,7 @@ void RenderEngineCairo::bltImage(float xPosDest, float yPosDest, float fWidthDes
       return;
    if ( NULL == m_pImages[indexImage] )
       return;
-  
+
    int xDest = xPosDest*m_iRenderWidth;
    int yDest = yPosDest*m_iRenderHeight;
    int wDest = fWidthDest*m_iRenderWidth;
@@ -580,9 +580,9 @@ void RenderEngineCairo::bltImage(float xPosDest, float yPosDest, float fWidthDes
       for( int sx=0; sx<wDest; sx++ )
       {
          u8* pSrcPixel = pSrcImageData + ((int)(fIconY)) * iSrcImageStride + ((int)fIconX) * 4;
-   
+
          // Output surface format order is: BGRA
-         
+
          b = *pSrcPixel;
          g = *(pSrcPixel+1);
          r = *(pSrcPixel+2);
@@ -600,7 +600,7 @@ void RenderEngineCairo::bltImage(float xPosDest, float yPosDest, float fWidthDes
             a = (a*m_ColorFill[3])>>8;
             *pDestPixel++ = a;
             */
-            
+
             b = (((b*m_ColorFill[2])>>8) * (255-m_ColorFill[3]) + ((*pDestPixel)*m_ColorFill[3]))>>8;
             *pDestPixel++ = b;
 
@@ -641,10 +641,10 @@ void RenderEngineCairo::bltSprite(float xPosDest, float yPosDest, int iSrcX, int
       return;
    if ( NULL == m_pImages[indexImage] )
       return;
-  
+
    int xDest = xPosDest*m_iRenderWidth;
    int yDest = yPosDest*m_iRenderHeight;
-   
+
    if ( (xDest < 0) || (yDest < 0) || (xDest+iSrcWidth >= m_iRenderWidth) || (yDest+iSrcHeight >= m_iRenderHeight) )
       return;
 
@@ -661,9 +661,9 @@ void RenderEngineCairo::bltSprite(float xPosDest, float yPosDest, int iSrcX, int
    for( int sy=0; sy<iSrcHeight; sy++ )
    {
       for( int sx=0; sx<iSrcWidth; sx++ )
-      {   
+      {
          // Output surface format order is: BGRA
-         
+
          b = *pSrcPixel++;
          g = *pSrcPixel++;
          r = *pSrcPixel++;
@@ -688,7 +688,7 @@ void RenderEngineCairo::bltSprite(float xPosDest, float yPosDest, int iSrcX, int
       }
       pDestPixel += pOutputBufferInfo->uStride - iSrcWidth * 4;
       pSrcPixel += iSrcImageStride - iSrcWidth * 4;
-   } 
+   }
 }
 
 void RenderEngineCairo::drawIcon(float xPos, float yPos, float fWidth, float fHeight, u32 uIconId)
@@ -806,7 +806,7 @@ void RenderEngineCairo::bltIcon(float xPosDest, float yPosDest, int iSrcX, int i
 
    int ixPosDest = xPosDest*m_iRenderWidth;
    int iyPosDest = yPosDest*m_iRenderHeight;
-   
+
    if ( (ixPosDest < 0) || (iyPosDest < 0) || (ixPosDest+iSrcWidth >= m_iRenderWidth) || (iyPosDest+iSrcHeight >= m_iRenderHeight) )
       return;
 
@@ -904,7 +904,7 @@ void RenderEngineCairo::_draw_vline(int x, int y, int h, unsigned char r, unsign
       pDestLine += pOutputBufferInfo->uStride-4;
    }
 }
-      
+
 void RenderEngineCairo::drawLine(float x1, float y1, float x2, float y2)
 {
    if ( fabs(y1-y2) < 0.0001 )
@@ -938,7 +938,7 @@ void RenderEngineCairo::drawLine(float x1, float y1, float x2, float y2)
          y2 = 1.0 - m_fPixelHeight;
       if ( fabs(y2-y1) < 0.0001 )
          return;
-        
+
       float yPos = y1;
       float h = (y2-y1);
       if ( y1 > y2 )
@@ -950,8 +950,8 @@ void RenderEngineCairo::drawLine(float x1, float y1, float x2, float y2)
          _draw_vline(x1*m_iRenderWidth, yPos*m_iRenderHeight, h*m_iRenderHeight, m_ColorStroke[0], m_ColorStroke[1], m_ColorStroke[2], m_ColorStroke[3]);
       else
       {
-         _draw_vline(x1*m_iRenderWidth-m_fPixelWidth*0.5, yPos*m_iRenderHeight, h*m_iRenderHeight, m_ColorStroke[0], m_ColorStroke[1], m_ColorStroke[2], m_ColorStroke[3]);       
-         _draw_vline(x1*m_iRenderWidth+m_fPixelWidth*0.5, yPos*m_iRenderHeight, h*m_iRenderHeight, m_ColorStroke[0], m_ColorStroke[1], m_ColorStroke[2], m_ColorStroke[3]);       
+         _draw_vline(x1*m_iRenderWidth-m_fPixelWidth*0.5, yPos*m_iRenderHeight, h*m_iRenderHeight, m_ColorStroke[0], m_ColorStroke[1], m_ColorStroke[2], m_ColorStroke[3]);
+         _draw_vline(x1*m_iRenderWidth+m_fPixelWidth*0.5, yPos*m_iRenderHeight, h*m_iRenderHeight, m_ColorStroke[0], m_ColorStroke[1], m_ColorStroke[2], m_ColorStroke[3]);
       }
       return;
    }
@@ -970,14 +970,14 @@ void RenderEngineCairo::drawLine(float x1, float y1, float x2, float y2)
       return;
    //cairo_set_source_rgba(m_pCairoCtx, m_ColorStroke[0]/255.0, m_ColorStroke[1]/255.0, m_ColorStroke[2]/255.0, m_ColorStroke[3]/255.0);
    cairo_set_source_rgba(m_pCairoCtx,1,1,1,1);
-   cairo_move_to (m_pCairoCtx, x1 * m_iRenderWidth, y1 * m_iRenderHeight); 
+   cairo_move_to (m_pCairoCtx, x1 * m_iRenderWidth, y1 * m_iRenderHeight);
    cairo_line_to (m_pCairoCtx, x2 * m_iRenderWidth, y2 * m_iRenderHeight);
    //cairo_close_path(m_pCairoCtx);
    cairo_stroke (m_pCairoCtx);
 }
 
 void RenderEngineCairo::drawRect(float xPos, float yPos, float fWidth, float fHeight)
-{   
+{
 
    int xSt = xPos*m_iRenderWidth;
    int ySt = yPos*m_iRenderHeight;
@@ -1123,14 +1123,14 @@ void RenderEngineCairo::drawRect(float xPos, float yPos, float fWidth, float fHe
    /*
    if ( m_fColorFill[3] > 0.001 )
    {
-      cairo_rectangle(m_pCairoCtx, xPos * m_iRenderWidth, yPos * m_iRenderHeight, fWidth * m_iRenderWidth, fHeight * m_iRenderHeight);  
+      cairo_rectangle(m_pCairoCtx, xPos * m_iRenderWidth, yPos * m_iRenderHeight, fWidth * m_iRenderWidth, fHeight * m_iRenderHeight);
       cairo_set_source_rgba(m_pCairoCtx, m_fColorFill[0], m_fColorFill[1], m_fColorFill[2], m_fColorFill[3]);
       cairo_fill(m_pCairoCtx);
    }
    if ( m_fColorStroke[3] > 0.001 )
    if ( m_fStrokeSizePx > 0.00001 )
    {
-      cairo_rectangle(m_pCairoCtx, xPos * m_iRenderWidth, yPos * m_iRenderHeight, fWidth * m_iRenderWidth, fHeight * m_iRenderHeight);  
+      cairo_rectangle(m_pCairoCtx, xPos * m_iRenderWidth, yPos * m_iRenderHeight, fWidth * m_iRenderWidth, fHeight * m_iRenderHeight);
       cairo_set_source_rgba(m_pCairoCtx, m_fColorStroke[0], m_fColorStroke[1], m_fColorStroke[2], m_fColorStroke[3]);
       cairo_stroke(m_pCairoCtx);
    }
@@ -1200,11 +1200,11 @@ void RenderEngineCairo::drawRoundRect(float xPos, float yPos, float fWidth, floa
             }
          }
       }
-  
+
       _draw_vline(xSt+2, ySt+1, h-2 , r,g,b,a);
       _draw_vline(xSt+1, ySt+1, h-2 , r,g,b,a);
       _draw_vline(xSt,   ySt+3, h-6 , r,g,b,a);
-     
+
       _draw_vline(xSt+w-2, ySt+1, h-2 , r,g,b,a);
       _draw_vline(xSt+w-1, ySt+1, h-2 , r,g,b,a);
       _draw_vline(xSt+w,   ySt+3, h-6 , r,g,b,a);
@@ -1289,7 +1289,7 @@ void RenderEngineCairo::drawRoundRectMenu(float xPos, float yPos, float fWidth, 
       {
          u8* pDestLine = (u8*)&(pOutputBufferInfo->pData[(ySt+y)*pOutputBufferInfo->uStride]);
          pDestLine += 4*(xSt+3);
-       
+
          if ( false && m_bEnableAlphaBlending )
          {
             for( int x=0; x<(w-5); x++ )
@@ -1306,14 +1306,14 @@ void RenderEngineCairo::drawRoundRectMenu(float xPos, float yPos, float fWidth, 
                *pDestLine++ = g;
                *pDestLine++ = r;
                *pDestLine++ = a;
-            }          
+            }
          }
       }
 
       _draw_vline(xSt+2, ySt+1, h-2 , r,g,b,a);
       _draw_vline(xSt+1, ySt+1, h-2 , r,g,b,a);
       _draw_vline(xSt,   ySt+3, h-6 , r,g,b,a);
-     
+
       _draw_vline(xSt+w-2, ySt+1, h-2 , r,g,b,a);
       _draw_vline(xSt+w-1, ySt+1, h-2 , r,g,b,a);
       _draw_vline(xSt+w,   ySt+3, h-6 , r,g,b,a);
@@ -1350,7 +1350,7 @@ void RenderEngineCairo::drawRoundRectMenu(float xPos, float yPos, float fWidth, 
 
 void RenderEngineCairo::drawTriangle(float x1, float y1, float x2, float y2, float x3, float y3)
 {
-   cairo_move_to (m_pCairoCtx, x1 * m_iRenderWidth, y1 * m_iRenderHeight); 
+   cairo_move_to (m_pCairoCtx, x1 * m_iRenderWidth, y1 * m_iRenderHeight);
    cairo_line_to (m_pCairoCtx, x2 * m_iRenderWidth, y2 * m_iRenderHeight);
    cairo_line_to (m_pCairoCtx, x3 * m_iRenderWidth, y3 * m_iRenderHeight);
    cairo_close_path(m_pCairoCtx);
@@ -1360,7 +1360,7 @@ void RenderEngineCairo::drawTriangle(float x1, float y1, float x2, float y2, flo
 
 void RenderEngineCairo::fillTriangle(float x1, float y1, float x2, float y2, float x3, float y3)
 {
-   cairo_move_to (m_pCairoCtx, x1 * m_iRenderWidth, y1 * m_iRenderHeight); 
+   cairo_move_to (m_pCairoCtx, x1 * m_iRenderWidth, y1 * m_iRenderHeight);
    cairo_line_to (m_pCairoCtx, x2 * m_iRenderWidth, y2 * m_iRenderHeight);
    cairo_line_to (m_pCairoCtx, x3 * m_iRenderWidth, y3 * m_iRenderHeight);
    cairo_close_path(m_pCairoCtx);
@@ -1602,7 +1602,7 @@ float RenderEngineCairo::textRawWidthScaled(u32 fontId, float fScale, const char
    cairo_t* pCairoCtx = _getActiveCairoContext();
    if ( NULL == pCairoCtx )
        pCairoCtx = _createTempDrawContext();
-   
+
    _updateCurrentFontToUse(pFont, false);
    int iPixels = pFont->lineHeight*0.8*fScale;
    if ( iPixels < 6 )
@@ -1612,7 +1612,7 @@ float RenderEngineCairo::textRawWidthScaled(u32 fontId, float fScale, const char
    char szTxt[256];
    memset(szTxt, 0, sizeof(szTxt));
    strncpy(szTxt, szText, sizeof(szTxt)-3);
-   
+
    cairo_scaled_font_t * pSFont = cairo_get_scaled_font(pCairoCtx);
 
    cairo_glyph_t* glyphs = NULL;
@@ -1663,12 +1663,12 @@ float RenderEngineCairo::textRawWidthScaled(u32 fontId, float fScale, const char
       cairo_glyph_free(glyphs);
    if ( NULL != clusters )
       cairo_text_cluster_free(clusters);
- 
+
    if ( fWidthPixelsGlyphs <= 1.0 )
       return 0.0;
 
    return fWidthPixelsGlyphs * m_fPixelWidth * fScale;
-   
+
    /*
    char* szParse = szTxt;
    char* szWord = NULL;
@@ -1719,7 +1719,7 @@ float RenderEngineCairo::_get_raw_char_width(RenderEngineRawFont* pFont, int ch)
        pCairoCtx = _createTempDrawContext();
 
    //return RenderEngine::_get_raw_char_width(pFont, ch);
-   
+
    char szText[8];
    szText[0] = ch;
    szText[1] = 0;

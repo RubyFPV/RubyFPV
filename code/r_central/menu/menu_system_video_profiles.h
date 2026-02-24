@@ -7,7 +7,7 @@ class MenuSystemVideoProfiles: public Menu
 {
    public:
       MenuSystemVideoProfiles();
-      virtual void onShow(); 
+      virtual void onShow();
       virtual void Render();
       virtual void valuesToUI();
       virtual void onSelectItem();
@@ -15,5 +15,5 @@ class MenuSystemVideoProfiles: public Menu
    private:
 
       MenuItemSelect* m_pItemsSelect[200];
-      MenuItemSlider* m_pItemsSlider[200];  
+      MenuItemSlider* m_pItemsSlider[200];
 };

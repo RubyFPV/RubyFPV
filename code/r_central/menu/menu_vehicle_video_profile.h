@@ -16,10 +16,10 @@ class MenuVehicleVideoProfileSelector: public Menu
       virtual void onShow();
       virtual void onSelectItem();
       virtual void valuesToUI();
-            
+
    private:
       MenuItemSelect* m_pItemsSelect[10];
-      MenuItemSlider* m_pItemsSlider[10];      
+      MenuItemSlider* m_pItemsSlider[10];
       MenuItemRadio* m_pItemsRadio[10];
 
       int m_IndexVideoProfile;

@@ -170,7 +170,7 @@ void vehicle_launch_tx_router(Model* pModel)
       }
       #endif
    }
-   
+
    hw_execute_ruby_process(szPrefix, "ruby_rt_vehicle", NULL, NULL);
 }
 
@@ -240,13 +240,13 @@ static void * _thread_audio_capture(void *argument)
       if ( g_bReinitializeRadioInProgress )
       {
          hardware_sleep_ms(50);
-         continue;         
+         continue;
       }
 
       u32 uTimeCheck = get_current_timestamp_ms();
 
       hw_execute_bash_command(szCommCapture, NULL);
-      
+
       u32 uTimeNow = get_current_timestamp_ms();
       if ( uTimeNow < uTimeCheck + (u32)iIntervalSec * 500 )
       {

@@ -88,7 +88,7 @@ void log_page_faults()
    int iCounter = 0;
 
    while ( ! s_bQuit )
-   {   
+   {
       _check_process("ruby_logger", 0);
       _check_process("ruby_rt_vehicle", 1);
       _check_process("ruby_tx_telemetry", 2);
@@ -126,13 +126,13 @@ void log_page_faults()
    }
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("--------------------------");
    log_line("Caught signal to stop: %d", sig);
    log_line("--------------------------");
    s_bQuit = true;
-} 
+}
 
 
 int main(int argc, char *argv[])
@@ -156,4 +156,4 @@ int main(int argc, char *argv[])
    }
    hw_log_processes(argc, argv);
    return 0;
-} 
+}

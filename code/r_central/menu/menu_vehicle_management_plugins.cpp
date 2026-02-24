@@ -75,7 +75,7 @@ void MenuVehicleManagePlugins::populateInfo()
 
    m_iCountPlugins = 0;
    m_IndexSelectedPlugin = -1;
-   
+
    if ( 0 == g_iVehicleCorePluginsCount )
    {
       addTopLine("No core plugins installed on this vehicle.");
@@ -109,7 +109,7 @@ void MenuVehicleManagePlugins::populateInfo()
    }
 
    m_IndexSync = addMenuItem(new MenuItem("Sync Plugins From Controller", "Gets all plugins from controller and install them on this vehicle."));
-   
+
    if ( 0 == g_iVehicleCorePluginsCount && 0 == get_CorePluginsCount() )
       m_pMenuItems[m_IndexSync]->setEnabled(false);
 }
@@ -144,7 +144,7 @@ bool MenuVehicleManagePlugins::periodicLoop()
             m_bWaitingForVehicleInfo = false;
             populateInfo();
             Popup* p = new Popup("Core plugins uploaded.", 0.3, 0.3, 0.5, 4 );
-            popups_add_topmost(p);      
+            popups_add_topmost(p);
          }
       }
       return false;
@@ -177,7 +177,7 @@ bool MenuVehicleManagePlugins::periodicLoop()
       {
          Popup* p = new Popup("Core plugins uploaded.", 0.3, 0.3, 0.5, 4 );
          popups_add_topmost(p);
-   
+
          valuesToUI();
       }
       else
@@ -185,7 +185,7 @@ bool MenuVehicleManagePlugins::periodicLoop()
    }
 
    valuesToUI();
-      
+
    return false;
 }
 
@@ -196,7 +196,7 @@ int MenuVehicleManagePlugins::onBack()
 
    return Menu::onBack();
 }
-     
+
 
 void MenuVehicleManagePlugins::onReturnFromChild(int iChildMenuId, int returnValue)
 {
@@ -256,7 +256,7 @@ void MenuVehicleManagePlugins::onSelectItem()
       }
       m_pPopup = new Popup("Uploading core plugins. Please wait...", 0.3, 0.3, 0.5, 200 );
       popups_add_topmost(m_pPopup);
-      
+
       handle_commands_initiate_file_upload(FILE_ID_CORE_PLUGINS_ARCHIVE, "tmp/core_plugins.zip");
    }
 

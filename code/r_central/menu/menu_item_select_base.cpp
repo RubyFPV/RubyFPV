@@ -256,7 +256,7 @@ void MenuItemSelectBase::Render(float xPos, float yPos, bool bSelected, float fW
       RenderBaseTitle(xPos,yPos, bSelected, fWidthSelection);
       return;
    }
-   
+
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
    float width_value = g_pRenderEngine->textWidth(g_idFontMenu, m_szSelections[m_SelectedIndex]);
    float paddingH = Menu::getSelectionPaddingX();
@@ -265,7 +265,7 @@ void MenuItemSelectBase::Render(float xPos, float yPos, bool bSelected, float fW
    float triMargin = 0.2 * height_text;
    float totalWidthValue = width_value + 2.0*triSize + 2.0*triMargin;
    float xValue = xPos + m_pMenu->getUsableWidth() - totalWidthValue;
-   
+
    if ( xPos + fWidthSelection > xValue - m_pMenu->getMenuPaddingX() )
    //if ( fWidthSelection > width_title )
    {
@@ -283,7 +283,7 @@ void MenuItemSelectBase::Render(float xPos, float yPos, bool bSelected, float fW
       g_pRenderEngine->setColors(get_Color_MenuItemSelectedBg());
       g_pRenderEngine->drawRoundRect(xValue-paddingH, yPos-paddingV, totalWidthValue + 2.0*paddingH , m_RenderHeight + 2.0*paddingV, 0.1*Menu::getMenuPaddingY());
       g_pRenderEngine->setColors(get_Color_MenuText());
-   }  
+   }
 
    if ( m_bIsEditing )
       g_pRenderEngine->setColors(get_Color_MenuItemSelectedText());
@@ -320,7 +320,7 @@ void MenuItemSelectBase::RenderCondensed(float xPos, float yPos, bool bSelected,
    float triSize = 0.3*height_text;
    float triMargin = 0.2 * height_text;
    float totalWidthValue = width_value + 2*triSize + 2*triMargin;
-   
+
    if ( m_bIsEditing )
    {
       g_pRenderEngine->setColors(get_Color_MenuItemSelectedBg());

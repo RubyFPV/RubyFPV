@@ -105,7 +105,7 @@ void PopupLog::computeSize()
 
    m_RenderWidth = (m_fMaxWidth-2*Menu::getSelectionPaddingX());
    m_RenderHeight = 0;
-   
+
    if ( 0 != m_szTitle[0] )
    {
       m_RenderHeight = g_pRenderEngine->getMessageHeight(m_szTitle, POPUP_LINE_SPACING, m_RenderWidth, g_idFontMenu);
@@ -144,14 +144,14 @@ void PopupLog::Render()
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
 
    float alfaOrg = g_pRenderEngine->setGlobalAlfa(0.84);
-   
+
    g_pRenderEngine->setColors(get_Color_PopupBg());
    g_pRenderEngine->setStroke(get_Color_PopupBorder());
 
    g_pRenderEngine->drawRoundRect(m_xPos, m_yPos, m_RenderWidth, m_RenderHeight, POPUP_ROUND_MARGIN);
-   
+
    g_pRenderEngine->setColors(get_Color_PopupText());
-   
+
    float y = m_yPos+Menu::getSelectionPaddingY();
    if ( 0 != m_szTitle[0] )
    {
@@ -171,7 +171,7 @@ void PopupLog::Render()
    g_pRenderEngine->highlightFirstWordOfLine(false);
 
    g_pRenderEngine->setGlobalAlfa(alfaOrg);
-} 
+}
 
 
 void popup_log_add_entry(const char* szLine)

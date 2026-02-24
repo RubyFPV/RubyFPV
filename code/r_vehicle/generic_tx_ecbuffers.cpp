@@ -34,7 +34,7 @@
 #include "../base/config.h"
 #include "../base/models.h"
 #include "../base/utils.h"
-#include "../radio/fec.h" 
+#include "../radio/fec.h"
 #include "shared_vars.h"
 #include "generic_tx_ecbuffers.h"
 #include "timers.h"
@@ -149,7 +149,7 @@ void GenericTxECBuffers::_computeECDataOnCurrentBlock()
       m_p_ec_ec_packets[u] = &(m_pBlocks[m_iTopBufferIndex].pPackets[u + m_uBlockDataPackets]->uPacketData[0]);
 
    fec_encode(m_iBlockPacketLength, m_p_ec_data_packets, (unsigned int)m_uBlockDataPackets, m_p_ec_ec_packets, (unsigned int)m_uBlockECPackets);
-   
+
    for(u32 u=0; u<m_uBlockECPackets; u++ )
    {
       m_pBlocks[m_iTopBufferIndex].pPackets[m_uBlockDataPackets+u]->bSent = false;
@@ -244,7 +244,7 @@ int GenericTxECBuffers::getUnsendPacketsCount()
       iCount += m_pBlocks[iBlock].iFilledPackets;
       iBlock = (iBlock + 1) % m_iMaxBlocks;
    } while ( iBlock != m_iTopBufferIndex );
-   
+
    return iCount;
 }
 

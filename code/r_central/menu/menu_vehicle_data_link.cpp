@@ -79,7 +79,7 @@ void MenuVehicleDataLink::valuesToUI()
    u32 uCurrentSerialPortSpeed = 0;
    for( int i=0; i<g_pCurrentModel->hardwareInterfacesInfo.serial_port_count; i++ )
    {
-       
+
        if ( g_pCurrentModel->hardwareInterfacesInfo.serial_port_supported_and_usage[i] & MODEL_SERIAL_PORT_BIT_SUPPORTED )
        if ( (g_pCurrentModel->hardwareInterfacesInfo.serial_port_supported_and_usage[i] & 0xFF) == SERIAL_PORT_USAGE_DATA_LINK )
        {
@@ -144,7 +144,7 @@ void MenuVehicleDataLink::onSelectItem()
 
    for( int i=0; i<g_pCurrentModel->hardwareInterfacesInfo.serial_port_count; i++ )
    {
-       
+
        if ( g_pCurrentModel->hardwareInterfacesInfo.serial_port_supported_and_usage[i] & MODEL_SERIAL_PORT_BIT_SUPPORTED )
        if ( (g_pCurrentModel->hardwareInterfacesInfo.serial_port_supported_and_usage[i] & 0xFF) == SERIAL_PORT_USAGE_DATA_LINK )
        {
@@ -175,7 +175,7 @@ void MenuVehicleDataLink::onSelectItem()
             memcpy((u8*)&new_info, (u8*)&(g_pCurrentModel->hardwareInterfacesInfo), sizeof(type_vehicle_hardware_interfaces_info));
             new_info.serial_port_supported_and_usage[iCurrentSerialPortIndex] &= 0xFFFFFF00;
             new_info.serial_port_supported_and_usage[iCurrentSerialPortIndex] |= SERIAL_PORT_USAGE_NONE;
-            
+
             log_line("Sending disabling data link serial port selection to vehicle.");
             if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_SERIAL_PORTS_INFO, 0, (u8*)&new_info, sizeof(type_vehicle_hardware_interfaces_info)) )
                valuesToUI();
@@ -195,7 +195,7 @@ void MenuVehicleDataLink::onSelectItem()
             {
                MenuConfirmation* pMC = new MenuConfirmation("Telemetry Link Disabled", "The serial port was used by your telemetry link. It was reasigned to the auxiliary data link.",1, true);
                pMC->m_yPos = 0.3;
-               add_menu_to_stack(pMC);      
+               add_menu_to_stack(pMC);
             }
          }
 
@@ -206,7 +206,7 @@ void MenuVehicleDataLink::onSelectItem()
          }
          new_info.serial_port_supported_and_usage[iSerialPort-1] &= 0xFFFFFF00;
          new_info.serial_port_supported_and_usage[iSerialPort-1] |= SERIAL_PORT_USAGE_DATA_LINK;
-         
+
          log_line("Sending new serial port to be used for data link to vehicle.");
          if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_SERIAL_PORTS_INFO, 0, (u8*)&new_info, sizeof(type_vehicle_hardware_interfaces_info)) )
             valuesToUI();

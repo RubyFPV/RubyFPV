@@ -147,14 +147,14 @@ void MenuDeviceI2C::createItems()
       m_pItemsSelect[3]->setIsEditable();
       m_IndexCustomSettings2 = addMenuItem(m_pItemsSelect[3]);
 
-      m_pItemsSelect[4] = new MenuItemSelect("Rotary Encoder Function", "Sets the function of the optional rotary encoder. Long press the rotary encoder for 10 seconds to revert to Menu function.");  
+      m_pItemsSelect[4] = new MenuItemSelect("Rotary Encoder Function", "Sets the function of the optional rotary encoder. Long press the rotary encoder for 10 seconds to revert to Menu function.");
       m_pItemsSelect[4]->addSelection("None");
       m_pItemsSelect[4]->addSelection("Menu Navigation");
       m_pItemsSelect[4]->addSelection("Camera Adjustment");
       m_pItemsSelect[4]->setIsEditable();
       m_IndexCustomSettings3 = addMenuItem(m_pItemsSelect[4]);
 
-      m_pItemsSelect[5] = new MenuItemSelect("Rotary Encoder Speed", "Sets the speed of the optional rotary encoder.");  
+      m_pItemsSelect[5] = new MenuItemSelect("Rotary Encoder Speed", "Sets the speed of the optional rotary encoder.");
       m_pItemsSelect[5]->addSelection("Normal");
       m_pItemsSelect[5]->addSelection("Slower");
       m_pItemsSelect[5]->setIsEditable();
@@ -185,14 +185,14 @@ void MenuDeviceI2C::createItems()
 
       if ( pInfo->uCapabilitiesFlags & I2C_CAPABILITY_FLAG_ROTARY )
       {
-         m_pItemsSelect[4] = new MenuItemSelect("Rotary Encoder Function", "Sets the function of the optional rotary encoder. Long press the rotary encoder for 10 seconds to revert to Menu function.");  
+         m_pItemsSelect[4] = new MenuItemSelect("Rotary Encoder Function", "Sets the function of the optional rotary encoder. Long press the rotary encoder for 10 seconds to revert to Menu function.");
          m_pItemsSelect[4]->addSelection("None");
          m_pItemsSelect[4]->addSelection("Menu Navigation");
          m_pItemsSelect[4]->addSelection("Camera Adjustment");
          m_pItemsSelect[4]->setIsEditable();
          m_IndexCustomSettings3 = addMenuItem(m_pItemsSelect[4]);
-      
-         m_pItemsSelect[5] = new MenuItemSelect("Rotary Encoder Speed", "Sets the speed of the optional rotary encoder.");  
+
+         m_pItemsSelect[5] = new MenuItemSelect("Rotary Encoder Speed", "Sets the speed of the optional rotary encoder.");
          m_pItemsSelect[5]->addSelection("Normal");
          m_pItemsSelect[5]->addSelection("Slower");
          m_pItemsSelect[5]->setIsEditable();
@@ -401,5 +401,5 @@ void MenuDeviceI2C::onSelectItem()
       sprintf(szBuff, "touch %s%s", FOLDER_RUBY_TEMP, FILE_TEMP_I2C_UPDATED);
       hw_execute_bash_command_silent(szBuff, NULL);
       valuesToUI();
-   }   
+   }
 }

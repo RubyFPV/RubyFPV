@@ -85,7 +85,7 @@ void MenuVehicleVideo::addItems()
    int iTmp = getSelectedMenuItemIndex();
 
    float fSliderWidth = 0.12 * Menu::getScaleFactor();
-   
+
    removeAllItems();
    m_pItemsSelect[0] = NULL;
 
@@ -104,12 +104,12 @@ void MenuVehicleVideo::addItems()
    strcat(szCam, szCam2);
    //addTopLine(szCam);
    setTitle(szCam);
-  
+
    m_pVideoResolutions = getOptionsVideoResolutions(g_pCurrentModel->getActiveCameraType());
    m_iVideoResolutionsCount = getOptionsVideoResolutionsCount(g_pCurrentModel->getActiveCameraType());
 
    m_pItemsSelect[0] = new MenuItemSelect(L("Resolution"), L("Sets the resolution of the video stream."));
-   
+
    for( int i=0; i<m_iVideoResolutionsCount; i++ )
    {
       sprintf(szBuff, "%s (%d x %d)", m_pVideoResolutions[i].szName, m_pVideoResolutions[i].iWidth, m_pVideoResolutions[i].iHeight);
@@ -122,7 +122,7 @@ void MenuVehicleVideo::addItems()
 
 
    m_pItemsSelect[0]->setIsEditable();
-   m_IndexRes = addMenuItem(m_pItemsSelect[0]);      
+   m_IndexRes = addMenuItem(m_pItemsSelect[0]);
 
    bool bFound = false;
    int iMaxFPS = getMaxFPSForCurrentVideoRes(&bFound);
@@ -159,7 +159,7 @@ void MenuVehicleVideo::addItems()
    m_pItemsSlider[2]->enableHalfSteps();
    m_pItemsSlider[2]->setSufix("Mbps");
    m_IndexVideoBitrate = addMenuItem(m_pItemsSlider[2]);
-   
+
    m_pMenuItemVideoWarning = new MenuItemText("", true);
    m_pMenuItemVideoWarning->setHidden(true);
    addMenuItem(m_pMenuItemVideoWarning);
@@ -202,7 +202,7 @@ void MenuVehicleVideo::addItems()
       }
       else
       {
-         m_pItemsSelect[2] = new MenuItemSelect(L("Video Profile"), L("Change all video params to get a particular desired video quality."));  
+         m_pItemsSelect[2] = new MenuItemSelect(L("Video Profile"), L("Change all video params to get a particular desired video quality."));
          m_pItemsSelect[2]->addSelection(L("High Quality"));
          m_pItemsSelect[2]->addSelection(L("High Performance"));
          m_pItemsSelect[2]->addSelection(L("Long Range"));
@@ -238,7 +238,7 @@ void MenuVehicleVideo::addItems()
    {
       m_IndexExpert = addMenuItem(new MenuItem(L("Advanced Video Settings"), L("Change advanced video parameters for current profile.")));
       m_pMenuItems[m_IndexExpert]->showArrow();
-   }   
+   }
 
    if ( m_bShowCompact )
       m_IndexShowFull = addMenuItem(new MenuItem(L("Show all video settings"), L("")));
@@ -255,7 +255,7 @@ void MenuVehicleVideo::addItems()
 void MenuVehicleVideo::valuesToUI()
 {
    char szBuff[128];
-   
+
    checkAddWarningInMenu();
 
    //u32 uVideoProfileEncodingFlags = g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uProfileEncodingFlags;
@@ -274,7 +274,7 @@ void MenuVehicleVideo::valuesToUI()
       sprintf(szBuff, "Info: You are using a custom resolution (%d x %d) on this %s.", g_pCurrentModel->video_params.iVideoWidth, g_pCurrentModel->video_params.iVideoHeight, g_pCurrentModel->getVehicleTypeString());
       addTopLine(szBuff);
    }
-   
+
    if ( -1 != m_IndexVideoBitrate )
    {
       m_pItemsSlider[2]->setCurrentValue(4*g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS/1000/1000);
@@ -326,13 +326,13 @@ void MenuVehicleVideo::valuesToUI()
    if ( g_pCurrentModel->isVideoLinkFixedOneWay() )
       m_pItemsSelect[5]->setSelectedIndex(0);
    else
-      m_pItemsSelect[5]->setSelectedIndex(1);   
+      m_pItemsSelect[5]->setSelectedIndex(1);
 }
 
 void MenuVehicleVideo::Render()
 {
    RenderPrepare();
-   
+
    float yTop = RenderFrameAndTitle();
    float y = yTop;
 
@@ -363,7 +363,7 @@ int MenuVehicleVideo::getMaxFPSForCurrentVideoRes(bool* pFound)
    int iMaxFPS = 90;
    if ( g_pCurrentModel->isActiveCameraOpenIPC() )
       iMaxFPS = 120;
-    
+
    bool bFound = false;
    for(int i=0; i<m_iVideoResolutionsCount; i++ )
    {
@@ -420,7 +420,7 @@ void MenuVehicleVideo::sendVideoSettings()
       paramsNew.iCurrentVideoProfile = m_pItemsRadio[0]->getSelectedIndex();
 
    int videoResolutionIndex = m_pItemsSelect[0]->getSelectedIndex();
- 
+
    paramsNew.iVideoWidth = m_pVideoResolutions[videoResolutionIndex].iWidth;
    paramsNew.iVideoHeight = m_pVideoResolutions[videoResolutionIndex].iHeight;
 
@@ -514,7 +514,7 @@ void MenuVehicleVideo::sendVideoSettings()
          addMessage(szTextW);
          valuesToUI();
          return;
-      }         
+      }
       paramsNew.uVideoExtraFlags |= VIDEO_FLAG_GENERATE_H265;
    }
 
@@ -615,7 +615,7 @@ void MenuVehicleVideo::onSelectItem()
       return;
    }
    */
-   
+
    if ( (-1 != m_IndexShowFull) && (m_IndexShowFull == m_SelectedIndex) )
    {
       m_bShowCompact = false;
@@ -637,7 +637,7 @@ void MenuVehicleVideo::onSelectItem()
       type_video_link_profile profiles[MAX_VIDEO_LINK_PROFILES];
       memcpy((u8*)&profiles[0], (u8*)&g_pCurrentModel->video_link_profiles[0], MAX_VIDEO_LINK_PROFILES*sizeof(type_video_link_profile));
       memcpy(&paramsNew, &g_pCurrentModel->video_params, sizeof(video_parameters_t));
-      
+
       memcpy((u8*)&profiles[VIDEO_PROFILE_USER], (u8*)&profiles[paramsNew.iCurrentVideoProfile], sizeof(type_video_link_profile));
       paramsNew.iCurrentVideoProfile = VIDEO_PROFILE_USER;
 

@@ -7,12 +7,12 @@ class MenuControllerCPUPriorities: public Menu
 {
    public:
       MenuControllerCPUPriorities();
-      virtual void onShow(); 
+      virtual void onShow();
       virtual void Render();
       virtual void valuesToUI();
       virtual void onItemValueChanged(int itemIndex);
       virtual void onItemEndEdit(int itemIndex);
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);      
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
 
    private:
@@ -29,10 +29,10 @@ class MenuControllerCPUPriorities: public Menu
       int m_iIndexPriorityVideoRx;
       int m_iIndexPriorityVideoRec;
       int m_iIndexPriorityOthers;
-      int m_iIndexIONiceRouter, m_iIndexIONiceRxVideo; 
+      int m_iIndexIONiceRouter, m_iIndexIONiceRxVideo;
 
       int m_IndexQuery;
       int m_IndexResetPriorities;
 
-     
+
 };

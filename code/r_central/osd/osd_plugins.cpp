@@ -231,7 +231,7 @@ SinglePluginSettings* osd_get_settings_for_plugin_for_model(const char* szPlugin
 
          if ( NULL == pPluginSettings2 )
             continue;
-   
+
          int osdLayoutIndex = g_pCurrentModel->osd_params.iCurrentOSDScreen;
 
          if ( g_pRenderEngine->rectIntersect( x, y, w,h, pPluginSettings2->fXPos[iModelSettingsIndex][osdLayoutIndex],  pPluginSettings2->fYPos[iModelSettingsIndex][osdLayoutIndex], pPluginSettings2->fWidth[iModelSettingsIndex][osdLayoutIndex], pPluginSettings2->fHeight[iModelSettingsIndex][osdLayoutIndex] ) )
@@ -280,9 +280,9 @@ SinglePluginSettings* osd_get_settings_for_plugin_for_model(const char* szPlugin
             for( int k=0; k<MODEL_MAX_OSD_SCREENS; k++ )
                pPlugin->nSettings[iModelSettingsIndex][k][i] = defValue;
    }
-   
+
    save_PluginsSettings();
-   
+
    return pPlugin;
 }
 
@@ -322,7 +322,7 @@ void _osd_load_plugin(const char* szFile)
       log_softerror_and_alarm("Failed to load OSD plugin: [%s]: does not export the required interfaces.", szFile);
       dlclose(g_pPluginsOSD[g_iPluginsOSDCount]->pLibrary);
       return;
-   } 
+   }
 
    // Get optional functions
 
@@ -344,7 +344,7 @@ void _osd_load_plugin(const char* szFile)
    char* szPluginUID = (*(g_pPluginsOSD[g_iPluginsOSDCount]->pFunctionGetUID))();
 
    strcpy(g_pPluginsOSD[g_iPluginsOSDCount]->szUID, szPluginUID);
-   
+
    if ( NULL == g_pRenderEngineOSDPlugins )
       g_pRenderEngineOSDPlugins = new RenderEngineUI();
 
@@ -371,7 +371,7 @@ void osd_plugins_load()
    for( int i=0; i<g_iPluginsOSDCount; i++ )
       if ( NULL != g_pPluginsOSD[i]->pLibrary )
          dlclose(g_pPluginsOSD[i]->pLibrary);
-      
+
    g_iPluginsOSDCount = 0;
    g_bOSDPluginsNeedTelemetryStreams = false;
 
@@ -444,7 +444,7 @@ void osd_plugins_render()
          int iRes = (*(g_pPluginsOSD[i]->pFunctionRequestTelemetryStreams))();
          if ( iRes > 0 )
             g_bOSDPluginsNeedTelemetryStreams = true;
-      }      
+      }
    }
 
    if ( bOldOSDPluginsNeedTelemetry != g_bOSDPluginsNeedTelemetryStreams )
@@ -458,13 +458,13 @@ void osd_plugins_render()
       double pC[4] = {255,100,100,0.7};
       g_pRenderEngine->setStroke(pC);
 
-      g_pRenderEngine->drawLine(0.01, 0.5, 0.99, 0.5 ); 
-      g_pRenderEngine->drawLine(0.5, 0.01, 0.5, 0.99 ); 
+      g_pRenderEngine->drawLine(0.01, 0.5, 0.99, 0.5 );
+      g_pRenderEngine->drawLine(0.5, 0.01, 0.5, 0.99 );
 
-      g_pRenderEngine->drawLine(0.01, 0.33, 0.99, 0.33 ); 
-      g_pRenderEngine->drawLine(0.0, 0.66, 1.0, 0.66); 
-      g_pRenderEngine->drawLine(0.33, 0.0, 0.33, 1.0 ); 
-      g_pRenderEngine->drawLine(0.66, 0.0, 0.66, 1.0 ); 
+      g_pRenderEngine->drawLine(0.01, 0.33, 0.99, 0.33 );
+      g_pRenderEngine->drawLine(0.0, 0.66, 1.0, 0.66);
+      g_pRenderEngine->drawLine(0.33, 0.0, 0.33, 1.0 );
+      g_pRenderEngine->drawLine(0.66, 0.0, 0.66, 1.0 );
       g_pRenderEngine->setGlobalAlfa(fA);
    }
 
@@ -493,7 +493,7 @@ void osd_plugins_render()
       vehicle_and_telemetry_info_t telemetry_info;
       vehicle_and_telemetry_info2_t telemetry_info2;
 
-      memcpy(&telemetry_info, &g_VehicleTelemetryInfo, sizeof(vehicle_and_telemetry_info_t));      
+      memcpy(&telemetry_info, &g_VehicleTelemetryInfo, sizeof(vehicle_and_telemetry_info_t));
       telemetry_info.pExtraInfo = &telemetry_info2;
       telemetry_info2.uTimeNow = g_TimeNow;
       telemetry_info2.uTimeNowVehicle = g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerRubyTelemetryExtraInfo.uTimeNow;
@@ -559,7 +559,7 @@ void osd_plugins_render()
           plugin_settings.nSettingsValues[k] = pPlugin->nSettings[iModelSettingsIndex][osdLayoutIndex][k];
 
       plugin_settings_extra_info.iMeasureUnitsType = p->iUnits;
-      
+
       float xPos = osd_getMarginX() + (1.0-2.0*osd_getMarginX())*pPlugin->fXPos[iModelSettingsIndex][osdLayoutIndex];
       float yPos = osd_getMarginY() + (1.0-2.0*osd_getMarginY())*pPlugin->fYPos[iModelSettingsIndex][osdLayoutIndex];
 

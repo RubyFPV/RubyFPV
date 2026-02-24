@@ -171,7 +171,7 @@ void MenuConfirmation::onShow()
       onFocusedItemChanged();
    }
 }
- 
+
 void MenuConfirmation::valuesToUI()
 {
 
@@ -187,16 +187,16 @@ void MenuConfirmation::Render()
 
    if ( m_uIconId != 0 )
       m_RenderWidth += iconWidth + m_sfMenuPaddingX;
-   
+
    float yTop = RenderFrameAndTitle();
    float y = yTop;
-   
+
    if ( m_uIconId != 0 )
       m_RenderWidth -= iconWidth + m_sfMenuPaddingX;
 
    for( int i=0; i<m_ItemsCount; i++ )
       y += RenderItem(i,y);
-  
+
    if ( m_uIconId != 0 )
    {
       g_pRenderEngine->setColors(get_Color_MenuText(), 0.9);
@@ -244,7 +244,7 @@ void MenuConfirmation::onSelectItem()
    Menu::onSelectItem();
    if ( (-1 == m_SelectedIndex) || (m_pMenuItems[m_SelectedIndex]->isEditing()) )
       return;
-   
+
    if ( (m_iIndexMenuOk != -1) && (m_iIndexMenuOk == m_SelectedIndex) )
    if ( (m_MenuId%1000) != MENU_ID_SIMPLE_MESSAGE ) // if it's a simple message menu, it was poped up by menu base.
    {

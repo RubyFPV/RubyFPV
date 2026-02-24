@@ -32,7 +32,7 @@ typedef u32 __le32;
 #define RUBY_HW_CLOCK_ID CLOCK_MONOTONIC
 
 #define SYSTEM_NAME "Ruby"
-// dword[3...0]: BB.BB.MM.mm  (BB.BB: build number (highest bytes), MM: major ver, mm: minor ver (lowest byte)) 
+// dword[3...0]: BB.BB.MM.mm  (BB.BB: build number (highest bytes), MM: major ver, mm: minor ver (lowest byte))
 #define SYSTEM_SW_VERSION_MAJOR 11
 #define SYSTEM_SW_VERSION_MINOR 8
 #define SYSTEM_SW_BUILD_NUMBER  11801
@@ -71,7 +71,7 @@ typedef struct
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 extern u32 g_TimeNow;
 extern u32 g_TimeStart;
@@ -141,5 +141,5 @@ key_t generate_msgqueue_key(int iMsgQueueId);
 int is_semaphore_signaled_clear(sem_t* pSemaphore, const char* szSemName);
 int is_semaphore_signaled_clear_logok(sem_t* pSemaphore, const char* szSemName, int iLogOk);
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

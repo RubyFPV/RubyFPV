@@ -171,7 +171,7 @@ void PopupCameraParams::onShow()
    {
       m_bHasVolume = true;
       m_iIndexVolume = m_iTotalParams;
-      m_iTotalParams++;    
+      m_iTotalParams++;
    }
    */
 
@@ -281,7 +281,7 @@ void PopupCameraParams::Render()
    strcat(szText, ":");
    //strcat(szText, szBuff);
 
-   g_pRenderEngine->setColors(get_Color_PopupText());   
+   g_pRenderEngine->setColors(get_Color_PopupText());
    g_pRenderEngine->drawText(x+dx, y, g_idFontMenuSmall, szText);
    float fw = g_pRenderEngine->textWidth(g_idFontMenuSmall, szText);
    g_pRenderEngine->drawText(x+dx+fw + 0.02, y-0.2*height_text, g_idFontMenu, szBuff);
@@ -294,7 +294,7 @@ void PopupCameraParams::Render()
    g_pRenderEngine->setStroke(get_Color_MenuText());
    g_pRenderEngine->setStrokeSize(0);
 
-   
+
    g_pRenderEngine->setColors(get_Color_MenuText(), 0.2);
    g_pRenderEngine->setStrokeSize(1);
 
@@ -334,7 +334,7 @@ void PopupCameraParams::handleRotaryEvents(bool bCW, bool bCCW, bool bFastCW, bo
    {
       m_uTimeLastChange = get_current_timestamp_ms();
       setTimeout(5);
-   }   
+   }
 
    if ( bCancel )
    {
@@ -361,12 +361,12 @@ void PopupCameraParams::handleRotaryEvents(bool bCW, bool bCCW, bool bFastCW, bo
 
    if ( ! bHasMoved )
       return;
-     
+
    if ( ! m_bHasPendingCameraChanges )
       memcpy(&m_PendingCameraChanges, &(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera]), sizeof(type_camera_parameters));
    if ( ! m_bHasPendingAudioChanges )
       memcpy(&m_PendingAudioChanges, &(g_pCurrentModel->audio_params), sizeof(audio_parameters_t));
-   
+
    int iProfile = g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].iCurrentProfile;
 
    if ( m_iParamToAdjust == m_iIndexParamBrightness )

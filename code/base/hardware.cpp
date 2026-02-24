@@ -137,7 +137,7 @@ hw_joystick_info_t s_HardwareJoystickInfo[MAX_JOYSTICK_INTERFACES];
 void _hardware_detectSystemType()
 {
    log_line("[Hardware] Detecting system type...");
-   
+
    char szBuff[256];
    char szFile[MAX_FILE_PATH_SIZE];
    strcpy(szFile, FOLDER_CONFIG);
@@ -152,7 +152,7 @@ void _hardware_detectSystemType()
          fclose(fd);
          return;
       }
-      log_softerror_and_alarm("[Hardware] Failed to parse system type config file [%s]", szFile); 
+      log_softerror_and_alarm("[Hardware] Failed to parse system type config file [%s]", szFile);
       fclose(fd);
    }
    else
@@ -180,7 +180,7 @@ void _hardware_detectSystemType()
       s_iHardwareSystemIsVehicle = 1;
       iDoAditionalChecks = 0;
    }
-   
+
    val = GPIORead(GPIOGetPinDetectController());
    if ( val == 1 )
    {
@@ -191,14 +191,14 @@ void _hardware_detectSystemType()
    #endif
 
    #endif
-   
+
    #if defined (HW_PLATFORM_RASPBERRY) || defined (HW_PLATFORM_RADXA)
    if( access( FILE_FORCE_VEHICLE, R_OK ) != -1 )
    {
       log_line("[Hardware] Detected file %s to force start as vehicle or relay.", FILE_FORCE_VEHICLE);
       s_iHardwareSystemIsVehicle = 1;
       iDoAditionalChecks = 0;
-   }   
+   }
    strcpy(szFile, FOLDER_WINDOWS_PARTITION);
    strcat(szFile, "forcevehicle.txt");
    if( access( szFile, R_OK ) != -1 )
@@ -206,13 +206,13 @@ void _hardware_detectSystemType()
       log_line("[Hardware] Detected file %s to force start as vehicle or relay.", szFile);
       s_iHardwareSystemIsVehicle = 1;
       iDoAditionalChecks = 0;
-   }   
+   }
    if( access( FILE_FORCE_CONTROLLER, R_OK ) != -1 )
    {
       log_line("[Hardware] Detected file %s to force start as controller.", FILE_FORCE_CONTROLLER);
       s_iHardwareSystemIsVehicle = 0;
       iDoAditionalChecks = 0;
-   }   
+   }
    #endif
 
    #if defined (HW_CAPABILITY_I2C)
@@ -253,7 +253,7 @@ void _hardware_detectSystemType()
    {
       log_line("[Hardware] Detected file %s to force start as vehicle or relay with no camera.", FILE_FORCE_VEHICLE_NO_CAMERA);
       s_iHardwareSystemIsVehicle = 1;
-   }   
+   }
 
    #if defined (HW_PLATFORM_RASPBERRY) || defined (HW_PLATFORM_OPENIPC_CAMERA)
    if ( iDoAditionalChecks )
@@ -263,7 +263,7 @@ void _hardware_detectSystemType()
       s_iHardwareSystemIsVehicle = 1;
    }
    #endif
-   
+
    if ( s_iHardwareSystemIsVehicle )
    {
       if ( 0 == hardware_hasCamera() )
@@ -284,7 +284,7 @@ void _hardware_detectSystemType()
 int init_hardware()
 {
    log_force_full_log();
-   
+
    log_line("[Hardware] Start Initialization...");
    s_uTimeInitHardware = get_current_timestamp_ms();
 
@@ -359,7 +359,7 @@ int init_hardware()
          log_line("[Hardware] Failed set GPIO configuration for pin for LED red (GPIO: %d)", GPIOGetPinLedRed());
          failed = 1;
       }
-      
+
       if ( -1 == GPIODirection(GPIOGetPinLedRed(), OUT) )
       {
          log_line("[Hardware] Failed set GPIO configuration for pin for LED red (GPIO: %d)", GPIOGetPinLedRed());
@@ -378,7 +378,7 @@ int init_hardware()
          log_line("[Hardware] Failed set GPIO configuration for pin for LED green (GPIO: %d)", GPIOGetPinLedGreen());
          failed = 1;
       }
-      
+
       if ( -1 == GPIODirection(GPIOGetPinLedGreen(), OUT) )
       {
          log_line("[Hardware] Failed set GPIO configuration for pin for LED green (GPIO: %d)", GPIOGetPinLedGreen());
@@ -390,7 +390,7 @@ int init_hardware()
    else
       log_line("[Hardware] No GPIO for led green.");
 
-  
+
    #ifdef HW_PLATFORM_RASPBERRY
    char szBuff[64];
    if ( GPIOGetPinDetectVehicle() > 0 )
@@ -434,7 +434,7 @@ int init_hardware()
 
    log_line("[Hardware] Initialization complete. %s.", failed?"Failed":"No errors");
    log_regular_mode();
-   
+
    if ( failed )
       return 0;
    return 1;
@@ -486,7 +486,7 @@ int init_hardware_only_detection_pins()
       hw_execute_bash_command_silent(szBuff, NULL);
    }
    #endif
-   
+
    log_line("[Hardware] GPIO setup successfully.");
    #endif
    s_iHardwareJoystickCount = 0;
@@ -781,7 +781,7 @@ void hardware_detectBoardAndSystemType()
 {
    if ( ! s_bHarwareHasDetectedSystemType )
       _hardware_detectSystemType();
-   
+
    if ( s_iHardwareSystemIsVehicle )
    {
       if ( 0 == hardware_hasCamera() )
@@ -856,7 +856,7 @@ int hardware_board_is_radxa(u32 uBoardType)
         ((uBoardType & BOARD_TYPE_MASK) == BOARD_TYPE_RADXA_3C) ||
         ((uBoardType & BOARD_TYPE_MASK) == BOARD_TYPE_RADXA_RUNCAM_VRX) )
       return 1;
-   return 0; 
+   return 0;
 }
 
 int hardware_board_is_openipc(u32 uBoardType)
@@ -873,7 +873,7 @@ int hardware_board_is_goke(u32 uBoardType)
    if ( (uBoardType & BOARD_TYPE_MASK) == BOARD_TYPE_OPENIPC_GOKE200 ||
         (uBoardType & BOARD_TYPE_MASK) == BOARD_TYPE_OPENIPC_GOKE210 ||
         (uBoardType & BOARD_TYPE_MASK) == BOARD_TYPE_OPENIPC_GOKE300 )
-      return 1; 
+      return 1;
    return 0;
 }
 
@@ -962,7 +962,7 @@ void hardware_enum_joystick_interfaces()
       sprintf(szDevName, "/dev/input/js%d", i);
       if ( ! _hardware_enum_joystick_query_device(szDevName, i, &(s_HardwareJoystickInfo[s_iHardwareJoystickCount])) )
          continue;
-   
+
       log_line("|  Found joystick interface [%s]: Name: %s, UID: %u, has %d axes and %d buttons.", szDevName, s_HardwareJoystickInfo[s_iHardwareJoystickCount].szName, s_HardwareJoystickInfo[s_iHardwareJoystickCount].uId, s_HardwareJoystickInfo[s_iHardwareJoystickCount].countAxes, s_HardwareJoystickInfo[s_iHardwareJoystickCount].countButtons);
       s_iHardwareJoystickCount++;
    }
@@ -1159,7 +1159,7 @@ int hardware_read_joystick(int joystickIndex, int miliSec)
       timeEnd = timeStart;
 
    while ( get_current_timestamp_micros() < timeEnd )
-   { 
+   {
       hardware_sleep_micros(200);
       struct js_event joystickEvent[8];
       int iRead = read(s_HardwareJoystickInfo[joystickIndex].fd, &joystickEvent[0], sizeof(joystickEvent));
@@ -1305,7 +1305,7 @@ void gpio_read_buttons_loop()
       sKeyMenuPressed = 1;
       keyMenuDownStartTime += s_long_press_repeat_time;
    }
-   
+
    if ( GPIOGetButtonsPullDirection() == rBack )
    {
       sKeyBackPressed = 0;
@@ -1324,7 +1324,7 @@ void gpio_read_buttons_loop()
       sKeyBackPressed = 1;
       keyBackDownStartTime += s_long_press_repeat_time;
    }
-    
+
    if ( GPIOGetButtonsPullDirection() == rPlus )
    {
       sKeyPlusPressed = 0;
@@ -1347,7 +1347,7 @@ void gpio_read_buttons_loop()
       sKeyPlusPressed = 1;
       keyPlusDownStartTime += s_long_press_repeat_time;
    }
-   
+
    if ( GPIOGetButtonsPullDirection() == rMinus )
    {
       sKeyMinusPressed = 0;
@@ -2078,7 +2078,7 @@ char* hardware_has_eth()
    hw_execute_bash_command(szComm, szOutput);
    if ( 5 < strlen(szOutput) )
       log_line("[Hardware] ETH up command failed: (%s)", szOutput);
-   
+
    return s_szHardwareETHName;
 }
 
@@ -2099,7 +2099,7 @@ void hardware_set_default_radxa_cpu_freq()
    char szBuff[256];
    snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "echo %d | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_max_freq", DEFAULT_FREQ_RADXA*1000);
    hw_execute_bash_command_raw(szBuff, NULL);
-   hw_execute_bash_command_raw("echo 1400000 | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_min_freq", NULL); 
+   hw_execute_bash_command_raw("echo 1400000 | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_min_freq", NULL);
 }
 
 int hardware_get_cpu_speed()
@@ -2262,7 +2262,7 @@ int hardware_get_cpu_temp()
    iTemp1 = 1000 * atoi(szBuff);
    #endif
 
-   return iTemp1/1000;    
+   return iTemp1/1000;
 }
 
 void hardware_set_oipc_freq_boost(int iFreqCPUMhz, int iGPUBoost)

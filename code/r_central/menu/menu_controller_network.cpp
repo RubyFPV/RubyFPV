@@ -49,7 +49,7 @@ MenuControllerNetwork::MenuControllerNetwork(void)
 {
    m_Width = 0.29;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.2;
-   
+
    ControllerSettings* pCS = get_ControllerSettings();
    char szBuff[128];
    char szOutput[1024];
@@ -93,7 +93,7 @@ MenuControllerNetwork::MenuControllerNetwork(void)
 void MenuControllerNetwork::valuesToUI()
 {
    ControllerSettings* pCS = get_ControllerSettings();
-   
+
    if( access( "/boot/nodhcp", R_OK ) == -1 )
       m_pItemsSelect[0]->setSelection(1);
    else
@@ -157,9 +157,9 @@ void MenuControllerNetwork::onSelectItem()
          hw_execute_bash_command("echo '1' > /boot/nodhcp", NULL);
       }
       valuesToUI();
-      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);       
+      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
       return;
-   }  
+   }
 
    if ( m_IndexFixedIP == m_SelectedIndex )
    {
@@ -168,7 +168,7 @@ void MenuControllerNetwork::onSelectItem()
       if ( 1 == pCS->nUseFixedIP )
          hw_execute_bash_command("echo '1' > /boot/nodhcp", NULL);
       valuesToUI();
-      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);       
+      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
       return;
    }
 
@@ -179,7 +179,7 @@ void MenuControllerNetwork::onSelectItem()
       pCS->uFixedIP |= ((int)m_pItemsRange[0]->getCurrentValue()) & 0xFF;
       save_ControllerSettings();
       valuesToUI();
-      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);       
+      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
       return;
    }
 

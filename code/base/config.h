@@ -121,7 +121,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 void getSystemVersionString(char* p, u32 swversion);
 int hardware_file_check_and_fix_access_c(char* szFullFileName);
@@ -142,5 +142,5 @@ void get_Ruby_BaseVersion(int* pMajor, int* pMinor);
 void get_Ruby_UpdatedVersion(int* pMajor, int* pMinor);
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

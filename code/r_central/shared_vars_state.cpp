@@ -114,7 +114,7 @@ void reset_vehicle_runtime_info(t_structure_vehicle_info* pInfo)
    pInfo->bGotRubyTelemetryExtraInfo = false;
    pInfo->bGotRubyTelemetryExtraInfoRetransmissions = false;
    pInfo->bGotStatsVehicleRxCards = false;
-   
+
    pInfo->bRubyTelemetryLost = false;
    pInfo->iFrequencyRubyTelemetryFull = 0;
    pInfo->iFrequencyRubyTelemetryShort = 0;
@@ -122,7 +122,7 @@ void reset_vehicle_runtime_info(t_structure_vehicle_info* pInfo)
    pInfo->uTimeLastRecvRubyTelemetryExtended = 0;
    pInfo->uTimeLastRecvRubyTelemetryShort = 0;
    pInfo->uTimeLastRecvAnyRubyTelemetry = 0;
-   
+
    pInfo->uTimeLastRecvVehicleRxStats = 0;
 
    reset_counters(&(pInfo->vehicleDebugRouterCounters));
@@ -133,12 +133,12 @@ void reset_vehicle_runtime_info(t_structure_vehicle_info* pInfo)
    memset( &(pInfo->headerRubyTelemetryShort), 0, sizeof(t_packet_header_ruby_telemetry_short));
    for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
       memset( &(pInfo->SMVehicleRxStats[i]), 0, sizeof(shared_mem_radio_stats_radio_interface));
-   
+
    memset( &(pInfo->headerRelayRadioLinksInfo), 0, sizeof(t_packet_header_relay_radio_info));
 
    // Reset FC telemetry info
    reset_vehicle_telemetry_runtime_info(pInfo);
-   
+
    // Reset other settings
 
    pInfo->bLinkLost = false;
@@ -156,7 +156,7 @@ void reset_vehicle_runtime_info(t_structure_vehicle_info* pInfo)
    //pInfo->fHomeLon = 0.0;
    //pInfo->fHomeLastLat = 0.0;
    //pInfo->fHomeLastLon = 0.0;
-   
+
    // Reset temporary info
 
    for( int i=0; i<20; i++ )
@@ -192,7 +192,7 @@ void reset_vehicle_telemetry_runtime_info(t_structure_vehicle_info* pInfo)
    pInfo->uTimeLastRecvFCTelemetry = 0;
    pInfo->uTimeLastRecvFCTelemetryFull = 0;
    pInfo->uTimeLastRecvFCTelemetryShort = 0;
-   
+
    pInfo->uLastFCFlightMode = 0;
    pInfo->uLastFCFlags = 0;
 
@@ -205,7 +205,7 @@ void reset_vehicle_telemetry_runtime_info(t_structure_vehicle_info* pInfo)
 
    pInfo->uTimeLastMessageFromFC = 0;
    pInfo->szLastMessageFromFC[0] = 0;
-   
+
    parse_msp_reset_state(&pInfo->mspState);
 
    pInfo->tmp_iCountFCTelemetryPacketsFull = 0;
@@ -218,9 +218,9 @@ void shared_vars_state_reset_all_vehicles_runtime_info()
 
    reset_vehicle_runtime_info(&g_SearchVehicleRuntimeInfo);
    reset_vehicle_runtime_info(&g_UnexpectedVehicleRuntimeInfo);
-   
+
    g_iCurrentActiveVehicleRuntimeInfoIndex = 0;
-   
+
    // First vehicle is always the main vehicle, the next ones are relayed vehicles
 
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
@@ -298,7 +298,7 @@ void log_current_runtime_vehicles_info()
          swversion = get_sw_version_build(g_VehiclesRuntimeInfo[i].pModel);
       }
       log_line("* Current vehicles runtime info: vehicle[%d]: VID: %u %s, %s, Model: %p, model stored VID: %u, sw version: b-%d, %s",
-         i, g_VehiclesRuntimeInfo[i].uVehicleId, 
+         i, g_VehiclesRuntimeInfo[i].uVehicleId,
          (g_VehiclesRuntimeInfo[i].bGotRubyTelemetryInfo)?"has Ruby-Tel":"no Ruby-Tel",
          (g_VehiclesRuntimeInfo[i].bGotFCTelemetry)?"has FC-Tel":"no FC-Tel",
          g_VehiclesRuntimeInfo[i].pModel,
@@ -316,7 +316,7 @@ void log_current_runtime_vehicles_info()
          strcpy(szTmp, g_SearchVehicleRuntimeInfo.pModel->is_spectator?"spectator mode":"control mode");
 
       log_line("* Current search vehicle runtime info: VID: %u %s, %s, Model: %p, model stored VID: %u, %s",
-         g_SearchVehicleRuntimeInfo.uVehicleId, 
+         g_SearchVehicleRuntimeInfo.uVehicleId,
          (g_SearchVehicleRuntimeInfo.bGotRubyTelemetryInfo)?"RT":"no RT",
          (g_SearchVehicleRuntimeInfo.bGotFCTelemetry)?"FCT":"no FCT",
          g_SearchVehicleRuntimeInfo.pModel,
@@ -334,7 +334,7 @@ void log_current_runtime_vehicles_info()
          strcpy(szTmp, g_UnexpectedVehicleRuntimeInfo.pModel->is_spectator?"spectator mode":"control mode");
 
       log_line("* Current unexpected vehicle runtime info: VID: %u %s, %s, Model: %p, model stored VID: %u, %s",
-         g_UnexpectedVehicleRuntimeInfo.uVehicleId, 
+         g_UnexpectedVehicleRuntimeInfo.uVehicleId,
          (g_UnexpectedVehicleRuntimeInfo.bGotRubyTelemetryInfo)?"RT":"no RT",
          (g_UnexpectedVehicleRuntimeInfo.bGotFCTelemetry)?"FCT":"no FCT",
          g_UnexpectedVehicleRuntimeInfo.pModel,
@@ -395,7 +395,7 @@ void vehicle_runtime_reset_has_received_fc_telemetry_info(u32 uVehicleId)
 
    t_structure_vehicle_info* pRuntimeInfo = get_vehicle_runtime_info_for_vehicle_id(uVehicleId);
    if ( (NULL == pRuntimeInfo) || (NULL == pRuntimeInfo->pModel) )
-      return; 
+      return;
 
    parse_msp_reset_state(&pRuntimeInfo->mspState);
    pRuntimeInfo->uTimeLastRecvFCTelemetry = 0;

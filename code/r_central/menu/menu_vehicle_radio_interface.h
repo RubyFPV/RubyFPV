@@ -13,7 +13,7 @@ class MenuVehicleRadioInterface: public Menu
       virtual void onShow();
       virtual void onItemValueChanged(int itemIndex);
       virtual void onSelectItem();
-            
+
    private:
       void sendInterfaceCapabilitiesFlags(int iInterfaceIndex);
       void sendInterfaceRadioFlags(int iInterfaceIndex);

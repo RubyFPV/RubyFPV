@@ -13,7 +13,7 @@ class MenuVehicleRadioRuntimeCapabilities: public Menu
       virtual void valuesToUI();
       virtual void Render();
       virtual void onSelectItem();
-            
+
    private:
       MenuItemSelect* m_pItemsSelect[10];
       MenuItemSlider* m_pItemsSlider[10];

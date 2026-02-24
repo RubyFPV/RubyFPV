@@ -155,9 +155,9 @@ int save_Preferences()
    }
 
    fprintf(fd, "%s\n", PREFERENCES_SETTINGS_STAMP_ID);
-   
-   fprintf(fd, "%d %d %d\n", s_Preferences.iMenusStacked, s_Preferences.iInvertColorsOSD, s_Preferences.iInvertColorsMenu); 
-   fprintf(fd, "%d %d %d %d\n", s_Preferences.iOSDScreenSize, s_Preferences.iScaleOSD, s_Preferences.iScaleMenus, s_Preferences.iScaleAHI); 
+
+   fprintf(fd, "%d %d %d\n", s_Preferences.iMenusStacked, s_Preferences.iInvertColorsOSD, s_Preferences.iInvertColorsMenu);
+   fprintf(fd, "%d %d %d %d\n", s_Preferences.iOSDScreenSize, s_Preferences.iScaleOSD, s_Preferences.iScaleMenus, s_Preferences.iScaleAHI);
    fprintf(fd, "%d %d %d\n", s_Preferences.iActionQuickButton1, s_Preferences.iActionQuickButton2, s_Preferences.iActionQuickButton3);
    fprintf(fd, "%d %d\n", s_Preferences.iAddOSDOnScreenshots, s_Preferences.iStatsToggledOff);
    fprintf(fd, "%d\n", s_Preferences.iShowLogWindow);
@@ -430,7 +430,7 @@ int load_Preferences()
       s_Preferences.iOSDFontBold = 0;
       s_Preferences.iMenuFontBold = 0;
    }
-   
+
    if ( bOk && (3 != fscanf(fd, "%d %d %d", &s_Preferences.iMSPOSDSize, &s_Preferences.iMSPOSDDeltaX, &s_Preferences.iMSPOSDDeltaY)) )
    {
       s_Preferences.iMSPOSDSize = 100;

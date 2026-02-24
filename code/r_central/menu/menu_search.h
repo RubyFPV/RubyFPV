@@ -12,7 +12,7 @@ class MenuSearch: public Menu
       virtual void Render();
       virtual void onShow();
       virtual int onBack();
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
       void setSpectatorOnly();
 

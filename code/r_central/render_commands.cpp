@@ -105,7 +105,7 @@ void render_animation_bars( float xPos, float yPos, float fWidth, float fHeight,
       g_pRenderEngine->drawRoundRect(xPosText-fMargin, yPos - height_text*1.5 - fMargin, fTextWidth + 2.0*fMargin, fHeight + height_text * 1.5 + 2.0*fMargin, 0.02);
       //g_pRenderEngine->setGlobalAlfa(fAlpha);
    }
-   
+
    for( int i=0; i<numBars; i++ )
    {
       g_pRenderEngine->setFill(COLOR_RADIO_BARS[0], COLOR_RADIO_BARS[1], COLOR_RADIO_BARS[2], COLOR_RADIO_BARS[3]);
@@ -153,10 +153,10 @@ void render_animation_bars( float xPos, float yPos, float fWidth, float fHeight,
       g_pRenderEngine->drawText(xPos+fWidth+0.01, yPos+height_text*0.1, g_idFontOSDBig, szBuff);
    }
    else if ( 0 != szMsgToDisplay[0] )
-   { 
+   {
       float fTextWidth = g_pRenderEngine->textWidth(g_idFontOSD, szMsgToDisplay);
       fTextWidth += g_pRenderEngine->textWidth(g_idFontOSD, "**");
-       
+
       char szTmp[256];
       strcpy(szTmp, szMsgToDisplay);
       for( int i=0; i<((sl_iCountUploadTextDotsCount/10) % 3); i++ )

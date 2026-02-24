@@ -20,10 +20,10 @@ class MenuVehicleOSDPlugin: public Menu
       virtual void onMoveDown(bool bIgnoreReversion);
       virtual void onMoveLeft(bool bIgnoreReversion);
       virtual void onMoveRight(bool bIgnoreReversion);
-      
+
       virtual int onBack();
       virtual void onSelectItem();
-            
+
    private:
       void readPlugin();
       void stopAction();

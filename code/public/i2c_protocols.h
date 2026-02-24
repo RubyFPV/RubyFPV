@@ -4,15 +4,15 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif   
+#endif
 
 typedef unsigned int u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif
 
 // Protocol is:
 // 1. * Master sends a command to slave (2...N bytes, depending on command type). First byte of all commands is the command start flag;

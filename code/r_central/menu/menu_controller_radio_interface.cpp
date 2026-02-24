@@ -51,14 +51,14 @@ MenuControllerRadioInterface::MenuControllerRadioInterface(int iInterfaceIndex)
    m_yPos = 0.1;
    m_pPopupProgress = NULL;
    m_iInterfaceIndex = iInterfaceIndex;
-   
+
    load_ControllerInterfacesSettings();
 
    char szBuff[1024];
 
    sprintf(szBuff, L("Controller Radio Interface %d Settings"), iInterfaceIndex+1);
    setTitle(szBuff);
-   
+
    m_IndexName = -1;
 
    if ( 0 == hardware_get_radio_interfaces_count() )
@@ -109,9 +109,9 @@ void MenuControllerRadioInterface::valuesToUI()
        return;
 
    radio_hw_info_t* pNIC = hardware_get_radio_info(m_iInterfaceIndex);
-      
+
    t_ControllerRadioInterfaceInfo* pCardInfo = controllerGetRadioCardInfo(pNIC->szMAC);
-      
+
    if ( NULL == pCardInfo )
       return;
 
@@ -254,7 +254,7 @@ bool MenuControllerRadioInterface::checkFlagsConsistency()
 
    if ( 0 == enabled )
    {
-      
+
       if ( iCountInterfacesNowEnabled < 2 )
       {
          addMessage(L("You can't disable all the radio interfaces!"));
@@ -306,7 +306,7 @@ bool MenuControllerRadioInterface::setCardFlags()
 
 
    cardFlags |= RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO | RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_DATA;
-   
+
    controllerSetCardFlags(pNIC->szMAC, cardFlags);
    save_ControllerInterfacesSettings();
    return true;
@@ -429,7 +429,7 @@ void MenuControllerRadioInterface::onSelectItem()
          hideProgressInfo();
       }
       else
-         valuesToUI();  
+         valuesToUI();
       return;
    }
 

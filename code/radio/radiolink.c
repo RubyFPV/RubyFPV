@@ -119,7 +119,7 @@ u8 s_uRadiotapHeaderMCS[] = {
     0x30,                   // byte 12: mcs: 20MHz bw, long guard interval, stbc, ldpc (flags, 1 byte)
     0x00,                   // byte 13: mcs index 0 (speed level, will be overwritten later)
 };
- 
+
 
 u8 s_uIEEEHeaderData[] = {
 	0x08, 0x01, 0x00, 0x00, // frame control field (2bytes), duration (2 bytes)
@@ -128,7 +128,7 @@ u8 s_uIEEEHeaderData[] = {
 	0x13, 0x12, 0x34, 0x56, 0x78, 0x90, // mac
 	0x00, 0x00 // IEEE802.11 seqnum, (will be overwritten later by Atheros firmware/wifi chip)
 };
- 
+
 u8 s_uIEEEHeaderRTS[] = {
 	0xb4, 0x01, 0x00, 0x00, // frame control field (2 bytes), duration (2 bytes)
 	0xff, //  port = 1st byte of IEEE802.11 RA (mac) must be something odd (wifi hardware determines broadcast/multicast through odd/even check)
@@ -139,7 +139,7 @@ u8 s_uIEEEHeaderData_short[] = {
 	0xff // port =  1st byte of IEEE802.11 RA (mac) must be something odd (wifi hardware determines broadcast/multicast through odd/even check)
 };
 
-uint16_t uIEEEE80211SeqNb = 0; 
+uint16_t uIEEEE80211SeqNb = 0;
 
 int _radio_encode_port(int port)
 {
@@ -223,12 +223,12 @@ void radio_reset_packets_default_frequencies(int iRCEnabled)
    s_uFrequencyRadioPacketsOnSlowLinkControllerToVehicle[PACKET_TYPE_VIDEO_ADAPTIVE_VIDEO_PARAMS] = 50;
    s_uFrequencyRadioPacketsOnSlowLinkControllerToVehicle[PACKET_TYPE_RC_FULL_FRAME] = 50;
 
-   
+
    // Vehicle to controller
 
    s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[PACKET_TYPE_RUBY_PAIRING_CONFIRMATION] = 200;
    s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[PACKET_TYPE_COMMAND_RESPONSE] = 200;
-   
+
    s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[PACKET_TYPE_RUBY_TELEMETRY_SHORT] = 300;
    s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[PACKET_TYPE_RUBY_TELEMETRY_EXTENDED] = 400;
    s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[PACKET_TYPE_FC_TELEMETRY] = 400;
@@ -238,7 +238,7 @@ void radio_reset_packets_default_frequencies(int iRCEnabled)
    s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[PACKET_TYPE_RUBY_TELEMETRY_VEHICLE_RX_CARDS_STATS] = 400;
    s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[PACKET_TYPE_RUBY_TELEMETRY_VEHICLE_TX_HISTORY] = 400;
    s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[PACKET_TYPE_RUBY_TELEMETRY_RADIO_RX_HISTORY] = 400;
-   
+
    s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[PACKET_TYPE_RUBY_ALARM] = 100;
 
    s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[PACKET_TYPE_VIDEO_ADAPTIVE_VIDEO_PARAMS_ACK] = 50;
@@ -256,7 +256,7 @@ void radio_reset_packets_default_frequencies(int iRCEnabled)
       s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[PACKET_TYPE_RUBY_TELEMETRY_VEHICLE_RX_CARDS_STATS] = 400;
       s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[PACKET_TYPE_RUBY_TELEMETRY_VEHICLE_TX_HISTORY] = 400;
       s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[PACKET_TYPE_RUBY_TELEMETRY_RADIO_RX_HISTORY] = 400;
-      
+
       s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[PACKET_TYPE_RUBY_ALARM] = 100;
    }
 }
@@ -323,7 +323,7 @@ int radio_can_send_packet_on_slow_link(int iLinkId, int iPacketType, int iFromCo
       s_uTimesLastRadioPacketsOnSlowLink[iPacketType][iLinkId] = uTimeNow;
       return 1;
    }
-   
+
    if ( (! iFromController) && (s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[iPacketType] != MAX_U32) )
    if ( uTimeNow >= s_uTimesLastRadioPacketsOnSlowLink[iPacketType][iLinkId] + s_uFrequencyRadioPacketsOnSlowLinkVehicleToController[iPacketType] )
    {
@@ -472,7 +472,7 @@ u32 radio_get_current_frames_flags_datarate()
 void radio_set_frames_flags(u32 frameFlags, u32 uTimeNow)
 {
    u32 uFrameFlagsToSet = frameFlags | RADIO_FLAGS_FRAME_TYPE_DATA;
-   
+
    if ( sRadioDataRate_bps > 0 )
    {
       uFrameFlagsToSet &= ~RADIO_FLAGS_USE_MCS_DATARATES;
@@ -492,19 +492,19 @@ void radio_set_frames_flags(u32 frameFlags, u32 uTimeNow)
       int mcsRate = -sRadioDataRate_bps-1;
       if ( mcsRate < 0 )
          mcsRate = 0;
-     
+
       if ( uFrameFlagsToSet & RADIO_FLAG_HT40 )
          mcs_flags = mcs_flags | IEEE80211_RADIOTAP_MCS_BW_40;
       else
          mcs_flags = mcs_flags | IEEE80211_RADIOTAP_MCS_BW_20;
 
       if ( uFrameFlagsToSet & RADIO_FLAG_LDPC )
-         mcs_flags = mcs_flags | IEEE80211_RADIOTAP_MCS_FEC_LDPC; 
+         mcs_flags = mcs_flags | IEEE80211_RADIOTAP_MCS_FEC_LDPC;
       if ( uFrameFlagsToSet & RADIO_FLAG_SGI )
          mcs_flags = mcs_flags | IEEE80211_RADIOTAP_MCS_SGI;
       if ( uFrameFlagsToSet & RADIO_FLAG_STBC )
          mcs_flags = mcs_flags | IEEE80211_RADIOTAP_MCS_STBC_1 << IEEE80211_RADIOTAP_MCS_STBC_SHIFT;
-  
+
       s_uRadiotapHeaderMCS[10] = mcs_known;
       s_uRadiotapHeaderMCS[11] = mcs_flags;
       s_uRadiotapHeaderMCS[12] = (uint8_t)mcsRate;
@@ -517,7 +517,7 @@ void radio_set_frames_flags(u32 frameFlags, u32 uTimeNow)
       if ( s_iLogCount_RadioFlags < 10 )
       {
          s_uLastTimeLog_RadioFlags = uTimeNow;
-   
+
          char szBuff[128];
          char szBuff2[128];
          str_get_radio_frame_flags_description(uFrameFlagsToSet, szBuff);
@@ -547,7 +547,7 @@ int radio_interfaces_broken()
 
 int radio_get_last_read_error_code()
 {
-   return s_iRadioLastReadErrorCode; 
+   return s_iRadioLastReadErrorCode;
 }
 
 int _radio_open_interface_for_read_with_filter(int interfaceIndex, char* szFilter, char* szFilterPrism)
@@ -602,18 +602,18 @@ int _radio_open_interface_for_read_with_filter(int interfaceIndex, char* szFilte
    if ( pcap_set_promisc(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap, 1) != 0 )
       log_softerror_and_alarm("Error setting [%s] to promiscous mode: %s", pRadioHWInfo->szName, pcap_geterr(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap));
 
-   if ( pcap_set_timeout(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap, -1) !=0) 
+   if ( pcap_set_timeout(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap, -1) !=0)
       log_softerror_and_alarm("Error setting [%s] timeout: %s", pRadioHWInfo->szName, pcap_geterr(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap));
-   
+
    if ( pcap_set_immediate_mode(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap, 1) != 0 )
       log_softerror_and_alarm("Error setting [%s] to immediate mode: %s", pRadioHWInfo->szName, pcap_geterr(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap));
-   
-   if ( pcap_activate(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap) !=0) 
+
+   if ( pcap_activate(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap) !=0)
       log_softerror_and_alarm("Error setting [%s] to immediate mode: %s", pRadioHWInfo->szName, pcap_geterr(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap));
-    
+
    if ( pcap_setnonblock(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap, 1, szErrbuf) < 0 )
       log_softerror_and_alarm("Error setting [%s] to nonblocking mode: %s", pRadioHWInfo->szName, szErrbuf);
-        
+
    //if ( pcap_setdirection(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap, PCAP_D_IN) < 0 )
    //   log_softerror_and_alarm("Error setting [%s] direction", pRadioHWInfo->szName);
 
@@ -671,7 +671,7 @@ int radio_open_interface_for_read(int interfaceIndex, int portNumber)
    sprintf(szFilterPrism, "radio[0x40:2] == 0x0801 && radio[0x4a:4] == 0x13123456 && radio[0x44:1] == 0x%.2x", port_encoded);
 
    int iResult = _radio_open_interface_for_read_with_filter(interfaceIndex, szFilter, szFilterPrism);
-   
+
    if ( iResult < 0 )
       return iResult;
 
@@ -728,14 +728,14 @@ int radio_open_interface_for_write(int interfaceIndex)
 
       pRadioHWInfo->runtimeInterfaceInfoTx.selectable_fd = pcap_get_selectable_fd(pRadioHWInfo->runtimeInterfaceInfoTx.ppcap);
       log_line("ppcap returned a selectable fd for write for interface %d: ppcap: %d, fd=%d", interfaceIndex + 1, pRadioHWInfo->runtimeInterfaceInfoTx.ppcap, pRadioHWInfo->runtimeInterfaceInfoTx.selectable_fd);
-      
+
       //if ( pRadioHWInfo->openedForRead )
       //   pRadioHWInfo->runtimeInterfaceInfoTx.selectable_fd = pRadioHWInfo->runtimeInterfaceInfoRx.selectable_fd;
       //else
       //   log_line("Failed to reuse read interface for write.");
    }
    else
-   {   
+   {
       log_line("Using socket for tx packets.");
       struct sockaddr_ll ll_addr;
       struct ifreq ifr;
@@ -785,7 +785,7 @@ int radio_open_interface_for_write(int interfaceIndex)
          pRadioHWInfo->runtimeInterfaceInfoTx.selectable_fd = -1;
    	     return -1;
       }
-      if (pRadioHWInfo->runtimeInterfaceInfoTx.selectable_fd == -1 ) 
+      if (pRadioHWInfo->runtimeInterfaceInfoTx.selectable_fd == -1 )
       {
           log_error_and_alarm("Error:\tCannot open socket.\tInfo: Must be root with an 802.11 card with RFMON enabled");
           return -1;
@@ -803,12 +803,12 @@ void radio_close_interface_for_read(int interfaceIndex)
    radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(interfaceIndex);
    if ( NULL == pRadioHWInfo )
    {
-      log_softerror_and_alarm("Trying to close invalid interface index. Interface index: %d", interfaceIndex+1);         
+      log_softerror_and_alarm("Trying to close invalid interface index. Interface index: %d", interfaceIndex+1);
       return;
    }
 
    radio_rx_pause_interface(interfaceIndex, "Close radio interface");
-   
+
    if ( NULL != pRadioHWInfo->runtimeInterfaceInfoRx.ppcap )
    {
       log_line("Closed radio interface %d [%s] that was used for read, selectable read fd was: %d, ppcap was: %d", interfaceIndex+1, pRadioHWInfo->szName, pRadioHWInfo->runtimeInterfaceInfoRx.selectable_fd, pRadioHWInfo->runtimeInterfaceInfoRx.ppcap);
@@ -841,7 +841,7 @@ void radio_close_interface_for_write(int interfaceIndex)
    radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(interfaceIndex);
    if ( NULL == pRadioHWInfo )
    {
-      log_softerror_and_alarm("Trying to close invalid interface index. Interface index: %d", interfaceIndex+1);         
+      log_softerror_and_alarm("Trying to close invalid interface index. Interface index: %d", interfaceIndex+1);
       return;
    }
 
@@ -890,7 +890,7 @@ u8* radio_process_wlan_data_in(int interfaceNumber, int* piOutPacketLength, int*
    int payloadLength = 0;
    int n = 0;
 
-   /*   
+   /*
    int retval = pcap_next_ex(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap, &ppcapPacketHeader, (const u_char**)&pRadioPayload);
    if (retval < 0)
    {
@@ -899,7 +899,7 @@ u8* radio_process_wlan_data_in(int interfaceNumber, int* piOutPacketLength, int*
       {
          pRadioHWInfo->runtimeInterfaceInfoRx.iErrorCount++;
 
-         log_softerror_and_alarm("rx pcap ERROR: Radio interface %d (%s) went down. Error count: %d, ppcap = %x, fd = %d", 
+         log_softerror_and_alarm("rx pcap ERROR: Radio interface %d (%s) went down. Error count: %d, ppcap = %x, fd = %d",
             interfaceNumber+1,
             pRadioHWInfo->szName,
             pRadioHWInfo->runtimeInterfaceInfoRx.iErrorCount,
@@ -937,7 +937,7 @@ u8* radio_process_wlan_data_in(int interfaceNumber, int* piOutPacketLength, int*
          //s_iRadioLastReadErrorCode = RADIO_READ_ERROR_TIMEDOUT;
          //log_softerror_and_alarm("Rx ppcap timedout reading a packet.");
          s_iRadioLastReadErrorCode = RADIO_READ_ERROR_NO_ERROR;
-         
+
          #ifdef FEATURE_RADIO_SYNCHRONIZE_RXTX_THREADS
          if ( 1 == s_iMutexRadioSyncRxTxThreadsInitialized )
             pthread_mutex_unlock(&s_pMutexRadioSyncRxTxThreads);
@@ -946,7 +946,7 @@ u8* radio_process_wlan_data_in(int interfaceNumber, int* piOutPacketLength, int*
       }
       s_iRadioLastReadErrorCode = RADIO_READ_ERROR_READ_ERROR;
       log_softerror_and_alarm("rx pcap ERROR getting received data on ppcap: %x; retval != 1; retval is: %d", pRadioHWInfo->runtimeInterfaceInfoRx.ppcap, retval);
-      log_softerror_and_alarm("pcap error: %s", pcap_geterr(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap)); 
+      log_softerror_and_alarm("pcap error: %s", pcap_geterr(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap));
       log_line("rx pcap received: %d - %d", ppcapPacketHeader->caplen, ppcapPacketHeader->len);
       #ifdef FEATURE_RADIO_SYNCHRONIZE_RXTX_THREADS
       if ( 1 == s_iMutexRadioSyncRxTxThreadsInitialized )
@@ -957,7 +957,7 @@ u8* radio_process_wlan_data_in(int interfaceNumber, int* piOutPacketLength, int*
    */
    struct pcap_pkthdr pcapHeader;
    ppcapPacketHeader = &pcapHeader;
-   pRadioPayload = (u8*) pcap_next(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap, ppcapPacketHeader); 
+   pRadioPayload = (u8*) pcap_next(pRadioHWInfo->runtimeInterfaceInfoRx.ppcap, ppcapPacketHeader);
    if ( NULL == pRadioPayload )
       return NULL;
    #ifdef DEBUG_PACKET_RECEIVED
@@ -1013,12 +1013,12 @@ u8* radio_process_wlan_data_in(int interfaceNumber, int* piOutPacketLength, int*
             //pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nChannelFlags = le16_to_cpu(*((u16 *)(rti.this_arg + 2)));
             //pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nFreq = le32toh(*(uint32_t*)(rti.this_arg)) & 0xffff;
             break;
-	
+
          case IEEE80211_RADIOTAP_ANTENNA:
             //pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nAntenna = (*rti.this_arg) + 1;
             iAntennaCount++;
             break;
-		
+
          case IEEE80211_RADIOTAP_FLAGS:
              pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nRadiotapFlags = (int)(*(uint8_t*)(rti.this_arg));
              //log_line("radio tap flags: %d", pRadioHWInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nRadiotapFlags);
@@ -1289,7 +1289,7 @@ int packet_process_and_check(int interfaceNb, u8* pPacketBuffer, int iBufferLeng
    }
 
    t_packet_header* pPH = (t_packet_header*)pPacketBuffer;
-   
+
    if ( iBufferLength < (int)sizeof(t_packet_header) )
    {
       s_iLastProcessingErrorCode = RADIO_PROCESSING_ERROR_CODE_PACKET_RECEIVED_TOO_SMALL;
@@ -1354,7 +1354,7 @@ int packet_process_and_check(int interfaceNb, u8* pPacketBuffer, int iBufferLeng
    //#endif
 
    s_iLastProcessingErrorCode = RADIO_PROCESSING_ERROR_NO_ERROR;
-   return iPacketLength;     
+   return iPacketLength;
 }
 
 int get_last_processing_error_code()
@@ -1382,7 +1382,7 @@ int radio_build_new_raw_ieee_packet(int iLocalRadioLinkId, u8* pRawPacket, u8* p
    s_uIEEEHeaderData[22] = uIEEEE80211SeqNb & 0xff;
    s_uIEEEHeaderData[23] = (uIEEEE80211SeqNb >> 8) & 0xff;
    uIEEEE80211SeqNb += 16;
-   
+
    if ( (sRadioFrameFlags & RADIO_FLAGS_USE_MCS_DATARATES) || (sRadioDataRate_bps < 0) )
    {
       memcpy(pRawPacket, s_uRadiotapHeaderMCS, sizeof(s_uRadiotapHeaderMCS));
@@ -1407,12 +1407,12 @@ int radio_build_new_raw_ieee_packet(int iLocalRadioLinkId, u8* pRawPacket, u8* p
    }
    /*
    else if ( sRadioFrameFlags & RADIO_FLAGS_FRAME_TYPE_RTS )
-   {   
+   {
       memcpy(pRawPacket, s_uIEEEHeaderRTS, sizeof (s_uIEEEHeaderRTS));
       pRawPacket += sizeof(s_uIEEEHeaderRTS);
       totalRadioLength += sizeof(s_uIEEEHeaderRTS);
       s_uLastPacketSentIEEEHeaderLength = sizeof(s_uIEEEHeaderRTS);
-   }	
+   }
    else if ( sRadioFrameFlags & RADIO_FLAGS_FRAME_TYPE_DATA_SHORT )
    {
       memcpy(pRawPacket, s_uIEEEHeaderData_short, sizeof (s_uIEEEHeaderData_short));
@@ -1434,7 +1434,7 @@ int radio_build_new_raw_ieee_packet(int iLocalRadioLinkId, u8* pRawPacket, u8* p
 
    if ( s_bRadioDebugFlag )
       memcpy(s_uLastPacketBuilt, pPacketData, nInputLength);
-   
+
    #ifdef DEBUG_PACKET_SENT
    log_line("Building a composed packet of total size: %d, extra data: %d", nInputLength + iExtraData, iExtraData);
    #endif
@@ -1444,7 +1444,7 @@ int radio_build_new_raw_ieee_packet(int iLocalRadioLinkId, u8* pRawPacket, u8* p
    u16 uRadioLinkPacketIndex = radio_get_next_radio_link_packet_index(iLocalRadioLinkId);
 
    // Compute CRC/encrypt packet
-  
+
    t_packet_header* pPH = (t_packet_header*)pRawPacket;
    pPH->radio_link_packet_index = uRadioLinkPacketIndex;
    if ( bEncrypt )
@@ -1548,7 +1548,7 @@ int radio_write_raw_ieee_packet(int interfaceIndex, u8* pData, int dataLength, i
       if ( k < iRepeatCount )
          hardware_sleep_ms(1);
    }
-   
+
    #ifdef FEATURE_RADIO_SYNCHRONIZE_RXTX_THREADS
    if ( 1 == s_iMutexRadioSyncRxTxThreadsInitialized )
       pthread_mutex_unlock(&s_pMutexRadioSyncRxTxThreads);
@@ -1573,7 +1573,7 @@ int radio_write_serial_packet(int interfaceIndex, u8* pData, int dataLength, u32
    if ( (interfaceIndex < 0) || (interfaceIndex >= MAX_RADIO_INTERFACES) )
    {
       log_softerror_and_alarm("RadioError: Tried to write a serial radio message to an invalid interface index %d.", interfaceIndex+1);
-      return -1;    
+      return -1;
    }
 
    radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(interfaceIndex);
@@ -1585,7 +1585,7 @@ int radio_write_serial_packet(int interfaceIndex, u8* pData, int dataLength, u32
    if ( ! hardware_radio_is_serial_radio(pRadioHWInfo) )
    {
       log_softerror_and_alarm("RadioError: Tried to write a serial radio message to an interface that is not a serial radio (%d).", interfaceIndex+1);
-      return -1;    
+      return -1;
    }
    if ( (NULL == pData) || (dataLength <= 0) )
    {
@@ -1630,7 +1630,7 @@ int radio_write_sik_packet(int interfaceIndex, u8* pData, int dataLength, u32 uT
    if ( (interfaceIndex < 0) || (interfaceIndex >= MAX_RADIO_INTERFACES) )
    {
       log_softerror_and_alarm("RadioError: Tried to write a SiK radio message to an invalid interface index %d.", interfaceIndex+1);
-      return -1;    
+      return -1;
    }
 
    radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(interfaceIndex);
@@ -1642,7 +1642,7 @@ int radio_write_sik_packet(int interfaceIndex, u8* pData, int dataLength, u32 uT
    if ( ! hardware_radio_is_sik_radio(pRadioHWInfo) )
    {
       log_softerror_and_alarm("RadioError: Tried to write a SiK radio message to an interface that is not SiK radio (%d).", interfaceIndex+1);
-      return -1;    
+      return -1;
    }
    if ( (NULL == pData) || (dataLength <= 0) )
    {

@@ -58,7 +58,7 @@ void MenuControllerEncryption::addItems()
    addMenuItem( new MenuItemText("Pass phrase should be at least 3 words of at least 3 letters each.") );
 
    char szBuff[128];
- 
+
    int len = 64;
    int res = lpp(szBuff, len);
    if ( res )
@@ -152,7 +152,7 @@ int MenuControllerEncryption::onBack()
    t_packet_header PH;
    radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_LOCAL_CONTROL_PASSPHRASE_CHANGED, STREAM_ID_DATA);
    handle_commands_send_ruby_message(&PH, NULL, 0);
-         
+
    return 1;
 }
 

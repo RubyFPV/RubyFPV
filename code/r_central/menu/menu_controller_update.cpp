@@ -230,7 +230,7 @@ void MenuControllerUpdate::updateControllerSoftware(const char* szUpdateFile)
 
    ruby_pause_watchdog("starting controller update procedure");
    pairing_stop();
-   
+
    if ( (NULL == szUpdateFile) || (0 == szUpdateFile[0]) )
       p = new Popup(L("Updating. Please wait"), 0.36,0.4, 0.5, 90);
    else
@@ -411,7 +411,7 @@ void MenuControllerUpdate::updateControllerSoftware(const char* szUpdateFile)
          }
       }
       while ( (iCounter[iRepeatCount] < 500) && (! bFinishedProcess) );
-      
+
       log_line("Done waiting for update worker process run %d (on counter %d).", iRepeatCount, iCounter[iRepeatCount]);
       if ( iResult[iRepeatCount] < 0 )
          break;
@@ -485,7 +485,7 @@ void MenuControllerUpdate::updateControllerSoftware(const char* szUpdateFile)
    {
       m_bWaitingForUserFinishUpdateConfirmation = true;
       MenuConfirmation* pMC = NULL;
-      
+
       if ( iFinalResult == -1 )
          pMC = new MenuConfirmation(L("Update Failed"), L("No update archive file found on the USB memory stick. No update done."), 5, true);
       else if ( iFinalResult == -2 )

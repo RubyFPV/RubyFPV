@@ -97,7 +97,7 @@ bool MenuSystemHardware::periodicLoop()
       }
       m_nSearchI2CDeviceAddress++;
    }
-   
+
    if ( m_nSearchI2CDeviceAddress >= 128 )
    {
       hardware_i2c_save_device_settings();
@@ -118,14 +118,14 @@ void MenuSystemHardware::Render()
 
    char szBuff[128];
 
-   float height_text = g_pRenderEngine->textHeight(g_idFontMenu); 
+   float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
 
    y += height_text;
    float fMargin = m_sfMenuPaddingX;
    float xPos = m_xPos+fMargin;
    float yPos = y;
    float usableWidth = m_RenderWidth-2*fMargin;
-   
+
    g_pRenderEngine->setColors(get_Color_MenuText());
    g_pRenderEngine->setStroke(get_Color_MenuText(), 0.3);
 
@@ -134,7 +134,7 @@ void MenuSystemHardware::Render()
       yPos += height_text;
       int percent = m_nSearchI2CDeviceAddress*100/128;
       if ( percent > 100 ) percent = 100;
-      sprintf(szBuff, "Enumerating I2C devices %d%%", percent);   
+      sprintf(szBuff, "Enumerating I2C devices %d%%", percent);
       g_pRenderEngine->drawText(xPos, yPos, g_idFontMenu, szBuff);
       yPos += height_text*1.2;
       g_pRenderEngine->drawText(xPos, yPos, g_idFontMenu, "Please wait...");
@@ -147,8 +147,8 @@ void MenuSystemHardware::Render()
    g_pRenderEngine->setStrokeSize(1.01);
 
    float yPosCol2 = yPos;
-   float yStLine = yPos;   
-   
+   float yStLine = yPos;
+
    yPos += renderControllerInfo(xPos, yPos, usableWidth*0.5 - fMargin );
    yPosCol2 += renderVehicleInfo(xPos + usableWidth*0.5 + fMargin, yPosCol2, usableWidth*0.5 - fMargin );
 
@@ -194,7 +194,7 @@ float MenuSystemHardware::renderVehicleInfo(float xPos, float yPos, float width)
    {
       char szBands[128];
       str_get_supported_bands_string(g_pCurrentModel->radioInterfacesParams.interface_supported_bands[i], szBands);
-       
+
       sprintf(szBuff, "%d. Port %s, Type: %s, %s", i+1, g_pCurrentModel->radioInterfacesParams.interface_szPort[i], str_get_radio_card_model_string(g_pCurrentModel->radioInterfacesParams.interface_card_model[i]), szBands);
       if ( g_pCurrentModel->radioInterfacesParams.interface_capabilities_flags[i] & RADIO_HW_CAPABILITY_FLAG_USED_FOR_RELAY )
          strcat(szBuff, " [RELAY LINK]");
@@ -252,7 +252,7 @@ float MenuSystemHardware::renderVehicleInfo(float xPos, float yPos, float width)
 
       yPos += g_pRenderEngine->drawMessageLines(xPos+xPad, yPos, szBuff, MENU_TEXTLINE_SPACING, width, g_idFontMenu);
       yPos += MENU_TEXTLINE_SPACING * height_text;
-      
+
       count = 0;
       for( int k=0; k<g_pCurrentModel->hardwareInterfacesInfo.i2c_device_count; k++ )
       {
@@ -311,9 +311,9 @@ float MenuSystemHardware::renderControllerInfo(float xPos, float yPos, float wid
 
       char szBands[128];
       str_get_supported_bands_string(pRadioInfo->supportedBands, szBands);
-       
+
       sprintf(szBuff, "%d. Port %s, Type: %s, %s", i+1, pRadioInfo->szUSBPort, str_get_radio_card_model_string(pRadioInfo->iCardModel), szBands);
-       
+
       yPos += g_pRenderEngine->drawMessageLines(xPos+xPad, yPos, szBuff, MENU_TEXTLINE_SPACING, width, g_idFontMenu);
       yPos += MENU_TEXTLINE_SPACING * height_text;
    }
@@ -411,7 +411,7 @@ float MenuSystemHardware::renderControllerInfo(float xPos, float yPos, float wid
    {
       yPos += g_pRenderEngine->drawMessageLines(xPos+xPad, yPos, "No RC input devices detected.", MENU_TEXTLINE_SPACING, width, g_idFontMenu);
       yPos += MENU_TEXTLINE_SPACING * height_text;
-   }    
+   }
 
    g_pRenderEngine->setColors(get_Color_MenuText());
 

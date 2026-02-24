@@ -136,7 +136,7 @@ float _osd_render_debug_stats_min_max_graph_lines(float xPos, float yPos, float 
       if ( pValuesLine2[i] < iMin )
          iMin = pValuesLine2[i];
    }
-   
+
    if ( bZeroBased )
    if ( iMin > 0 )
       iMin = 0;
@@ -272,7 +272,7 @@ float _osd_render_debug_stats_graph_lines(float xPos, float yPos, float hGraph, 
          iMin = pValuesMin[i];
    }
    g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
-   
+
    osd_set_colors();
    g_pRenderEngine->setColors(get_Color_Dev());
    sprintf(szBuff, "%d", iMin);
@@ -319,7 +319,7 @@ float _osd_render_debug_stats_graph_lines(float xPos, float yPos, float hGraph, 
             g_pRenderEngine->drawLine(xBar, yPos + hGraph - hPoint, xBar, yPos + hGraph - hPointPrev);
          }
       }
-      
+
       if ( NULL != pValuesMin )
       if ( pValuesMax[i] < 1000 )
       {
@@ -408,7 +408,7 @@ float _osd_render_debug_stats_graph_rxtx_bars(float xPos, float yPos, float hGra
    float fMaxLogBottom = logf((float)iMaxValueBottom);
 
    g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
-   
+
    osd_set_colors();
    g_pRenderEngine->setColors(get_Color_Dev());
    g_pRenderEngine->drawText(xPos, yPos + hGraphTop - height_text_small*0.7, g_idFontStatsSmall, "0");
@@ -603,7 +603,7 @@ float _osd_render_debug_stats_graph_bars(float xPos, float yPos, float hGraph, f
    float fMaxLog = logf((float)iMaxValue);
 
    g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
-   
+
    osd_set_colors();
    g_pRenderEngine->setColors(get_Color_Dev());
    g_pRenderEngine->drawText(xPos, yPos+hGraph - height_text_small*0.7, g_idFontStatsSmall, "0");
@@ -744,7 +744,7 @@ float _osd_render_debug_stats_output_video(float xPos, float yPos, float hGraph,
    }
 
    g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
-   
+
    osd_set_colors();
    g_pRenderEngine->setColors(get_Color_Dev());
    g_pRenderEngine->drawText(xPos, yPos+hGraph - height_text_small*0.7, g_idFontStatsSmall, "0");
@@ -883,7 +883,7 @@ float _osd_render_debug_stats_graph_values_c(float xPos, float yPos, float hGrap
    }
 
    g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
-   
+
    osd_set_colors();
    g_pRenderEngine->setColors(get_Color_Dev());
    g_pRenderEngine->drawText(xPos, yPos+hGraph - height_text_small*0.7, g_idFontStatsSmall, "0");
@@ -1069,7 +1069,7 @@ void osd_render_debug_stats()
       iInterval1End = pCRTInfo->iCurrentIndex;
       iInterval2Start = pCRTInfo->iCurrentIndex + 1;
       iInterval2End = iSlice * (1+(int)(pCRTInfo->iCurrentIndex / iSlice));
-      
+
       iInterval2Start -= iSlice;
       iInterval2End -= iSlice;
       if ( pCRTInfo->iCurrentIndex < iSlice )
@@ -1090,7 +1090,7 @@ void osd_render_debug_stats()
       iInterval1End = pCRTInfo->iCurrentIndex;
       iInterval2Start = pCRTInfo->iCurrentIndex + 1;
       iInterval2End = iSlice * (1+(int)(pCRTInfo->iCurrentIndex / iSlice));
-      
+
       iInterval2Start -= iSlice;
       iInterval2End -= iSlice;
       if ( pCRTInfo->iCurrentIndex < iSlice )
@@ -1110,7 +1110,7 @@ void osd_render_debug_stats()
       iInterval1End = pCRTInfo->iCurrentIndex;
       iInterval2Start = pCRTInfo->iCurrentIndex + 1;
       iInterval2End = iSlice * (1+(int)(pCRTInfo->iCurrentIndex / iSlice));
-      
+
       iInterval2Start -= iSlice;
       iInterval2End -= iSlice;
       if ( pCRTInfo->iCurrentIndex < iSlice )
@@ -1211,7 +1211,7 @@ void osd_render_debug_stats()
 
    char szResolution[64];
    sprintf(szResolution, " ( %d ms/bar )", (int)pCRTInfo->uUpdateIntervalMs);
-   
+
    //sprintf(szBuff, "%03d %03u ms", g_SMControllerRTInfo.iCurrentIndex, g_SMControllerRTInfo.uCurrentSliceStartTime%1000);
    sprintf(szBuff, "Avg: %.1f ms, Max: %.1f ms %s", fAverageSliceUpdateTime, fMaxSliceUpdateTime, szResolution);
    g_pRenderEngine->drawTextLeft(rightMargin, yPos, s_idFontStatsSmall, szBuff);
@@ -1738,14 +1738,14 @@ void osd_render_debug_stats()
 /*
    // ----------------------------------------
    if ( pP->uDebugStatsFlags & CTRL_RT_DEBUG_INFO_FLAG_SHOW_MIN_MAX_ACK_TIME )
-   {   
+   {
       controller_runtime_info_vehicle* pRTInfoVehicle = controller_rt_info_get_vehicle_info(pCRTInfo, pActiveModel->uVehicleId);
       for( int iLink=0; iLink<g_SM_RadioStats.countLocalRadioLinks; iLink++ )
       {
          xPosSlice = fGraphXStart + dx;
          for( int i=0; i<iCountIntervals; i++ )
          {
-            iTmp1[i] = pRTInfoVehicle->uMinAckTime[i+iStartIntervals][iLink];  
+            iTmp1[i] = pRTInfoVehicle->uMinAckTime[i+iStartIntervals][iLink];
             iTmp2[i] = pRTInfoVehicle->uMaxAckTime[i+iStartIntervals][iLink];
             if ( iTmp2[i] > 0 )
             {
@@ -1884,7 +1884,7 @@ void osd_render_debug_stats()
    }
    iCountGraphs++;
    }
-*/   
+*/
    float xLine = fGraphXStart + dx + iNormalizedIndex * fWidthBar;
    g_pRenderEngine->setStrokeSize(1.0);
    g_pRenderEngine->setStroke(255,255,100, OSD_STRIKE_WIDTH);
@@ -1978,7 +1978,7 @@ void osd_render_debug_stats()
             xPosBar += fWidthBar2;
             continue;
          }
-         
+
          if ( pRTInfoVehicle->uAckTypes[i][0] == 0x01 )
             g_pRenderEngine->setColors(cWhite);
          else if ( pRTInfoVehicle->uAckTypes[i][0] == 0x02 )
@@ -2076,7 +2076,7 @@ void osd_render_debug_stats()
 
          xPosBar += fWidthBar2;
       }
-      
+
       osd_set_colors();
       y += hGraphSmall;
       y += height_text_small;
@@ -2246,7 +2246,7 @@ void osd_render_debug_stats()
          g_pRenderEngine->drawRect(xPosBar, y + hGraphSmall - fHeight, fWidthBar2 - 2.0 * fWPixel, fHeight);
          xPosBar += fWidthBar2;
       }
-     
+
       osd_set_colors();
       y += hGraphSmall;
       y += height_text_small;
@@ -2486,7 +2486,7 @@ void osd_render_debug_stats()
             g_pRenderEngine->drawRect(xPosBar, y + hGraphSmall - fHeight, fWidthBar2 - 2.0 * fWPixel, fHeight);
          xPosBar += fWidthBar2;
       }
-     
+
       osd_set_colors();
       y += hGraphSmall;
       y += height_text_small;
@@ -2507,7 +2507,7 @@ void osd_render_debug_stats()
       g_pRenderEngine->drawLine(fGraphXStart + dxWithMs, y - fHPixel, fGraphXStart + fWidthGraph - dxWithMs, y - fHPixel);
 
       xPosBar = fGraphXStart + dxWithMs;
-      
+
       for( int i=0; i<SYSTEM_RT_INFO_INTERVALS_FRAMES; i++ )
       {
          if ( (iMaxThroughputKb == 0) || (iMaxThroughputKb == iMinThroughputKb) || (i == pCDebugRTInfo->iCurrentFrameBufferIndex) || (i == pCDebugRTInfo->iCurrentFrameBufferIndex + 1) || (i == pCDebugRTInfo->iCurrentFrameBufferIndex - 1) )
@@ -2533,7 +2533,7 @@ void osd_render_debug_stats()
          g_pRenderEngine->drawRect(xPosBar, y + hGraphSmall - fHeight, fWidthBar2 - 2.0 * fWPixel, fHeight);
          xPosBar += fWidthBar2;
       }
-     
+
       osd_set_colors();
       y += hGraphSmall;
       y += height_text_small;
@@ -2541,7 +2541,7 @@ void osd_render_debug_stats()
    }
 
    s_fStaticHeightDebugStatsPart2 = (y - yStartPart2);
- 
+
    s_fStaticHeightDebugStats = y - s_fStaticYPosDebugStats + s_fOSDStatsMargin*0.7;
    s_fStaticYPosDebugStats = 0.94 - s_fStaticHeightDebugStats;
 
@@ -2592,12 +2592,12 @@ void osd_reder_debug_ping_stats()
    float fRightMargin = xPos + fWidth;
 
    g_pRenderEngine->drawText(xPos, yPos, s_idFontStats, "Debug Ping RT Stats");
-   
+
    float y = yPos + height_text*1.5*s_OSDStatsLineSpacing;
-   
+
    if ( NULL == g_pSMDbgPingStats )
    {
-      g_pRenderEngine->drawText(xPos, y, s_idFontStats, "No info"); 
+      g_pRenderEngine->drawText(xPos, y, s_idFontStats, "No info");
       return;
    }
 
@@ -2623,7 +2623,7 @@ void osd_reder_debug_ping_stats()
 
    for( int i=0; i<MAX_DBG_PING_DATAPOINTS; i++ )
    {
-      int iVal = (int)g_SMDbgPingStats.uRTTime[0][i]; 
+      int iVal = (int)g_SMDbgPingStats.uRTTime[0][i];
       if ( 0 == iVal )
          continue;
 
@@ -2656,7 +2656,7 @@ void osd_reder_debug_ping_stats()
 
    while ( s_iLastPingArrayIndex != g_SMDbgPingStats.iCurrentDataPointIndex[0] )
    {
-      int iVal = (int)g_SMDbgPingStats.uRTTime[0][s_iLastPingArrayIndex]; 
+      int iVal = (int)g_SMDbgPingStats.uRTTime[0][s_iLastPingArrayIndex];
       if ( 0 != iVal )
       {
          int iTimeIndex = 0;
@@ -2763,7 +2763,7 @@ void osd_reder_debug_ping_stats()
          }
          g_pRenderEngine->drawRect(xPos + fWidthPrefix, y + hPixel, fWidthBar, fHeightBar - 4.0*hPixel);
       }
- 
+
       _osd_stats_draw_line(xPos, fRightMargin, y, s_idFontStatsSmall, szBuff, szBuff2);
       osd_set_colors();
       y += fHeightBar;

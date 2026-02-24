@@ -189,7 +189,7 @@ enum ieee80211_radiotap_type {
    IEEE80211_RADIOTAP_MCS = 19,
    IEEE80211_RADIOTAP_AMPDU_STATUS = 20,
    IEEE80211_RADIOTAP_VHT = 21,
-   IEEE80211_RADIOTAP_TIMESTAMP = 22, 
+   IEEE80211_RADIOTAP_TIMESTAMP = 22,
 
    IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE = 29,
    IEEE80211_RADIOTAP_VENDOR_NAMESPACE = 30,
@@ -314,7 +314,7 @@ static inline u32 __get_unaligned_memmove32(const void *p)
    u32 tmp;
    memmove(&tmp, p, 4);
    return tmp;
-} 
+}
 
 static inline u16 get_unaligned_le16(const void *p)
 {
@@ -326,4 +326,4 @@ static inline u32 get_unaligned_le32(const void *p)
 {
    u32 tmp = __get_unaligned_memmove32((const u8 *)p);
    return le32_to_cpu(tmp);
-} 
+}

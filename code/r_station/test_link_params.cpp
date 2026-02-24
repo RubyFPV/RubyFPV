@@ -117,7 +117,7 @@ void _test_link_end_and_notify()
          log_line("[TestLink-%d] Must adjust current video profile bitrate (%.1f Mbps) to max allowed on current links: %.1f Mbps",
             s_iTestLinkRunCount,
             g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS/1000.0/1000.0, uMaxVideoBitrate/1000.0/1000.0);
-      
+
          g_pCurrentModel->video_link_profiles[g_pCurrentModel->video_params.iCurrentVideoProfile].uTargetVideoBitrateBPS = uMaxVideoBitrate;
       }
 
@@ -144,7 +144,7 @@ void _test_link_pause_interfaces()
 {
    if ( s_bTestLinkPausedInterfaces )
       return;
-   
+
    s_bTestLinkPausedInterfaces = true;
 
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
@@ -186,11 +186,11 @@ void _test_link_resume_interfaces()
       radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(i);
       if ( NULL == pRadioHWInfo )
          continue;
-      
+
       if ( s_bMustResumeRadioInterfacesForWrite[i] )
          radio_tx_resume_radio_interface(i);
       s_bMustResumeRadioInterfacesForWrite[i] = false;
-      
+
       if ( s_bMustResumeRadioInterfacesForRead[i] )
          radio_rx_resume_interface(i);
       s_bMustResumeRadioInterfacesForRead[i] = false;
@@ -274,9 +274,9 @@ static void * _thread_test_link_worker_apply(void *argument)
    char szPrefix[32];
    sprintf(szPrefix, "[TestLink-%d]", s_iTestLinkRunCount);
    g_pCurrentModel->logVehicleRadioLinkDifferences(szPrefix, &s_RadioLinksParamsOriginal, &s_RadioLinksParamsToTest);
-   
+
    radio_links_apply_settings(g_pCurrentModel, s_iTestLinkIndex, &s_RadioLinksParamsOriginal, &s_RadioLinksParamsToTest);
-        
+
    log_line("[TestLink-%d] Finished worker thread to update radio interfaces for vehicle radio link %d.", s_iTestLinkRunCount, s_iTestLinkIndex+1);
    s_bApplyRadioParamsInProgress = false;
    return NULL;
@@ -289,9 +289,9 @@ static void * _thread_test_link_worker_revert(void *argument)
    char szPrefix[32];
    sprintf(szPrefix, "[TestLink-%d]", s_iTestLinkRunCount);
    g_pCurrentModel->logVehicleRadioLinkDifferences(szPrefix, &s_RadioLinksParamsToTest, &s_RadioLinksParamsOriginal);
-   
+
    radio_links_apply_settings(g_pCurrentModel, s_iTestLinkIndex, &s_RadioLinksParamsToTest, &s_RadioLinksParamsOriginal);
-        
+
    log_line("[TestLink-%d] Finished worker thread to revert radio interfaces for vehicle radio link %d.", s_iTestLinkRunCount, s_iTestLinkIndex+1);
    s_bApplyRadioParamsInProgress = false;
    return NULL;
@@ -390,7 +390,7 @@ void _test_link_switch_to_state(int iNewState, u32 uTimeout)
       }
       else
          test_link_send_status_message_to_central("Frequency change failed. Cleaning up...");
-      
+
       s_bApplyRadioParamsInProgress = true;
 
       _test_link_pause_interfaces();
@@ -541,11 +541,11 @@ void test_link_process_received_message(int iInterfaceIndex, u8* pPacketBuffer)
          s_iTestLinkRunCount, str_get_packet_test_link_command(iCmdType), iInterfaceIndex+1, iProtocol, iHeaderSize, pPH->total_length - sizeof(t_packet_header));
       return;
    }
-   
+
    char szBuff[128];
    test_link_state_get_state_string(s_iTestLinkState, szBuff);
    log_line("[TestLink-%d] Process received reply command (%s) from vehicle on radio interface %d, current state is: %s", s_iTestLinkRunCount, str_get_packet_test_link_command(iCmdType), iInterfaceIndex+1, szBuff);
-   
+
    if ( iCmdType == PACKET_TYPE_TEST_RADIO_LINK_COMMAND_START )
    {
       if ( s_iTestLinkState != TEST_LINK_STATE_START )
@@ -573,11 +573,11 @@ void test_link_process_received_message(int iInterfaceIndex, u8* pPacketBuffer)
 
       log_line("[TestLink-%d] Process received ping uplink reply from vehicle (count received so far: %u). Vehicle sent %u pings, Vehicle received %u pings replies.",
          s_iTestLinkRunCount, s_uTestLinkCountPingsReceived, uTmpPingsSentByVehicle, uTmpPingsReceivedByVehicle );
-      
+
       if ( uTmpPingsSentByVehicle > 0 )
       if ( uTmpPingsReceivedByVehicle > 0 )
          _test_link_switch_to_state(TEST_LINK_STATE_PING_DOWNLINK, TIMEOUT_TEST_LINK_STATE_PING);
-         
+
       return;
    }
 
@@ -597,7 +597,7 @@ void test_link_process_received_message(int iInterfaceIndex, u8* pPacketBuffer)
 
       log_line("[TestLink-%d] Process received ping downlink reply from vehicle (count received so far: %u). Vehicle sent %u pings, Vehicle received %u pings replies.",
          s_iTestLinkRunCount, s_uTestLinkCountPingsReceived, uTmpPingsSentByVehicle, uTmpPingsReceivedByVehicle );
-      
+
       if ( uTmpPingsSentByVehicle > 1 )
       if ( uTmpPingsReceivedByVehicle > 1 )
       {
@@ -663,7 +663,7 @@ void test_link_loop()
       if ( g_TimeNow > s_uTimeEndCurrentStep )
       {
          log_line("[TestLink-%d] Not able to apply radio params (timed out). Ending flow.", s_iTestLinkRunCount);
-         
+
          if ( ! s_bTestLinkOnlyFreqChanged )
             _test_link_reopen_interfaces();
          _test_link_resume_interfaces();

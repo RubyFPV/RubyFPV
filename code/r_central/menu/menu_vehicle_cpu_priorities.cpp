@@ -162,10 +162,10 @@ void MenuVehicleCPUPriorities::valuesToUI()
    m_pItemsSlider[4]->setCurrentValue(m_NewProcPriorities.iThreadPriorityTelemetry);
    m_pItemsSlider[5]->setCurrentValue(m_NewProcPriorities.iThreadPriorityRC);
    m_pItemsSlider[6]->setCurrentValue(m_NewProcPriorities.iThreadPriorityOthers);
-   
+
    m_pItemsSlider[10]->setCurrentValue(m_NewProcPriorities.ioNiceRouter);
    m_pItemsSlider[11]->setCurrentValue(m_NewProcPriorities.ioNiceVideo);
- 
+
    for( int i=0; i<15; i++ )
    {
       if ( NULL == m_pItemsSlider[i] )

@@ -179,7 +179,7 @@ void process_data_telemetry_raw_download(u8* pBuffer, int length)
       //log_line("-------------------------------");
    }
    s_uRawTelemetryLastReceivedDownloadedSegmentIndex = pPHTR->telem_segment_index;
-      
+
    int len = pPH->total_length - sizeof(t_packet_header)-sizeof(t_packet_header_telemetry_raw);
    u8* pTelemetryData = pBuffer + sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_raw);
 
@@ -263,7 +263,7 @@ void upload_telemetry_packet()
    PH.vehicle_id_src = g_uControllerId;
    PH.vehicle_id_dest = g_pCurrentModel->uVehicleId;
    PH.total_length = sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_raw) + telemetryBufferToVehicleCount;
-      
+
    PHTR.telem_segment_index = s_uRawTelemetryUploadSegmentIndex;
    PHTR.telem_total_data = s_uRawTelemetryUploadTotalSend;
    PHTR.telem_total_serial = s_uRawTelemetryUploadTotalReadFromSerial;
@@ -276,7 +276,7 @@ void upload_telemetry_packet()
    memcpy(buffer+sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_raw), telemetryBufferToVehicle, telemetryBufferToVehicleCount);
    radio_packet_compute_crc(buffer, PH.total_length);
    ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, PH.total_length);
- 
+
    #ifdef LOG_RAW_TELEMETRY
    log_line("[Raw_Telem] Sent raw telemetry packet to router, index %u, %d / %d bytes", PHTR.telem_segment_index, telemetryBufferToVehicleCount, PH.total_length);
    #endif
@@ -331,7 +331,7 @@ int try_read_serial_telemetry()
    struct timeval to;
    to.tv_sec = 0;
    to.tv_usec = 1000; // 1 ms
-   fd_set readset;   
+   fd_set readset;
    FD_ZERO(&readset);
    FD_SET(g_iSerialPortTelemetryFD, &readset);
    int res = select(g_iSerialPortTelemetryFD+1, &readset, NULL, NULL, &to);
@@ -362,7 +362,7 @@ int try_read_serial_telemetry()
       upload_telemetry_packet();
    }
    return 1;
-}  
+}
 
 int try_read_serial_datalink()
 {
@@ -375,7 +375,7 @@ int try_read_serial_datalink()
    struct timeval to;
    to.tv_sec = 0;
    to.tv_usec = 1000; // 1 ms
-   fd_set readset;   
+   fd_set readset;
    FD_ZERO(&readset);
    FD_SET(g_iSerialPortDataLinkFD, &readset);
    int res = select(g_iSerialPortDataLinkFD+1, &readset, NULL, NULL, &to);
@@ -393,7 +393,7 @@ int try_read_serial_datalink()
    //memcpy(szBuff, &bufferIn[0], length);
    //szBuff[length] = 0;
    //log_line("Sending datalink data: %s", szBuff);
-   
+
 
    u8* pData = &bufferIn[0];
    while ( length > 0 )
@@ -412,12 +412,12 @@ int try_read_serial_datalink()
       upload_datalink_packet();
    }
    return 1;
-}  
+}
 
 void try_read_messages_from_router()
 {
    int maxMessagesToRead = 15;
- 
+
    while ( (maxMessagesToRead > 0) && (NULL != ruby_ipc_try_read_message(s_fIPCFromRouter, s_PipeBufferTelemetryDownlink, &s_PipeBufferTelemetryDownlinkPos, s_BufferTelemetryDownlink)) )
    {
       maxMessagesToRead--;
@@ -469,7 +469,7 @@ void try_read_messages_from_router()
             break;
          continue;
       }
-      
+
       if ( pPH->vehicle_id_src != g_pCurrentModel->uVehicleId )
       {
          if ( maxMessagesToRead <= 0 )
@@ -570,7 +570,7 @@ void init_serial_ports()
 
    telemetryBufferToVehicleCount = 0;
    telemetryBufferToVehicleLastSendTime = g_TimeNow;
-   
+
    pPortInfo = hardware_get_serial_port_info(g_iSerialPortIndexTelemetry);
 
    if ( NULL == pPortInfo )
@@ -578,7 +578,7 @@ void init_serial_ports()
       log_softerror_and_alarm("Can't get serial port info. Serial not enabled/configured.");
       return;
    }
-   
+
    log_line("Telemetry is enabled on controller serial port %s (%s). Configuring serial port...", pPortInfo->szName, pPortInfo->szPortDeviceName);
    hardware_configure_serial(pPortInfo->szPortDeviceName, pPortInfo->lPortSpeed );
    g_iSerialPortTelemetryFD = hardware_open_serial_port(pPortInfo->szPortDeviceName, pPortInfo->lPortSpeed);
@@ -744,13 +744,13 @@ int open_pipes()
    return 0;
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("--------------------------");
    log_line("Caught signal to stop: %d", sig);
    log_line("--------------------------");
    g_bQuit = true;
-} 
+}
 
 
 int main(int argc, char *argv[])
@@ -758,13 +758,13 @@ int main(int argc, char *argv[])
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
-   
+
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
       printf("%d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       return 0;
    }
-   
+
    log_init("RX_Telemetry");
 
    hardware_detectBoardAndSystemType();
@@ -773,7 +773,7 @@ int main(int argc, char *argv[])
 
    if ( strcmp(argv[argc-1], "-debug") == 0 )
       log_enable_stdout();
-  
+
    g_uControllerId = controller_utils_getControllerId();
    log_line("Controller UID: %u", g_uControllerId);
 
@@ -792,13 +792,13 @@ int main(int argc, char *argv[])
 
    if ( pCS->iCoresAdjustment )
       hw_set_current_thread_affinity("rx_telemetry", CORE_AFFINITY_TELEMETRY_RX, CORE_AFFINITY_TELEMETRY_RX);
- 
+
    if ( pCS->iPrioritiesAdjustment )
-      hw_set_priority_current_proc(pCS->iThreadPriorityOthers); 
+      hw_set_priority_current_proc(pCS->iThreadPriorityOthers);
 
    init_serial_ports();
 
-   Preferences* p = get_Preferences();   
+   Preferences* p = get_Preferences();
    if ( p->nLogLevel != 0 )
       log_only_errors();
 
@@ -812,15 +812,15 @@ int main(int argc, char *argv[])
    radio_enable_crc_gen(1);
 
    open_shared_mem_objects();
- 
+
    log_line("Started all ok. Running now.");
    log_line("--------------------------------");
 
    g_TimeStart = get_current_timestamp_ms();
- 
+
    int iSleepTime = 50;
 
-   while (!g_bQuit) 
+   while (!g_bQuit)
    {
       hardware_sleep_ms(iSleepTime);
 
@@ -845,7 +845,7 @@ int main(int argc, char *argv[])
          while ( (try_read_serial_telemetry() > 0) && (iReads > 0) )
          {
             iReads--;
-            if ( telemetryBufferToVehicleCount >= RAW_TELEMETRY_MIN_SEND_LENGTH || 
+            if ( telemetryBufferToVehicleCount >= RAW_TELEMETRY_MIN_SEND_LENGTH ||
                 (telemetryBufferToVehicleCount > 0 && g_TimeNow >= telemetryBufferToVehicleLastSendTime + RAW_TELEMETRY_SEND_TIMEOUT ) )
                upload_telemetry_packet();
          }
@@ -858,7 +858,7 @@ int main(int argc, char *argv[])
          while ( (try_read_serial_telemetry() > 0) && (iReads > 0) )
          {
             iReads--;
-            if ( dataLinkBufferToVehicleCount >= AUXILIARY_DATA_LINK_MIN_SEND_LENGTH || 
+            if ( dataLinkBufferToVehicleCount >= AUXILIARY_DATA_LINK_MIN_SEND_LENGTH ||
                 (dataLinkBufferToVehicleCount > 0 && g_TimeNow >= dataLinkBufferToVehicleLastSendTime + AUXILIARY_DATA_LINK_SEND_TIMEOUT ) )
                upload_datalink_packet();
          }
@@ -891,12 +891,12 @@ int main(int argc, char *argv[])
    if ( -1 != g_iSerialPortTelemetryFD )
       close(g_iSerialPortTelemetryFD);
    g_iSerialPortTelemetryFD = -1;
-   
+
    ruby_close_ipc_channel(s_fIPCFromRouter);
    ruby_close_ipc_channel(s_fIPCToRouter);
    s_fIPCFromRouter = -1;
    s_fIPCToRouter = -1;
-    
+
    if ( -1 != s_TelemetryUSBOutputInfo.socketUSBOutput )
       close(s_TelemetryUSBOutputInfo.socketUSBOutput);
    s_TelemetryUSBOutputInfo.socketUSBOutput = -1;

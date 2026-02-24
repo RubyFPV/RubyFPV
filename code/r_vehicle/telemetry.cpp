@@ -55,7 +55,7 @@ u32 s_uTimeSerialPortOpened = 0;
 u32 s_uRawTelemetryTotalReadFromFCSerial = 0;
 int s_iFCSerialTelemetryReadBytesTempLastSecond = 0;
 int s_iFCSerialTelemetryReadBytesPerSecond = 0;
-      
+
 u8  uTelemetryBufferFromFC_Serial[RAW_TELEMETRY_MAX_BUFFER];
 int iTelemetryBufferFromFC_MaxSize = RAW_TELEMETRY_MIN_SEND_LENGTH;
 int iTelemetryBufferFromFC_FilledBytes = 0;
@@ -125,7 +125,7 @@ bool telemetry_detect_serial_port_to_use()
    log_line("[Telem] Try to detect serial ports used for telemetry (model telemetry type: %d)...", g_pCurrentModel->telemetry_params.fc_telemetry_type);
 
    s_iCurrentTelemetrySerialPortIndex = -1;
-   
+
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_NONE )
    {
       log_line("[Telem] Telemetry is not enabled (none).");
@@ -184,7 +184,7 @@ void _send_raw_telemetry_packet_to_controller()
    PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
    PH.vehicle_id_dest = 0;
    PH.total_length = sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_raw) + iTelemetryBufferFromFC_FilledBytes;
-      
+
    PHTR.telem_segment_index = s_uRawTelemetrySegmentIndex;
    PHTR.telem_total_data = s_uRawTelemetryTotalBytesSentToController;
    PHTR.telem_total_serial = s_uRawTelemetryTotalReadFromFCSerial;
@@ -193,7 +193,7 @@ void _send_raw_telemetry_packet_to_controller()
    memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
    memcpy(buffer+sizeof(t_packet_header), (u8*)&PHTR, sizeof(t_packet_header_telemetry_raw));
    memcpy(buffer+sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_raw), uTelemetryBufferFromFC_Serial, iTelemetryBufferFromFC_FilledBytes);
-   
+
    if ( g_bRouterReady && (!g_bLongTaskStarted) && (! isRadioLinksInitInProgress()) )
    {
       int result = ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, PH.total_length);
@@ -251,8 +251,8 @@ int telemetry_open_serial_port()
       return -1;
    }
 
-   hardware_configure_serial(pPortInfo->szPortDeviceName, (long)s_iCurrentTelemetrySerialPortSpeed); 
-         
+   hardware_configure_serial(pPortInfo->szPortDeviceName, (long)s_iCurrentTelemetrySerialPortSpeed);
+
    log_line("Opening serial port %s (%s) to flight controller (baud rate: %d) ...", pPortInfo->szName, pPortInfo->szPortDeviceName, s_iCurrentTelemetrySerialPortSpeed);
    s_iTelemetrySerialPortFile = hardware_open_serial_port(pPortInfo->szPortDeviceName, (long)s_iCurrentTelemetrySerialPortSpeed);
    if ( -1 == s_iTelemetrySerialPortFile )
@@ -267,7 +267,7 @@ int telemetry_open_serial_port()
       telemetry_ltm_on_open_port(s_iTelemetrySerialPortFile);
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MSP )
       telemetry_msp_on_open_port(s_iTelemetrySerialPortFile);
-     
+
    log_line("Opened telemetry protocol.");
    return s_iTelemetrySerialPortFile;
 }
@@ -375,7 +375,7 @@ void _telemetry_addSerialDataFromFCToTelemetryBuffer(u8* pData, int iDataLength)
             iDataLength -= chunkSize;
          }
       }
-      if ( (iTelemetryBufferFromFC_FilledBytes >= RAW_TELEMETRY_MIN_SEND_LENGTH) || 
+      if ( (iTelemetryBufferFromFC_FilledBytes >= RAW_TELEMETRY_MIN_SEND_LENGTH) ||
           ( (iTelemetryBufferFromFC_FilledBytes > 0) && (g_TimeNow >= uTelemetryBufferFromFC_LastSendTime + RAW_TELEMETRY_SEND_TIMEOUT) ) )
          _send_raw_telemetry_packet_to_controller();
    }
@@ -395,10 +395,10 @@ int telemetry_try_read_serial_port()
    to.tv_sec = 0;
    to.tv_usec = 2000; // 2 ms
 
-   fd_set readset;   
+   fd_set readset;
    FD_ZERO(&readset);
    FD_SET(s_iTelemetrySerialPortFile, &readset);
-   
+
    int res = select(s_iTelemetrySerialPortFile+1, &readset, NULL, NULL, &to);
    if ( res <= 0 )
       return 0;
@@ -475,7 +475,7 @@ void telemetry_periodic_loop()
    }
 
    if ( _telemetry_must_send_raw_telemetry_to_controller() )
-   if ( (iTelemetryBufferFromFC_FilledBytes >= RAW_TELEMETRY_MIN_SEND_LENGTH) || 
+   if ( (iTelemetryBufferFromFC_FilledBytes >= RAW_TELEMETRY_MIN_SEND_LENGTH) ||
        ( (iTelemetryBufferFromFC_FilledBytes > 0) && (g_TimeNow >= uTelemetryBufferFromFC_LastSendTime + RAW_TELEMETRY_SEND_TIMEOUT) ) )
       _send_raw_telemetry_packet_to_controller();
 }

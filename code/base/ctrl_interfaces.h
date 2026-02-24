@@ -8,7 +8,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 
 typedef struct
@@ -97,5 +97,5 @@ void controllerInterfacesEnumJoysticks();
 t_ControllerInputInterface* controllerInterfacesGetAt(int index);
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

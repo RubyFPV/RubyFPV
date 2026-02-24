@@ -75,7 +75,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sys/mman.h>
 #include <sys/stat.h> /* For mode constants */
-#include <fcntl.h> /* For O_* constants */ 
+#include <fcntl.h> /* For O_* constants */
 
 
 #include "bcm_host.h"
@@ -223,7 +223,7 @@ struct RASPIVID_STATE_S
    int segmentNumber;                  /// Current segment counter
    int splitNow;                       /// Split at next possible i-frame if set to 1.
    int splitWait;                      /// Switch if user wants splited files
-   
+
    VEYE_CAMERA_ISP_STATE	veye_camera_isp_state;
    RASPIPREVIEW_PARAMETERS preview_parameters;   /// Preview setup parameters
  //  RASPICAM_CAMERA_PARAMETERS camera_parameters; /// Camera setup parameters
@@ -235,10 +235,10 @@ struct RASPIVID_STATE_S
    MMAL_CONNECTION_T *isp_connection; /// Pointer to the connection from isp to camera
 
    MMAL_CONNECTION_T *splitter_connection;/// Pointer to the connection from camera to splitter
-   
+
    MMAL_COMPONENT_T *encoder_component;   /// Pointer to the encoder component
    MMAL_CONNECTION_T *preview_connection; /// Pointer to the connection from camera or splitter to preview
-   
+
    MMAL_CONNECTION_T *encoder_connection; /// Pointer to the connection from camera to encoder
 
    //MMAL_POOL_T *splitter_pool; /// Pointer to the pool of buffers used by splitter output port 0
@@ -247,7 +247,7 @@ struct RASPIVID_STATE_S
    PORT_USERDATA callback_data;        /// Used to move data to the encoder callback
 
    int bCapturing;                     /// State of capture/pause
-   
+
    int inlineMotionVectors;             /// Encoder outputs inline Motion Vectors
    int raw_output;                      /// Output raw video from camera as well
    RAW_OUTPUT_FMT raw_output_fmt;       /// The raw video format
@@ -501,13 +501,13 @@ void log_line_string(const char* szText, char* szValue)
    fflush(s_fdLog);
 }
 
-void handle_sigint(int sig) 
+void handle_sigint(int sig)
 {
    log_line_txt("--------------------------");
    log_line_txt("Received signal to quit");
    log_line_txt("--------------------------");
    s_bQuit = 1;
-}  
+}
 
 
 void openOutputPipe()
@@ -848,7 +848,7 @@ static int parse_cmdline(int argc, const char **argv, RASPIVID_STATE *state)
             valid = 0;
          break;
       }
-      
+
       case CommandPreviewEnc:
          state->immutableInput = 0;
          break;
@@ -1903,7 +1903,7 @@ static MMAL_STATUS_T create_splitter_component(RASPIVID_STATE *state)
    }
 
    log_line("Splitter has %d output port,you could use num 2,3 for extend", splitter->output_num);
-   
+
    if (splitter->output_num < 2)
    {
       status = MMAL_ENOSYS;
@@ -1994,7 +1994,7 @@ static MMAL_STATUS_T create_splitter_component(RASPIVID_STATE *state)
    {
       vcos_log_error("camera video format couldn't be set %d ",status);
       goto error;
-   } 
+   }
 #endif
 //end
    /* Enable component */
@@ -2118,7 +2118,7 @@ static MMAL_STATUS_T create_encoder_component(RASPIVID_STATE *state)
          state->bitrate = MAX_BITRATE_MJPEG;
       }
    }
-   
+
    encoder_output->format->bitrate = state->bitrate;
 
    if (state->encoding == MMAL_ENCODING_H264)
@@ -2225,7 +2225,7 @@ static MMAL_STATUS_T create_encoder_component(RASPIVID_STATE *state)
             goto error;
          }
       }
-      
+
       param.profile[0].level = state->level;
 
       status = mmal_port_parameter_set(encoder_output, &param.hdr);
@@ -2430,7 +2430,7 @@ void _set_h264_quantization(RASPIVID_STATE* pState, u8 uCommandType, int uParam1
        log_softerror_and_alarm("Failed to get quant param min!");
    else if ( s_bLog && s_iDebug )
        log_line_int("Current qant param min:", param_quant_min.value);
-         
+
    MMAL_PARAMETER_UINT32_T param_quant_max = {{ MMAL_PARAMETER_VIDEO_ENCODE_MAX_QUANT, sizeof(param_quant_max)}, 0};
    status = mmal_port_parameter_get(pState->encoder_component->output[0], &param_quant_max.hdr);
    if (status != MMAL_SUCCESS)
@@ -2575,7 +2575,7 @@ static void process_raspi_command(RASPIVID_STATE* pState, u8 uCmdCounter, u8 uCo
       if (status != MMAL_SUCCESS)
          log_softerror_and_alarm("Failed to get current bitrate");
       else
-         log_line("Current bitrate: %d", param.value);      
+         log_line("Current bitrate: %d", param.value);
 
       pState->bitrate = ((int)uParam1)*100000;
 
@@ -2597,13 +2597,13 @@ static void process_raspi_command(RASPIVID_STATE* pState, u8 uCmdCounter, u8 uCo
       if ( pState->bitrate < 2500000 )
       {
          MMAL_STATUS_T statusMal;
-         
+
          statusMal = mmal_component_disable(pState->encoder_component);
          if ( statusMal != MMAL_SUCCESS )
          log_line_txt("Failed to disable encoder component!");
 
          // Commit the port changes to the output port
-      
+
          pState->encoder_component->output[0]->format->bitrate = pState->bitrate;
          statusMal = mmal_port_format_commit(pState->encoder_component->output[0]);
          if (statusMal != MMAL_SUCCESS)
@@ -2645,7 +2645,7 @@ int open_com_msg_queue()
          IPC_CHANNEL_CSI_VIDEO_COMMANDS, errno, strerror(errno));
       return -1;
    }
-   
+
    log_line("[IPC] Opened IPC channel %d read endpoint: success, fd: %d",
       IPC_CHANNEL_CSI_VIDEO_COMMANDS, s_iMsgQueueCommands);
    return s_iMsgQueueCommands;
@@ -2861,7 +2861,7 @@ static int wait_for_next_change(RASPIVID_STATE *state)
  */
 /*static void splitter_output_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer)
 {
-	
+
 }*/
 
 /** Callback from the connection. Buffer is available. */
@@ -2873,7 +2873,7 @@ static void connection_callback(MMAL_CONNECTION_T *connection)
    /* The processing is done in our main thread */
   // vcos_semaphore_post(&ctx->semaphore);
 
-   
+
 }
 
 
@@ -2978,7 +2978,7 @@ int main(int argc, const char **argv)
             CPU_SET(i, &cpuSet);
             iCore = i;
          }
-      }      
+      }
       if ( 0 != sched_setaffinity(pid, sizeof(cpuSet), &cpuSet) )
          log_line_int("RaspiCaptureVeye: Failed to set affinities, error:", errno);
       else
@@ -3018,7 +3018,7 @@ int main(int argc, const char **argv)
    state.uAffinitiesMask = 0;
 
    s_bLog = 1;
- 
+
    if ( s_bLog )
    {
       s_fdLog = fopen("/home/pi/ruby/logs/log_video_veye.txt", "a");
@@ -3028,7 +3028,7 @@ int main(int argc, const char **argv)
          s_fdLog = NULL;
       }
    }
-     
+
    log_line_txt("-------------------------------");
    log_line_txt("Starting ruby_capture_veye v9.8, b243...");
    if ( s_iDebug )
@@ -3089,7 +3089,7 @@ int main(int argc, const char **argv)
 	    raspipreview_destroy(&state.preview_parameters);
 	    destroy_encoder_component(&state);
 	    destroy_veye_camera_isp_component(&state.veye_camera_isp_state);
-	   
+
 	   exit_code = EX_SOFTWARE;
    }
    else
@@ -3115,7 +3115,7 @@ int main(int argc, const char **argv)
 	{
 		log_softerror_and_alarm("Failed to create rawcam->isp connection");
 		goto error;
-	} 	
+	}
          // Now connect the camera to the splitter
          status = connect_ports(state.veye_camera_isp_state.isp_component->output[0], splitter_input_port, &state.splitter_connection);
 
@@ -3140,18 +3140,18 @@ int main(int argc, const char **argv)
          {
             log_softerror_and_alarm("camera video format couldn't be set %d ",status);
             goto error;
-         } 
+         }
 		 //if manually set framerate , will set add a framerate controller here
 	  // Now connect the camera to the encoder
 
 /*        status =  mmal_connection_create(&state.encoder_connection, splitter_encode_port, encoder_input_port, 0);
-	 state.encoder_connection->user_data = 0;   
+	 state.encoder_connection->user_data = 0;
 	 state.encoder_connection->callback = connection_callback;
 	 vcos_log_error("set connection call back! ");
-	 
+
 	   if (status == MMAL_SUCCESS)
 	   {
-	     
+
 	      status =  mmal_connection_enable(state.encoder_connection);
 	      if (status != MMAL_SUCCESS)
 	         mmal_connection_destroy(state.encoder_connection);
@@ -3170,7 +3170,7 @@ int main(int argc, const char **argv)
       {
          // Set up our userdata - this is passed though to the callback where we need the information.
          state.callback_data.pstate = &state;
-         state.callback_data.abort = 0;         
+         state.callback_data.abort = 0;
 
          // Set up our userdata - this is passed though to the callback where we need the information.
          encoder_output_port->userdata = (struct MMAL_PORT_USERDATA_T *)&state.callback_data;
@@ -3281,7 +3281,7 @@ int main(int argc, const char **argv)
 	                  running = wait_for_next_change(&state);
 	               }
                 log_line_txt("Exit from wait for change loop");
-               
+
 			             //vcos_log_error("running stop!! %d",running);
                 if ( ! running )
                    s_bQuit = 1;
@@ -3302,11 +3302,11 @@ int main(int argc, const char **argv)
          mmal_status_to_int(status);
          log_softerror_and_alarm("%s: Failed to connect camera to preview", __func__);
       }
-     
+
 error:
 
       log_line_txt("Closing down...");
-     
+
       mmal_status_to_int(status);
 
       if (state.preview_parameters.wantPreview && state.preview_connection)

@@ -23,14 +23,14 @@ void print_all()
    {
       printf("\nPacket %d: ", i);
       for( int j=0; j<packet_length; j++ )
-         printf("%d,", packetsArray[i][j]); 
+         printf("%d,", packetsArray[i][j]);
    }
    printf("\n");
    for( int i=0; i<fecs_per_block; i++ )
    {
       printf("\nFEC %d: ", i);
       for( int j=0; j<packet_length; j++ )
-         printf("%d,", fecsArray[i][j]); 
+         printf("%d,", fecsArray[i][j]);
    }
    printf("\n");
 }
@@ -92,4 +92,4 @@ int main(int argc, char *argv[])
 
 
    return (0);
-} 
+}

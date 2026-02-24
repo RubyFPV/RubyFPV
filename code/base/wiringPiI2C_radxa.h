@@ -4,7 +4,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 #if defined (HW_PLATFORM_RADXA)
 int wiringPiI2CSetup(const int devId);
@@ -19,5 +19,5 @@ int wiringPiI2CWriteBlockDataIoctl(int fd,int addr, uint8_t reg, uint8_t length,
 #endif
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

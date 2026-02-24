@@ -193,12 +193,12 @@ bool store_video()
       hardware_file_replace_extension(szOutFileVideo, "h265");
    else
       hardware_file_replace_extension(szOutFileVideo, "h264");
-   
+
    snprintf(szFullOutFileInfo, sizeof(szFullOutFileInfo)/sizeof(szFullOutFileInfo[0]), "%s%s", FOLDER_MEDIA, szOutFileInfo);
 
    log_line("Built output file names: out video file: [%s], out info file: [%s]", szOutFileVideo, szOutFileInfo);
    log_line("Output info file: [%s]", szFullOutFileInfo);
-   
+
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "mkdir -p %s", FOLDER_MEDIA);
    hw_execute_bash_command(szComm, NULL);
 
@@ -294,13 +294,13 @@ bool process_video(char* szFileInfo, char* szFileOut)
 }
 
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("--------------------------");
    log_line("Caught signal to stop: %d", sig);
    log_line("--------------------------");
    gbQuit = true;
-} 
+}
 
 int main(int argc, char *argv[])
 {
@@ -351,13 +351,13 @@ int main(int argc, char *argv[])
 
    if ( strcmp(argv[argc-1], "-debug") == 0 )
       log_enable_stdout();
-   
+
    char szComm[1024];
    sprintf(szComm, "chmod 777 %s 2>&1 1>/dev/null", FOLDER_MEDIA);
    hw_execute_bash_command(szComm, NULL);
    sprintf(szComm, "chmod 777 %s* 2>&1 1>/dev/null", FOLDER_MEDIA);
    hw_execute_bash_command(szComm, NULL);
-   
+
    if ( bStoreOnly )
    {
       log_line("Processing input video file to store it to media folder...");
@@ -387,4 +387,4 @@ int main(int argc, char *argv[])
    hw_execute_bash_command("sync", NULL);
    log_line("Finished processing video file.");
    return 0;
-} 
+}

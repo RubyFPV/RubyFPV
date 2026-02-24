@@ -56,7 +56,7 @@ MenuItemText::MenuItemText(const char* title, bool bUseSmallText)
    m_fScale = 1.0;
    m_fMarginX = 0; //0.5 * Menu::getMenuPaddingX();
 }
-     
+
 MenuItemText::MenuItemText(const char* title,  bool bUseSmallText, float fMargin)
 :MenuItem(title)
 {
@@ -105,10 +105,10 @@ float MenuItemText::getTitleWidth(float maxWidth)
 
 
 void MenuItemText::Render(float xPos, float yPos, bool bSelected, float fWidthSelection)
-{      
+{
    m_RenderLastY = yPos;
    m_RenderLastX = xPos;
-   
+
    if ( m_bEnabled )
    {
       if ( m_bCustomTextColor )
@@ -144,5 +144,5 @@ void MenuItemText::Render(float xPos, float yPos, bool bSelected, float fWidthSe
          g_pRenderEngine->drawText(xPos + m_fMarginX, yPos, g_idFontMenuSmall, szTmp);
       else
          g_pRenderEngine->drawText(xPos + m_fMarginX, yPos, g_idFontMenu, szTmp);
-   }     
+   }
 }

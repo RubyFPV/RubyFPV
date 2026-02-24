@@ -183,7 +183,7 @@ type_global_state_vehicle_runtime_info* getVehicleRuntimeInfo(u32 uVehicleId)
       if ( g_State.vehiclesRuntimeInfo[i].uVehicleId == uVehicleId )
          return &(g_State.vehiclesRuntimeInfo[i]);
    }
-   return NULL; 
+   return NULL;
 }
 
 void logCurrentVehiclesRuntimeInfo()
@@ -252,7 +252,7 @@ void adjustLinkClockDeltasForVehicleRuntimeIndex(int iRuntimeInfoIndex, u32 uRou
 {
    if ( (iRuntimeInfoIndex < 0) || (iRuntimeInfoIndex >= MAX_CONCURENT_VEHICLES) )
       return;
-   
+
    g_State.vehiclesRuntimeInfo[iRuntimeInfoIndex].iVehicleClockDeltaMilisec = (int)uLocalTimeVehicleMs - ((int) g_TimeNow - (int)uRoundtripTimeMs/3);
 
    radio_set_link_clock_delta(g_State.vehiclesRuntimeInfo[iRuntimeInfoIndex].iVehicleClockDeltaMilisec);

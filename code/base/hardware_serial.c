@@ -77,7 +77,7 @@ void _hardware_enumerate_serial_ports()
    s_HardwareSerialPortsInfo[0].iPortUsage = SERIAL_PORT_USAGE_NONE;
    s_iCountHardwareSerialPorts = 1;
    #endif
-   
+
    #ifdef HW_PLATFORM_OPENIPC_CAMERA
 
    strcpy(s_HardwareSerialPortsInfo[0].szName, "Serial-0");
@@ -121,7 +121,7 @@ void _hardware_enumerate_serial_ports()
       s_HardwareSerialPortsInfo[s_iCountHardwareSerialPorts].iSupported = 1;
       sprintf(szBuff, "ls /dev/serial/by-id/ -al | grep ttyUSB%d", i);
       hw_execute_bash_command_raw_silent(szBuff, szOutput);
-   
+
       if ( NULL != strstr(szOutput, "CP2102") )
          s_HardwareSerialPortsInfo[s_iCountHardwareSerialPorts].iSupported = 1;
       else if ( NULL != strstr(szOutput, "HL-340") )
@@ -203,7 +203,7 @@ int hardware_serial_reload_ports_settings()
    log_line("[HW-S] Loading and validating serial ports settings...");
 
    int iFailed = 1;
-      
+
    char szFile[MAX_FILE_PATH_SIZE];
    strcpy(szFile, FOLDER_CONFIG);
    strcat(szFile, FILE_CONFIG_HW_SERIAL_PORTS);
@@ -255,7 +255,7 @@ int hardware_serial_reload_ports_settings()
       else
       {
          log_line("[HW-S] Loaded existing serial ports configuration from file [%s]. Loaded %d serial ports: ", szFile, s_iCountLoadedSerialPorts);
-      
+
          for( int i=0; i<s_iCountLoadedSerialPorts; i++ )
             log_line("[HW-S] Serial port %d: [%s] [%s], speed: %ld bps, usage: %d (%s), supported: %d", i+1,
                s_LoadedSerialPortsInfo[i].szName,
@@ -279,13 +279,13 @@ int hardware_serial_reload_ports_settings()
             iCountMatched++;
             strcpy(s_HardwareSerialPortsInfo[i].szName, s_LoadedSerialPortsInfo[k].szName);
             int iUpdated = 0;
-            if ( s_HardwareSerialPortsInfo[i].lPortSpeed != s_LoadedSerialPortsInfo[k].lPortSpeed ) 
+            if ( s_HardwareSerialPortsInfo[i].lPortSpeed != s_LoadedSerialPortsInfo[k].lPortSpeed )
                iUpdated = 1;
             if ( s_HardwareSerialPortsInfo[i].iPortUsage != s_LoadedSerialPortsInfo[k].iPortUsage )
                iUpdated = 1;
             s_HardwareSerialPortsInfo[i].lPortSpeed = s_LoadedSerialPortsInfo[k].lPortSpeed;
             s_HardwareSerialPortsInfo[i].iPortUsage = s_LoadedSerialPortsInfo[k].iPortUsage;
-            
+
             if ( iUpdated )
                iCountUpdated++;
 
@@ -336,7 +336,7 @@ void hardware_serial_save_configuration()
          if ( szBuff[k] == ' ' )
            szBuff[k] = '*';
       fprintf(fd, "%s\n", szBuff);
-      
+
       strcpy(szBuff, s_LoadedSerialPortsInfo[i].szPortDeviceName);
       for( int k=0; k<(int)strlen(szBuff); k++ )
          if ( szBuff[k] == ' ' )
@@ -407,20 +407,20 @@ int hardware_configure_serial(const char* szDevName, long baudRate)
    if ( access(szDevName, R_OK ) == -1 )
    {
       log_softerror_and_alarm("Hardware: Invalid serial port device to configure [%s]. Can't access it.", szDevName);
-      return -1;    
+      return -1;
    }
 
    //char szBuff[1024];
    //sprintf(szBuff, "stty -F %s -icrnl -ocrnl -imaxbel -opost -isig -icanon -echo -echoe -ixoff -ixon %ld", szDevName, baudRate);
    //execute_bash_command(szBuff, NULL);
-   
+
    int fPort = open (szDevName, O_RDWR | O_NOCTTY | O_NDELAY );
    if ( -1 == fPort )
    {
       log_softerror_and_alarm("Failed to open serial port %s", szDevName);
       return 0;
    }
-   
+
    struct termios options;
    tcgetattr(fPort, &options);
    cfmakeraw(&options);
@@ -445,16 +445,16 @@ int hardware_configure_serial(const char* szDevName, long baudRate)
    options.c_lflag &= ~ECHO; // no echo
    options.c_cflag &= ~CRTSCTS; // no RTS/CTS Flow Control
    options.c_cflag |= CLOCAL; // Set local mode on
-   
+
    options.c_iflag = IGNBRK;
    options.c_iflag &= ~(IXON | IXOFF ); // No software handshake
    options.c_iflag |= IXANY;
    //options.c_cc[VMIN] = 0;
    //options.c_cc[VTIME] = 5;
-   
-   tcsetattr(fPort, TCSANOW, &options); //write options 
+
+   tcsetattr(fPort, TCSANOW, &options); //write options
    close(fPort);
-   
+
 
    log_line("Configured serial port %s to baudrate %ld bps.", szDevName, baudRate);
    return 1;
@@ -474,7 +474,7 @@ int hardware_open_serial_port(const char* szDevName, long baudRate)
    if ( access(szDevName, R_OK ) == -1 )
    {
       log_softerror_and_alarm("Hardware: Invalid serial port device to open [%s]. Can't access it.", szDevName);
-      return -1;    
+      return -1;
    }
 
    //int fPort = open (szDevName, O_RDWR | O_NOCTTY | O_NONBLOCK );
@@ -489,7 +489,7 @@ int hardware_open_serial_port(const char* szDevName, long baudRate)
       log_softerror_and_alarm("Failed to open serial port %s", szDevName);
       return -1;
    }
-   
+
    struct termios options;
    tcgetattr(fPort, &options);
    cfmakeraw(&options);
@@ -515,7 +515,7 @@ int hardware_open_serial_port(const char* szDevName, long baudRate)
    options.c_cflag &= ~CSTOPB; // 1 stop bit
    options.c_cflag &= ~CRTSCTS; // no RTS/CTS Flow Control
    options.c_cflag |= CREAD | CLOCAL; // Set local mode on
-   
+
    options.c_lflag &= ~ECHO; // no echo
    options.c_lflag &= ~ECHOE; // no echo
    options.c_lflag &= ~ECHONL; // no echo
@@ -528,7 +528,7 @@ int hardware_open_serial_port(const char* szDevName, long baudRate)
    options.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL); // Disable any special handling of received bytes
 
    options.c_oflag &= ~OPOST; // Prevent special interpretation of output bytes (e.g. newline chars)
-   options.c_oflag &= ~ONLCR; // Prevent conversion of newline to carriage return/line feed 
+   options.c_oflag &= ~ONLCR; // Prevent conversion of newline to carriage return/line feed
    */
 
    options.c_cflag &= ~CSIZE;
@@ -538,7 +538,7 @@ int hardware_open_serial_port(const char* szDevName, long baudRate)
    options.c_lflag &= ~ECHO; // no echo
    options.c_cflag &= ~CRTSCTS; // no RTS/CTS Flow Control
    options.c_cflag |= CLOCAL; // Set local mode on
-   
+
    options.c_iflag = IGNBRK;
    options.c_iflag &= ~(IXON | IXOFF ); // No software handshake
    options.c_iflag |= IXANY;
@@ -546,7 +546,7 @@ int hardware_open_serial_port(const char* szDevName, long baudRate)
    //options.c_cc[VMIN] = 0;
    //options.c_cc[VTIME] = 5;
 
-   tcsetattr(fPort, TCSANOW, &options); //write options 
+   tcsetattr(fPort, TCSANOW, &options); //write options
 
    if ( iUsedDefaultRate )
       log_line("[HW-S]: Opened serial port %s with default baudrate %ld bps (%ld bps was invalid). fd=%d", szDevName, 57600, baudRate, fPort);
@@ -619,10 +619,10 @@ int hardware_serial_wait_sik_response(int iSerialPortFD, int iTimeoutMS, int iMi
       to.tv_sec = 0;
       to.tv_usec = iTimeoutMS*1000;
 
-      fd_set readset;   
+      fd_set readset;
       FD_ZERO(&readset);
       FD_SET(iSerialPortFD, &readset);
-      
+
       int res = select(iSerialPortFD+1, &readset, NULL, NULL, &to);
       if ( res > 0 )
       if ( FD_ISSET(iSerialPortFD, &readset) )

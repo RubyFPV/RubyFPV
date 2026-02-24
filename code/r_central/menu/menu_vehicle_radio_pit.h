@@ -12,7 +12,7 @@ class MenuVehicleRadioLinkPITModes: public Menu
       virtual void Render();
       virtual void onShow();
       virtual void onSelectItem();
-            
+
    private:
       void addItems();
       void sendRadioInterfacesFlags();

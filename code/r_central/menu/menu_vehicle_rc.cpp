@@ -101,7 +101,7 @@ MenuVehicleRC::MenuVehicleRC(void)
    //m_pItemsSelect[0]->setUseMultiViewLayout();
    m_IndexRCEnabled = addMenuItem(m_pItemsSelect[0]);
 
-   m_pItemsSelect[10] = new MenuItemSelect("Enable RC Output", "Enables the final output of RC data to the flight controller. Turn this off while you are configuring the RC link. When everything is configured and looks right, turn this on to actually send the RC data to the flight controller.");  
+   m_pItemsSelect[10] = new MenuItemSelect("Enable RC Output", "Enables the final output of RC data to the flight controller. Turn this off while you are configuring the RC link. When everything is configured and looks right, turn this on to actually send the RC data to the flight controller.");
    m_pItemsSelect[10]->addSelection("Disabled");
    m_pItemsSelect[10]->addSelection("Enabled");
    m_pItemsSelect[10]->addSelection("Use QA Button 1");
@@ -111,7 +111,7 @@ MenuVehicleRC::MenuVehicleRC(void)
    //m_pItemsSelect[10]->setUseMultiViewLayout();
    m_IndexEnableOutput = addMenuItem(m_pItemsSelect[10]);
 
-   m_pItemsSelect[16] = new MenuItemSelect("RC Input Source", "Sets the input source for the RC controlls.");  
+   m_pItemsSelect[16] = new MenuItemSelect("RC Input Source", "Sets the input source for the RC controlls.");
    m_pItemsSelect[16]->addSelection("None");
    m_pItemsSelect[16]->addSelection("USB HID device");
    m_pItemsSelect[16]->addSelection("RC In (SBUS/IBUS)");
@@ -122,7 +122,7 @@ MenuVehicleRC::MenuVehicleRC(void)
    if ( NULL != g_pCurrentModel )
       log_line("Primary HID for this vehicle: HID id: %u", g_pCurrentModel->rc_params.hid_id);
 
-   m_pItemsSelect[15] = new MenuItemSelect("Primary input HID", "Sets the primary HID (joysticks/gamepad/RC transmitter) used for this vehicle.");  
+   m_pItemsSelect[15] = new MenuItemSelect("Primary input HID", "Sets the primary HID (joysticks/gamepad/RC transmitter) used for this vehicle.");
 
    m_nIndexPrimaryHID = -1;
    m_pJoystick = NULL;
@@ -266,7 +266,7 @@ int MenuVehicleRC::onBack()
       rc_parameters_t params;
       memcpy((u8*)&params, (u8*)&(g_pCurrentModel->rc_params), sizeof(rc_parameters_t));
 
-      params.rcChAssignmentThrotleReverse = 0;      
+      params.rcChAssignmentThrotleReverse = 0;
 
       if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_RC_PARAMS, 0, (u8*)&params, sizeof(rc_parameters_t)) )
          valuesToUI();
@@ -661,7 +661,7 @@ void MenuVehicleRC::onAssignAxe(int axeIndex)
 
 void MenuVehicleRC::Render()
 {
-   RenderPrepare();   
+   RenderPrepare();
    float yTop = RenderFrameAndTitle();
    float y = yTop;
 
@@ -738,7 +738,7 @@ void MenuVehicleRC::renderLiveValues()
    g_pRenderEngine->drawRoundRect(xPos, yPos, fWidth, fHeight, MENU_ROUND_MARGIN*m_sfMenuPaddingY);
 
    g_pRenderEngine->setColors(get_Color_MenuText());
-   
+
    float y = yPos + fPaddingY;
    xPos += fPaddingX;
    fWidth -= fPaddingX;
@@ -776,7 +776,7 @@ void MenuVehicleRC::renderLiveValues()
    if ( ! bHasInputSource )
       g_pRenderEngine->setColors(get_Color_IconError());
    g_pRenderEngine->drawTextLeft(xPos + fWidth - fPaddingX, y, g_idFontMenu, szBuff);
-   g_pRenderEngine->setColors(get_Color_MenuText());    
+   g_pRenderEngine->setColors(get_Color_MenuText());
    y += height_text*1.1;
 
    g_pRenderEngine->drawText(xPos, y, g_idFontMenu, "RC Output:");
@@ -789,7 +789,7 @@ void MenuVehicleRC::renderLiveValues()
       g_pRenderEngine->setColors(get_Color_IconError());
 
    g_pRenderEngine->drawTextLeft(xPos + fWidth - fPaddingX, y, g_idFontMenu, szBuff);
-   g_pRenderEngine->setColors(get_Color_MenuText());    
+   g_pRenderEngine->setColors(get_Color_MenuText());
    y += height_text*1.1;
 
    u8 fsMode = g_pCurrentModel->rc_params.failsafeFlags & 0xFF;
@@ -814,7 +814,7 @@ void MenuVehicleRC::renderLiveValues()
       y += height_text*0.2;
       g_pRenderEngine->setColors(get_Color_IconError());
       g_pRenderEngine->drawText(xPos, y, g_idFontMenu, "Failsafe State!");
-      g_pRenderEngine->setColors(get_Color_MenuText());    
+      g_pRenderEngine->setColors(get_Color_MenuText());
       y += height_text;
 
       if ( g_pCurrentModel->rc_params.inputType == RC_INPUT_TYPE_RC_IN_SBUS_IBUS )
@@ -865,7 +865,7 @@ void MenuVehicleRC::renderLiveValues()
          g_pRenderEngine->drawText(x0 + fTmpW, y + 0.15 * height_text, g_idFontMenuSmall, &(szTmp[iPos]));
 
       u32 fsChType = get_rc_channel_failsafe_type(g_pCurrentModel, ch);
-      int fsValue = get_rc_channel_failsafe_value(g_pCurrentModel, ch, m_CurrentRCValues[ch]); 
+      int fsValue = get_rc_channel_failsafe_value(g_pCurrentModel, ch, m_CurrentRCValues[ch]);
       if ( (fsValue < 0) || (fsValue > 2500) )
          fsValue = 0;
       int val = m_CurrentRCValues[ch];
@@ -891,7 +891,7 @@ void MenuVehicleRC::renderLiveValues()
       g_pRenderEngine->setFill(0,0,0,0);
       g_pRenderEngine->setStrokeSize(1);
       g_pRenderEngine->drawRoundRect(x1, y, rectW, rectH, corner);
-   
+
       g_pRenderEngine->setColors(get_Color_MenuText());
       sprintf(szBuff, "%d", val);
 
@@ -915,7 +915,7 @@ void MenuVehicleRC::renderLiveValues()
          g_pRenderEngine->drawText(x1+0.3*m_sfMenuPaddingX, y+height_text*0.08, g_idFontMenuSmall, szBuff);
       else
          g_pRenderEngine->drawText(x1+0.3*m_sfMenuPaddingX, y-height_text*0.001, g_idFontMenu, szBuff);
-      
+
       g_pRenderEngine->setColors(get_Color_MenuText());
 
       sprintf(szBuff, "%d", fsValue);
@@ -1063,7 +1063,7 @@ void MenuVehicleRC::onSelectItem()
          else
             snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "Your %s is armed. Are you sure you want to enable the RC link? It can have unintended consequences depending on how the flight controller is setup.", szVehicleType);
          MenuConfirmation* pMC = new MenuConfirmation("WARNING!",szBuff,2);
-         add_menu_to_stack(pMC);         
+         add_menu_to_stack(pMC);
          return;
       }
 
@@ -1117,8 +1117,8 @@ void MenuVehicleRC::onSelectItem()
             params.hid_id = pCII->uId;
             log_line("MenuVehicleRC: Set active HID as controler input device index %d, HID ID: %u", m_pItemsSelect[15]->getSelectedIndex(), pCII->uId);
          }
-      }      
-     
+      }
+
       for( int i=0; i<MAX_RC_CHANNELS; i++ )
          m_CurrentRCValues[i] = 0;
 
@@ -1161,7 +1161,7 @@ void MenuVehicleRC::onSelectItem()
          if ( p->iActionQuickButton3 == quickActionRCEnable )
             p->iActionQuickButton3 = quickActionTakePicture;
 
-         save_Preferences();      
+         save_Preferences();
 
          log_dword("Sending RC flags: ", g_pCurrentModel->rc_params.uRCFlags);
          if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_RC_PARAMS, 0, (u8*)&params, sizeof(rc_parameters_t)) )
@@ -1178,7 +1178,7 @@ void MenuVehicleRC::onSelectItem()
             p->iActionQuickButton2 = quickActionToggleAllOff;
          if ( p->iActionQuickButton3 == quickActionRCEnable )
             p->iActionQuickButton3 = quickActionTakePicture;
-      
+
          if ( 2 == index )
             p->iActionQuickButton1 = quickActionRCEnable;
          if ( 3 == index )
@@ -1263,7 +1263,7 @@ void MenuVehicleRC::onSelectItem()
          valuesToUI();
       return;
    }
-   
+
    if ( m_IndexChannels == m_SelectedIndex )
    {
       if ( NULL != m_pJoystick )

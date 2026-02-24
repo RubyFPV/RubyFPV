@@ -16,7 +16,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 typedef struct
 {
@@ -69,7 +69,7 @@ typedef struct
    u8 uTxLastDeltaTime[SYSTEM_RT_INFO_INTERVALS]; // From start of slice, in ms
    u8 uTxPackets[SYSTEM_RT_INFO_INTERVALS];
    u8 uTxHighPriorityPackets[SYSTEM_RT_INFO_INTERVALS];
-   
+
    u8 uOutputedVideoPackets[SYSTEM_RT_INFO_INTERVALS];
    u8 uOutputedVideoPacketsRetransmitted[SYSTEM_RT_INFO_INTERVALS];
    u8 uOutputedVideoPacketsRetransmittedDiscarded[SYSTEM_RT_INFO_INTERVALS];
@@ -150,5 +150,5 @@ void controller_rt_info_update_ack_rt_time(controller_runtime_info* pRTInfo, u32
 int controller_rt_info_will_advance_index(controller_runtime_info* pRTInfo, u32 uTimeNowMs);
 int controller_rt_info_check_advance_index(controller_runtime_info* pRTInfo, u32 uTimeNowMs);
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

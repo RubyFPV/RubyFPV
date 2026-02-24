@@ -134,7 +134,7 @@ void _gpio_load_custom_mapping()
    iTmp1 = 0;
    iTmp2 = 0;
    iTmp3 = 0;
-   
+
    if ( 1 != fscanf(fd, "%d", &iTmp1) )
       iTmp1 = 0;
    if ( 1 != fscanf(fd, "%d", &iTmp2) )

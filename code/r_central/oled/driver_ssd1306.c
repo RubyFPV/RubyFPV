@@ -22,23 +22,23 @@
 #define SSD1306_CMD_COLUMN_0_MAPPED_TO_SEG0                 0xA0        /** command column 0 mapped to seg 0 */
 #define SSD1306_CMD_COLUMN_127_MAPPED_TO_SEG0               0xA1        /** command column 127 mapped to seg 0 */
 #define SSD1306_CMD_VERTICAL_SCROLL_AREA                    0xA3        /** command vertical scroll area */
-#define SSD1306_CMD_ENTIRE_DISPLAY_OFF                      0xA4        /** command entire display off */ 
-#define SSD1306_CMD_ENTIRE_DISPLAY_ON                       0xA5        /** command entire display on */ 
-#define SSD1306_CMD_NORMAL_DISPLAY                          0xA6        /** command normal display */ 
-#define SSD1306_CMD_INVERSE_DISPLAY                         0xA7        /** command inverse display */ 
-#define SSD1306_CMD_MULTIPLEX_RATIO                         0xA8        /** command multiplex ratio */ 
-#define SSD1306_CMD_DISPLAY_OFF                             0xAE        /** command display off */ 
-#define SSD1306_CMD_DISPLAY_ON                              0xAF        /** command display on */ 
-#define SSD1306_CMD_PAGE_ADDR                               0xB0        /** command page address */ 
-#define SSD1306_CMD_SCAN_DIRECTION_COM0_START               0xC0        /** command scan direction com 0 start */ 
-#define SSD1306_CMD_SCAN_DIRECTION_COMN_1_START             0xC8        /** command scan direction com n-1 start */ 
-#define SSD1306_CMD_DISPLAY_OFFSET                          0xD3        /** command display offset */ 
-#define SSD1306_CMD_DISPLAY_CLOCK_DIVIDE                    0xD5        /** command display clock divide */ 
-#define SSD1306_CMD_SET_ZOOM_IN                             0xD6        /** command set zoom in */ 
-#define SSD1306_CMD_PRE_CHARGE_PERIOD                       0xD9        /** command pre charge period */ 
-#define SSD1306_CMD_COM_PINS_CONF                           0xDA        /** command com pins conf */ 
-#define SSD1306_CMD_COMH_DESLECT_LEVEL                      0xDB        /** command comh deslect level */ 
-#define SSD1306_CMD_NOP                                     0xE3        /** command nop */ 
+#define SSD1306_CMD_ENTIRE_DISPLAY_OFF                      0xA4        /** command entire display off */
+#define SSD1306_CMD_ENTIRE_DISPLAY_ON                       0xA5        /** command entire display on */
+#define SSD1306_CMD_NORMAL_DISPLAY                          0xA6        /** command normal display */
+#define SSD1306_CMD_INVERSE_DISPLAY                         0xA7        /** command inverse display */
+#define SSD1306_CMD_MULTIPLEX_RATIO                         0xA8        /** command multiplex ratio */
+#define SSD1306_CMD_DISPLAY_OFF                             0xAE        /** command display off */
+#define SSD1306_CMD_DISPLAY_ON                              0xAF        /** command display on */
+#define SSD1306_CMD_PAGE_ADDR                               0xB0        /** command page address */
+#define SSD1306_CMD_SCAN_DIRECTION_COM0_START               0xC0        /** command scan direction com 0 start */
+#define SSD1306_CMD_SCAN_DIRECTION_COMN_1_START             0xC8        /** command scan direction com n-1 start */
+#define SSD1306_CMD_DISPLAY_OFFSET                          0xD3        /** command display offset */
+#define SSD1306_CMD_DISPLAY_CLOCK_DIVIDE                    0xD5        /** command display clock divide */
+#define SSD1306_CMD_SET_ZOOM_IN                             0xD6        /** command set zoom in */
+#define SSD1306_CMD_PRE_CHARGE_PERIOD                       0xD9        /** command pre charge period */
+#define SSD1306_CMD_COM_PINS_CONF                           0xDA        /** command com pins conf */
+#define SSD1306_CMD_COMH_DESLECT_LEVEL                      0xDB        /** command comh deslect level */
+#define SSD1306_CMD_NOP                                     0xE3        /** command nop */
 
 static int a_ssd1306_write_byte(ssd1306_handle_t *handle, uint8_t data, uint8_t cmd)
 {

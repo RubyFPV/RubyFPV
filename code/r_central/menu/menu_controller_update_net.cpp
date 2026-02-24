@@ -99,7 +99,7 @@ void MenuControllerUpdateNet::Render()
    {
       float xPos = m_RenderXPos + m_sfMenuPaddingX;
       float yPos = m_RenderYPos + m_sfMenuPaddingY + height_text;
-      
+
       g_pRenderEngine->setColors(get_Color_MenuText());
       g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
 
@@ -168,7 +168,7 @@ void MenuControllerUpdateNet::Render()
       g_pRenderEngine->setColors(get_Color_MenuText());
       g_pRenderEngine->setFill(get_Color_IconSucces());
       g_pRenderEngine->drawRoundRect(xPos + fWidth*0.25, yPos, (fWidth-0.5*fWidth) * (float)iCurrentStep / (float)iTotalSteps, height_text, 0.01*Menu::getMenuPaddingY());
-      g_pRenderEngine->setColors(get_Color_MenuText());    
+      g_pRenderEngine->setColors(get_Color_MenuText());
       */
    }
 }
@@ -244,11 +244,11 @@ void* _thread_check_update(void *argument)
    if ( 2 != sscanf(szVer, "%d %d", &iMajor, &iMinor) )
    {
       pMenu->onFinishCheckAsync(-3);
-      return NULL;    
+      return NULL;
    }
 
    pMenu->onUpdateCounter();
-   
+
    if ( (iMajor == SYSTEM_SW_VERSION_MAJOR) && (iMinor == SYSTEM_SW_VERSION_MINOR) )
    {
       pMenu->onFinishCheckAsync(2);
