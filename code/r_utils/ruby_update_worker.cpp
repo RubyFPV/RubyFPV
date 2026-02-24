@@ -88,7 +88,7 @@ void process_custom_commands_file()
          char szFolder[256];
          if ( 3 != fscanf(fd, "%s %s %s", szFileIn, szFolder, szFileOut) )
          {
-            log_softerror_and_alarm("Invalid copy comand");
+            log_softerror_and_alarm("Invalid copy command");
             continue;
          }
          char szCommand[1024];
@@ -103,7 +103,7 @@ void process_custom_commands_file()
          char szFolder[256];
          if ( 3 != fscanf(fd, "%s %s %s", szFileIn, szFolder, szFileOut) )
          {
-            log_softerror_and_alarm("Invalid copy comand");
+            log_softerror_and_alarm("Invalid copy command");
             continue;
          }
          char szCommand[1024];
@@ -118,7 +118,7 @@ void process_custom_commands_file()
          readline = getline(&line, &len, fd);
          if ( readline < 1 )
          {
-            log_softerror_and_alarm("Invalid comand");
+            log_softerror_and_alarm("Invalid command");
             continue;
          }        
          char szCommand[1024];
