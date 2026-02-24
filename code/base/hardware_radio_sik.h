@@ -6,7 +6,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 int hardware_radio_has_sik_radios();
 int hardware_radio_sik_firmware_is_old();
@@ -43,5 +43,5 @@ int hardware_radio_sik_save_settings_to_flash(int iSerialPortFile);
 int hardware_radio_sik_write_packet(int iHWRadioInterfaceIndex, u8* pData, int iLength);
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

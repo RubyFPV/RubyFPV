@@ -44,11 +44,11 @@ MenuVehicleRCExpo::MenuVehicleRCExpo(void)
    m_xPos = menu_get_XStartPos(m_Width);
    m_yPos = 0.24;
    m_bDisableStacking = true;
-   
+
    setColumnsCount(1);
    char szBuff[128];
 
-   m_ChannelCount = g_pCurrentModel->rc_params.channelsCount; 
+   m_ChannelCount = g_pCurrentModel->rc_params.channelsCount;
    for( int i=0; i<m_ChannelCount; i++ )
    {
       g_pCurrentModel->get_rc_channel_name(i, szBuff);
@@ -68,9 +68,9 @@ MenuVehicleRCExpo::~MenuVehicleRCExpo()
 }
 
 void MenuVehicleRCExpo::onShow()
-{      
+{
    Menu::onShow();
-   int index = m_SelectedIndex/m_iColumnsCount;  
+   int index = m_SelectedIndex/m_iColumnsCount;
    computeDisplayCurve(index);
 }
 
@@ -79,7 +79,7 @@ void MenuVehicleRCExpo::valuesToUI()
    for( int i=0; i<m_ChannelCount; i++ )
       m_ItemsChannels[i].pItemValue->setCurrentValue(g_pCurrentModel->rc_params.rcChExpo[i]);
 
-   int index = m_SelectedIndex/m_iColumnsCount;  
+   int index = m_SelectedIndex/m_iColumnsCount;
    computeDisplayCurve(index);
 }
 
@@ -97,13 +97,13 @@ void MenuVehicleRCExpo::computeDisplayCurve(int nChannel)
 void MenuVehicleRCExpo::Render()
 {
    RenderPrepare();
-   
+
    float yTop = RenderFrameAndTitle();
    float y = yTop;
    for( int i=0; i<m_ItemsCount; i++ )
       y += RenderItem(i,y);
    float yBottom = y;
-   int index = m_SelectedIndex/m_iColumnsCount;  
+   int index = m_SelectedIndex/m_iColumnsCount;
    if ( index != m_IndexComputedChannel )
       computeDisplayCurve(index);
 
@@ -132,7 +132,7 @@ void MenuVehicleRCExpo::Render()
 
    for( float y = yPosGraph; y<=yPosGraph+fHeightGraph-0.01; y += 0.01)
       g_pRenderEngine->drawLine(xPosGraph + fWidthGraph*0.5, y, xPosGraph + fWidthGraph*0.5, y + 0.005);
-   
+
    g_pRenderEngine->setGlobalAlfa(fAlfa);
    g_pRenderEngine->setColors(get_Color_MenuText());
    g_pRenderEngine->setStrokeSize(1);
@@ -199,5 +199,5 @@ void MenuVehicleRCExpo::onSelectItem()
    params.rcChExpo[index] = fsvalue;
 
    if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_RC_PARAMS, 0, (u8*)&params, sizeof(rc_parameters_t)) )
-      valuesToUI();  
+      valuesToUI();
 }

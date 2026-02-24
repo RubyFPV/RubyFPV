@@ -102,7 +102,7 @@ void _vehicle_launch_video_capture_csi_init_params()
    {
       char szComm[1024];
       char szOutput[1024];
- 
+
       int nBus = hardware_i2c_get_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
       log_line("[VideoSourceCSI] Applying VeYe camera commands to I2C bus number %d, dev address: 0x%02X", nBus, I2C_DEVICE_ADDRESS_CAMERA_VEYE);
 
@@ -273,7 +273,7 @@ static void * _thread_watchdog_video_capture(void *ignored_argument)
          continue;
 
       // Check video capture program up and running
-   
+
       if ( g_pCurrentModel->hasCamera() && (video_source_cs_get_program_start_time() > 0) && (g_TimeNow > video_source_cs_get_program_start_time()+5000) )
       if ( ! g_bVideoPaused )
       //if ( g_TimeNow > g_TimeLastVideoCaptureProgramRunningCheck + 2000 )
@@ -314,7 +314,7 @@ static void * _thread_watchdog_video_capture(void *ignored_argument)
          {
             if ( (iCount % 5) == 0 )
                log_line("[VideoCaptureCSITh] Video capture watchdog: capture is running ok.");
-              
+
             static int s_iCheckVideoOutputBitrateCounter = 0;
             if ( relay_current_vehicle_must_send_own_video_feeds() &&
                 (g_pProcessorTxVideo->getCurrentVideoBitrateAverageLastMs(2000) < 50000) )
@@ -352,7 +352,7 @@ int _video_source_csi_open(const char* szPipeName)
       log_error_and_alarm("[VideoSourceCSI] Tried to open a video input source pipe with an empty name.");
       return s_fInputVideoStreamCSIPipe;
    }
-   
+
    strcpy(s_szInputVideoStreamCSIPipeName, szPipeName);
    log_line("[VideoSourceCSI] Opening video input stream pipe: %s", s_szInputVideoStreamCSIPipeName);
 
@@ -370,13 +370,13 @@ int _video_source_csi_open(const char* szPipeName)
    if ( ! (S_ISFIFO(statsBuff.st_mode)) )
    {
       log_error_and_alarm("[VideoSourceCSI] File [%s] is not a pipe. Not opening it.", s_szInputVideoStreamCSIPipeName);
-      return -1;    
+      return -1;
    }
    /*
    if ( access( szPipeName, R_OK ) != -1 )
    {
       log_error_and_alarm("[VideoSourceCSI] Pipe [%s] can't be found. Not opening it.", s_szInputVideoStreamCSIPipeName);
-      return -1;    
+      return -1;
    }
    */
 
@@ -390,7 +390,7 @@ int _video_source_csi_open(const char* szPipeName)
    s_bInputVideoStreamCSIPipeOpenFailed = false;
    log_line("[VideoSourceCSI] Opened video input stream: %s", s_szInputVideoStreamCSIPipeName);
    log_line("[VideoSourceCSI] Pipe read end flags: %s", str_get_pipe_flags(fcntl(s_fInputVideoStreamCSIPipe, F_GETFL)));
-   
+
    return s_fInputVideoStreamCSIPipe;
 }
 
@@ -618,12 +618,12 @@ void video_source_csi_stop_program()
          hardware_sleep_ms(10);
          iCount++;
       }
-      //pthread_cancel(s_pThreadWatchDogVideoCapture); 
+      //pthread_cancel(s_pThreadWatchDogVideoCapture);
    }
    log_line("[VideoSourceCSI] Stopped video watchdog thread.");
 
    _vehicle_stop_video_capture_csi(g_pCurrentModel);
-   
+
    if ( s_iMsgQueueCSICommands > 0 )
    {
       msgctl(s_iMsgQueueCSICommands,IPC_RMID,NULL);
@@ -712,7 +712,7 @@ void video_source_csi_send_control_message(u8 parameter, u16 value1, u16 value2)
    if ( parameter == RASPIVID_COMMAND_ID_VIDEO_BITRATE )
    {
       video_source_csi_log_input_data();
-      s_uLastSetCSIVideoBitrateBPS = ((u32)value1) * 100000; 
+      s_uLastSetCSIVideoBitrateBPS = ((u32)value1) * 100000;
       s_uTimeMustSendRaspividBitrateRefreshAt = g_TimeNow+200;
    }
 
@@ -728,13 +728,13 @@ void video_source_csi_send_control_message(u8 parameter, u16 value1, u16 value2)
    s_CameraCommandNumber++;
    if ( 0 == s_CameraCommandNumber )
       s_CameraCommandNumber++;
-   
+
    // 6 bytes each command
    // byte 0: command counter;
    // byte 1: command type;
    // byte 2-3: command parameter 1;
    // byte 4-5: command parameter 2;
-  
+
    typedef struct
    {
        long type;
@@ -749,7 +749,7 @@ void video_source_csi_send_control_message(u8 parameter, u16 value1, u16 value2)
 
    msg.type = 1;
    msg.data[4] = 0;
-   msg.data[5] = 6; //length of actual data 
+   msg.data[5] = 6; //length of actual data
    msg.data[6] = 0;
 
    msg.data[7] = s_CameraCommandNumber;
@@ -873,7 +873,7 @@ void video_source_csi_update_camera_params(Model* pModel, int iCameraIndex)
    if ( pModel->isActiveCameraVeye307() )
    {
       int nBus = hardware_i2c_get_device_bus_number(I2C_DEVICE_ADDRESS_CAMERA_VEYE);
-      
+
       if ( (s_LastAppliedVeyeVideoParams.iVideoWidth != pModel->video_params.iVideoWidth) ||
            (s_LastAppliedVeyeVideoParams.iVideoHeight != pModel->video_params.iVideoHeight) ||
            (s_LastAppliedVeyeVideoParams.iVideoFPS != pModel->video_params.iVideoFPS) )
@@ -1078,7 +1078,7 @@ void video_source_csi_update_camera_params(Model* pModel, int iCameraIndex)
          hw_execute_bash_command(szComm, NULL);
       }
    }
-   
+
    memcpy((u8*)&s_LastAppliedVeyeCameraParams, (u8*)&(pModel->camera_params[iCameraIndex]), sizeof(type_camera_parameters));
    memcpy((u8*)&s_LastAppliedVeyeVideoParams, (u8*)&(pModel->video_params), sizeof(video_parameters_t));
 }

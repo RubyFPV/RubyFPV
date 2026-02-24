@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2015 - present LibDriver All rights reserved
- * 
+ *
  * The MIT License (MIT)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,7 +19,7 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE. 
+ * SOFTWARE.
  *
  * @file      driver_ssd1306.h
  * @brief     driver ssd1306 header file
@@ -74,7 +74,7 @@ typedef enum
 /**
  * @brief ssd1306 memory addressing mode enumeration definition
  */
-typedef enum  
+typedef enum
 {
     SSD1306_MEMORY_ADDRESSING_MODE_HORIZONTAL = 0x00,        /** horizontal addressing mode */
     SSD1306_MEMORY_ADDRESSING_MODE_VERTICAL   = 0x01,        /** vertical addressing mode */
@@ -84,7 +84,7 @@ typedef enum
 /**
  * @brief ssd1306 fade blinking mode enumeration definition
  */
-typedef enum  
+typedef enum
 {
     SSD1306_FADE_BLINKING_MODE_DISABLE  = 0x00,        /** disable fade blinking mode */
     SSD1306_FADE_BLINKING_MODE_FADE_OUT = 0x02,        /** fade out fade blinking mode */
@@ -94,7 +94,7 @@ typedef enum
 /**
  * @brief ssd1306 scroll frame enumeration definition
  */
-typedef enum  
+typedef enum
 {
     SSD1306_SCROLL_FRAME_2    = 0x07,        /** scroll frame 2 */
     SSD1306_SCROLL_FRAME_3    = 0x04,        /** scroll frame 3 */
@@ -109,7 +109,7 @@ typedef enum
 /**
  * @brief ssd1306 charge pump enumeration definition
  */
-typedef enum  
+typedef enum
 {
     SSD1306_CHARGE_PUMP_DISABLE = 0x00,        /** charge pump disable */
     SSD1306_CHARGE_PUMP_ENABLE  = 0x01,        /** charge pump enable */
@@ -118,7 +118,7 @@ typedef enum
 /**
  * @brief ssd1306 segment column remap enumeration definition
  */
-typedef enum  
+typedef enum
 {
     SSD1306_SEGMENT_COLUMN_ADDRESS_0   = 0x00,        /** segment column remap address 0 */
     SSD1306_SEGMENT_COLUMN_ADDRESS_127 = 0x01,        /** segment column remap address 127 */
@@ -127,7 +127,7 @@ typedef enum
 /**
  * @brief ssd1306 entire display enumeration definition
  */
-typedef enum  
+typedef enum
 {
     SSD1306_ENTIRE_DISPLAY_OFF = 0x00,        /** entire display off */
     SSD1306_ENTIRE_DISPLAY_ON  = 0x01,        /** entire display on */
@@ -136,7 +136,7 @@ typedef enum
 /**
  * @brief ssd1306 display mode enumeration definition
  */
-typedef enum  
+typedef enum
 {
     SSD1306_DISPLAY_MODE_NORMAL  = 0x00,        /** display mode normal */
     SSD1306_DISPLAY_MODE_INVERSE = 0x01,        /** display mode inverse */
@@ -145,7 +145,7 @@ typedef enum
 /**
  * @brief ssd1306 display enumeration definition
  */
-typedef enum  
+typedef enum
 {
     SSD1306_DISPLAY_OFF = 0x00,        /** close display */
     SSD1306_DISPLAY_ON  = 0x01,        /** open display */
@@ -154,7 +154,7 @@ typedef enum
 /**
  * @brief ssd1306 scan direction enumeration definition
  */
-typedef enum  
+typedef enum
 {
     SSD1306_SCAN_DIRECTION_COM0_START   = 0x00,        /** scan direction com 0 start */
     SSD1306_SCAN_DIRECTION_COMN_1_START = 0x01,        /** scan direction com N-1 start */
@@ -163,7 +163,7 @@ typedef enum
 /**
  * @brief ssd1306 zoom in enumeration definition
  */
-typedef enum  
+typedef enum
 {
     SSD1306_ZOOM_IN_DISABLE = 0x00,        /** disable zoom in */
     SSD1306_ZOOM_IN_ENABLE  = 0x01,        /** enable zoom in */
@@ -172,7 +172,7 @@ typedef enum
 /**
  * @brief ssd1306 pin conf enumeration definition
  */
-typedef enum  
+typedef enum
 {
     SSD1306_PIN_CONF_SEQUENTIAL  = 0x00,        /** pin conf sequential */
     SSD1306_PIN_CONF_ALTERNATIVE = 0x01,        /** pin conf alternative */
@@ -181,7 +181,7 @@ typedef enum
 /**
  * @brief ssd1306 left right remap enumeration definition
  */
-typedef enum  
+typedef enum
 {
     SSD1306_LEFT_RIGHT_REMAP_DISABLE = 0x00,        /** disable left right remap */
     SSD1306_LEFT_RIGHT_REMAP_ENABLE  = 0x01,        /** enable left right remap */
@@ -190,7 +190,7 @@ typedef enum
 /**
  * @brief ssd1306 deselect level enumeration definition
  */
-typedef enum  
+typedef enum
 {
     SSD1306_DESELECT_LEVEL_0P65 = 0x00,        /** deselect level 0.65 */
     SSD1306_DESELECT_LEVEL_0P77 = 0x02,        /** deselect level 0.77 */
@@ -200,7 +200,7 @@ typedef enum
 /**
  * @brief ssd1306 font enumeration definition
  */
-typedef enum  
+typedef enum
 {
     SSD1306_FONT_12 = 0x0C,        /** font 12 */
     SSD1306_FONT_16 = 0x10,        /** font 16 */
@@ -238,11 +238,11 @@ typedef struct {
 } Point;
 
 typedef struct {
-    int16_t y_max;     
-    int16_t x;         
-    int16_t dx;        
-    int16_t dy;        
-    int16_t fraction;  
+    int16_t y_max;
+    int16_t x;
+    int16_t dx;
+    int16_t dy;
+    int16_t fraction;
 } Edge;
 
 /**
@@ -512,7 +512,7 @@ int ssd1306_set_fade_blinking_mode(ssd1306_handle_t *handle, ssd1306_fade_blinki
  *            - 5 end page addr is invalid
  * @note       start_page_addr <= 0x07, end_page_addr <= 0x07
  */
-int ssd1306_set_right_horizontal_scroll(ssd1306_handle_t *handle, uint8_t start_page_addr, uint8_t end_page_addr, 
+int ssd1306_set_right_horizontal_scroll(ssd1306_handle_t *handle, uint8_t start_page_addr, uint8_t end_page_addr,
                                             ssd1306_scroll_frame_t frames);
 
 /**
@@ -530,7 +530,7 @@ int ssd1306_set_right_horizontal_scroll(ssd1306_handle_t *handle, uint8_t start_
  *            - 5 end_page_addr is invalid
  * @note      start_page_addr <= 0x07, end_page_addr <= 0x07
  */
-int ssd1306_set_left_horizontal_scroll(ssd1306_handle_t *handle, uint8_t start_page_addr, uint8_t end_page_addr, 
+int ssd1306_set_left_horizontal_scroll(ssd1306_handle_t *handle, uint8_t start_page_addr, uint8_t end_page_addr,
                                            ssd1306_scroll_frame_t frames);
 
 /**
@@ -550,7 +550,7 @@ int ssd1306_set_left_horizontal_scroll(ssd1306_handle_t *handle, uint8_t start_p
  *            - 6 rows is invalid
  * @note      start_page_addr <= 0x07, end_page_addr <= 0x07, rows <= 0x3F
  */
-int ssd1306_set_vertical_right_horizontal_scroll(ssd1306_handle_t *handle, uint8_t start_page_addr, uint8_t end_page_addr, 
+int ssd1306_set_vertical_right_horizontal_scroll(ssd1306_handle_t *handle, uint8_t start_page_addr, uint8_t end_page_addr,
                                                      uint8_t rows, ssd1306_scroll_frame_t frames);
 
 /**
@@ -570,7 +570,7 @@ int ssd1306_set_vertical_right_horizontal_scroll(ssd1306_handle_t *handle, uint8
  *            - 6 rows is invalid
  * @note      start_page_addr <= 0x07, end_page_addr <= 0x07, rows <= 0x3F
  */
-int ssd1306_set_vertical_left_horizontal_scroll(ssd1306_handle_t *handle, uint8_t start_page_addr, uint8_t end_page_addr, 
+int ssd1306_set_vertical_left_horizontal_scroll(ssd1306_handle_t *handle, uint8_t start_page_addr, uint8_t end_page_addr,
                                                     uint8_t rows, ssd1306_scroll_frame_t frames);
 
 /**

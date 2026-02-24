@@ -109,7 +109,7 @@ void MenuConfirmationVehicleBoard::onSelectItem()
    u32 uBoardType = g_pCurrentModel->hwCapabilities.uBoardType;
    uBoardType &= ~(u32)BOARD_SUBTYPE_MASK;
    uBoardType |= (hardware_get_board_subtype_at_index(m_SelectedIndex)) << BOARD_SUBTYPE_SHIFT;
-   
+
    send_pause_adaptive_to_router(6000);
    if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_VEHICLE_BOARD_TYPE, uBoardType, NULL, 0) )
       valuesToUI();

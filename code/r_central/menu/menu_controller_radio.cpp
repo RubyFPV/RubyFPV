@@ -87,7 +87,7 @@ void MenuControllerRadio::addItems()
    m_pItemsSelect[0]->setSelectedIndex(1-pCS->iFixedTxPower);
    m_pItemsSelect[0]->setExtraHeight(0.2*g_pRenderEngine->textHeight(g_idFontMenu));
    m_IndexTxPowerMode = addMenuItem(m_pItemsSelect[0]);
-   
+
    if ( pCS->iFixedTxPower )
       addItemsFixedPower();
    else
@@ -210,9 +210,9 @@ void MenuControllerRadio::addItemsPrefferedTx()
             continue;
 
          char szName[128];
-      
+
          strcpy(szName, "NoName");
-      
+
          char szCardName[64];
          controllerGetCardUserDefinedNameOrShortType(pRadioHWInfo, szCardName);
          if ( NULL != szCardName && 0 != szCardName[0] )
@@ -261,7 +261,7 @@ void MenuControllerRadio::addItemsVehiclePower()
       strcpy(szTitle, L("Radio Uplink"));
       if ( g_pCurrentModel->radioLinksParams.links_count > 1 )
          sprintf(szTitle, L("Radio Uplink %d"), iLink+1);
-   
+
       int iCountInterfacesForLink = 0;
       for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
       {
@@ -361,7 +361,7 @@ void MenuControllerRadio::onSelectedPreferredTxCard(int iVehicleRadioLink)
       if ( NULL != pRadioHWInfo )
          controllerRemoveCardTXPreferred(pRadioHWInfo->szMAC);
    }
-     
+
    if ( iSelection > 0 )
    {
       int iCount = 0;
@@ -420,7 +420,7 @@ void MenuControllerRadio::onSelectItem()
       return;
    }
 
-  
+
    if ( (-1 != m_IndexTxPowerSingle) && (m_IndexTxPowerSingle == m_SelectedIndex) )
    {
       ControllerSettings* pCS = get_ControllerSettings();
@@ -432,7 +432,7 @@ void MenuControllerRadio::onSelectItem()
          add_menu_to_stack(pMenu);
          return;
       }
-      
+
       pCS->iFixedTxPower = 1;
 
       int iPowerLevelsCount = 0;

@@ -139,7 +139,7 @@ void MenuItemEdit::beginEdit()
    m_EditPos++;
 
    if ( m_EditPos >= m_MaxLength )
-      m_EditPos = 0; 
+      m_EditPos = 0;
 
    if ( 0 == m_szValue[m_EditPos] )
      m_szValue[m_EditPos] = ' ';
@@ -193,7 +193,7 @@ void MenuItemEdit::onKeyDown(bool bIgnoreReversion)
       m_bCurrentEditCharFirstChange = false;
       m_szValue[m_EditPos] = m_szLastEditChar;
    }
-   
+
    if ( 0 == m_szValue[m_EditPos] )
    {
       m_szValue[m_EditPos] = 65;
@@ -284,7 +284,7 @@ void MenuItemEdit::Render(float xPos, float yPos, bool bSelected, float fWidthSe
       }
       else
          g_pRenderEngine->setColors(get_Color_MenuItemSelectedText());
-   
+
       if ( 0 != szBuff[0] )
          g_pRenderEngine->drawText(x, yPos, g_idFontMenu, szBuff);
       if ( szBuff[0] == 0 )

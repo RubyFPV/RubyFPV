@@ -53,7 +53,7 @@ pthread_mutex_t s_pThreadKeyboardMutex;
 u32 s_uNextKeyboardDetectTime = 0;
 int s_iKeyboardDetectTryCount = 0;
 bool s_bHasLongPressFlag = false;
-typedef struct 
+typedef struct
 {
    int iFile;
    bool bIgnore;
@@ -181,7 +181,7 @@ bool _keyboard_try_detect()
       s_InputDevicesInfo[i].id[1] = 0;
       s_InputDevicesInfo[i].id[2] = 0;
       s_InputDevicesInfo[i].id[3] = 0;
-      
+
       unsigned long evbit = 0;
       memset((u8*)&evbit, 0, sizeof(evbit));
       if ( ioctl(s_InputDevicesInfo[i].iFile, EVIOCGBIT(0, sizeof(evbit)), &evbit) < 0 )
@@ -382,9 +382,9 @@ static void * _thread_keyboard(void *argument)
    if ( pCS->iPrioritiesAdjustment )
       hw_set_current_thread_raw_priority("keyboard", pCS->iThreadPriorityOthers);
    hw_log_current_thread_attributes("keyboard");
-   
+
    bool* pbInitialized = (bool*) argument;
-   
+
    while ( (*pbInitialized) )
    {
       hardware_loop();
@@ -492,7 +492,7 @@ int keyboard_uninit()
       return 0;
 
    s_bKeyboardInitDone = false;
-   
+
    pthread_mutex_lock(&s_pThreadKeyboardMutex);
    pthread_mutex_unlock(&s_pThreadKeyboardMutex);
 
@@ -569,7 +569,7 @@ u32 keyboard_get_triggered_input_events()
 
 void keyboard_clear_triggered_back_event()
 {
-   s_uKeyboardInputEventsSum &= ~INPUT_EVENT_PRESS_BACK; 
+   s_uKeyboardInputEventsSum &= ~INPUT_EVENT_PRESS_BACK;
 }
 
 u32 keyboard_add_triggered_gpio_input_events()

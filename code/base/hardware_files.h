@@ -9,7 +9,7 @@ void hardware_files_check_config_folder();
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 void hardware_files_init();
 

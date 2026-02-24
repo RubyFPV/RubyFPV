@@ -67,12 +67,12 @@ void _send_data()
    PH.vehicle_id_src = g_uComponentID;
    PH.vehicle_id_dest = 0;
    PH.total_length = sizeof(t_packet_header) + g_iPacketSize*sizeof(u8);
-   
+
    //u8 uZero = 0;
    u8 packet[MAX_PACKET_TOTAL_SIZE];
    for( int i=0; i<MAX_PACKET_TOTAL_SIZE; i++ )
       packet[i] = rand() % 256;
-   
+
    memcpy(packet, (u8*)&PH, sizeof(t_packet_header));
    memcpy(packet+sizeof(t_packet_header), &g_TimeNow, sizeof(u32));
 
@@ -99,7 +99,7 @@ void _send_ping()
       return;
 
    g_uTimeLastPingSent = g_TimeNow;
-   
+
    g_uLastPingIdSent++;
 
    t_packet_header PH;
@@ -107,7 +107,7 @@ void _send_ping()
    PH.vehicle_id_src = g_uComponentID;
    PH.vehicle_id_dest = 0;
    PH.total_length = sizeof(t_packet_header) + 4*sizeof(u8);
-   
+
    u8 packet[MAX_PACKET_TOTAL_SIZE];
    u8 uZero = 0;
    // u8 ping id, u8 radio link id, u8 relay flags for destination vehicle
@@ -116,7 +116,7 @@ void _send_ping()
    memcpy(packet+sizeof(t_packet_header)+sizeof(u8), &uZero, sizeof(u8));
    memcpy(packet+sizeof(t_packet_header)+2*sizeof(u8), &uZero, sizeof(u8));
    memcpy(packet+sizeof(t_packet_header)+3*sizeof(u8), &uZero, sizeof(u8));
- 
+
    u8 rawPacket[MAX_PACKET_TOTAL_SIZE];
    int totalLength = radio_build_new_raw_ieee_packet(0, rawPacket, packet, PH.total_length, g_iPortTx, 0);
 
@@ -141,13 +141,13 @@ void _process_rx_packet(u8* pPacketBuffer, int nLength, int iCount)
    {
       u8 uPingId = 0;
       memcpy( &uPingId, pPacketBuffer + sizeof(t_packet_header), sizeof(u8));
-      
+
       t_packet_header PH;
       radio_packet_init(&PH, PACKET_COMPONENT_RUBY, PACKET_TYPE_RUBY_PING_CLOCK_REPLY, STREAM_ID_DATA);
       PH.vehicle_id_src = g_uComponentID;
       PH.vehicle_id_dest = 0;
       PH.total_length = sizeof(t_packet_header) + 3*sizeof(u8) + sizeof(u32);
-      
+
       u8 packet[MAX_PACKET_TOTAL_SIZE];
       u8 uZero = 0;
       memcpy(packet, (u8*)&PH, sizeof(t_packet_header));
@@ -171,12 +171,12 @@ void _process_rx_packet(u8* pPacketBuffer, int nLength, int iCount)
    {
       u8 uPingId = 0;
       u32 uRemoteLocalTimeMs = 0;
-      
+
       memcpy(&uPingId, pPacketBuffer + sizeof(t_packet_header), sizeof(u8));
       memcpy(&uRemoteLocalTimeMs, pPacketBuffer + sizeof(t_packet_header)+sizeof(u8), sizeof(u32));
-      
+
       log_line("Received PING_REPLY: remote-time: %u, local-time: %u", uRemoteLocalTimeMs, g_TimeNow);
-       
+
       if ( uPingId == g_uLastPingIdSent )
       if ( uPingId != g_uLastPingIdReceivedBack )
       {
@@ -202,7 +202,7 @@ void _process_rx_packet(u8* pPacketBuffer, int nLength, int iCount)
    {
       u32 uRemoteLocalTimeMs = 0;
       memcpy(&uRemoteLocalTimeMs, pPacketBuffer + sizeof(t_packet_header), sizeof(u32));
-      
+
       u32 uRemoteTimeNow = uRemoteLocalTimeMs + g_iRemoteClockIsBehindMilisecs;
       int iTransmitTime = (int)g_TimeNow - (int)uRemoteTimeNow;
 
@@ -248,8 +248,8 @@ void _try_receive_packets()
    struct timeval to;
    to.tv_sec = 0;
    to.tv_usec = 100;
-            
-   
+
+
    int maxfd = -1;
    FD_ZERO(&g_Readset);
    for(int i=0; i<hardware_get_radio_interfaces_count(); ++i)
@@ -260,19 +260,19 @@ void _try_receive_packets()
          FD_SET(pNICInfo->runtimeInterfaceInfoRx.selectable_fd, &g_Readset);
          if ( pNICInfo->runtimeInterfaceInfoRx.selectable_fd > maxfd )
             maxfd = pNICInfo->runtimeInterfaceInfoRx.selectable_fd;
-      } 
+      }
    }
 
    int nResult = select(maxfd+1, &g_Readset, NULL, NULL, &to);
-   
+
    /*
     struct pollfd fds[5];
-    memset(fds, '\0', sizeof(fds)); 
+    memset(fds, '\0', sizeof(fds));
     radio_hw_info_t* pNICInfo = hardware_get_radio_info(0);
     fds[0].fd = pNICInfo->runtimeInterfaceInfoRx.selectable_fd;
-    fds[0].events = POLLIN; 
-    
-   int nResult = poll(fds, 1, 1); 
+    fds[0].events = POLLIN;
+
+   int nResult = poll(fds, 1, 1);
    if ( ! (fds[0].revents & POLLIN) )
       return;
 
@@ -288,7 +288,7 @@ void _try_receive_packets()
    do
    {
       nLength = 0;
-      pBuffer = radio_process_wlan_data_in(0, &nLength, NULL, g_TimeNow); 
+      pBuffer = radio_process_wlan_data_in(0, &nLength, NULL, g_TimeNow);
       if ( NULL == pBuffer )
          break;
 
@@ -296,7 +296,7 @@ void _try_receive_packets()
       g_TimeNow = get_current_timestamp_ms();
 
       while ( nLength > 0 )
-      { 
+      {
          t_packet_header* pPH = (t_packet_header*)pBuffer;
          _process_rx_packet(pBuffer, nLength, iCount);
          pBuffer += pPH->total_length;
@@ -306,12 +306,12 @@ void _try_receive_packets()
    while (true);
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    g_bQuit = true;
-} 
-  
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -360,12 +360,12 @@ int main(int argc, char *argv[])
       g_iPortRx = atoi(argv[argc-3]);
 
    //setpriority(PRIO_PROCESS, 0, -10);
-   
+
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
 
-   log_init("TestLink"); 
+   log_init("TestLink");
    log_enable_stdout();
 
    radio_init_link_structures();
@@ -386,7 +386,7 @@ int main(int argc, char *argv[])
       printf("\nFailed to open interface for read.\n");
       return -1;
    }
-   
+
    log_line("Started as %s, use %s, datarate: %d, component id: %u",
        g_bIsVehicle?"vehicle":"controller",
        g_iUsePCAPForTx?"ppcap":"sockets",
@@ -405,7 +405,7 @@ int main(int argc, char *argv[])
       radio_set_out_datarate(g_iDatarate, 0, get_current_timestamp_ms());
 
    radio_set_frames_flags(RADIO_FLAGS_USE_LEGACY_DATARATES | RADIO_FLAGS_FRAME_TYPE_DATA, get_current_timestamp_ms());
-    
+
    while ( ! g_bQuit )
    {
       g_TimeNow = get_current_timestamp_ms();
@@ -415,7 +415,7 @@ int main(int argc, char *argv[])
       _try_receive_packets();
    }
 
-   hardware_sleep_ms(50);   
+   hardware_sleep_ms(50);
    radio_close_interface_for_read(0);
    radio_close_interface_for_write(0);
    return (0);

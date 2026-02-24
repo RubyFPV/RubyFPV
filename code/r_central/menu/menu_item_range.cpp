@@ -153,7 +153,7 @@ void MenuItemRange::Render(float xPos, float yPos, bool bSelected, float fWidthS
 {
    if ( m_bCondensedOnly )
       return;
-   
+
    RenderBaseTitle(xPos, yPos, bSelected, fWidthSelection);
 
    float paddingX = Menu::getSelectionPaddingX();
@@ -182,7 +182,7 @@ void MenuItemRange::Render(float xPos, float yPos, bool bSelected, float fWidthS
 
    m_RenderValueWidth = getValueWidth(m_pMenu->getUsableWidth());
    float width = m_RenderValueWidth + 2.0*paddingX;
-   
+
    if ( m_bIsEditing )
    {
       g_pRenderEngine->setColors(get_Color_MenuItemSelectedBg());
@@ -223,7 +223,7 @@ void MenuItemRange::RenderCondensed(float xPos, float yPos, bool bSelected, floa
    if ( m_bIsEditing )
       m_RenderValueWidth = getValueWidth(m_pMenu->getUsableWidth());
    float width = m_RenderValueWidth + 2.0*paddingX;
-   
+
    if ( m_bIsEditing )
    {
       g_pRenderEngine->setColors(get_Color_MenuItemSelectedBg());
@@ -232,7 +232,7 @@ void MenuItemRange::RenderCondensed(float xPos, float yPos, bool bSelected, floa
    else if ( bSelected )
    {
       g_pRenderEngine->setColors(get_Color_MenuText());
-      g_pRenderEngine->setFill(0,0,0,0);   
+      g_pRenderEngine->setFill(0,0,0,0);
       g_pRenderEngine->setStrokeSize(1);
       g_pRenderEngine->drawRoundRect(xPos-paddingX, yPos-paddingY, width, m_RenderTitleHeight + 2.0*paddingY, 0.1*Menu::getMenuPaddingY());
    }

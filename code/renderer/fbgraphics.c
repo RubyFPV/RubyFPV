@@ -200,7 +200,7 @@ void fbg_resize(struct _fbg *fbg, int new_width, int new_height) {
                 user_fragment_stop = fbg->fragments[0]->user_fragment_stop;
 
                 fbg_terminateFragments(fbg);
-                
+
                 fbg_freeTasks(fbg);
 
                 create_fragments = 1;
@@ -527,7 +527,7 @@ void fbg_createFragment(struct _fbg *fbg,
 
     if (fbg->tasks) {
         fbg_terminateFragments(fbg);
-        
+
         fbg_freeTasks(fbg);
     }
 
@@ -1102,13 +1102,13 @@ void fbg_draw(struct _fbg *fbg, void (*user_mixing)(struct _fbg *fbg, unsigned c
 #else
             lfds720_freelist_n_threadsafe_push(fragment->freelist_state, NULL, &freelist_data->freelist_element);
 #endif
-            
+
         }
 #else
         while (fragment->sync_wait == 0 && fragment->state != 0);
 
         user_mixing(fbg, fragment->fbg->back_buffer, i + 1);
-        
+
         fragment->sync_wait = 0;
 #endif
     }
@@ -1156,7 +1156,7 @@ void fbg_enable_alpha(struct _fbg *fbg, int iEnable)
 {
    fbg->s_iEnableAlpha = iEnable;
 }
-    
+
 void fbg_fadeDown(struct _fbg *fbg, unsigned char rgb_fade_amount) {
     int i = 0;
 
@@ -1353,7 +1353,7 @@ void fbg_text(struct _fbg *fbg, struct _fbg_font *fnt, char *text, int x, int y,
 
         if (glyph == ' ') {
             fbg_recta(fbg, x + c * fnt->glyph_width, y, fnt->glyph_width, fnt->glyph_height, fbg->text_background.r, fbg->text_background.g, fbg->text_background.b, fbg->text_alpha);
-            
+
             c += 1;
 
             continue;
@@ -1576,7 +1576,7 @@ struct _fbg_img *fbg_loadPNG(struct _fbg *fbg, const char *filename) {
 
 struct _fbg_img *fbg_loadImage(struct _fbg *fbg, const char *filename) {
     struct _fbg_img *img = NULL;
-    
+
 #ifndef WITHOUT_PNG
     img = fbg_loadPNG(fbg, filename);
 #endif
@@ -1608,7 +1608,7 @@ void fbg_imageColorkey(struct _fbg *fbg, struct _fbg_img *img, int x, int y, int
     unsigned char *img_pointer = img->data;
 
     int i = 0, j = 0;
-    
+
     for (i = 0; i < img->height; i += 1) {
         unsigned char *pix_pointer = (unsigned char *)(fbg->back_buffer + ((y + i) * fbg->line_length) + x * fbg->components);
         for (j = 0; j < img->width; j += 1) {
@@ -1654,7 +1654,7 @@ void fbg_imageClipA(struct _fbg *fbg, struct _fbg_img *img, int x, int y, int cx
     //int w4 = _FBG_MIN(cw * fbg->components, (fbg->width - x) * fbg->components);
     int h = ch;
 
-    for (i = 0; i < h; i += 1) 
+    for (i = 0; i < h; i += 1)
     {
        for (int j=0; j<cw; j++ )
        {
@@ -1680,7 +1680,7 @@ void fbg_imageClipAColor(struct _fbg *fbg, struct _fbg_img *img, int x, int y, i
 
     if ( ! fbg->s_iEnableAlpha )
     {
-       for (i = 0; i < h; i += 1) 
+       for (i = 0; i < h; i += 1)
        {
           for (int j=0; j<cw; j++ )
           {
@@ -1709,7 +1709,7 @@ void fbg_imageClipAColor(struct _fbg *fbg, struct _fbg_img *img, int x, int y, i
     }
     else if ( fbg->disableFontOutline )
     {
-       for (i = 0; i < h; i += 1) 
+       for (i = 0; i < h; i += 1)
        {
           for (int j=0; j<cw; j++ )
           {
@@ -1737,7 +1737,7 @@ void fbg_imageClipAColor(struct _fbg *fbg, struct _fbg_img *img, int x, int y, i
     }
     else
     {
-       for (i = 0; i < h; i += 1) 
+       for (i = 0; i < h; i += 1)
        {
           for (int j=0; j<cw; j++ )
           {
@@ -1892,7 +1892,7 @@ void fbg_imageDrawAlpha(struct _fbg *fbg, struct _fbg_img *img, int x, int y, in
               }
               scr_pointer += fbg->components;
               xImg += dxImg;
-          }        
+          }
        }
        scr_pointer += fbg->line_length - w * fbg->components;
        yImg += dyImg;

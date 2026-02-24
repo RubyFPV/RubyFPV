@@ -74,7 +74,7 @@ MenuControllerExpert::MenuControllerExpert(void)
    m_pItemsSlider[5]->setStep(25);
    m_IndexCPUSpeed = addMenuItem(m_pItemsSlider[5]);
 
-   m_pItemsSelect[3] = new MenuItemSelect(L("Enable GPU Overclocking"), L("Enables overclocking of the GPU cores."));  
+   m_pItemsSelect[3] = new MenuItemSelect(L("Enable GPU Overclocking"), L("Enables overclocking of the GPU cores."));
    m_pItemsSelect[3]->addSelection(L("No"));
    m_pItemsSelect[3]->addSelection(L("Yes"));
    m_pItemsSelect[3]->setIsEditable();
@@ -84,7 +84,7 @@ MenuControllerExpert::MenuControllerExpert(void)
    m_pItemsSlider[6]->setStep(25);
    m_IndexGPUSpeed = addMenuItem(m_pItemsSlider[6]);
 
-   m_pItemsSelect[4] = new MenuItemSelect(L("Enable Overvoltage"), L("Enables overvotage on the CPU and GPU cores. You need to increase voltage as you increase speed."));  
+   m_pItemsSelect[4] = new MenuItemSelect(L("Enable Overvoltage"), L("Enables overvotage on the CPU and GPU cores. You need to increase voltage as you increase speed."));
    m_pItemsSelect[4]->addSelection(L("No"));
    m_pItemsSelect[4]->addSelection(L("Yes"));
    m_IndexVoltageEnabled = addMenuItem(m_pItemsSelect[4]);
@@ -289,12 +289,12 @@ void MenuControllerExpert::addTopInfo()
    snprintf(szTmp, sizeof(szTmp)/sizeof(szTmp[0]), ", P%s", szOutput);
    strcat(szBuffer, szTmp);
    addTopLine(szBuffer);
-   
+
    addTopLine(" ");
    addTopLine("Note: Changing overclocking settings requires a reboot.");
    addTopLine(" ");
    #endif
-   
+
    log_line("Menu Controller Expert: added info.");
 }
 
@@ -442,7 +442,7 @@ void MenuControllerExpert::onSelectItem()
       pMenu->m_xPos = 0.32;
       pMenu->m_yPos = 0.17;
       pMenu->m_Width = 0.6;
-      
+
       hw_execute_bash_command_raw_silent("./ruby_start -ver", szOutput);
       removeTrailingNewLines(szOutput);
       snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "ruby_start: %s", szOutput);
@@ -525,7 +525,7 @@ void MenuControllerExpert::onSelectItem()
          pcs->iFreqARM = 1200;
       else if ( board_type == BOARD_TYPE_PI3BPLUS || board_type == BOARD_TYPE_PI4B )
          pcs->iFreqARM = 1400;
-      else if ( board_type != BOARD_TYPE_PIZERO && board_type != BOARD_TYPE_PIZEROW && board_type != BOARD_TYPE_NONE 
+      else if ( board_type != BOARD_TYPE_PIZERO && board_type != BOARD_TYPE_PIZEROW && board_type != BOARD_TYPE_NONE
                && board_type != BOARD_TYPE_PI2B && board_type != BOARD_TYPE_PI2BV11 && board_type != BOARD_TYPE_PI2BV12 )
          pcs->iFreqARM = 1200;
 

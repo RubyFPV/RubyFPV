@@ -172,12 +172,12 @@ const double* get_Color_MenuBg()
 
 const double* get_Color_MenuBgTitle()
 {
-   return COLOR_MENU_BG_TITLE; 
+   return COLOR_MENU_BG_TITLE;
 }
 
 const double* get_Color_MenuBgTooltip()
 {
-   return COLOR_MENU_BG_TOOLTIP; 
+   return COLOR_MENU_BG_TOOLTIP;
 }
 
 

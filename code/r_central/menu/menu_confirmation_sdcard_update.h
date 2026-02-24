@@ -10,7 +10,7 @@ class MenuConfirmationSDCardUpdate: public Menu
       virtual ~MenuConfirmationSDCardUpdate();
       virtual void onShow();
       virtual bool periodicLoop();
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual int onBack();
       virtual void onSelectItem();
 

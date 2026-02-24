@@ -76,7 +76,7 @@ MenuAbout::MenuAbout(void)
    {
       strcpy(szFile, FOLDER_BINARIES);
       strcat(szFile, FILE_INFO_LAST_UPDATE);
-      fd = fopen(szFile, "r"); 
+      fd = fopen(szFile, "r");
    }
    if ( NULL != fd )
    {
@@ -88,7 +88,7 @@ MenuAbout::MenuAbout(void)
       }
       fclose(fd);
    }
-   
+
    addTopLine(szBuff);
 
    addTopLine(" ");
@@ -98,10 +98,10 @@ MenuAbout::MenuAbout(void)
    hw_execute_bash_command_raw("cat /proc/device-tree/model", szOutput);
 
    snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "Board: %s, ", szOutput);
-   
+
    int temp = hardware_get_cpu_temp();
    int speed = hardware_get_cpu_speed();
-   sprintf(szTemp, "CPU: %d Mhz, Temp: %d C", speed, temp); 
+   sprintf(szTemp, "CPU: %d Mhz, Temp: %d C", speed, temp);
    strcat(szBuff, szTemp);
    addTopLine(szBuff);
 
@@ -123,14 +123,14 @@ MenuAbout::MenuAbout(void)
       sprintf(szBuff, "System storage: %ld Mb free out of %ld Mb total.", lf, lu+lf);
       addTopLine(szBuff);
    }
-  
+
    addTopLine(" ");
    addTopLine("---");
    addTopLine(" ");
    addTopLine(L("Ruby system developed by: Petru Soroaga"));
    addTopLine(L("Main contributors: Jessica Severin, Liuli Xia, Ning"));
    addTopLine("");
-   
+
    if ( (NULL != g_pCurrentModel) && g_pCurrentModel->isRunningOnOpenIPCHardware() )
    {
       addTopLine("IP cameras base linux distro support provided by:");

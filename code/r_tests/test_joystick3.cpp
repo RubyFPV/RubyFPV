@@ -12,12 +12,12 @@ bool g_bQuit = false;
 
 struct js_event s_JoystickEvent;
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    g_bQuit = true;
-} 
-  
+}
+
 int main(int argc, char *argv[])
 {
    signal(SIGINT, handle_sigint);
@@ -46,18 +46,18 @@ int main(int argc, char *argv[])
    u8 count_buttons = 0;
    if (ioctl(fJ, JSIOCGBUTTONS, &count_buttons) == -1)
       log_line("Error to query for buttons count");
-   
+
    log_line("UID: %u", uid);
    log_line("Has %d axes and %d buttons", count_axes, count_buttons);
 
    while ( ! g_bQuit )
-   { 
+   {
       fd_set readset;
       struct timeval to;
       to.tv_sec = 0;
       to.tv_usec = 50000;
 
-      
+
       int nRead = read(fJ, &s_JoystickEvent, sizeof(s_JoystickEvent));
       if ( nRead < 0 && (errno == EAGAIN || errno == EWOULDBLOCK ) )
       {
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
       szVal[0] = 0;
       if ( s_JoystickEvent.type && JS_EVENT_INIT )
          strcpy(szVal, "[Init]");
- 
+
       //if ( s_JoystickEvent.type && JS_EVENT_BUTTON )
       //   log_line("%s Button %u %d\n", szVal, s_JoystickEvent.number, s_JoystickEvent.value);
       if ( s_JoystickEvent.number == 1 )
@@ -85,4 +85,4 @@ int main(int argc, char *argv[])
    }
    log_line("Done. Exiting.");
    exit(0);
-}  
+}

@@ -152,7 +152,7 @@ void _init_INA()
       {
          log_line("Write INA219 calibration");
          u32 val = 4096;
-         wiringPiI2CWriteReg16 (g_nINAFd, 5, val); 
+         wiringPiI2CWriteReg16 (g_nINAFd, 5, val);
 
          val = (0x2000) | (0x1800) | (0x0180) | (0x0018) | (0x07);
          wiringPiI2CWriteReg16 (g_nINAFd, 0, val);
@@ -204,7 +204,7 @@ bool _setup_external_device(int iIndex)
          continue;
       }
       g_uListExternalDevicesFlags[iIndex] = ((u32)res1) | (((u32)res2)<<8);
-        
+
       log_line("Got I2C external device 0x%02X flags: %u. ", g_pListExternalDevices[iIndex]->nI2CAddress, g_uListExternalDevicesFlags[iIndex]);
       log_line("0x%02X supported flags: rotary: %s, buttons: %s", g_pListExternalDevices[iIndex]->nI2CAddress, (g_uListExternalDevicesFlags[iIndex] & I2C_CAPABILITY_FLAG_ROTARY)?"yes":"no", (g_uListExternalDevicesFlags[iIndex] & I2C_CAPABILITY_FLAG_BUTTONS)?"yes":"no");
       bSucceeded = true;
@@ -319,9 +319,9 @@ void _init_external_device(u8 i2cAddress)
    log_line("Opened I2C device at address 0x%02X (external module).", i2cAddress);
 
    _setup_external_device(g_nCountExternalDevices);
- 
+
    g_nCountExternalDevices++;
-   
+
    #endif
 }
 
@@ -331,7 +331,7 @@ void _init_external_devices()
    g_nCountExternalDevices = 0;
    g_bHasExternalRotaryDevice = false;
    g_iHasExternalRCInputDevice = 0;
- 
+
    if ( NULL != g_pSMRotaryEncoderButtonsEvents )
    {
       g_pSMRotaryEncoderButtonsEvents->uHasRotaryEncoder = 0;
@@ -377,7 +377,7 @@ void load_settings()
       g_SleepTime = 20;
 
 #ifdef HW_CAPABILITY_I2C
- 
+
    if ( hardware_i2c_has_device_id(I2C_DEVICE_ADDRESS_PICO_RC_IN) )
    {
       g_pDeviceInfoRCIn = hardware_i2c_get_device_settings(I2C_DEVICE_ADDRESS_PICO_RC_IN);
@@ -458,7 +458,7 @@ void checkReadINA()
    if ( 0 < g_nINAFd )
    if ( g_pDeviceInfoINA->uParams[0] == 0 || g_pDeviceInfoINA->uParams[0] == 2 )
    {
-      u32 valV  = wiringPiI2CReadReg16(g_nINAFd, 2); 
+      u32 valV  = wiringPiI2CReadReg16(g_nINAFd, 2);
       valV = revert_word(valV);
       valV = (valV>>3)*4;
       if ( NULL != g_pSMCurrent )
@@ -472,9 +472,9 @@ void checkReadINA()
    {
       u32 val = 4096;
       val = ((val>>8) & 0xFF) | ((val & 0xFF) << 8);
-      wiringPiI2CWriteReg16 (g_nINAFd, 5, val); 
+      wiringPiI2CWriteReg16 (g_nINAFd, 5, val);
 
-      u32 valC  = wiringPiI2CReadReg16(g_nINAFd, 4); 
+      u32 valC  = wiringPiI2CReadReg16(g_nINAFd, 4);
       valC = revert_word(valC);
       if ( NULL != g_pSMCurrent )
       {
@@ -597,7 +597,7 @@ void checkReadRCIn()
       return;
 
    g_TimeLastRCInRead = g_TimeNow;
- 
+
    if ( NULL == g_pSMRCIn )
       return;
 
@@ -644,7 +644,7 @@ void checkReadRCIn()
       {
          //log_softerror_and_alarm("Failed to get I2C external device RC channels at address 0x%02X (external module), invalid CRC in response.", g_pListExternalDevices[iDevice]->nI2CAddress);
          g_iReadRCInConsecutiveFailCount++;
-         return;      	
+         return;
       }
 
       g_iReadRCInConsecutiveFailCount = 0;
@@ -894,7 +894,7 @@ void checkReadRotaryEncoderAndButtons()
    g_pSMRotaryEncoderButtonsEvents->uButtonsEvents = 0;
    g_pSMRotaryEncoderButtonsEvents->uRotaryEncoderEvents = 0;
    g_pSMRotaryEncoderButtonsEvents->uRotaryEncoder2Events = 0;
-   
+
    if ( iValues & (0x01<<1) )
       g_pSMRotaryEncoderButtonsEvents->uRotaryEncoderEvents |= (1<<1);
    else if ( iValues & 0x01 )
@@ -912,7 +912,7 @@ void checkReadRotaryEncoderAndButtons()
       if ( iValues & (0x01<<5) )
          g_pSMRotaryEncoderButtonsEvents->uRotaryEncoderEvents |= (1<<4);
    }
-         
+
    g_pSMRotaryEncoderButtonsEvents->uEventIndex++;
    g_pSMRotaryEncoderButtonsEvents->uTimeStamp = g_TimeNow;
    g_pSMRotaryEncoderButtonsEvents->uCRC = base_compute_crc32((u8*)g_pSMRotaryEncoderButtonsEvents, sizeof(t_shared_mem_i2c_rotary_encoder_buttons_events) - sizeof(u32));
@@ -933,11 +933,11 @@ void checkReadRotaryEncoderAndButtons()
 #endif
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    g_bQuit = true;
    log_line("Caught signal to stop: %d\n", sig);
-} 
+}
 
 
 int main(int argc, char *argv[])
@@ -945,13 +945,13 @@ int main(int argc, char *argv[])
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
-   
+
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
       printf("%d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       return 0;
    }
-   
+
    log_init("RubyI2C");
    //log_enable_stdout();
 
@@ -963,7 +963,7 @@ int main(int argc, char *argv[])
    #endif
 
    hardware_detectBoardAndSystemType();
-   
+
    hardware_i2c_enumerate_busses(0);
 
    for( int i=0; i<MAX_I2C_DEVICES; i++ )
@@ -1016,7 +1016,7 @@ int main(int argc, char *argv[])
    {
       if ( iPrio > 2 )
          iPrio--;
-      hw_set_priority_current_proc(iPrio); 
+      hw_set_priority_current_proc(iPrio);
    }
 
    char szFile[128];
@@ -1062,7 +1062,7 @@ int main(int argc, char *argv[])
       {
           g_iReadRCInConsecutiveFailCount = 0;
           close_files();
-          load_settings();            
+          load_settings();
       }
    }
 
@@ -1072,4 +1072,4 @@ int main(int argc, char *argv[])
    shared_mem_i2c_rotary_encoder_buttons_events_close(g_pSMRotaryEncoderButtonsEvents);
    log_line("Finished execution.Exit");
    return 0;
-} 
+}

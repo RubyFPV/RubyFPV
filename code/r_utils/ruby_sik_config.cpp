@@ -60,7 +60,7 @@ void write_result(bool bSucceeded)
 int _setTxPower(int iTxPower)
 {
    log_line("Setting tx power to %d...", iTxPower);
-   
+
    bool bFailed = false;
 
    for( int i=0; i<hardware_serial_get_ports_count(); i++ )
@@ -70,7 +70,7 @@ int _setTxPower(int iTxPower)
          continue;
       if ( pSerialPortInfo->iPortUsage != SERIAL_PORT_USAGE_SIK_RADIO )
          continue;
-      
+
       for( int k=0; k<hardware_get_radio_interfaces_count(); k++ )
       {
          radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(k);
@@ -93,7 +93,7 @@ int _setTxPower(int iTxPower)
          }
 
          // Enter AT mode
-         
+
          if ( ! hardware_radio_sik_enter_command_mode(iSerialPort, pSerialPortInfo->lPortSpeed, NULL) )
          if ( ! hardware_radio_sik_enter_command_mode(iSerialPort, pSerialPortInfo->lPortSpeed, NULL) )
          {
@@ -106,7 +106,7 @@ int _setTxPower(int iTxPower)
          bool bMustSaveFlash = false;
          char szComm[256];
          u8 bufferResponse[1024];
-   
+
          sprintf(szComm, "ATS%d=%d", 4, iTxPower);
 
          if ( hardware_radio_sik_send_command(iSerialPort, szComm, bufferResponse, 255) )
@@ -123,7 +123,7 @@ int _setTxPower(int iTxPower)
          }
 
          // Exit AT command mode
-         
+
          if ( bMustSaveFlash )
          {
             log_line("Saving SiK params to flash and restarting SiK radio %s...", pSerialPortInfo->szPortDeviceName);
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
       write_result(false);
       return 0;
    }
-   
+
    if ( argc < 5 )
    {
       printf("Usage: ruby_sik_config [local_serial_port] [local_serial_baudrate] [command+param]\n");
@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
    }
 
    // Enter AT mode
-   
+
    if ( ! hardware_radio_sik_enter_command_mode(iSerialPort, iSerialSpeed, NULL) )
    if ( ! hardware_radio_sik_enter_command_mode(iSerialPort, iSerialSpeed, NULL) )
    {
@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
    // Send params
 
    char szComm[32];
-   
+
    if ( 0 == strcmp(szCommand, "-show") )
    {
       if ( hardware_radio_sik_send_command(iSerialPort, "ATI", bufferResponse, 255) )
@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
             log_line("Did got param %s, value %u", szComm, uParam);
          }
          else
-            log_softerror_and_alarm("Failed to get param: %s", szComm); 
+            log_softerror_and_alarm("Failed to get param: %s", szComm);
       }
    }
 
@@ -302,7 +302,7 @@ int main(int argc, char *argv[])
    }
 
    // Exit AT command mode
-   
+
    if ( bMustSaveFlash )
    {
       log_line("Saving SiK params to flash and restarting SiK radio...");
@@ -330,4 +330,4 @@ int main(int argc, char *argv[])
    log_line("Ruby SiK configuration completed with errors.");
    write_result(true);
    return 0;
-} 
+}

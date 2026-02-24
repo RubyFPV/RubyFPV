@@ -12,7 +12,7 @@ class MenuVehicleExpert: public Menu
       virtual void Render();
       virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
-      
+
    private:
       int m_IndexReboot;
       int m_IndexDHCP;
@@ -24,7 +24,7 @@ class MenuVehicleExpert: public Menu
       int m_IndexVoltage;
       int m_IndexReset;
       int m_IndexPriorities;
-      
+
       MenuItemSlider* m_pItemsSlider[20];
       MenuItemSelect* m_pItemsSelect[20];
 

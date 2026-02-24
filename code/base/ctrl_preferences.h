@@ -6,7 +6,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 #define CTRL_RT_DEBUG_INFO_FLAG_SHOW_RX_TX_PACKETS          ((u32)(((u32)0x01)<<2))
 #define CTRL_RT_DEBUG_INFO_FLAG_SHOW_OUTPUT_VIDEO_FRAMES    ((u32)(((u32)0x01)<<3))
@@ -157,5 +157,5 @@ int getPreferencesDoNotShowAgain(int iUniqueId);
 void setPreferencesDoNotShowAgain(int iUniqueId, int iDoNotShowAgain);
 void removePreferencesDoNotShowAgain(int iUniqueId);
 #ifdef __cplusplus
-}  
+}
 #endif

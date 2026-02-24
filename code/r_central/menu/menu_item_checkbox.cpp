@@ -84,7 +84,7 @@ float MenuItemCheckbox::getTitleWidth(float maxWidth)
       return m_RenderTitleWidth;
 
    m_RenderTitleWidth = g_pRenderEngine->textWidth(g_idFontMenu, m_pszTitle);
-   
+
    return m_RenderTitleWidth;
 }
 
@@ -108,7 +108,7 @@ void MenuItemCheckbox::RenderCondensed(float xPos, float yPos, bool bSelected, f
 {
    m_RenderLastY = yPos;
    m_RenderLastX = xPos;
-   
+
    float paddingV = Menu::getSelectionPaddingY();
    float paddingH = Menu::getSelectionPaddingX();
    float width = m_RenderTitleHeight/g_pRenderEngine->getAspectRatio();
@@ -121,7 +121,7 @@ void MenuItemCheckbox::RenderCondensed(float xPos, float yPos, bool bSelected, f
    else if ( bSelected )
    {
       g_pRenderEngine->setColors(get_Color_MenuText());
-      g_pRenderEngine->setFill(0,0,0,0);   
+      g_pRenderEngine->setFill(0,0,0,0);
       g_pRenderEngine->setStrokeSize(1);
       g_pRenderEngine->drawRoundRect(xPos-paddingH, yPos-paddingV, width + 2.0*paddingH, m_RenderTitleHeight + 2.0*paddingV, 0.01*Menu::getMenuPaddingY());
    }
@@ -136,7 +136,7 @@ void MenuItemCheckbox::RenderCondensed(float xPos, float yPos, bool bSelected, f
          g_pRenderEngine->setColors(get_Color_MenuItemDisabledText());
    }
 
-   g_pRenderEngine->setFill(0,0,0,0);   
+   g_pRenderEngine->setFill(0,0,0,0);
    g_pRenderEngine->setStrokeSize(2);
    float corner = 0.1*Menu::getMenuPaddingY();
    g_pRenderEngine->drawRoundRect(xPos, yPos, width, m_RenderTitleHeight, corner);

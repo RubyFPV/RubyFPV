@@ -72,7 +72,7 @@ MenuSystemAlarms::MenuSystemAlarms(void)
    m_pItemsSelect[5]->addSelection(L("Enabled"));
    m_pItemsSelect[5]->setUseMultiViewLayout();
    m_IndexAlarmControllerLink = addMenuItem( m_pItemsSelect[5]);
-   
+
    m_pItemsSelect[2] = new MenuItemSelect(L("Video Overload"), L("Turn this alarm on or off."));
    m_pItemsSelect[2]->addSelection(L("Disabled"));
    m_pItemsSelect[2]->addSelection(L("Enabled"));
@@ -126,7 +126,7 @@ MenuSystemAlarms::MenuSystemAlarms(void)
 
 void MenuSystemAlarms::valuesToUI()
 {
-   
+
    Preferences* pP = get_Preferences();
 
    if ( m_bMenuSystemAlarmsIsOnCustomOption )
@@ -191,7 +191,7 @@ void MenuSystemAlarms::valuesToUI()
       m_pItemsSelect[8]->setSelectedIndex(0);
       m_pItemsSelect[9]->setSelectedIndex(0);
       m_pItemsSelect[10]->setSelectedIndex(0);
-   }   
+   }
 }
 
 void MenuSystemAlarms::onShow()

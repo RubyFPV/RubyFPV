@@ -59,7 +59,7 @@ MenuSystem::MenuSystem(void)
 {
    m_Width = 0.34;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.24;
-   
+
    m_IndexAlarms = addMenuItem( new MenuItem(L("Alarms Settings")) );
    m_pMenuItems[m_IndexAlarms]->showArrow();
 
@@ -165,7 +165,7 @@ void MenuSystem::onReturnFromChild(int iChildMenuId, int returnValue)
 
    if ( 5 == iChildMenuId/1000 )
    {
-      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);      
+      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
       valuesToUI();
 
       if ( (NULL != g_pCurrentModel) && (! g_pCurrentModel->is_spectator) )
@@ -198,7 +198,7 @@ void MenuSystem::onReturnFromChild(int iChildMenuId, int returnValue)
          return;
       }
       ruby_signal_alive();
-      
+
       addMessage("Done. All configuration files have been successfully exported. You can now remove the USB memory stick.");
       return;
    }
@@ -245,7 +245,7 @@ void MenuSystem::onReturnFromChild(int iChildMenuId, int returnValue)
 
          if ( ! load_ControllerInterfacesSettings() )
             save_ControllerInterfacesSettings();
-   
+
 
          MenuConfirmation* pMC = new MenuConfirmation(L("Import Succeeded"),L("All configuration files have been successfully imported. You can now remove the USB memory stick."), 12, true);
          pMC->addTopLine(" ");
@@ -330,8 +330,8 @@ void MenuSystem::onSelectItem()
       log_line("MenuSystem: Changed controller developer mode flag to: %s", val?"true":"false");
       pCS->iDeveloperMode = val;
       save_ControllerSettings();
-      
-      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);      
+
+      send_control_message_to_router(PACKET_TYPE_LOCAL_CONTROL_CONTROLLER_CHANGED, PACKET_COMPONENT_LOCAL_CONTROL);
       valuesToUI();
 
       if ( (NULL != g_pCurrentModel) && (! g_pCurrentModel->is_spectator) )

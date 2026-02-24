@@ -10,7 +10,7 @@ class MenuControllerPeripherals: public Menu
 {
    public:
       MenuControllerPeripherals();
-      virtual void onShow(); 
+      virtual void onShow();
       virtual bool periodicLoop();
       virtual void Render();
       virtual void valuesToUI();

@@ -140,7 +140,7 @@ float osd_stats_render_video_stream_graph(float xPos, float yPos, float fWidth, 
 
    if ( (NULL == pActiveModel) || (0 == uActiveVehicleId) || (NULL == pVDS) )
       return 0.0;
-   
+
    int iGraphIntervals = 1;
    int iRTValuesPerGraphInterval = 1;
    if ( (g_pControllerSettings->nGraphVideoRefreshInterval > 0) && (g_SMControllerRTInfo.uUpdateIntervalMs > 0) )
@@ -178,14 +178,14 @@ float osd_stats_render_video_stream_graph(float xPos, float yPos, float fWidth, 
    float hPixel = g_pRenderEngine->getPixelHeight();
    float y = yPos;
    y += height_text_small*0.2;
-   
+
    if ( ! bIsMinimal )
    {
       if ( bIsCompact )
          sprintf(szBuff,"%.1f sec, %d ms/bar", (float)iGraphIntervals * (float)g_pControllerSettings->nGraphVideoRefreshInterval / 1000.0, g_pControllerSettings->nGraphVideoRefreshInterval);
       else
          sprintf(szBuff,"%d ms/bar %d x %d ms resolution (%d-%d bars)", g_pControllerSettings->nGraphVideoRefreshInterval, SYSTEM_RT_INFO_INTERVALS, g_SMControllerRTInfo.uUpdateIntervalMs, iGraphIntervals, iRTValuesPerGraphInterval);
-      
+
       if ( bIsSnapshot )
          g_pRenderEngine->drawTextLeft(xPos+fWidth, y, s_idFontStats, szBuff);
       else
@@ -206,13 +206,13 @@ float osd_stats_render_video_stream_graph(float xPos, float yPos, float fWidth, 
    g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
    g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
    g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
-   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + fWidth, y);         
+   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + fWidth, y);
    g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphBottomLinesAlpha);
    g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphBottomLinesAlpha);
    g_pRenderEngine->drawLine(xPos+dxGraph, y+fHeightGraph, xPos + dxGraph + fWidthGraph, y+fHeightGraph);
    float midLine = fHeightGraph/2.0;
    for( float i=0; i<=fWidthGraph-2.0*wPixel; i+= 5*wPixel )
-      g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);         
+      g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);
 
    double colorECUsed[4] = {50,250,0, 1.0};
    double colorECMaxUsed[4] = {220,250,20, 1.0};
@@ -409,7 +409,7 @@ void osd_stats_video_decode_snapshot_update(int iDeveloperMode, shared_mem_radio
         s_uOSDSnapshotLastDiscardedSegments != pVDS->total_DiscardedSegments ||
         s_uOSDSnapshotLastDiscardedPackets != pVDS->total_DiscardedLostPackets )
       bMustTakeSnapshot = true;
-   
+
    bool bHasActivity = false;
    bool bHasSilenceAtStart = true;
    for ( int i=0; i<12; i++ )
@@ -485,7 +485,7 @@ float osd_render_stats_video_decode_get_height(int iDeveloperMode, bool bIsSnaps
    float height_text_small = g_pRenderEngine->textHeight(s_idFontStatsSmall);
    float hGraph = 3.0*height_text;
    float hGraphHistory = 2.5*height_text;
-   
+
    float height = 2.0 *s_fOSDStatsMargin*1.1 + 0.9*height_text*s_OSDStatsLineSpacing;
 
    bool bIsMinimal = false;
@@ -501,7 +501,7 @@ float osd_render_stats_video_decode_get_height(int iDeveloperMode, bool bIsSnaps
       bIsExtended = true;
    else
       bIsNormal = true;
-   
+
    // Stream info
    height += height_text*s_OSDStatsLineSpacing;
 
@@ -575,7 +575,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
       return 0.0;
 
    shared_mem_video_stream_stats* pVDS = NULL;
-   
+
    for( int i=0; i<MAX_VIDEO_PROCESSORS; i++ )
    {
       if ( pSM_VideoStats->video_streams[i].uVehicleId == uActiveVehicleId )
@@ -652,7 +652,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
    width -= 2*s_fOSDStatsMargin/g_pRenderEngine->getAspectRatio();
    float widthMax = width;
    float rightMargin = xPos + width;
-   
+
    float y = yPos;
 
    char szCurrentProfile[32];
@@ -675,14 +675,14 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
    {
       //if ( ! (pActiveModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_SHOW_COMPACT_VIDEO_DECODE_STATS) )
       g_pRenderEngine->drawText(xPos, yPos, s_idFontStats, "Video Stream");
-   
+
       u32 uMaxVideoRadioBitrate = pActiveModel->getMaxVideoBitrateSupportedForCurrentRadioLinks();
 
       sprintf(szBuff, "%s %.1f Mbs", szCurrentProfile, fReceivedMaxVideoMbps);
 
       if ( fReceivedVideoMbps*1000*1000 >= uMaxVideoRadioBitrate )
          g_pRenderEngine->setColors(get_Color_IconWarning());
-      
+
       if ( g_bHasVideoDataOverloadAlarm && (g_TimeLastVideoDataOverloadAlarm > 0) && (g_TimeNow <  g_TimeLastVideoDataOverloadAlarm + 5000) )
          g_pRenderEngine->setColors(get_Color_IconError());
 
@@ -759,7 +759,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
    y += height_text_small*s_OSDStatsLineSpacing;
 
    u32 videoBitrate = pActiveModel->video_link_profiles[pVDS->PHVS.uCurrentVideoLinkProfile].uTargetVideoBitrateBPS;
-   
+
    // --------------------------------------------------
    // Stream info 2
 
@@ -772,7 +772,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
       u32 uECSpreadHigh = (pVDS->uCurrentVideoProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_EC_SCHEME_SPREAD_FACTOR_HIGHBIT)?1:0;
       u32 uECSpreadLow = (pVDS->uCurrentVideoProfileEncodingFlags & VIDEO_PROFILE_ENCODING_FLAG_EC_SCHEME_SPREAD_FACTOR_LOWBIT)?1:0;
       u32 uECSpread = uECSpreadLow | (uECSpreadHigh<<1);
-      
+
       u16 uCurrentECScheme = g_SM_RouterVehiclesRuntimeInfo.uCurrentAdaptiveECScheme[iIndexRouterRuntimeInfo];
       if ( (0 == uCurrentECScheme) || (0xFFFF == uCurrentECScheme) )
         uCurrentECScheme = (pActiveModel->video_link_profiles[pActiveModel->video_params.iCurrentVideoProfile].iBlockDataPackets << 8) | (pActiveModel->video_link_profiles[pActiveModel->video_params.iCurrentVideoProfile].iBlockECs & 0xFF);
@@ -823,7 +823,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
          osd_set_colors();
       y += height_text_small*s_OSDStatsLineSpacing;
    }
-  
+
    // Stream info 2
    // --------------------------------------------------
 
@@ -866,7 +866,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
          y += height_text_small*s_OSDStatsLineSpacing;
       }
    }
-  
+
    // Stream info 3
    // --------------------------------------------------
 
@@ -889,7 +889,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
          char szBuff3[64];
          strcpy(szBuff3, L("On"));
          g_pRenderEngine->setColors(get_Color_IconSucces());
-         
+
          g_pRenderEngine->drawText(xPos + wtmp, y, s_idFontStats, szBuff3);
          wtmp += g_pRenderEngine->textWidth(s_idFontStats, szBuff3);
          osd_set_colors();
@@ -942,7 +942,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
          }
          g_pRenderEngine->setColors(get_Color_Dev());
          _osd_stats_draw_line(xPos, rightMargin, y, s_idFontStats, L("Retr req / packets:"), szBuff);
-         osd_set_colors();     
+         osd_set_colors();
          y += height_text*s_OSDStatsLineSpacing;
       }
 
@@ -1076,7 +1076,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
       }
       g_pRenderEngine->setColors(get_Color_Dev());
       _osd_stats_draw_line(xPos, rightMargin, y, s_idFontStats, L("Video Buffers Use:"), szBuff);
-      osd_set_colors();     
+      osd_set_colors();
       y += height_text*s_OSDStatsLineSpacing;
    }
 
@@ -1112,11 +1112,11 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
       g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
       g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
       g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
-      g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + width, y);         
+      g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + width, y);
       g_pRenderEngine->drawLine(xPos+dxGraph, y+hGraph*0.6, xPos + dxGraph + width, y+hGraph*0.6);
       midLine = hGraph*0.6/2.0;
       for( float i=0; i<=width-2.0*wPixel; i+= 5*wPixel )
-         g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);         
+         g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);
 
       g_pRenderEngine->setStrokeSize(0);
 
@@ -1168,12 +1168,12 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
       g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
       g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
       g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
-      g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + width, y);         
+      g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + width, y);
       g_pRenderEngine->drawLine(xPos+dxGraph, y+hGraph*0.6, xPos + dxGraph + width, y+hGraph*0.6);
       float midLine = hGraph*0.6/2.0;
-   
+
       for( float i=0.0; i<=width-2.0*wPixel; i+= 5.0*wPixel )
-         g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);         
+         g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);
 
       g_pRenderEngine->setStrokeSize(0);
       float hBarGap = 0.0;
@@ -1184,7 +1184,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
       for( int i=0; i<totalHistoryValues; i++ )
       {
          hBarGap = 0;
-         u8 val = pVDSH->outputHistoryBlocksMaxPacketsGapPerPeriod[i]; 
+         u8 val = pVDSH->outputHistoryBlocksMaxPacketsGapPerPeriod[i];
          if ( val > 0 )
          {
             hBarGap = hGraph*0.6 * (0.1 + 0.9 * val/(float)maxGraphValue);
@@ -1226,11 +1226,11 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
       g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
       g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
       g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
-      g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + width, y);         
+      g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + width, y);
       g_pRenderEngine->drawLine(xPos+dxGraph, y+hGraph*0.8, xPos + dxGraph + width, y+hGraph*0.8);
       midLine = hGraph*0.8/2.0;
       for( float i=0; i<=width-2.0*wPixel; i+= 5*wPixel )
-         g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);         
+         g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);
 
       g_pRenderEngine->setStrokeSize(0);
 
@@ -1271,7 +1271,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
             break;
          }
       }
-      
+
       g_pRenderEngine->drawText(xPos, y, s_idFontStats, "Received Packets/sec:");
       sprintf(szBuff, "%d", maxPacketsPerSec);
       g_pRenderEngine->drawTextLeft(rightMargin, y, s_idFontStats, szBuff);
@@ -1324,7 +1324,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
    if ( iDeveloperMode )
    {
       float hGraphRetransmissions = hGraph;
-     
+
       float maxValue = 1.0;
       float maxRecv = 0.0;
       for( int i=0; i<totalHistoryValues; i++ )
@@ -1340,7 +1340,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
          if ( pVDSH->missingTotalPacketsAtPeriod[i] > maxValue )
             maxValue = pVDSH->missingTotalPacketsAtPeriod[i];
       }
-      
+
       for( int i=0; i<totalHistoryValues; i++ )
       {
          if ( pCRS->history[i].uCountReceivedRetransmissionPackets > maxRecv )
@@ -1360,7 +1360,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
 
       g_pRenderEngine->drawTextLeft(rightMargin, y, s_idFontStatsSmall, " packets");
       ftmp += g_pRenderEngine->textWidth(s_idFontStatsSmall, " packets");
-    
+
       g_pRenderEngine->setFill(40,250,50, s_fOSDStatsGraphLinesAlpha);
       g_pRenderEngine->setStroke(40,250,50, s_fOSDStatsGraphLinesAlpha);
       g_pRenderEngine->drawTextLeft(rightMargin-ftmp, y, s_idFontStatsSmall, " Recv");
@@ -1386,7 +1386,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
       osd_set_colors();
 
       y += height_text_small*1.2;
-   
+
       osd_set_colors();
 
       sprintf(szBuff, "%d", (int)maxValue);
@@ -1399,11 +1399,11 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
       g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
       g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
       g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
-      g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + width, y);         
+      g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + width, y);
       g_pRenderEngine->drawLine(xPos+dxGraph, y+hGraphRetransmissions, xPos + dxGraph + width, y+hGraphRetransmissions);
       midLine = hGraphRetransmissions/2.0;
       for( float i=0; i<=width-2.0*wPixel; i+= 5*wPixel )
-         g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);         
+         g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);
 
       g_pRenderEngine->setStrokeSize(0);
 
@@ -1411,11 +1411,11 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
 
       xBarSt = xPos + widthMax - widthBar;
       xBarEnd = xBarSt + widthBar;
-            
+
       for( int i=0; i<totalHistoryValues; i++ )
       {
          g_pRenderEngine->setStrokeSize(1.0);
-          
+
          float fPercentTotalReq = (float)pCRS->history[i].uCountRequestedPacketsForRetransmission/(maxValue+maxRecv);
          if ( fPercentTotalReq > 1.0 )
             fPercentTotalReq = 1.0;
@@ -1442,7 +1442,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
             g_pRenderEngine->setFill(40,250,50, s_fOSDStatsGraphLinesAlpha);
             g_pRenderEngine->drawRect(xBarSt, yBottom - hBarRecv, widthBar-wPixel, hBarRecv);
             yBottom -= hBarRecv;
-         } 
+         }
 
          if ( pCRS->history[i].uCountRequestedPacketsForRetransmission != 0 )
          {
@@ -1457,7 +1457,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
             g_pRenderEngine->setFill(10,50,200, s_fOSDStatsGraphLinesAlpha);
             g_pRenderEngine->drawRect(xBarSt, yBottom - hBarReReq, widthBar-wPixel, hBarReReq);
             yBottom -= hBarReReq;
-         }         
+         }
          if ( (pVDSH->missingTotalPacketsAtPeriod[i] != 0) ||
                ((i<totalHistoryValues-1) && (pVDSH->missingTotalPacketsAtPeriod[i+1] != 0)) )
          {
@@ -1469,8 +1469,8 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
                float fPercentTotalMissingNext = (float)pVDSH->missingTotalPacketsAtPeriod[i+1]/maxValue;
                if ( fPercentTotalMissingNext > 1.0 )
                   fPercentTotalMissingNext = 1.0;
-            
-               g_pRenderEngine->drawLine(xBarSt, y+hGraphRetransmissions-hGraphRetransmissions*fPercentTotalMissing, xBarSt, y+hGraphRetransmissions-hGraphRetransmissions*fPercentTotalMissingNext);    
+
+               g_pRenderEngine->drawLine(xBarSt, y+hGraphRetransmissions-hGraphRetransmissions*fPercentTotalMissing, xBarSt, y+hGraphRetransmissions-hGraphRetransmissions*fPercentTotalMissingNext);
             }
          }
 
@@ -1533,7 +1533,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
       y += height_text*s_OSDStatsLineSpacing;
 
       g_pRenderEngine->drawText(xPos, y, s_idFontStats, "Retr Time (min/max/avg):");
-      
+
       u8 uMin = 0xFF;
       u8 uMax = 0;
       u32 uAverage = 0;
@@ -1562,7 +1562,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
       y += height_text*s_OSDStatsLineSpacing;
 
       g_pRenderEngine->drawText(xPos, y, s_idFontStats, "Retr Time P (min/max/avg):");
-      
+
       sprintf(szBuff, "%d/%d/%d", pCRS->uMinPacketRetransmissionTime, pCRS->uMaxPacketRetransmissionTime, pCRS->uAvgPacketRetransmissionTime);
       g_pRenderEngine->drawTextLeft(rightMargin, y, s_idFontStats, szBuff);
       y += height_text*s_OSDStatsLineSpacing;
@@ -1586,9 +1586,9 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
       g_pRenderEngine->drawTextLeft(rightMargin, y, s_idFontStatsSmall, "Req/Ack/Done/Dropped Retransmissions");
       y += height_text_small*1.1;
 
-      g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + width, y);         
+      g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + width, y);
       g_pRenderEngine->drawLine(xPos+dxGraph, y+hGraph, xPos + dxGraph + width, y+hGraph);
-     
+
       yBottomGraph = y + hGraph;
 
       xBarSt = xPos + widthMax - widthBar;
@@ -1614,13 +1614,13 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
             g_pRenderEngine->setFill(100, 250, 100, s_fOSDStatsGraphLinesAlpha*0.9);
             g_pRenderEngine->fillCircle(xBarMid, yBottomGraph - hGraph*0.63, hGraph*0.12);
          }
-        
+
          if ( pCRS->history[i].uCountDroppedRetransmissions > 0 )
          {
             g_pRenderEngine->setFill(250,50,50, s_fOSDStatsGraphLinesAlpha*0.9);
             g_pRenderEngine->fillCircle(xBarMid, yBottomGraph - hGraph*0.87, hGraph*0.12);
          }
-        
+
          xBarSt -= widthBar;
          xBarMid -= widthBar;
          xBarEnd -= widthBar;
@@ -1628,7 +1628,7 @@ float osd_render_stats_video_decode(float xPos, float yPos, int iDeveloperMode, 
       }
       y += hGraph;
       y += height_text_small*0.3;
-      
+
       osd_set_colors();
    }
 
@@ -1691,13 +1691,13 @@ float osd_render_stats_telemetry(float xPos, float yPos, float scale)
    else
       sprintf(szBuff, "N/A");
    g_pRenderEngine->drawTextLeft(rightMargin, yPos, s_idFontStats, szBuff);
-   
+
    float y = yPos + height_text*1.5*s_OSDStatsLineSpacing;
 
-   u32 uMaxLostTime = TIMEOUT_TELEMETRY_LOST;   
+   u32 uMaxLostTime = TIMEOUT_TELEMETRY_LOST;
    if ( NULL != g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].pModel && g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].pModel->telemetry_params.iUpdateRateHz > 10 )
       uMaxLostTime = TIMEOUT_TELEMETRY_LOST/2;
-   
+
    static u32 s_uTimeOSDRubyTelemetryLostShowRedUntill = 0;
    static u32 s_uTimeOSDRubyTelemetryLostRedValue = 0;
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bRubyTelemetryLost )
@@ -1733,7 +1733,7 @@ float osd_render_stats_telemetry(float xPos, float yPos, float scale)
    g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);
    if ( g_TimeNow < s_uTimeOSDRubyTelemetryLostShowRedUntill )
       osd_set_colors();
-      
+
    y += height_text*s_OSDStatsLineSpacing;
    */
 
@@ -1779,11 +1779,11 @@ float osd_render_stats_telemetry(float xPos, float yPos, float scale)
       sprintf(szBuff, "%u ms ago", s_uTimeOSDFCTelemetryLostRedValue);
       g_pRenderEngine->setColors(get_Color_IconError());
    }
-   
-   g_pRenderEngine->drawTextLeft( rightMargin, y, height_text, s_idFontStats, szBuff);   
+
+   g_pRenderEngine->drawTextLeft( rightMargin, y, height_text, s_idFontStats, szBuff);
    if ( g_TimeNow < s_uTimeOSDRubyTelemetryLostShowRedUntill )
       osd_set_colors();
-   
+
    y += height_text*s_OSDStatsLineSpacing;
    */
 
@@ -1797,7 +1797,7 @@ float osd_render_stats_telemetry(float xPos, float yPos, float scale)
       sprintf(szBuff, "%u ms ago", s_uTimeOSDFCTelemetryLostRedValue);
       g_pRenderEngine->setColors(get_Color_IconError());
    }
-   g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);   
+   g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);
    y += height_text*s_OSDStatsLineSpacing;
 
 
@@ -1816,7 +1816,7 @@ float osd_render_stats_telemetry(float xPos, float yPos, float scale)
       sprintf(szBuff, "%u ms ago", s_uTimeOSDFCTelemetryLostRedValue);
       g_pRenderEngine->setColors(get_Color_IconError());
    }
-   g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);   
+   g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);
    y += height_text*s_OSDStatsLineSpacing;
 
    g_pRenderEngine->drawText(xPos, y, s_idFontStats, "Ruby Freq (full/short):");
@@ -1824,7 +1824,7 @@ float osd_render_stats_telemetry(float xPos, float yPos, float scale)
       sprintf(szBuff, "%d/%d Hz", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].iFrequencyRubyTelemetryFull, g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].iFrequencyRubyTelemetryShort);
    else
       strcpy(szBuff, "N/A");
-   g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);   
+   g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);
    y += height_text*s_OSDStatsLineSpacing;
 
    g_pRenderEngine->drawText(xPos, y, s_idFontStats, "FC Freq (full/short):");
@@ -1832,7 +1832,7 @@ float osd_render_stats_telemetry(float xPos, float yPos, float scale)
       sprintf(szBuff, "%d/%d Hz", g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].iFrequencyFCTelemetryFull, g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].iFrequencyFCTelemetryShort);
    else
       strcpy(szBuff, "N/A");
-   g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);   
+   g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);
    y += height_text*s_OSDStatsLineSpacing;
 
    g_pRenderEngine->drawText(xPos, y, s_idFontStats, "Data from FC:");
@@ -1842,7 +1842,7 @@ float osd_render_stats_telemetry(float xPos, float yPos, float scale)
       strcpy(szBuff, "N/A");
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.fc_kbps == 0 )
       g_pRenderEngine->setColors(get_Color_IconError());
-   g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);   
+   g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);
    osd_set_colors();
    y += height_text*s_OSDStatsLineSpacing;
 
@@ -1864,7 +1864,7 @@ float osd_render_stats_telemetry(float xPos, float yPos, float scale)
       strcpy(szBuff, "N/A");
    if ( (g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.fc_hudmsgpersec & 0x0F) == 0 )
       g_pRenderEngine->setColors(get_Color_IconError());
-   g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);   
+   g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);
    osd_set_colors();
    y += height_text*s_OSDStatsLineSpacing;
 
@@ -1875,7 +1875,7 @@ float osd_render_stats_telemetry(float xPos, float yPos, float scale)
       strcpy(szBuff, "N/A");
    if ( (g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.fc_hudmsgpersec >> 4) == 0 )
       g_pRenderEngine->setColors(get_Color_IconError());
-   g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);   
+   g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);
    osd_set_colors();
    y += height_text*s_OSDStatsLineSpacing;
 
@@ -1931,7 +1931,7 @@ float osd_render_stats_audio_decode(float xPos, float yPos)
    float fWidthGraph = widthMax - dxGraph;
 
    g_pRenderEngine->drawText(xPos, yPos, s_idFontStats, "Audio Decode Stats");
-   
+
    float y = yPos + height_text*1.3*s_OSDStatsLineSpacing;
 
    osd_set_colors();
@@ -2000,13 +2000,13 @@ float osd_render_stats_audio_decode(float xPos, float yPos)
    g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
    g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
    g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
-   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + widthMax, y);         
+   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + widthMax, y);
    g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphBottomLinesAlpha);
    g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphBottomLinesAlpha);
    g_pRenderEngine->drawLine(xPos+dxGraph, y+hGraph, xPos + dxGraph + fWidthGraph, y+hGraph);
    float midLine = hGraph/2.0;
    for( float i=0; i<=fWidthGraph-2.0*wPixel; i+= 5*wPixel )
-      g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);         
+      g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);
 
    double colorECUsed[4] = {0,150,0, 1.0};
    double colorECMaxUsed[4] = {220,250,20, 1.0};
@@ -2036,7 +2036,7 @@ float osd_render_stats_audio_decode(float xPos, float yPos)
       float fSumECUsed = 0.0;
       float fSumDropped = 0.0;
       float hBar = 0.0;
-      
+
       for(int k=0; k<iRTValuesPerGraphInterval; k++)
       {
          fSumPackets += g_SMControllerRTInfo.uOutputedAudioPackets[iRTIndex];
@@ -2141,7 +2141,7 @@ float osd_render_stats_rc(float xPos, float yPos, float scale)
    g_pRenderEngine->drawText(xPos, yPos, s_idFontStats, "RC Stats");
    sprintf(szBuff, "%.1f sec", RC_INFO_HISTORY_SIZE*50/1000.0);
    g_pRenderEngine->drawTextLeft(rightMargin, yPos, s_idFontStats, szBuff);
-   
+
    float y = yPos + height_text*1.5*s_OSDStatsLineSpacing;
 
    g_pRenderEngine->drawText(xPos, y, s_idFontStats, "Active Link:");
@@ -2156,12 +2156,12 @@ float osd_render_stats_rc(float xPos, float yPos, float scale)
 
    if ( NULL == osd_get_current_data_source_vehicle_model() || (! g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotRubyTelemetryInfo) )
    {
-      g_pRenderEngine->drawText(xPos, y, s_idFontStats, "No info from vehicle"); 
+      g_pRenderEngine->drawText(xPos, y, s_idFontStats, "No info from vehicle");
       return height + 0.012;
    }
    if ( NULL == g_pSM_DownstreamInfoRC )
    {
-      g_pRenderEngine->drawText(xPos, y, s_idFontStats, "Not connected"); 
+      g_pRenderEngine->drawText(xPos, y, s_idFontStats, "Not connected");
       return height + 0.012;
    }
 
@@ -2245,7 +2245,7 @@ float osd_render_stats_rc(float xPos, float yPos, float scale)
       g_pRenderEngine->drawText(xPos+height_text*1.2, y+hGraph-height_text*1.5, s_idFontStatsSmall, "! FAILSAFE !");
    }
 
-   osd_set_colors();   
+   osd_set_colors();
 
    y += hGraph + height_text*0.5;
    }
@@ -2257,7 +2257,7 @@ float osd_render_stats_rc(float xPos, float yPos, float scale)
       bShowMAVLink = true;
    else if ( NULL != osd_get_current_data_source_vehicle_model() && ((osd_get_current_data_source_vehicle_model()->rc_params.uRCFlags & RC_FLAGS_OUTPUT_ENABLED) == 0 ) )
       bShowMAVLink = true;
-   if ( g_SM_DownstreamInfoRC.is_failsafe )   
+   if ( g_SM_DownstreamInfoRC.is_failsafe )
    if ( NULL != osd_get_current_data_source_vehicle_model() && osd_get_current_data_source_vehicle_model()->rc_params.failsafeFlags == RC_FAILSAFE_NOOUTPUT )
       bShowMAVLink = true;
 
@@ -2369,7 +2369,7 @@ float osd_render_stats_efficiency(float xPos, float yPos, float scale)
    float rightMargin = xPos + width;
 
    g_pRenderEngine->drawText(xPos, yPos, s_idFontStats, "Efficiency Stats");
-   
+
    float y = yPos + height_text*1.3*s_OSDStatsLineSpacing;
 
    osd_set_colors();
@@ -2421,7 +2421,7 @@ float osd_render_stats_video_stream_h264_frames_info(float xPos, float yPos)
 {
    Model* pActiveModel = osd_get_current_data_source_vehicle_model();
    u32 uActiveVehicleId = osd_get_current_data_source_vehicle_id();
-   
+
    shared_mem_video_stream_stats* pVDS = NULL;
    int iIndexRouterRuntimeInfo = -1;
 
@@ -2436,11 +2436,11 @@ float osd_render_stats_video_stream_h264_frames_info(float xPos, float yPos)
          iIndexRouterRuntimeInfo = i;
    }
    if ( (NULL == pVDS) || (NULL == pActiveModel) || (-1 == iIndexRouterRuntimeInfo) )
-      return 0.0; 
+      return 0.0;
 
    float height_text = g_pRenderEngine->textHeight(s_idFontStats);
    float height_text_small = g_pRenderEngine->textHeight(s_idFontStatsSmall);
-   
+
    float hGraph = height_text*4.0;
    float wPixel = g_pRenderEngine->getPixelWidth();
 
@@ -2465,9 +2465,9 @@ float osd_render_stats_video_stream_h264_frames_info(float xPos, float yPos)
       strcat(szBuff, "Fixed KF");
    else
       strcat(szBuff, "Auto KF");
-   
+
    g_pRenderEngine->drawText(xPos, yPos, s_idFontStats, szBuff);
-   
+
    float y = yPos + height_text*1.2*s_OSDStatsLineSpacing;
 
    int iSlices = camera_get_active_camera_h264_slices(pActiveModel);
@@ -2475,7 +2475,7 @@ float osd_render_stats_video_stream_h264_frames_info(float xPos, float yPos)
    float dxGraph = g_pRenderEngine->textWidth(s_idFontStatsSmall, "888 kb");
    float widthGraph = widthMax - dxGraph;
    float widthBar = widthGraph / (float)MAX_FRAMES_SAMPLES;
-   
+
    static u32 s_uLastTimeKeyFrameValueChangedInOSD = 0;
    static u32 s_uLastKeyFrameValueInOSD = 0;
    if ( s_uLastKeyFrameValueInOSD != pVDS->PHVS.uCurrentVideoKeyframeIntervalMs )
@@ -2539,21 +2539,21 @@ float osd_render_stats_video_stream_h264_frames_info(float xPos, float yPos)
 
    sprintf(szBuff, "%d kB", (int)uMaxValue);
    g_pRenderEngine->drawText(xPos+widthGraph+8.0*wPixel, y-height_text_small*0.1, s_idFontStatsSmall, szBuff);
-   
+
    sprintf(szBuff, "%d kB", (int)(uMaxValue+uMinValue)/2);
    g_pRenderEngine->drawText(xPos+widthGraph+8.0*wPixel, y+hGraph*0.5-height_text_small*0.6, s_idFontStatsSmall,szBuff);
-   
+
    sprintf(szBuff, "%d kB", (int)uMinValue);
    g_pRenderEngine->drawText(xPos+widthGraph+8.0*wPixel, y+hGraph-height_text_small*0.9, s_idFontStatsSmall,szBuff);
-   
+
    g_pRenderEngine->setColors(get_Color_Dev());
    g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
-   g_pRenderEngine->drawLine(xPos, y, xPos + widthGraph, y);         
+   g_pRenderEngine->drawLine(xPos, y, xPos + widthGraph, y);
    g_pRenderEngine->drawLine(xPos, y+hGraph, xPos + widthGraph, y+hGraph);
 
    for( float i=0; i<=widthGraph-2.0*wPixel; i+= 7*wPixel )
       g_pRenderEngine->drawLine(xPos+i, y+0.5*hGraph, xPos + i + 4.0*wPixel, y+0.5*hGraph);
-   
+
    g_pRenderEngine->setStrokeSize(2.1);
 
    float xBarStart = xPos;
@@ -2679,7 +2679,7 @@ float osd_render_stats_flight_end(float scale)
    y += lineHeight*1.9;
 
    g_pRenderEngine->drawLine(xPos, y-lineHeight*0.6, xPos+width, y-lineHeight*0.6);
-   
+
    if ( (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE ||
         (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
         (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
@@ -2828,7 +2828,7 @@ float osd_render_stats_flight_end(float scale)
 
    ///////////////////////////////////
    y += height_text * 1.8;
-   float width_text = g_pRenderEngine->textWidth(s_idFontStats, "Ok");    
+   float width_text = g_pRenderEngine->textWidth(s_idFontStats, "Ok");
    float selectionMargin = 0.01;
    float fWidthSelection = width_text + 2.0*selectionMargin;
    g_pRenderEngine->setColors(get_Color_MenuItemSelectedBg());
@@ -2858,7 +2858,7 @@ float osd_render_stats_flights(float scale)
    float yPos = toScreenY(0.18) * scale;
    char szBuff[512];
 
-   float fAlpha = render_get_globalAlfa(); 
+   float fAlpha = render_get_globalAlfa();
    render_set_globalAlfa(0.85);
    float alfa = 0.7;
    if ( pP->iInvertColorsOSD )
@@ -2884,7 +2884,7 @@ float osd_render_stats_flights(float scale)
 
    sprintf(szBuff, "%s Statistics", g_pCurrentModel->getShortName());
    draw_message(szBuff, xPos, yPos, text_scale*0.98, render_getFontOSD());
-   
+
    yPos -= height_text*1.4;
 
    osd_set_colors();
@@ -2961,7 +2961,7 @@ float osd_render_stats_dev(float xPos, float yPos, float scale)
    g_pRenderEngine->setColors(get_Color_Dev());
 
    g_pRenderEngine->drawText( xPos, yPos, s_idFontStats, "Developer Mode");
-   
+
    float y = yPos + height_text*1.3*s_OSDStatsLineSpacing;
 
    u8 uLinkMinAck = 255;
@@ -2969,7 +2969,7 @@ float osd_render_stats_dev(float xPos, float yPos, float scale)
 
    Model* pActiveModel = osd_get_current_data_source_vehicle_model();
    u32 uActiveVehicleId = osd_get_current_data_source_vehicle_id();
-   
+
    int iIndexVehicleRuntimeInfo = -1;
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
    {
@@ -3077,7 +3077,7 @@ float osd_render_stats_dev(float xPos, float yPos, float scale)
 
    */
    }
-   
+
 
    osd_set_colors();
 
@@ -3150,10 +3150,10 @@ float osd_render_stats_dev(float xPos, float yPos, float scale)
    g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
    g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
    g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
-   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + widthGraph, y);         
+   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + widthGraph, y);
    g_pRenderEngine->drawLine(xPos+dxGraph, y+hGraph, xPos + dxGraph + widthGraph, y+hGraph);
    //for( float i=0; i<=widthGraph-2.0*wPixel; i+= 5*wPixel )
-   //   g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);         
+   //   g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);
 
    g_pRenderEngine->setStrokeSize(1.0);
 
@@ -3219,10 +3219,10 @@ float osd_render_stats_dev(float xPos, float yPos, float scale)
    g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
    g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
    g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
-   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + widthGraph, y);         
+   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + widthGraph, y);
    g_pRenderEngine->drawLine(xPos+dxGraph, y+hGraph, xPos + dxGraph + widthGraph, y+hGraph);
    for( float i=0; i<=widthGraph-2.0*wPixel; i+= 5*wPixel )
-      g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);         
+      g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);
 
    g_pRenderEngine->setStrokeSize(1.0);
 
@@ -3311,12 +3311,12 @@ float osd_render_stats_dev(float xPos, float yPos, float scale)
    g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
    g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
    g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
-   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + widthGraph, y);         
+   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + widthGraph, y);
    g_pRenderEngine->drawLine(xPos+dxGraph, y+hGraph, xPos + dxGraph + widthGraph, y+hGraph);
    midLine = hGraph/2.0;
    wPixel = g_pRenderEngine->getPixelWidth();
    for( float i=0; i<=widthGraph-2.0*wPixel; i+= 5*wPixel )
-      g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);         
+      g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);
 
    g_pRenderEngine->setStrokeSize(1.0);
 
@@ -3325,7 +3325,7 @@ float osd_render_stats_dev(float xPos, float yPos, float scale)
 
    index = g_pSM_RetransmissionsStats->currentSlice;
 
-   
+
    for( int i=0; i<totalHistoryValues; i++ )
    {
       g_pRenderEngine->setStroke(250,250,240, s_fOSDStatsGraphLinesAlpha);
@@ -3372,12 +3372,12 @@ float osd_render_stats_dev(float xPos, float yPos, float scale)
    g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
    g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
    g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
-   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + widthGraph, y);         
+   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + widthGraph, y);
    g_pRenderEngine->drawLine(xPos+dxGraph, y+hGraph, xPos + dxGraph + widthGraph, y+hGraph);
    midLine = hGraph/2.0;
    wPixel = g_pRenderEngine->getPixelWidth();
    for( float i=0; i<=widthGraph-2.0*wPixel; i+= 5*wPixel )
-      g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);         
+      g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);
 
    g_pRenderEngine->setStrokeSize(1.0);
 
@@ -3385,7 +3385,7 @@ float osd_render_stats_dev(float xPos, float yPos, float scale)
    yBtm = y + hGraph - g_pRenderEngine->getPixelHeight();
 
    index = g_pSM_RetransmissionsStats->currentSlice;
-   
+
    for( int i=0; i<totalHistoryValues; i++ )
    {
       g_pRenderEngine->setStroke(250,250,240, s_fOSDStatsGraphLinesAlpha);
@@ -3436,12 +3436,12 @@ float osd_render_stats_dev(float xPos, float yPos, float scale)
    g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
    g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
    g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
-   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + widthGraph, y);         
+   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + widthGraph, y);
    g_pRenderEngine->drawLine(xPos+dxGraph, y+hGraph, xPos + dxGraph + widthGraph, y+hGraph);
    midLine = hGraph/2.0;
    wPixel = g_pRenderEngine->getPixelWidth();
    for( float i=0; i<=widthGraph-2.0*wPixel; i+= 5*wPixel )
-      g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);         
+      g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);
 
    g_pRenderEngine->setStrokeSize(1.0);
 
@@ -3449,7 +3449,7 @@ float osd_render_stats_dev(float xPos, float yPos, float scale)
    yBtm = y + hGraph - g_pRenderEngine->getPixelHeight();
 
    index = g_pSM_RetransmissionsStats->currentSlice;
-   
+
    g_pRenderEngine->setStroke(250,250,240, s_fOSDStatsGraphLinesAlpha);
    g_pRenderEngine->setFill(250,250,240, s_fOSDStatsGraphLinesAlpha);
 
@@ -3486,7 +3486,7 @@ float osd_render_stats_dev(float xPos, float yPos, float scale)
    g_pRenderEngine->setStrokeSize(1.0);
    g_pRenderEngine->drawLine(xPos+dxGraph + g_pSM_RetransmissionsStats->currentSlice*widthBar+widthBar*0.5, yTopGrid, xPos+dxGraph + g_pSM_RetransmissionsStats->currentSlice*widthBar, yBottomGrid);
    g_pRenderEngine->drawLine(xPos+dxGraph + g_pSM_RetransmissionsStats->currentSlice*widthBar+widthBar*0.5 + wPixel, yTopGrid, xPos+dxGraph + g_pSM_RetransmissionsStats->currentSlice*widthBar+wPixel, yBottomGrid);
-  
+
    g_pRenderEngine->setStroke(250,250,240, s_fOSDStatsGraphLinesAlpha*0.7);
    g_pRenderEngine->setFill(250,250,240, s_fOSDStatsGraphLinesAlpha*0.7);
 
@@ -3540,12 +3540,12 @@ void _osd_render_vehicle_dev_stats()
 
    g_pRenderEngine->drawText(xPos, yPos, s_idFontStats, "Vehicle Dev Stats");
    sprintf(szBuff, "VID: %u", uActiveVehicleId);
-   
+
    g_pRenderEngine->drawTextLeft(rightMargin, yPos, s_idFontStats, szBuff);
-   
+
    float y = yPos + height_text*1.3*s_OSDStatsLineSpacing;
 
-   
+
    g_pRenderEngine->drawText(xPos, y, s_idFontStats, "Router main loop FPS now:");
    sprintf(szBuff, "%u FPS/sec", g_VehiclesRuntimeInfo[iIndexVehicleRuntimeInfo].vehicleDebugRouterCounters.uValueNow);
    g_pRenderEngine->drawTextLeft( rightMargin, y, s_idFontStats, szBuff);
@@ -3581,12 +3581,12 @@ void _osd_render_vehicle_dev_stats()
    g_pRenderEngine->setStrokeSize(OSD_STRIKE_WIDTH);
    g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
    g_pRenderEngine->setFill(pc[0], pc[1], pc[2], s_fOSDStatsGraphLinesAlpha);
-   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + widthGraph, y);         
+   g_pRenderEngine->drawLine(xPos+dxGraph, y, xPos + dxGraph + widthGraph, y);
    g_pRenderEngine->drawLine(xPos+dxGraph, y+hGraph, xPos + dxGraph + widthGraph, y+hGraph);
    midLine = hGraph/2.0;
    wPixel = g_pRenderEngine->getPixelWidth();
    for( float i=0; i<=widthGraph-2.0*wPixel; i+= 5*wPixel )
-      g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);         
+      g_pRenderEngine->drawLine(xPos+dxGraph+i, y+midLine, xPos + dxGraph + i + 2.0*wPixel, y+midLine);
 
    g_pRenderEngine->setStrokeSize(1.0);
 
@@ -3594,7 +3594,7 @@ void _osd_render_vehicle_dev_stats()
    yBtm = y + hGraph - g_pRenderEngine->getPixelHeight();
 
    index = g_pSM_RetransmissionsStats->currentSlice;
-   
+
    g_pRenderEngine->setStroke(250,250,240, s_fOSDStatsGraphLinesAlpha);
    g_pRenderEngine->setFill(250,250,240, s_fOSDStatsGraphLinesAlpha);
 
@@ -3628,14 +3628,14 @@ void _osd_render_stats_panels_horizontal()
 {
    if ( NULL == g_pCurrentModel )
       return;
-   
+
    Preferences* p = get_Preferences();
    float fStatsSize = 1.0;
 
    float yMax = 1.0-osd_getMarginY()-osd_getBarHeight()-0.01 - osd_getSecondBarHeight();
 
    if ( g_pCurrentModel->osd_params.iCurrentOSDScreen == osdLayoutLean )
-      yMax -= 0.05; 
+      yMax -= 0.05;
 
    float xSpacing = 0.01*fStatsSize;
 
@@ -3670,7 +3670,7 @@ void _osd_render_stats_panels_horizontal()
       osd_render_stats_video_bitrate_history(xStats - osd_render_stats_video_bitrate_history_get_width(), yStats-osd_render_stats_video_bitrate_history_get_height());
       xStats -= osd_render_stats_video_bitrate_history_get_width() + xSpacing;
    }
-   
+
    if ( s_bDebugStatsShowAll || (g_pCurrentModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_SHOW_STATS_VIDEO) )
    {
       float hStat = osd_render_stats_video_decode_get_height(g_pControllerSettings->iDeveloperMode | g_pControllerSettings->iDeveloperMode, false, &g_SM_RadioStats, &g_SM_VideoDecodeStats, fStatsSize);
@@ -3729,7 +3729,7 @@ void _osd_render_stats_panels_vertical()
 {
    Preferences* p = get_Preferences();
    float fStatsSize = 1.0;
-  
+
    float hBar = osd_getBarHeight();
    float hBar2 = osd_getSecondBarHeight();
    if ( g_pCurrentModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_LAYOUT_LEFT_RIGHT )
@@ -3738,11 +3738,11 @@ void _osd_render_stats_panels_vertical()
       hBar2 = 0.0;
    }
 
-   float yMin = osd_getMarginY() + hBar + hBar2 + 0.04; 
+   float yMin = osd_getMarginY() + hBar + hBar2 + 0.04;
    float yMax = 1.0-osd_getMarginY() - hBar - hBar2 - 0.03;
-   
+
    if ( g_pCurrentModel->osd_params.iCurrentOSDScreen == osdLayoutLean )
-      yMax -= 0.05; 
+      yMax -= 0.05;
 
    float yStats = yMin;
    float xStats = 0.99-osd_getMarginX();
@@ -3761,7 +3761,7 @@ void _osd_render_stats_panels_vertical()
          yStats = yMin;
          xStats -= fMaxColumnWidth + fSpacingH;
          fMaxColumnWidth = 0.0;
-      }     
+      }
       osd_render_stats_dev(xStats-osd_render_stats_dev_get_width(), yStats, fStatsSize);
       yStats += osd_render_stats_dev_get_height();
       yStats += fSpacingV;
@@ -3777,7 +3777,7 @@ void _osd_render_stats_panels_vertical()
          yStats = yMin;
          xStats -= fMaxColumnWidth + fSpacingH;
          fMaxColumnWidth = 0.0;
-      }     
+      }
       osd_render_stats_graphs_vehicle_tx_gap(xStats-osd_render_stats_graphs_vehicle_tx_gap_get_width(), yStats);
       yStats += osd_render_stats_graphs_vehicle_tx_gap_get_height();
       yStats += fSpacingV;
@@ -3793,7 +3793,7 @@ void _osd_render_stats_panels_vertical()
          yStats = yMin;
          xStats -= fMaxColumnWidth + fSpacingH;
          fMaxColumnWidth = 0.0;
-      }     
+      }
       osd_render_stats_video_bitrate_history(xStats-osd_render_stats_video_bitrate_history_get_width(), yStats);
       yStats += osd_render_stats_video_bitrate_history_get_height();
       yStats += fSpacingV;
@@ -3808,7 +3808,7 @@ void _osd_render_stats_panels_vertical()
          yStats = yMin;
          xStats -= fMaxColumnWidth + fSpacingH;
          fMaxColumnWidth = 0.0;
-      }  
+      }
       osd_render_stats_efficiency(xStats-osd_render_stats_efficiency_get_width(1.0), yStats, fStatsSize);
       yStats += osd_render_stats_efficiency_get_height(fStatsSize);
       yStats += fSpacingV;
@@ -3824,7 +3824,7 @@ void _osd_render_stats_panels_vertical()
          yStats = yMin;
          xStats -= fMaxColumnWidth + fSpacingH;
          fMaxColumnWidth = 0.0;
-      }         
+      }
       osd_render_stats_local_radio_links( xStats-osd_render_stats_local_radio_links_get_width(&g_SM_RadioStats, fStatsSize), yStats, "Radio Links", &g_SM_RadioStats, fStatsSize);
       yStats += osd_render_stats_local_radio_links_get_height(&g_SM_RadioStats, fStatsSize);
       yStats += fSpacingV;
@@ -3840,7 +3840,7 @@ void _osd_render_stats_panels_vertical()
          yStats = yMin;
          xStats -= fMaxColumnWidth + fSpacingH;
          fMaxColumnWidth = 0.0;
-      }         
+      }
       osd_render_stats_radio_interfaces( xStats-osd_render_stats_radio_interfaces_get_width(&g_SM_RadioStats), yStats, "Radio Interfaces", &g_SM_RadioStats);
       yStats += osd_render_stats_radio_interfaces_get_height(&g_SM_RadioStats);
       yStats += fSpacingV;
@@ -3855,7 +3855,7 @@ void _osd_render_stats_panels_vertical()
          yStats = yMin;
          xStats -= fMaxColumnWidth + fSpacingH;
          fMaxColumnWidth = 0.0;
-      }  
+      }
       osd_render_stats_telemetry(xStats-osd_render_stats_telemetry_get_width(fStatsSize), yStats, fStatsSize);
       yStats += osd_render_stats_telemetry_get_height(fStatsSize);
       yStats += fSpacingV;
@@ -3870,7 +3870,7 @@ void _osd_render_stats_panels_vertical()
          yStats = yMin;
          xStats -= fMaxColumnWidth + fSpacingH;
          fMaxColumnWidth = 0.0;
-      }  
+      }
       osd_render_stats_audio_decode(xStats-osd_render_stats_audio_decode_get_width(), yStats);
       yStats += osd_render_stats_audio_decode_get_height();
       yStats += fSpacingV;
@@ -3885,7 +3885,7 @@ void _osd_render_stats_panels_vertical()
          yStats = yMin;
          xStats -= fMaxColumnWidth + fSpacingH;
          fMaxColumnWidth = 0.0;
-      }  
+      }
       osd_render_stats_rc(xStats-osd_render_stats_rc_get_width(fStatsSize), yStats, fStatsSize);
       yStats += osd_render_stats_rc_get_height(fStatsSize);
       yStats += fSpacingV;
@@ -3893,7 +3893,7 @@ void _osd_render_stats_panels_vertical()
          fMaxColumnWidth = osd_render_stats_rc_get_width(fStatsSize);
    }
 
-   
+
    if ( s_bDebugStatsShowAll || (g_pCurrentModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_SHOW_STATS_VIDEO) )
    {
       if ( yStats + osd_render_stats_video_decode_get_height(g_pControllerSettings->iDeveloperMode, false, &g_SM_RadioStats, &g_SM_VideoDecodeStats, fStatsSize) > yMax )
@@ -3901,7 +3901,7 @@ void _osd_render_stats_panels_vertical()
          yStats = yMin;
          xStats -= fMaxColumnWidth + fSpacingH;
          fMaxColumnWidth = 0.0;
-      }         
+      }
       osd_render_stats_video_decode(xStats - osd_render_stats_video_decode_get_width(g_pControllerSettings->iDeveloperMode, false,  &g_SM_RadioStats, &g_SM_VideoDecodeStats, fStatsSize), yStats, g_pControllerSettings->iDeveloperMode, false, &g_SM_RadioStats, &g_SM_VideoDecodeStats, fStatsSize);
       yStats += osd_render_stats_video_decode_get_height(g_pControllerSettings->iDeveloperMode, false, &g_SM_RadioStats, &g_SM_VideoDecodeStats, fStatsSize);
       yStats += fSpacingV;
@@ -3949,18 +3949,18 @@ void _osd_stats_autoarange_left( int iCountArranged, int iCurrentColumn )
    float fCurrentColumnX = s_fOSDStatsMarginHLeft;
    for( int i=0; i<iCurrentColumn; i++ )
       fCurrentColumnX += (s_fOSDStatsSpacingH + s_fOSDStatsColumnsWidths[i]);
-   
+
    s_iOSDStatsBoundingBoxesX[iCountArranged] = fCurrentColumnX;// + s_iOSDStatsBoundingBoxesW[iCountArranged];
    s_iOSDStatsBoundingBoxesY[iCountArranged] = s_fOSDStatsMarginVTop;
-   fColumnCurrentHeight += s_iOSDStatsBoundingBoxesH[iCountArranged] + s_fOSDStatsSpacingV;  
+   fColumnCurrentHeight += s_iOSDStatsBoundingBoxesH[iCountArranged] + s_fOSDStatsSpacingV;
 
    if ( s_iOSDStatsBoundingBoxesW[iCountArranged] > s_fOSDStatsColumnsWidths[iCurrentColumn] )
       s_fOSDStatsColumnsWidths[iCurrentColumn] = s_iOSDStatsBoundingBoxesW[iCountArranged];
 
    iCountArranged++;
-   
+
    // Try to fit more panels to current column
- 
+
    for( int i=iCountArranged; i<s_iCountOSDStatsBoundingBoxes; i++ )
    {
       if ( fColumnCurrentHeight + s_iOSDStatsBoundingBoxesH[i] <= 1.0 - s_fOSDStatsMarginVBottom - s_fOSDStatsMarginVTop )
@@ -3995,18 +3995,18 @@ void _osd_stats_autoarange_right( int iCountArranged, int iCurrentColumn )
    float fCurrentColumnX = 1.0-s_fOSDStatsMarginHRight;
    for( int i=0; i<iCurrentColumn; i++ )
       fCurrentColumnX -= (s_fOSDStatsSpacingH + s_fOSDStatsColumnsWidths[i]);
-   
+
    s_iOSDStatsBoundingBoxesX[iCountArranged] = fCurrentColumnX - s_iOSDStatsBoundingBoxesW[iCountArranged];
    s_iOSDStatsBoundingBoxesY[iCountArranged] = s_fOSDStatsMarginVTop;
-   
+
    if ( s_iOSDStatsBoundingBoxesW[iCountArranged] > s_fOSDStatsColumnsWidths[iCurrentColumn] )
       s_fOSDStatsColumnsWidths[iCurrentColumn] = s_iOSDStatsBoundingBoxesW[iCountArranged];
 
-   fColumnCurrentHeight += s_iOSDStatsBoundingBoxesH[iCountArranged] + s_fOSDStatsSpacingV;  
+   fColumnCurrentHeight += s_iOSDStatsBoundingBoxesH[iCountArranged] + s_fOSDStatsSpacingV;
    iCountArranged++;
-   
+
    // Try to fit more panels to current column
- 
+
    for( int i=iCountArranged; i<s_iCountOSDStatsBoundingBoxes; i++ )
    {
       if ( fColumnCurrentHeight + s_iOSDStatsBoundingBoxesH[i] <= 1.0 - (s_fOSDStatsMarginVBottom+s_fOSDStatsMarginVTop) )
@@ -4051,7 +4051,7 @@ void _osd_stats_autoarange_top()
          s_fOSDStatsColumnsHeights[iColumn] += s_iOSDStatsBoundingBoxesH[iCountArranged] + s_fOSDStatsSpacingV;
          s_fOSDStatsColumnsWidths[iColumn] = s_iOSDStatsBoundingBoxesW[iCountArranged];
 
-         fRowCurrentWidth += s_iOSDStatsBoundingBoxesW[iCountArranged] + s_fOSDStatsSpacingH;   
+         fRowCurrentWidth += s_iOSDStatsBoundingBoxesW[iCountArranged] + s_fOSDStatsSpacingH;
          iCountArranged++;
          iColumn++;
       }
@@ -4073,15 +4073,15 @@ void _osd_stats_autoarange_top()
             fRowCurrentWidth += s_iOSDStatsBoundingBoxesW[iCountArranged] + s_fOSDStatsSpacingH;
             s_fOSDStatsColumnsHeights[iColumn] += s_iOSDStatsBoundingBoxesH[iCountArranged] + s_fOSDStatsSpacingV;
             s_fOSDStatsColumnsWidths[iColumn] = s_iOSDStatsBoundingBoxesW[iCountArranged];
-           
+
             iCountArranged++;
             iColumn++;
          }
       }
    }
-   
+
    // Add rempaining panels to where they can fit
-   
+
    while ( iCountArranged < s_iCountOSDStatsBoundingBoxes )
    {
       bool bFittedInColumn = false;
@@ -4094,7 +4094,7 @@ void _osd_stats_autoarange_top()
             s_iOSDStatsBoundingBoxesX[iCountArranged] = 1.0 - s_fOSDStatsMarginHRight - s_iOSDStatsBoundingBoxesW[iCountArranged];
             for( int i=0; i<iColumn; i++ )
                 s_iOSDStatsBoundingBoxesX[iCountArranged] -= (s_fOSDStatsSpacingH + s_fOSDStatsColumnsWidths[i]);
-            
+
             if ( s_iOSDStatsBoundingBoxesW[iCountArranged] > s_fOSDStatsColumnsWidths[iColumn] )
             {
                float dx = s_iOSDStatsBoundingBoxesW[iCountArranged] - s_fOSDStatsColumnsWidths[iColumn];
@@ -4107,7 +4107,7 @@ void _osd_stats_autoarange_top()
 
             s_iOSDStatsBoundingBoxesY[iCountArranged] = s_fOSDStatsColumnsHeights[iColumn];
             s_fOSDStatsColumnsHeights[iColumn] += s_iOSDStatsBoundingBoxesH[iCountArranged] + s_fOSDStatsSpacingV;
-            
+
             bFittedInColumn = true;
             break;
          }
@@ -4117,7 +4117,7 @@ void _osd_stats_autoarange_top()
       {
          //s_iOSDStatsBoundingBoxesX[iCountArranged] = 1.0 - s_fOSDStatsMarginHRight - s_iOSDStatsBoundingBoxesW[iCountArranged] - fRowCurrentWidth;
          //s_iOSDStatsBoundingBoxesY[iCountArranged] = s_fOSDStatsMarginVTop;
-         //fRowCurrentWidth += s_iOSDStatsBoundingBoxesW[iCountArranged] + s_fOSDStatsSpacingH; 
+         //fRowCurrentWidth += s_iOSDStatsBoundingBoxesW[iCountArranged] + s_fOSDStatsSpacingH;
 
          s_iOSDStatsBoundingBoxesX[iCountArranged] = 1.0 - s_fOSDStatsMarginHRight - s_iOSDStatsBoundingBoxesW[iCountArranged] - fRowCurrentWidth;
          s_iOSDStatsBoundingBoxesY[iCountArranged] = s_fOSDStatsColumnsHeights[9];
@@ -4148,7 +4148,7 @@ void _osd_stats_autoarange_bottom()
          s_iOSDStatsBoundingBoxesColumns[iCountArranged] = iColumn;
          s_fOSDStatsColumnsHeights[iColumn] += s_iOSDStatsBoundingBoxesH[iCountArranged] + s_fOSDStatsSpacingV;
          s_fOSDStatsColumnsWidths[iColumn] = s_iOSDStatsBoundingBoxesW[iCountArranged];
-         
+
          fRowCurrentWidth += s_iOSDStatsBoundingBoxesW[iCountArranged] + s_fOSDStatsSpacingH;
          iCountArranged++;
          iColumn++;
@@ -4176,9 +4176,9 @@ void _osd_stats_autoarange_bottom()
          }
       }
    }
-   
+
    // Add rempaining panels to where they can fit
-   
+
    while ( iCountArranged < s_iCountOSDStatsBoundingBoxes )
    {
       bool bFittedInColumn = false;
@@ -4191,7 +4191,7 @@ void _osd_stats_autoarange_bottom()
             s_iOSDStatsBoundingBoxesX[iCountArranged] = 1.0 - s_fOSDStatsMarginHRight - s_iOSDStatsBoundingBoxesW[iCountArranged];
             for( int i=0; i<iColumn; i++ )
                 s_iOSDStatsBoundingBoxesX[iCountArranged] -= (s_fOSDStatsSpacingH + s_fOSDStatsColumnsWidths[i]);
-            
+
             if ( s_iOSDStatsBoundingBoxesW[iCountArranged] > s_fOSDStatsColumnsWidths[iColumn] )
             {
                float dx = s_iOSDStatsBoundingBoxesW[iCountArranged] - s_fOSDStatsColumnsWidths[iColumn];
@@ -4213,7 +4213,7 @@ void _osd_stats_autoarange_bottom()
       {
          //s_iOSDStatsBoundingBoxesX[iCountArranged] = 1.0 - s_fOSDStatsMarginHRight - s_iOSDStatsBoundingBoxesW[iCountArranged] - fRowCurrentWidth;
          //s_iOSDStatsBoundingBoxesY[iCountArranged] = 1.0 - s_fOSDStatsMarginVTop - s_iOSDStatsBoundingBoxesH[iCountArranged];
-         //fRowCurrentWidth += s_iOSDStatsBoundingBoxesW[iCountArranged] + s_fOSDStatsSpacingH; 
+         //fRowCurrentWidth += s_iOSDStatsBoundingBoxesW[iCountArranged] + s_fOSDStatsSpacingH;
          s_iOSDStatsBoundingBoxesX[iCountArranged] = 1.0 - s_fOSDStatsMarginHRight - s_iOSDStatsBoundingBoxesW[iCountArranged] - fRowCurrentWidth;
          s_iOSDStatsBoundingBoxesY[iCountArranged] = 1.0 - s_fOSDStatsColumnsHeights[9] - s_iOSDStatsBoundingBoxesH[iCountArranged];
          s_fOSDStatsColumnsHeights[9] += s_iOSDStatsBoundingBoxesH[iCountArranged] + s_fOSDStatsSpacingV;
@@ -4276,7 +4276,7 @@ void osd_render_stats_panels()
    if ( (pModel->osd_params.osd_flags[iOSDLayoutIndex] & OSD_FLAG_SHOW_CPU_INFO ) ||
         p->iShowControllerCPUInfo )
       s_fOSDStatsMarginVTop += osd_getFontHeight();
-   
+
    if ( pModel->osd_params.osd_flags3[iOSDLayoutIndex] & OSD_FLAG3_LAYOUT_STATS_AUTO_WIDGETS_MARGINS )
    {
       // Add some room at margins for widgets, if widgets are present on the margins of the screen
@@ -4321,7 +4321,7 @@ void osd_render_stats_panels()
       s_fOSDStatsMarginVBottom = 0.01;
    if ( s_fOSDStatsMarginVTop < 0.01 )
       s_fOSDStatsMarginVTop = 0.01;
-   
+
    // Max id used: 19
 
    if ( pModel->osd_params.osd_flags3[osd_get_current_layout_index()] & OSD_FLAG3_SHOW_RADIO_RX_HISTORY_CONTROLLER )
@@ -4368,7 +4368,7 @@ void osd_render_stats_panels()
       s_iCountOSDStatsBoundingBoxes++;
    }
 
-   
+
    if ( s_bDebugStatsShowAll || (pModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_SHOW_STATS_VIDEO) )
    {
       s_iOSDStatsBoundingBoxesIds[s_iCountOSDStatsBoundingBoxes] = 6;
@@ -4376,7 +4376,7 @@ void osd_render_stats_panels()
       s_iOSDStatsBoundingBoxesH[s_iCountOSDStatsBoundingBoxes] = osd_render_stats_video_decode_get_height(g_pControllerSettings->iDeveloperMode, false, &g_SM_RadioStats, &g_SM_VideoDecodeStats, 1.0);
       s_iCountOSDStatsBoundingBoxes++;
    }
-   
+
    if ( p->iDebugShowVideoSnapshotOnDiscard )
    if ( g_bHasVideoDecodeStatsSnapshot )
    {
@@ -4479,7 +4479,7 @@ void osd_render_stats_panels()
    {
       if ( s_iOSDStatsBoundingBoxesIds[i] == 14 )
          osd_render_stats_adaptive_video(s_iOSDStatsBoundingBoxesX[i], s_iOSDStatsBoundingBoxesY[i]);
-      
+
       if ( s_iOSDStatsBoundingBoxesIds[i] == 1 )
          osd_render_stats_dev(s_iOSDStatsBoundingBoxesX[i], s_iOSDStatsBoundingBoxesY[i], 1.0);
 
@@ -4488,13 +4488,13 @@ void osd_render_stats_panels()
 
       if ( s_iOSDStatsBoundingBoxesIds[i] == 5 )
          osd_render_stats_video_bitrate_history(s_iOSDStatsBoundingBoxesX[i], s_iOSDStatsBoundingBoxesY[i]);
-      
+
       if ( s_iOSDStatsBoundingBoxesIds[i] == 6 )
          osd_render_stats_video_decode(s_iOSDStatsBoundingBoxesX[i], s_iOSDStatsBoundingBoxesY[i], g_pControllerSettings->iDeveloperMode, false, &g_SM_RadioStats, &g_SM_VideoDecodeStats, 1.0);
-      
+
       if ( s_iOSDStatsBoundingBoxesIds[i] == 11 )
          osd_render_stats_video_decode(s_iOSDStatsBoundingBoxesX[i], s_iOSDStatsBoundingBoxesY[i], g_pControllerSettings->iDeveloperMode, true, &s_OSDSnapshot_RadioStats, &s_OSDSnapshot_VideoDecodeStats, 1.0);
-     
+
       if ( s_iOSDStatsBoundingBoxesIds[i] == 12 )
       {
         osd_render_stats_video_stream_h264_frames_info(s_iOSDStatsBoundingBoxesX[i], s_iOSDStatsBoundingBoxesY[i]);
@@ -4518,10 +4518,10 @@ void osd_render_stats_panels()
         }
         */
       }
-      
+
       if ( s_iOSDStatsBoundingBoxesIds[i] == 7 )
          osd_render_stats_local_radio_links( s_iOSDStatsBoundingBoxesX[i], s_iOSDStatsBoundingBoxesY[i], "Radio Links", &g_SM_RadioStats, 1.0);
-      
+
       if ( s_iOSDStatsBoundingBoxesIds[i] == 8 )
          osd_render_stats_radio_interfaces( s_iOSDStatsBoundingBoxesX[i], s_iOSDStatsBoundingBoxesY[i], "Radio Interfaces", &g_SM_RadioStats);
 
@@ -4541,7 +4541,7 @@ void osd_render_stats_panels()
          osd_render_stats_radio_rx_type_history(s_iOSDStatsBoundingBoxesX[i], s_iOSDStatsBoundingBoxesY[i], false);
       if ( s_iOSDStatsBoundingBoxesIds[i] == 18 )
          osd_render_stats_radio_rx_type_history(s_iOSDStatsBoundingBoxesX[i], s_iOSDStatsBoundingBoxesY[i], true);
-      
+
       //char szBuff[32];
       //sprintf(szBuff, "%d", i);
       //g_pRenderEngine->drawText(s_iOSDStatsBoundingBoxesX[i], s_iOSDStatsBoundingBoxesY[i], s_idFontStats, szBuff);

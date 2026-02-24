@@ -18,9 +18,9 @@ class MenuVehicleOSDWidgets: public Menu
       virtual void Render();
 
       virtual void onSelectItem();
-            
+
       virtual int onBack();
-      
+
    private:
       int m_IndexShowSpeedAlt;
       int m_IndexSpeedToSides;

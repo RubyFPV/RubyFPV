@@ -174,7 +174,7 @@ bool handle_joysticks(Model* pModel)
 {
    if ( ! _check_open_joystick(pModel) )
       return false;
-   
+
    int countEvents = hardware_read_joystick(s_pCII->currentHardwareIndex, 5);
    if ( countEvents < 0 )
    {
@@ -311,26 +311,26 @@ void _update_loop_info(u32 tTime0)
    }
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("--------------------------");
    log_line("Caught signal to stop: %d", sig);
    log_line("--------------------------");
    g_bQuit = true;
-} 
+}
 
 int main(int argc, char *argv[])
 {
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
- 
+
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
       printf("%d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
       return 0;
    }
-   
+
    log_init("TXRC");
 
    hardware_detectBoardAndSystemType();
@@ -340,11 +340,11 @@ int main(int argc, char *argv[])
 
    if ( strcmp(argv[argc-1], "-debug") == 0 )
       log_enable_stdout();
-  
+
    loadAllModels();
    g_pCurrentModel = getCurrentModel();
 
-   Preferences* p = get_Preferences();   
+   Preferences* p = get_Preferences();
    if ( p->nLogLevel != 0 )
       log_only_errors();
 
@@ -358,7 +358,7 @@ int main(int argc, char *argv[])
       hw_set_current_thread_affinity("rc_tx", CORE_AFFINITY_RC_TX, CORE_AFFINITY_RC_TX);
 
    if ( pCS->iPrioritiesAdjustment )
-      hw_set_priority_current_proc(pCS->iThreadPriorityRC); 
+      hw_set_priority_current_proc(pCS->iThreadPriorityRC);
 
    s_pPHRCFUpstream = shared_mem_rc_upstream_frame_open_write();
 
@@ -375,7 +375,7 @@ int main(int argc, char *argv[])
       log_softerror_and_alarm("Failed to open shared mem for RC tx process watchdog stats for writing: %s", SHARED_MEM_WATCHDOG_TELEMETRY_RX);
    else
       log_line("Opened shared mem for RC tx process watchdog stats for writing.");
- 
+
    s_uTimeBetweenRCFramesOutput = 50;
    gPH.vehicle_id_src = 0;
    gPH.vehicle_id_dest = 0;
@@ -400,10 +400,10 @@ int main(int argc, char *argv[])
    log_line("Started all ok. Running now.");
    log_line("--------------------------------");
 
-   g_TimeStart = get_current_timestamp_ms(); 
+   g_TimeStart = get_current_timestamp_ms();
 
    while ( !g_bQuit )
-   { 
+   {
       u32 uTimeNow = get_current_timestamp_ms();
       u32 uTimeToSleep = uTimeNow - g_TimeNow;
       if ( uTimeToSleep >= s_uTimeBetweenRCFramesOutput )
@@ -429,7 +429,7 @@ int main(int argc, char *argv[])
          _update_loop_info(g_TimeNow);
          continue;
       }
-   
+
       #ifdef FEATURE_ENABLE_RC
 
       if ( g_TimeNow < s_uTimeLastRCFrameSent + s_uTimeBetweenRCFramesOutput )
@@ -492,7 +492,7 @@ int main(int argc, char *argv[])
       gPH.total_length = sizeof(t_packet_header)+sizeof(t_packet_header_rc_full_frame_upstream);
       gPH.vehicle_id_src = g_uControllerId;
       gPH.vehicle_id_dest = g_pRCModel->uVehicleId;
-      
+
       u8 buffer[MAX_PACKET_TOTAL_SIZE];
       memcpy(buffer, &gPH, sizeof(t_packet_header));
       memcpy(buffer+sizeof(t_packet_header), (u8*)&g_PHRCFUpstream, sizeof(t_packet_header_rc_full_frame_upstream));
@@ -519,7 +519,7 @@ int main(int argc, char *argv[])
    ruby_close_ipc_channel(s_fIPCToRouter);
    s_fIPCFromRouter = -1;
    s_fIPCToRouter = -1;
-  
+
    shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_RC_TX, s_pProcessStats);
    shared_mem_i2c_controller_rc_in_close(s_pSM_RCIn);
    shared_mem_rc_upstream_frame_close(s_pPHRCFUpstream);

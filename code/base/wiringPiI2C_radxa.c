@@ -111,7 +111,7 @@ int wiringPiI2CWriteBlockDataIoctl(int fd, int addr, uint8_t reg, uint8_t length
     uint8_t *buffer = (uint8_t*)malloc(length + 1);
     if ( NULL == buffer )
        return -1;
- 
+
     buffer[0] = reg;
     memcpy(buffer + 1, values, length);
 

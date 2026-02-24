@@ -130,7 +130,7 @@ void _render_vspeed_only(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_se
    draw_shadow(g_pEngine, xCenter, yCenter, fRadius);
 
    g_pEngine->setColors(g_pEngine->getColorOSDInstruments());
-   
+
    u32 fontId = g_pEngine->getFontIdRegular();
    float height_text = g_pEngine->textHeight(fontId);
 
@@ -159,7 +159,7 @@ void _render_vspeed_only(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_se
       float y = yCenter - fRadius*0.93 * sin(fAngle*0.017453);
       float dInner = 0.84;
       float dText = 0.68;
-      
+
       if ( (nVSpeed%2) )
       {
          dInner = 0.9;
@@ -172,7 +172,7 @@ void _render_vspeed_only(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_se
       float ytext = yCenter - fRadius * dText * sin(fAngle*0.017453);
 
       g_pEngine->drawLine(x,y,xinner,yinner);
-      
+
       if ( (nVSpeed%5) == 0 )
       {
          if ( nVSpeed == nMaxVSpeed )
@@ -194,11 +194,11 @@ void _render_vspeed_only(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_se
       }
       nVSpeed++;
    }
-   
+
    // Show vspeed value
 
    float fVSpeed = ((float)pTelemetryInfo->vspeed)/100.0 - 1000.0;
-   
+
    // Make it move smoothly
 
    static float s_fPluginVSpeedSmooth = 0.0;
@@ -240,7 +240,7 @@ void _render_vspeed_only(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_se
    g_pEngine->drawCircle(xCenter, yCenter, g_pEngine->getPixelHeight()*12.0);
 
    g_pEngine->setColors(g_pEngine->getColorOSDInstruments());
-   
+
    // Draw needle
 
    float fValue = s_fPluginVSpeedSmooth;
@@ -312,7 +312,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
       _render_vspeed_only(pTelemetryInfo, pCurrentSettings, xPos, yPos, fWidth, fHeight);
       return;
    }
-   
+
    char szBuff[64];
    double color[4];
 
@@ -325,7 +325,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
    draw_shadow(g_pEngine, xCenter, yCenter, fRadius);
 
    g_pEngine->setColors(g_pEngine->getColorOSDInstruments());
-   
+
    u32 fontId = g_pEngine->getFontIdRegular();
    float height_text = g_pEngine->textHeight(fontId);
 
@@ -371,7 +371,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
       float y = yCenter - fRadiusAltitude*0.95 * sin(fAngle*0.017453);
       float dInner = 0.84;
       float dText = 0.68;
-      
+
       if ( (value%2) )
       {
          dInner = 0.9;
@@ -384,7 +384,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
       float ytext = yCenter - fRadiusAltitude * dText * sin(fAngle*0.017453);
 
       g_pEngine->drawLine(x,y,xinner,yinner);
-      
+
       if ( (value%2) == 0 )
       {
          sprintf(szBuff, "%d", value/2);
@@ -401,11 +401,11 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
       }
       value++;
    }
-   
+
    // Show altitude value
 
    float fAltitude = ((float)pTelemetryInfo->altitude)/100.0 - 1000.0;
-   
+
    // Make it move smoothly
 
    static float s_fPluginAltitudeSmooth = 0.0;
@@ -452,7 +452,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
    g_pEngine->setColors(g_pEngine->getColorOSDInstruments());
 
    // Draw needle (10 meters value)
-   
+
    float fNormValue = s_fPluginAltitudeSmooth / 10.0 / 10.0;
    float fNeedleAngle = fStartAngle - (fStartAngle - fEndAngle) * fNormValue;
    float fNeedleAngleLeft = fNeedleAngle + 90.0;
@@ -517,7 +517,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
 
 
    // Draw needle (100 meters value)
-   
+
    fNormValue = s_fPluginAltitudeSmooth / 100.0 / 10.0;
    fNeedleAngle = fStartAngle - (fStartAngle - fEndAngle) * fNormValue;
    fNeedleAngleLeft = fNeedleAngle + 90.0;
@@ -618,7 +618,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
             yinner = yCenter - (fRadiusAltitude + fRadius*0.03) * sin(fAngle*0.017453);
          }
          g_pEngine->drawLine(x,y,xinner,yinner);
-      
+
          if ( (nVSpeed%5) == 0 )
          {
             if ( nVSpeed == nMaxVSpeed )
@@ -636,7 +636,7 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
       // Draw vspeed
 
       float fVSpeed = ((float)pTelemetryInfo->vspeed)/100.0 - 1000.0;
-   
+
       // Make it move smoothly
 
       static float s_fPluginVSpeedSmooth = 0.0;
@@ -674,5 +674,5 @@ void render(vehicle_and_telemetry_info_t* pTelemetryInfo, plugin_settings_info_t
 }
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

@@ -42,13 +42,13 @@ MenuVehicleAlarms::MenuVehicleAlarms(void)
    m_Width = 0.36;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.20;
 
-   m_pItemsSelect[0] = new MenuItemSelect(L("Enable Voltage Alarm"), L("Shows an alarm on screen when vehicle battery voltage drops below a value."));  
+   m_pItemsSelect[0] = new MenuItemSelect(L("Enable Voltage Alarm"), L("Shows an alarm on screen when vehicle battery voltage drops below a value."));
    m_pItemsSelect[0]->addSelection(L("No"));
    m_pItemsSelect[0]->addSelection(L("Yes"));
    m_pItemsSelect[0]->setIsEditable();
    addMenuItem(m_pItemsSelect[0]);
 
-   m_pItemsRange[0] = new MenuItemRange(L("Alarm voltage"), L("Voltage at which the alarm will trigger."), 2.0, 4.6, g_pCurrentModel->osd_params.voltage_alarm, 0.1 );  
+   m_pItemsRange[0] = new MenuItemRange(L("Alarm voltage"), L("Voltage at which the alarm will trigger."), 2.0, 4.6, g_pCurrentModel->osd_params.voltage_alarm, 0.1 );
    m_pItemsRange[0]->setSufix("V");
    addMenuItem(m_pItemsRange[0]);
 
@@ -66,7 +66,7 @@ MenuVehicleAlarms::MenuVehicleAlarms(void)
    m_pItemsSelect[3]->setIsEditable();
    m_IndexAlarmMotorCurrent = addMenuItem(m_pItemsSelect[3]);
 
-   m_pItemsSelect[1] = new MenuItemSelect(L("Enable Overload Alarm"), L("Shows an alarm when the vehicle CPU is overloaded or the radio link is overloaded."));  
+   m_pItemsSelect[1] = new MenuItemSelect(L("Enable Overload Alarm"), L("Shows an alarm when the vehicle CPU is overloaded or the radio link is overloaded."));
    m_pItemsSelect[1]->addSelection("No");
    m_pItemsSelect[1]->addSelection("Yes");
    m_IndexOverload = addMenuItem(m_pItemsSelect[1]);
@@ -74,11 +74,11 @@ MenuVehicleAlarms::MenuVehicleAlarms(void)
    m_pItemsSlider[0] = new MenuItemSlider(L("Threshold Temperature"), L("Sets the temperature at which to activate the PIT mode (if enabled) and also flashes the temperature in OSD."), 0,120,50, 0.12);
    m_iIndexTemperature = addMenuItem(m_pItemsSlider[0]);
 
-   m_pItemsRange[1] = new MenuItemRange(L("Pitch/Roll warning angle"), L("Pitch and roll angle at witch to show a OSD warning indication about attitude (0 for disabled)."), 0, 80, g_pCurrentModel->osd_params.ahi_warning_angle, 5 );  
+   m_pItemsRange[1] = new MenuItemRange(L("Pitch/Roll warning angle"), L("Pitch and roll angle at witch to show a OSD warning indication about attitude (0 for disabled)."), 0, 80, g_pCurrentModel->osd_params.ahi_warning_angle, 5 );
    m_pItemsRange[1]->setSufix("°");
    addMenuItem(m_pItemsRange[1]);
 
-   m_pItemsSelect[2] = new MenuItemSelect(L("Link to Controller Lost Alarm"), L("Shows an alarm when the vehicle looses connection with the controller. That is, vehicle does not receive the uplink data for a period of time."));  
+   m_pItemsSelect[2] = new MenuItemSelect(L("Link to Controller Lost Alarm"), L("Shows an alarm when the vehicle looses connection with the controller. That is, vehicle does not receive the uplink data for a period of time."));
    m_pItemsSelect[2]->addSelection(L("Disabled"));
    m_pItemsSelect[2]->addSelection(L("Enabled"));
    m_pItemsSelect[2]->setIsEditable();
@@ -201,11 +201,11 @@ void MenuVehicleAlarms::onSelectItem()
          params.ahi_warning_angle = 0;
       sendToVehicle = true;
    }
-   
+
    if ( m_iIndexTemperature == m_SelectedIndex )
    {
       u32 uCommandParam = (((u32)(m_pItemsSlider[0]->getCurrentValue())) & 0xFF);
-      
+
       if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_TEMPERATURE_THRESHOLD, uCommandParam, NULL, 0) )
          valuesToUI();
       return;

@@ -82,7 +82,7 @@ void osd_warnings_render()
 {
    Model* pActiveModel = osd_get_current_data_source_vehicle_model();
    u32 uActiveVehicleId = osd_get_current_data_source_vehicle_id();
-   
+
    int iCountVehicles = 0;
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
    {
@@ -92,7 +92,7 @@ void osd_warnings_render()
 
    shared_mem_video_stream_stats* pVDS = get_shared_mem_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, uActiveVehicleId);
    if ( (NULL == pVDS) || (NULL == pActiveModel) || (g_iCurrentActiveVehicleRuntimeInfoIndex < 0) )
-      return; 
+      return;
 
    _osd_warnings_check_pit_mode(pActiveModel);
 
@@ -249,9 +249,9 @@ void osd_warnings_render()
          continue;
       if ( ! g_VehiclesRuntimeInfo[i].bGotFCTelemetry )
          continue;
-     
+
       // Battery voltage alarm is on the middle of the screen
-      
+
       if ( g_VehiclesRuntimeInfo[i].pModel->osd_params.battery_cell_count > 0 )
          g_VehiclesRuntimeInfo[i].iComputedBatteryCellCount = g_VehiclesRuntimeInfo[i].pModel->osd_params.battery_cell_count;
 
@@ -276,7 +276,7 @@ void osd_warnings_render()
          float sizeIcon = height_text_big*1.2;
          yAlarm = yAlarmsMiddle;
          xAlarm = 0.22+osd_getMarginX() + sizeIcon*1.6;
-         
+
          g_pRenderEngine->drawIcon(xAlarm-sizeIcon/g_pRenderEngine->getAspectRatio(), yAlarm - height_text_big*0.1, sizeIcon/g_pRenderEngine->getAspectRatio(), sizeIcon, g_idIconWarning);
          osd_set_colors();
          if ( iCountVehicles > 1 )
@@ -327,7 +327,7 @@ void osd_warnings_render()
             float sizeIcon = height_text_big*1.2;
             yAlarm = yAlarmsMiddle;
             xAlarm = 0.22+osd_getMarginX() + sizeIcon*1.6;
-            
+
             g_pRenderEngine->drawIcon(xAlarm-sizeIcon/g_pRenderEngine->getAspectRatio(), yAlarm - height_text*0.6 - height_text_big*0.1, sizeIcon/g_pRenderEngine->getAspectRatio(), sizeIcon, g_idIconWarning);
             osd_set_colors();
             g_pRenderEngine->drawText(xAlarm+0.01, yAlarm-height_text, g_idFontOSDBig, "Vehicle motor is malfunctioning!");
@@ -356,7 +356,7 @@ void osd_warnings_render()
          float sizeIcon = height_text_big*1.2;
          yAlarm = yAlarmsMiddle;
          xAlarm = 0.14 + osd_getMarginX() + sizeIcon*1.6;
-         
+
          g_pRenderEngine->drawIcon(xAlarm-sizeIcon/g_pRenderEngine->getAspectRatio(), yAlarm - height_text*0.6 - height_text_big*0.1, sizeIcon/g_pRenderEngine->getAspectRatio(), sizeIcon, g_idIconCPU);
          osd_set_colors();
          g_pRenderEngine->drawText(xAlarm+0.01, yAlarm-height_text, g_idFontOSDBig, "Your controller is throttled. You will experience lower performance.");

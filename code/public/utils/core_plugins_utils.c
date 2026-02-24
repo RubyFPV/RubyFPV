@@ -8,7 +8,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 typedef struct
 {
@@ -27,7 +27,7 @@ void core_plugin_util_log_line(const char* szLine)
    {
       key_t key;
       key = ftok("ruby_logger", 123);
-   
+
       s_logServiceMessageQueueCorePlugin = msgget(key, 0222);
    }
 
@@ -58,6 +58,6 @@ void core_plugin_util_log_line(const char* szLine)
 }
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif
 

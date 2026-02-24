@@ -38,7 +38,7 @@
 #include "../radio/radiopackets2.h"
 #include "../radio/radiolink.h"
 #include "../radio/radiopacketsqueue.h"
-#include "../radio/fec.h" 
+#include "../radio/fec.h"
 #include "packets_utils.h"
 #include "shared_vars.h"
 #include "timers.h"
@@ -58,7 +58,7 @@ ProcessorTxAudio::ProcessorTxAudio()
    m_StatsAudioInputComputedBps = 0;
    m_StatsTmpAudioInputReadBytes = 0;
    m_StatsTimeLastComputeAudioInputBps = 0;
-   
+
    m_iBreakStampMatchPosition = 0;
 
    strcpy(m_szBreakStamp, "0123456789");
@@ -141,7 +141,7 @@ int ProcessorTxAudio::openAudioStream()
       log_line("[AudioTx] No audio devices on vehicle. No audio stream to open.");
       return 0;
    }
-  
+
    log_line("[AudioTx] Current EC scheme: %u/%u, packet size: %d bytes",
        m_iSchemeDataPackets, m_iSchemeECPackets, m_iSchemePacketSize);
 
@@ -211,7 +211,7 @@ int ProcessorTxAudio::startLocalRecording()
 
    m_bLocalRecording = true;
    m_iBreakStampMatchPosition = 0;
-   
+
    #ifdef FEATURE_LOCAL_AUDIO_RECORDING
    log_line("[AudioTx] Local recording started. Opening local recording output file...");
    m_iRecordingFileNumber = 0;
@@ -268,7 +268,7 @@ int ProcessorTxAudio::tryReadAudioInputStream()
 
    if ( g_TimeNow < m_uTimeLastTryReadAudioInputStream + 10 )
       return 0;
-   
+
    m_uTimeLastTryReadAudioInputStream = g_TimeNow;
 
    u8 uBuffer[MAX_PACKET_PAYLOAD];
@@ -277,7 +277,7 @@ int ProcessorTxAudio::tryReadAudioInputStream()
    #if defined (HW_PLATFORM_RASPBERRY)
    if ( -1 == m_iAudioStream )
       return 0;
-   
+
    fd_set readset;
    FD_ZERO(&readset);
    FD_SET(m_iAudioStream, &readset);
@@ -367,12 +367,12 @@ void ProcessorTxAudio::_localRecordBuffer(u8* pBuffer, int iLength)
       }
       return;
    }
-     
+
 
    if ( NULL != m_fAudioRecordingFile )
    {
       if ( iBreakFoundPosition > 11 )
-      { 
+      {
          int iWrite = fwrite(pBuffer, 1, iBreakFoundPosition-11, m_fAudioRecordingFile);
          if ( iWrite != iBreakFoundPosition-11 )
             log_softerror_and_alarm("[AudioTx] Failed to write to output recording file. Write %d of %d bytes.", iWrite, iBreakFoundPosition);
@@ -406,7 +406,7 @@ void ProcessorTxAudio::_sendAudioPacket(u8* pBuffer, int iLength, u32 uAudioPack
 {
    if ( (NULL == g_pCurrentModel) || (NULL == pBuffer) || ( iLength < m_iSchemePacketSize) )
       return;
-   
+
    t_packet_header PH;
    radio_packet_init(&PH, PACKET_COMPONENT_AUDIO, PACKET_TYPE_AUDIO_SEGMENT, STREAM_ID_AUDIO);
    PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
@@ -432,13 +432,13 @@ void ProcessorTxAudio::sendAudioPackets()
 {
    if ( (NULL == g_pCurrentModel) || (! g_pCurrentModel->isAudioCapableAndEnabled()) )
       return;
-  
+
    u32 uBufferIndex = 0;
    int iBufferIndex = -1;
    int iPacketIndex = -1;
    type_generic_tx_ec_packet* pPacket = m_pBuffers->getMarkFirstUnsendPacket(&uBufferIndex, &iBufferIndex, &iPacketIndex);
    while ( NULL != pPacket )
-   {   
+   {
       u32 uAudioPacketIndex = ((uBufferIndex & 0xFFFFFF) << 8) | ((u32)iPacketIndex);
       _sendAudioPacket(pPacket->uPacketData, pPacket->iFilledBytes, uAudioPacketIndex);
 

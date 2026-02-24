@@ -53,8 +53,8 @@ controller_runtime_info* g_pSMControllerRTInfo = NULL;
 controller_debug_video_runtime_info g_SMControllerDebugVideoRTInfo;
 controller_debug_video_runtime_info* g_pSMControllerDebugVideoRTInfo = NULL;
 
-t_packet_header_rc_info_downstream* g_pSM_DownstreamInfoRC = NULL; // RC Info received on ground 
-t_packet_header_rc_info_downstream g_SM_DownstreamInfoRC; // RC Info received on ground 
+t_packet_header_rc_info_downstream* g_pSM_DownstreamInfoRC = NULL; // RC Info received on ground
+t_packet_header_rc_info_downstream g_SM_DownstreamInfoRC; // RC Info received on ground
 
 shared_mem_router_vehicles_runtime_info* g_pSM_RouterVehiclesRuntimeInfo = NULL;
 shared_mem_router_vehicles_runtime_info g_SM_RouterVehiclesRuntimeInfo;

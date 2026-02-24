@@ -137,7 +137,7 @@ void osd_show_voltage(float x, float y, float voltage, bool bRightAlign)
    float x0 = x;
    char szBuff[32];
    snprintf(szBuff, 31, "%.1f", voltage);
-   
+
    if ( NULL != g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].pModel )
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].pModel->osd_params.battery_cell_count > 0 )
       g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].iComputedBatteryCellCount = g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].pModel->osd_params.battery_cell_count;
@@ -199,7 +199,7 @@ void osd_show_voltage(float x, float y, float voltage, bool bRightAlign)
       memcpy(pC, get_Color_OSDText(), 4*sizeof(double));
       if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bWarningBatteryVoltage )
          memcpy(pC, get_Color_OSDWarning(), 4*sizeof(double));
-      
+
       if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bWarningBatteryVoltage )
       {
          if ( ( g_TimeNow / 500 ) % 2 )
@@ -308,13 +308,13 @@ float _osd_show_gps(float x, float y, bool bMultiLine)
    {
       if ( bMultiLine )
       {
-         osd_show_value_centered((x0+x)*0.5, y+height_text_big-height_text*0.1, "HDOP", g_idFontOSDSmall);  
+         osd_show_value_centered((x0+x)*0.5, y+height_text_big-height_text*0.1, "HDOP", g_idFontOSDSmall);
          sprintf(szBuff, "%.1f", g_VehiclesRuntimeInfo[iOSVehicleDataSourceIndex].headerFCTelemetry.hdop/100.0);
          osd_show_value_centered((x0+x)*0.5, y+height_text_big-height_text*0.1+osd_getFontHeightSmall(), szBuff, g_idFontOSDSmall);
       }
       else
       {
-         w = osd_show_value(x, y-height_text*0.1, "HDOP", g_idFontOSDSmall);  
+         w = osd_show_value(x, y-height_text*0.1, "HDOP", g_idFontOSDSmall);
          sprintf(szBuff, "%.1f", g_VehiclesRuntimeInfo[iOSVehicleDataSourceIndex].headerFCTelemetry.hdop/100.0);
          osd_show_value(x, y + osd_getFontHeightSmall(), szBuff, g_idFontOSDSmall);
          x += w;
@@ -322,7 +322,7 @@ float _osd_show_gps(float x, float y, bool bMultiLine)
       }
    }
    u16 hdop2 = (((u16)g_VehiclesRuntimeInfo[iOSVehicleDataSourceIndex].headerFCTelemetry.extra_info[3])<<8) + ((u16)g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.extra_info[4]);
-   
+
    bool bShowMore = false;
    //if ( (g_pCurrentModel->iGPSCount > 1) || ((hdop2 != 0xFFFF) && (hdop2 != 0)) || ((satelites2 != 0xFF)&&(satelites2 != 0)) )
    //   bShowMore = true;
@@ -333,7 +333,7 @@ float _osd_show_gps(float x, float y, bool bMultiLine)
       return x-x0;
 
    // Second GPU
-   
+
    float x1 = x;
 
    if ( ((g_VehiclesRuntimeInfo[iOSVehicleDataSourceIndex].headerFCTelemetry.extra_info[2] >= GPS_FIX_TYPE_3D_FIX) && (g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.extra_info[2] != 0xFF)) || (( g_TimeNow / 300 ) % 3) != 0 )
@@ -366,7 +366,7 @@ float _osd_show_gps(float x, float y, bool bMultiLine)
       }
       else
       {
-         w = osd_show_value(x, y-height_text*0.1, "HDOP", g_idFontOSDSmall);  
+         w = osd_show_value(x, y-height_text*0.1, "HDOP", g_idFontOSDSmall);
          if ( hdop2 == 0xFFFF )
             strcpy(szBuff, "---");
          else
@@ -402,7 +402,7 @@ float osd_show_flight_mode(float x, float y)
       g_pRenderEngine->setColors(get_Color_Dev());
    else
       osd_set_colors();
-   
+
    if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry && (g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.uFCFlags & FC_TELE_FLAGS_ARMED) )
    {
       float yPos = y + 0.5*(osd_getBarHeight()-2.0*osd_getSpacingV()-osd_getFontHeight());
@@ -516,7 +516,7 @@ float osd_show_armtime(float xPos, float yPos, bool bRender)
 
    if ( (pModel->m_Stats.uCurrentFlightTime > 0) && (g_VehiclesRuntimeInfo[iRuntimeIndex].bIsArmed) )
    {
-      yPos += 0.5*(osd_getBarHeight()-2.0*osd_getSpacingV()-height_text);	
+      yPos += 0.5*(osd_getBarHeight()-2.0*osd_getSpacingV()-height_text);
       sprintf(szBuff, "%d", min);
       if ( bRender )
          w += osd_show_value(xPos+w,yPos, szBuff, g_idFontOSD);
@@ -529,7 +529,7 @@ float osd_show_armtime(float xPos, float yPos, bool bRender)
          bool bDrawBGBox = g_pRenderEngine->drawBackgroundBoundingBoxes(false);
          if ( bRender )
             osd_show_value(xPos+w,yPos, ":", g_idFontOSD);
-         
+
          g_pRenderEngine->drawBackgroundBoundingBoxes(bDrawBGBox);
       }
       w += height_text*0.17;
@@ -600,7 +600,7 @@ float osd_show_home(float xPos, float yPos, bool showHeading, float fScale)
 
    float dy = 0.07*height_text_big;
    float fWidth = 1.1*height_text_big/g_pRenderEngine->getAspectRatio();
-   
+
    if ( (g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bHomeSet && g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bFCTelemetrySourcePresent) || ((g_TimeNow/500)%2) )
       g_pRenderEngine->drawIcon(xPos, yPos+dy, 0.86*height_text_big/g_pRenderEngine->getAspectRatio(), 0.86*height_text_big, g_idIconHome);
 
@@ -634,7 +634,7 @@ float osd_show_home(float xPos, float yPos, bool showHeading, float fScale)
    float y[5] = {0.08f*fScale, 0.15f*fScale, -0.15f*fScale, 0.15f*fScale, 0.08f*fScale};
    for( int i=0; i<5; i++ )
       x[i] = x[i]/g_pRenderEngine->getAspectRatio();
-   
+
    osd_rotatePoints(x, y, rel_heading, 5, xPos,yPos + 0.48*(osd_getBarHeight()-2.0*osd_getSpacingV()), 0.34);
 
    g_pRenderEngine->setColors(get_Color_OSDText());
@@ -798,7 +798,7 @@ float _osd_show_rc_rssi(float xPos, float yPos, float fScale)
 {
    char szBuff[32];
    bool bHasRubyRC = false;
-   
+
    Model* pActiveModel = osd_get_current_data_source_vehicle_model();
    int iRuntimeIndex = osd_get_current_data_source_vehicle_index();
    if ( (NULL == pActiveModel) || (iRuntimeIndex < 0) )
@@ -806,7 +806,7 @@ float _osd_show_rc_rssi(float xPos, float yPos, float fScale)
 
    if ( (pActiveModel->rc_params.uRCFlags & RC_FLAGS_ENABLED) && (!pActiveModel->is_spectator) )
       bHasRubyRC = true;
- 
+
    osd_set_colors();
 
    float x = xPos;
@@ -820,7 +820,7 @@ float _osd_show_rc_rssi(float xPos, float yPos, float fScale)
          val = g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerRubyTelemetryExtended.uplink_rc_rssi;
       else if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerRubyTelemetryExtended.uRubyFlags & FLAG_RUBY_TELEMETRY_HAS_MAVLINK_RC_RSSI )
          val = g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerRubyTelemetryExtended.uplink_mavlink_rc_rssi;
-      
+
       //if ( ! bHasRubyRC )
       //if ( val == 0 || val == 255 )
       //if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerRubyTelemetryExtended.uRubyFlags & FLAG_RUBY_TELEMETRY_HAS_MAVLINK_RX_RSSI )
@@ -1348,7 +1348,7 @@ void render_bars()
    hBar += osd_getSecondBarHeight();
 
    g_pRenderEngine->drawRect(osd_getMarginX(), osd_getMarginY(), 1.0-2*osd_getMarginX(),hBar);
-   g_pRenderEngine->drawRect(osd_getMarginX(), 1.0-hBar-osd_getMarginY(), 1.0-2*osd_getMarginX(),hBar);	
+   g_pRenderEngine->drawRect(osd_getMarginX(), 1.0-hBar-osd_getMarginY(), 1.0-2*osd_getMarginX(),hBar);
    g_pRenderEngine->setGlobalAlfa(fGlobalAlpha);
    /*
    {
@@ -1393,7 +1393,7 @@ void osd_show_signal_bars()
    }
    if ( position == 3 )
       xPos = 1.0 - osd_getMarginX() - 2.0*g_pRenderEngine->getPixelWidth() - fBarHeight;
-   
+
 
    if ( g_pCurrentModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_LAYOUT_LEFT_RIGHT )
    {
@@ -1434,7 +1434,7 @@ void osd_show_signal_bars()
       int cardIndex = i;
       if ( position == 3 || position == 1 )
          cardIndex = hardware_get_radio_interfaces_count()-i-1;
- 
+
       radio_hw_info_t* pNICInfo = hardware_get_radio_info(cardIndex);
       float fPercent = (g_fOSDDbm[cardIndex]-dbmMin)/(dbmMax - dbmMin);
       if ( fPercent < 0.0f ) fPercent = 0.0f;
@@ -1481,11 +1481,11 @@ void osd_show_signal_bars()
 
       osd_set_colors();
       if ( position == 0 || position == 1 )
-         g_pRenderEngine->drawText(xPos + fBarWidth + height_text*0.25, yPos, g_idFontOSDSmall, szBuff); 
+         g_pRenderEngine->drawText(xPos + fBarWidth + height_text*0.25, yPos, g_idFontOSDSmall, szBuff);
       else if ( position == 2 )
-         g_pRenderEngine->drawText(xTextLeft, yPos-height_text_s*1.2 - (float)(hardware_get_radio_interfaces_count()-i-1)*height_text*1.05, g_idFontOSDSmall, szBuff); 
+         g_pRenderEngine->drawText(xTextLeft, yPos-height_text_s*1.2 - (float)(hardware_get_radio_interfaces_count()-i-1)*height_text*1.05, g_idFontOSDSmall, szBuff);
       else
-         g_pRenderEngine->drawTextLeft(xTextRight, yPos-height_text_s*1.2 - (float)i*height_text*1.05, g_idFontOSDSmall, szBuff); 
+         g_pRenderEngine->drawTextLeft(xTextRight, yPos-height_text_s*1.2 - (float)i*height_text*1.05, g_idFontOSDSmall, szBuff);
 
       if ( 0 == position )
          yPos += height_text*1.05;
@@ -1511,7 +1511,7 @@ void osd_show_grid()
    memcpy(pc, get_Color_OSDText(), 4*sizeof(double));
    g_pRenderEngine->setFill(pc[0], pc[1], pc[2], 0.3);
    g_pRenderEngine->setStroke(pc[0], pc[1], pc[2], 0.3);
- 
+
 
    g_pRenderEngine->setStrokeSize(2.02);
    if ( g_pRenderEngine->getScreenHeight() > 720 )
@@ -1519,14 +1519,14 @@ void osd_show_grid()
 
    if ( s_bDebugOSDShowAll || (pModel->osd_params.osd_flags3[osd_get_current_layout_index()] & OSD_FLAG3_SHOW_GRID_CROSSHAIR) )
    {
-      g_pRenderEngine->drawLine(0.5 - 0.02/g_pRenderEngine->getAspectRatio(), 0.5, 0.5 + 0.02/g_pRenderEngine->getAspectRatio(), 0.5 ); 
-      g_pRenderEngine->drawLine(0.5, 0.5 - 0.02, 0.5, 0.5 + 0.02 ); 
+      g_pRenderEngine->drawLine(0.5 - 0.02/g_pRenderEngine->getAspectRatio(), 0.5, 0.5 + 0.02/g_pRenderEngine->getAspectRatio(), 0.5 );
+      g_pRenderEngine->drawLine(0.5, 0.5 - 0.02, 0.5, 0.5 + 0.02 );
    }
 
    if ( s_bDebugOSDShowAll || (pModel->osd_params.osd_flags3[osd_get_current_layout_index()] & OSD_FLAG3_SHOW_GRID_DIAGONAL) )
    {
-      g_pRenderEngine->drawLine(0.001, 0.001, 0.999, 0.999 ); 
-      g_pRenderEngine->drawLine(0.999, 0.001, 0.001, 0.999);  
+      g_pRenderEngine->drawLine(0.001, 0.001, 0.999, 0.999 );
+      g_pRenderEngine->drawLine(0.999, 0.001, 0.001, 0.999);
    }
 
    if ( s_bDebugOSDShowAll || (pModel->osd_params.osd_flags3[osd_get_current_layout_index()] & OSD_FLAG3_SHOW_GRID_THIRDS_SMALL) )
@@ -1534,24 +1534,24 @@ void osd_show_grid()
       float fSizeY = 0.04;
       float fSizeX = fSizeY/g_pRenderEngine->getAspectRatio();
       float fMargin = 0.25;
-      g_pRenderEngine->drawLine(fMargin, fMargin, fMargin + fSizeX, fMargin ); 
-      g_pRenderEngine->drawLine(fMargin, fMargin, fMargin, fMargin + fSizeY ); 
-        
+      g_pRenderEngine->drawLine(fMargin, fMargin, fMargin + fSizeX, fMargin );
+      g_pRenderEngine->drawLine(fMargin, fMargin, fMargin, fMargin + fSizeY );
+
       g_pRenderEngine->drawLine(fMargin, 1.0-fMargin, fMargin+fSizeX, 1.0-fMargin );
-      g_pRenderEngine->drawLine(fMargin, 1.0-fMargin, fMargin, 1.0-fMargin - fSizeY ); 
+      g_pRenderEngine->drawLine(fMargin, 1.0-fMargin, fMargin, 1.0-fMargin - fSizeY );
 
-      g_pRenderEngine->drawLine(1.0-fMargin, fMargin, 1.0-fMargin - fSizeX, fMargin ); 
-      g_pRenderEngine->drawLine(1.0-fMargin, fMargin, 1.0-fMargin, fMargin + fSizeY ); 
+      g_pRenderEngine->drawLine(1.0-fMargin, fMargin, 1.0-fMargin - fSizeX, fMargin );
+      g_pRenderEngine->drawLine(1.0-fMargin, fMargin, 1.0-fMargin, fMargin + fSizeY );
 
-      g_pRenderEngine->drawLine(1.0-fMargin, 1.0-fMargin, 1.0-fMargin - fSizeX, 1.0-fMargin ); 
+      g_pRenderEngine->drawLine(1.0-fMargin, 1.0-fMargin, 1.0-fMargin - fSizeX, 1.0-fMargin );
       g_pRenderEngine->drawLine(1.0-fMargin, 1.0-fMargin, 1.0-fMargin, 1.0-fMargin - fSizeY );
    }
    else if ( s_bDebugOSDShowAll || (pModel->osd_params.osd_flags3[osd_get_current_layout_index()] & OSD_FLAG3_SHOW_GRID_SQUARES) )
    {
-      g_pRenderEngine->drawLine(0.001, 0.25, 0.999, 0.25 ); 
-      g_pRenderEngine->drawLine(0.001, 0.75, 0.999, 0.75); 
-      g_pRenderEngine->drawLine(0.25, 0.001, 0.25, 0.999 ); 
-      g_pRenderEngine->drawLine(0.75, 0.001, 0.75, 0.999 ); 
+      g_pRenderEngine->drawLine(0.001, 0.25, 0.999, 0.25 );
+      g_pRenderEngine->drawLine(0.001, 0.75, 0.999, 0.75);
+      g_pRenderEngine->drawLine(0.25, 0.001, 0.25, 0.999 );
+      g_pRenderEngine->drawLine(0.75, 0.001, 0.75, 0.999 );
    }
 
    g_pRenderEngine->setGlobalAlfa(fA);
@@ -1640,7 +1640,7 @@ void _render_osd_left_right()
       _osd_show_gps(x,y, false);
       y += height_text_big + vSpacing;
    }
- 
+
    if ( s_bDebugOSDShowAll || (pActiveModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_SHOW_GPS_POS ) )
    {
       osd_show_gps_pos(x,y, 0.9);
@@ -1765,7 +1765,7 @@ void _render_osd_left_right()
    bool bShowAlt = false;
    if ( s_bDebugOSDShowAll || (pActiveModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_ALTITUDE ) )
    if ( (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_GENERIC ||
-        (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE || 
+        (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE ||
         (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
         (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
    {
@@ -1836,7 +1836,7 @@ void _render_osd_left_right()
 
    if ( s_bDebugOSDShowAll || (pActiveModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_HOME ) )
    {
-      osd_show_home(x, y, true, 1.0);   
+      osd_show_home(x, y, true, 1.0);
       y += height_text + vSpacing;
    }
 
@@ -1848,11 +1848,11 @@ void _render_osd_left_right()
 
    if ( s_bDebugOSDShowAll || (pActiveModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_PITCH ) )
    if ( (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_GENERIC ||
-        (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE || 
+        (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE ||
         (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
         (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
    {
-      if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry )  
+      if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry )
          sprintf(szBuff, "Pitch: %d", (int)(g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.pitch/100.0-180.0));
       else
          sprintf(szBuff, "Pitch: -");
@@ -1989,7 +1989,7 @@ void osd_debug()
       // Home:  47.13607918623999, 27.577757896625428
       g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.latitude = 47.136136 * 10000000;
       g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.longitude = 27.5777667 * 10000000;
-      g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.uFCFlags |= FC_TELE_FLAGS_POS_HOME;     
+      g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.uFCFlags |= FC_TELE_FLAGS_POS_HOME;
    }
 
    g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.satelites++;
@@ -2034,7 +2034,7 @@ void osd_debug()
    uWindHeading++;
    if ( uWindHeading > 359 )
       uWindHeading = 1;
-   
+
    g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.extra_info[7] = uWindHeading >> 8;
    g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.extra_info[8] = uWindHeading & 0xFF;
 
@@ -2109,7 +2109,7 @@ void osd_render_elements()
    }
    else
       s_uTimeStartFlashOSDElements = 0;
-   
+
    osd_set_colors();
 
    if ( (g_bToglleAllOSDOff || g_bToglleOSDOff) && (!s_bDebugOSDShowAll) )
@@ -2133,7 +2133,7 @@ void osd_render_elements()
       x = 1.0 - osd_getSpacingH()-osd_getMarginX();
       y = 1.0 - osd_getMarginY() - osd_getBarHeight()-osd_getSecondBarHeight() + osd_getSpacingV();
       osd_show_voltage(x,y, g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.voltage/1000.0, true);
-   
+
       x = 1.0 - osd_getSpacingH()-osd_getMarginX();
       y += osd_getSecondBarHeight();
       osd_show_amps(x,y, g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.current/1000.0, true);
@@ -2189,7 +2189,7 @@ void osd_render_elements()
 
    if ( s_bDebugOSDShowAll || (pActiveModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_SHOW_BGBARS) )
       render_bars();
-   
+
    osd_set_colors();
 
    if ( pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
@@ -2202,7 +2202,7 @@ void osd_render_elements()
       (pActiveModel->osd_params.osd_flags3[osd_get_current_layout_index()] & OSD_FLAG3_SHOW_GRID_SQUARES) ||
       (pActiveModel->osd_params.osd_flags3[osd_get_current_layout_index()] & OSD_FLAG3_SHOW_GRID_THIRDS_SMALL) )
       osd_show_grid();
-  
+
    // Top part - left
    // ------------------------------
 
@@ -2229,7 +2229,7 @@ void osd_render_elements()
    y = osd_getMarginY() + osd_getSpacingV();
 
    x = osd_getMarginX() + osd_getSpacingH()*0.5;
-   if ( (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) && 
+   if ( (pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP) &&
         (s_bDebugOSDShowAll || (pActiveModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_GPS_INFO )) )
       x += _osd_show_gps(x,y, true);
    else
@@ -2349,7 +2349,7 @@ void osd_render_elements()
    x = osd_getMarginX() + osd_getSpacingH()*0.6;
    y = 1.0 - osd_getMarginY()-osd_getBarHeight()+osd_getSpacingV();
    y0 = 1.0 - osd_getMarginY()-osd_getBarHeight() - osd_getSecondBarHeight() + osd_getSpacingV();
-   
+
    if ( pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    if ( s_bDebugOSDShowAll || ((pActiveModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_DISTANCE) && (g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_NONE) ) )
    if ( (g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bHomeSet && g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bFCTelemetrySourcePresent) || ((g_TimeNow/500)%2) )
@@ -2384,7 +2384,7 @@ void osd_render_elements()
    float xSpeed = x;
    if ( bShowBothSpeeds )
       xSpeed -= 0.5 * osd_getSpacingH();
-     
+
    if ( pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    if ( s_bDebugOSDShowAll || (pActiveModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_SHOW_GROUND_SPEED) )
    {
@@ -2417,7 +2417,7 @@ void osd_render_elements()
 
       xSpeed += 0.5*osd_getSpacingH();
    }
-      
+
    if ( pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    if ( s_bDebugOSDShowAll || (pActiveModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_SHOW_AIR_SPEED) )
    {
@@ -2461,7 +2461,7 @@ void osd_render_elements()
    if ( pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    if ( s_bDebugOSDShowAll || (pActiveModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_ALTITUDE ) )
    if ( (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_GENERIC ||
-        (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE || 
+        (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE ||
         (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
         (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
    {
@@ -2531,7 +2531,7 @@ void osd_render_elements()
    if ( s_bDebugOSDShowAll || (pActiveModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_HOME ) )
    {
       x += osd_show_home(x, y, true, 1.0);
-      x += osd_getSpacingH(); 
+      x += osd_getSpacingH();
    }
 
    if ( pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
@@ -2557,7 +2557,7 @@ void osd_render_elements()
          float yp[5] = {0.08f*fScale, 0.15f*fScale, -0.15f*fScale, 0.15f*fScale, 0.08f*fScale};
          for( int i=0; i<5; i++ )
             xp[i] = xp[i]/g_pRenderEngine->getAspectRatio();
-         
+
          float rel_heading = (float)(uDir-1) - g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.heading; //direction arrow needs to point relative to camera/osd/craft
          //rel_heading -= 180;
 
@@ -2636,11 +2636,11 @@ void osd_render_elements()
    if ( pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    if ( s_bDebugOSDShowAll || (pActiveModel->osd_params.osd_flags[osd_get_current_layout_index()] & OSD_FLAG_SHOW_PITCH ) )
    if ( (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_GENERIC ||
-        (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE || 
+        (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_DRONE ||
         (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
         (pActiveModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
    {
-      if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry )  
+      if ( g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].bGotFCTelemetry )
          sprintf(szBuff, "%d", (int)(g_VehiclesRuntimeInfo[osd_get_current_data_source_vehicle_index()].headerFCTelemetry.pitch/100.0-180.0));
       else
          sprintf(szBuff, "-");
@@ -2650,7 +2650,7 @@ void osd_render_elements()
       xEnd2 -= osd_getSpacingH();
       yTemp -= height_text*0.9;
    }
-   
+
    if ( pActiveModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MSP )
    if ( s_bDebugOSDShowAll || (pActiveModel->osd_params.osd_flags3[osd_get_current_layout_index()] & OSD_FLAG3_SHOW_FC_TEMPERATURE ) )
    {
@@ -2727,7 +2727,7 @@ void osd_render_stats()
       showStats = false;
    if ( s_bDebugOSDShowAll )
       showStats = true;
-   
+
    if ( !(pModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_LAYOUT_ENABLED) )
       return;
 
@@ -2785,13 +2785,13 @@ void osd_render_msposd_buffer(int iFCType, int iOSDFontType, int iCols, int iRow
       if ( iOSDFontType == 4 )
          uImgId = g_idImgMSPOSDPitLab;
    }
-   
+
    int iImgCharWidth = 36;
    int iImgCharHeight = 54;
    if ( g_pRenderEngine->getScreenHeight() <= 800 )
    {
       iImgCharWidth = 24;
-      iImgCharHeight = 36;    
+      iImgCharHeight = 36;
    }
    float fScreenCharWidth = (1.0 - 2.0*osd_getMarginX()) / (float)iCols;
    float fScreenCharHeight = (1.0 - 2.0*osd_getMarginY()) / (float)iRows;
@@ -2856,7 +2856,7 @@ void osd_show_monitor()
        return;
 
    osd_getSetScreenScale(p->iOSDScreenSize);
-   
+
    set_Color_OSDText( p->iColorOSD[0], p->iColorOSD[1], p->iColorOSD[2], ((float)p->iColorOSD[3])/100.0);
    set_Color_OSDOutline( p->iColorOSDOutline[0], p->iColorOSDOutline[1], p->iColorOSDOutline[2], ((float)p->iColorOSDOutline[3])/100.0);
    osd_set_colors();
@@ -2917,7 +2917,7 @@ void osd_render_all()
       return;
    }
    Preferences* p = get_Preferences();
-   
+
    s_RenderCount++;
 
    if ( pModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_LAYOUT_ENABLED )
@@ -2936,7 +2936,7 @@ void osd_render_all()
       return;
    }
    float fAlfaOrg = g_pRenderEngine->getGlobalAlfa();
-   
+
    osd_setMarginX(0.0);
    osd_setMarginY(0.0);
 

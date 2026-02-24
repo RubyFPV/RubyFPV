@@ -7,7 +7,7 @@ class MenuSystemAlarms: public Menu
 {
    public:
       MenuSystemAlarms();
-      virtual void onShow(); 
+      virtual void onShow();
       virtual void Render();
       virtual void valuesToUI();
       virtual void onSelectItem();

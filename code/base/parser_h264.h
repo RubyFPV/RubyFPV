@@ -6,7 +6,7 @@ class ParserH264
    public:
       ParserH264();
       virtual ~ParserH264();
-      
+
       void init();
       void setPrefix(const char* szPrefix);
 
@@ -27,7 +27,7 @@ class ParserH264
       int getDetectedProfileConstrains();
       int getDetectedLevel();
       void resetDetectedProfileAndLevel();
-      
+
    protected:
       void _trydetectH264Info();
       void _parseDetectedStartOfNALUnit(u32 uTimeNow);
@@ -40,7 +40,7 @@ class ParserH264
       u32 m_uLastNALUType;
       int m_iDetectedISlices;
       int m_iConsecutiveSlicesForCurrentNALU;
-      
+
       u32 m_uSizeCurrentFrame;
       u32 m_uSizeLastFrame;
       int m_iDetectedKeyframeIntervalInFrames;

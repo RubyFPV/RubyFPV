@@ -14,7 +14,7 @@ class MenuControllerPlugins: public Menu
       virtual void Render();
       virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
-            
+
    private:
       void readPlugins();
       void importFromUSB();

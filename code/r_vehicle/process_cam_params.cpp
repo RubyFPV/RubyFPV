@@ -165,7 +165,7 @@ void process_camera_params_changed(u8* pPacketBuffer, int iPacketLength)
    log_line("Active camera profile changed from profile %d to profile %d", oldCamParams.iCurrentProfile, newCamParams.iCurrentProfile);
    log_line("Active camera type changed from (%d, forced %d) to (%d, forced %d)", oldCamParams.iCameraType, oldCamParams.iForcedCameraType, newCamParams.iCameraType, newCamParams.iForcedCameraType);
    log_line("Active camera bin file changed from (%d, %s) to (%d, %s)", oldCamParams.iCameraBinProfile, oldCamParams.szCameraBinProfileName, newCamParams.iCameraBinProfile, newCamParams.szCameraBinProfileName);
-   
+
    // Do changes on the fly, if possible
    int iCountUpdates = _try_process_live_changes((int)uNewCameraIndex, &newCamParams, iOldCameraIndex, &oldCamParams);
    if ( iCountUpdates > 0 )

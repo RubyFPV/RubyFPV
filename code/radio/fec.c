@@ -105,7 +105,7 @@
 	  if (t1 < t) t = 256000000 + t1 - t ; \
 	  else t = t1 - t ; \
 	  if (t == 0) t = 1 ;}
-	
+
 u_long ticks[10];	/* vars for timekeeping */
 #else
 #define DEB(x)
@@ -202,7 +202,7 @@ modnn(int x)
  * A value related to the multiplication is held in a local variable
  * declared with USE_GF_MULC . See usage in addmul1().
  */
-static gf gf_mul_table[(GF_SIZE + 1)*(GF_SIZE + 1)] 
+static gf gf_mul_table[(GF_SIZE + 1)*(GF_SIZE + 1)]
 #ifdef WINDOWS
 __attribute__((aligned (16)))
 #else
@@ -318,7 +318,7 @@ generate_gf(void)
  * unrolled 16 times, a good value for 486 and pentium-class machines.
  * The case c=0 is also optimized, whereas c=1 is not. These
  * calls are unfrequent in my typical apps so I did not bother.
- * 
+ *
  * Note that gcc on
  */
 #if 0
@@ -378,8 +378,8 @@ addmul1(gf *dst1, gf *src1, gf c, int sz)
 
     GF_MULC0(c) ;
 
-    if(((unsigned long)dst1 % LOOPSIZE) || 
-       ((unsigned long)src1 % LOOPSIZE) || 
+    if(((unsigned long)dst1 % LOOPSIZE) ||
+       ((unsigned long)src1 % LOOPSIZE) ||
        (sz % LOOPSIZE)) {
 	slow_addmul1(dst1, src1, c, sz);
 	return;
@@ -390,28 +390,28 @@ addmul1(gf *dst1, gf *src1, gf c, int sz)
 		 ".align 32;\n"
 		 "1:"
 		 "	addl  $8, %%edi;\n"
-		 
+
 		 "	movb  (%%esi), %%al;\n"
 		 "	movb 4(%%esi), %%dl;\n"
 		 "	movb  (%%ebx,%%eax), %%al;\n"
 		 "	movb  (%%ebx,%%edx), %%dl;\n"
 		 "	xorb  %%al,  (%%edi);\n"
 		 "	xorb  %%dl, 4(%%edi);\n"
-		 
+
 		 "	movb 1(%%esi), %%al;\n"
 		 "	movb 5(%%esi), %%dl;\n"
 		 "	movb  (%%ebx,%%eax), %%al;\n"
 		 "	movb  (%%ebx,%%edx), %%dl;\n"
 		 "	xorb  %%al, 1(%%edi);\n"
 		 "	xorb  %%dl, 5(%%edi);\n"
-		 
+
 		 "	movb 2(%%esi), %%al;\n"
 		 "	movb 6(%%esi), %%dl;\n"
 		 "	movb  (%%ebx,%%eax), %%al;\n"
 		 "	movb  (%%ebx,%%edx), %%dl;\n"
 		 "	xorb  %%al, 2(%%edi);\n"
 		 "	xorb  %%dl, 6(%%edi);\n"
-		 
+
 		 "	movb 3(%%esi), %%al;\n"
 		 "	movb 7(%%esi), %%dl;\n"
 		 "	addl  $8, %%esi;\n"
@@ -419,11 +419,11 @@ addmul1(gf *dst1, gf *src1, gf c, int sz)
 		 "	movb  (%%ebx,%%edx), %%dl;\n"
 		 "	xorb  %%al, 3(%%edi);\n"
 		 "	xorb  %%dl, 7(%%edi);\n"
-		 
+
 		 "	cmpl  %%ecx, %%esi;\n"
 		 "	jb 1b;"
-		 : : 
-		 
+		 : :
+
 		 "b" (__gf_mulc_),
 		 "D" (dst1-8),
 		 "S" (src1),
@@ -446,7 +446,7 @@ static void addmul(gf *dst, gf *src, gf c, int sz) {
  * unrolled 16 times, a good value for 486 and pentium-class machines.
  * The case c=0 is also optimized, whereas c=1 is not. These
  * calls are unfrequent in my typical apps so I did not bother.
- * 
+ *
  * Note that gcc on
  */
 #if 0
@@ -501,8 +501,8 @@ mul1(gf *dst1, gf *src1, gf c, int sz)
 
     GF_MULC0(c) ;
 
-    if(((unsigned long)dst1 % LOOPSIZE) || 
-       ((unsigned long)src1 % LOOPSIZE) || 
+    if(((unsigned long)dst1 % LOOPSIZE) ||
+       ((unsigned long)src1 % LOOPSIZE) ||
        (sz % LOOPSIZE)) {
 	slow_mul1(dst1, src1, c, sz);
 	return;
@@ -514,28 +514,28 @@ mul1(gf *dst1, gf *src1, gf c, int sz)
 		 "	xorl %%edx,%%edx;\n"
 		 "1:"
 		 "	addl  $8, %%edi;\n"
-		 
+
 		 "	movb  (%%esi), %%al;\n"
 		 "	movb 4(%%esi), %%dl;\n"
 		 "	movb  (%%ebx,%%eax), %%al;\n"
 		 "	movb  (%%ebx,%%edx), %%dl;\n"
 		 "	movb  %%al,  (%%edi);\n"
 		 "	movb  %%dl, 4(%%edi);\n"
-		 
+
 		 "	movb 1(%%esi), %%al;\n"
 		 "	movb 5(%%esi), %%dl;\n"
 		 "	movb  (%%ebx,%%eax), %%al;\n"
 		 "	movb  (%%ebx,%%edx), %%dl;\n"
 		 "	movb  %%al, 1(%%edi);\n"
 		 "	movb  %%dl, 5(%%edi);\n"
-		 
+
 		 "	movb 2(%%esi), %%al;\n"
 		 "	movb 6(%%esi), %%dl;\n"
 		 "	movb  (%%ebx,%%eax), %%al;\n"
 		 "	movb  (%%ebx,%%edx), %%dl;\n"
 		 "	movb  %%al, 2(%%edi);\n"
 		 "	movb  %%dl, 6(%%edi);\n"
-		 
+
 		 "	movb 3(%%esi), %%al;\n"
 		 "	movb 7(%%esi), %%dl;\n"
 		 "	addl  $8, %%esi;\n"
@@ -543,13 +543,13 @@ mul1(gf *dst1, gf *src1, gf c, int sz)
 		 "	movb  (%%ebx,%%edx), %%dl;\n"
 		 "	movb  %%al, 3(%%edi);\n"
 		 "	movb  %%dl, 7(%%edi);\n"
-		 
+
 		 "	cmpl  %%ecx, %%esi;\n"
 		 "	jb 1b;\n"
 		 "	popl %%edx;\n"
 		 "	popl %%eax;"
-		 : : 
-		 
+		 : :
+
 		 "b" (__gf_mulc_),
 		 "D" (dst1-8),
 		 "S" (src1),
@@ -617,7 +617,7 @@ invert_mat(gf *src, int k)
 			    }
 			} else if (ipiv[ix] > 1) {
 			    fprintf(stderr, "singular matrix\n");
-			    goto fail ; 
+			    goto fail ;
 			}
 		}
 	    }
@@ -740,7 +740,7 @@ void fec_init(void)
  *     col of inverse of top Vandermonde matrix)
  *
  *                _____
- *                 | | 
+ *                 | |
  *   P   =  K      | |    (x - i)
  *    col    col   | |
  *             0 < i < 128 &&
@@ -751,7 +751,7 @@ void fec_init(void)
  *                  1
  *           ---------------
  *   K    =       _____
- *    col          | | 
+ *    col          | |
  *                 | |    (col - i)
  *                 | |
  *             0 < i < 128 &&
@@ -766,13 +766,13 @@ void fec_init(void)
  *
  *     Which make P_col resolves to:
  *               _____
- *                | |    
+ *                | |
  *     P   =  K   | |    (x - i)
  *      col       | |
  *             0 < i < 128
  *           -------------------
  *              (x-col)
- * 
+ *
  *     When evaluating this for any x > 0x80, the following thing happens
  *     to the numerator: all (x-i) are different for i, and have high bit
  *     set. Thus, the set of top factors are all values from 0x80 to 0xff,
@@ -797,7 +797,7 @@ void fec_init(void)
 
 
 
-/* We do the matrix multiplication columns by column, instead of the 
+/* We do the matrix multiplication columns by column, instead of the
  * usual row-by-row, in order to capitalize on the cache freshness of
  * each data block . The data block only needs to be fetched once, and
  * can be used to be addmull'ed into all FEC blocks at once. No need
@@ -816,8 +816,8 @@ void fec_encode(unsigned int blockSize,
 
     if ( 0 == fec_initialized )
        fec_init();
-    assert(fec_initialized);    
-    assert(nrDataBlocks <= 128);    
+    assert(fec_initialized);
+    assert(nrDataBlocks <= 128);
     assert(nrFecBlocks <= 128);
 
     if(!nrDataBlocks)
@@ -825,7 +825,7 @@ void fec_encode(unsigned int blockSize,
 
     for(row=0; row < nrFecBlocks; row++)
 	mul(fec_blocks[row], data_blocks[0], inverse[128 ^ row], blockSize);
-    
+
     for(col=129, blockNo=1; blockNo < nrDataBlocks; col++, blockNo ++) {
 	for(row=0; row < nrFecBlocks; row++)
 	    addmul(fec_blocks[row], data_blocks[blockNo],

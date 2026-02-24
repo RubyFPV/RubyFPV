@@ -51,7 +51,7 @@ MenuSystemDevStats::MenuSystemDevStats(void)
 {
    m_Width = 0.36;
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.16;
-   
+
    m_pItemsSelect[0] = new MenuItemSelect("Show Retransmissions Stats", "Shows the extended developer video retransmissions stats.");
    m_pItemsSelect[0]->addSelection("Off");
    m_pItemsSelect[0]->addSelection("On");
@@ -111,7 +111,7 @@ void MenuSystemDevStats::valuesToUI()
    m_pItemsSelect[0]->setSelectedIndex(pP->iDebugShowDevVideoStats);
    m_pItemsSelect[1]->setSelectedIndex(pP->iDebugShowDevRadioStats);
    m_pItemsSelect[2]->setSelectedIndex(pP->iDebugShowFullRXStats);
-   
+
    m_pItemsSelect[3]->setSelectedIndex(0);
    if ( g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_SEND_BACK_VEHICLE_TX_GAP )
       m_pItemsSelect[3]->setSelectedIndex(1);
@@ -123,7 +123,7 @@ void MenuSystemDevStats::valuesToUI()
    m_pItemsSelect[7]->setSelectedIndex(0);
    if ( g_pCurrentModel->osd_params.osd_flags3[layoutIndex] & OSD_FLAG3_SHOW_CONTROLLER_ADAPTIVE_VIDEO_INFO )
       m_pItemsSelect[7]->setSelectedIndex(1);
-   
+
 
    m_pItemsSelect[8]->setSelectedIndex(0);
    if ( g_pCurrentModel->osd_params.osd_flags3[layoutIndex] & OSD_FLAG3_SHOW_VEHICLE_DEV_STATS )
@@ -196,7 +196,7 @@ void MenuSystemDevStats::onSelectItem()
          valuesToUI();
       return;
    }
-   
+
    if ( m_IndexDevStatsVehicleTx == m_SelectedIndex )
    {
       if ( 0 == m_pItemsSelect[3]->getSelectedIndex() )
@@ -204,8 +204,8 @@ void MenuSystemDevStats::onSelectItem()
       else
          g_pCurrentModel->uDeveloperFlags |= DEVELOPER_FLAGS_BIT_SEND_BACK_VEHICLE_TX_GAP;
       if ( ! handle_commands_send_developer_flags(g_pCurrentModel->uDeveloperFlags) )
-         valuesToUI();  
-      return;    
+         valuesToUI();
+      return;
    }
 
    if ( m_IndexDevStatsVehicle == m_SelectedIndex )
@@ -219,7 +219,7 @@ void MenuSystemDevStats::onSelectItem()
          params.osd_flags3[layoutIndex] |= OSD_FLAG3_SHOW_VEHICLE_DEV_STATS;
       if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_OSD_PARAMS, 0, (u8*)&params, sizeof(osd_parameters_t)) )
          valuesToUI();
-      return;    
+      return;
    }
 
    if ( m_IndexDevVehicleVideoBitrateHistory == m_SelectedIndex )

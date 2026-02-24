@@ -22,5 +22,5 @@ void radio_dup_detection_reset_vehicle_restarted_flag(u32 uVehicleId);
 u32 radio_dup_detection_get_max_received_packet_index_for_stream(u32 uVehicleId, u32 uStreamId);
 
 #ifdef __cplusplus
-}  
+}
 #endif

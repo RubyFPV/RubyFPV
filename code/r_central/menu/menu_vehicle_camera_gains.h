@@ -13,7 +13,7 @@ class MenuVehicleCameraGains: public Menu
       virtual void onSelectItem();
       virtual void onItemValueChanged(int itemIndex);
       virtual void valuesToUI();
-            
+
    private:
       void updateUIValues();
 

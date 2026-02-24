@@ -115,7 +115,7 @@ void MenuControllerDev::addItems()
 
    m_IndexDebugRTStatsConfig = addMenuItem(new MenuItem("Real time debug stats config", "Configure live monitor of Rx links and video stats"));
    m_pMenuItems[m_IndexDebugRTStatsConfig]->showArrow();
-   
+
    addMenuItem(new MenuItemSection("OSD"));
 
    m_pItemsSelect[3] = new MenuItemSelect("OSD Render FPS", "How often should the OSD be drawn.");
@@ -271,12 +271,12 @@ void MenuControllerDev::onSelectItem()
    if ( m_IndexRxLoopTimeout == m_SelectedIndex )
    {
       g_pControllerSettings->iDevRxLoopTimeout = m_pItemsSlider[9]->getCurrentValue();
-      
+
       if ( NULL != g_pCurrentModel )
       if ( ! g_pCurrentModel->is_spectator )
       if ( pairing_isStarted() && link_is_vehicle_online_now(g_pCurrentModel->uVehicleId) )
       if ( ! handle_commands_send_developer_flags(g_pCurrentModel->uDeveloperFlags) )
-         valuesToUI(); 
+         valuesToUI();
    }
 
    if ( m_IndexRenderOSDFSP == m_SelectedIndex )
@@ -333,7 +333,7 @@ void MenuControllerDev::onSelectItem()
       pairing_start_normal();
       return;
    }
-  
+
    if ( m_IndexWaitFullFrame == m_SelectedIndex )
    {
       g_pControllerSettings->iWaitFullFrameForOutput = m_pItemsSelect[4]->getSelectedIndex();

@@ -135,7 +135,7 @@ void MenuVehicleRCCamera::valuesToUI()
 
 void MenuVehicleRCCamera::Render()
 {
-   RenderPrepare();   
+   RenderPrepare();
    float yTop = RenderFrameAndTitle();
    float y = yTop;
 
@@ -153,7 +153,7 @@ void MenuVehicleRCCamera::send_params()
    u32 yaw = m_pItemsSelect[2]->getSelectedIndex();
    u32 move = m_pItemsSelect[3]->getSelectedIndex();
    u32 speed = m_pItemsSlider[0]->getCurrentValue();
-   
+
    u32 val = (pitch & 0x1F);
    val = val | ((roll & 0x1F)<<8);
    val = val | ((yaw & 0x1F)<<16);
@@ -161,7 +161,7 @@ void MenuVehicleRCCamera::send_params()
    val = val | ((speed & 0x1F)<<24);
    val = val | ((move << 24) <<5);
    val = val | (0x03<<30); // consistency check
-   
+
    //log_dword("-------cam val to send", val);
    if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_RC_CAMERA_PARAMS, val, NULL, 0) )
       valuesToUI();

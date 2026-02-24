@@ -40,7 +40,7 @@
 #include "../radio/radiopackets2.h"
 #include "../radio/radiolink.h"
 #include "../radio/radiopacketsqueue.h"
-#include "../radio/fec.h" 
+#include "../radio/fec.h"
 #include "packets_utils.h"
 #include "processor_rx_video.h"
 #include "generic_rx_ecbuffers.h"
@@ -109,7 +109,7 @@ void* _thread_audio_queueing_playback(void *argument)
          continue;
       }
       int iReadSize = 0;
-      
+
       FD_ZERO(&readSet);
       FD_SET(s_fPipeAudioPlayerQueueRead, &readSet);
       FD_ZERO(&exceSet);
@@ -190,7 +190,7 @@ void* _thread_audio_buffering_playback(void *argument)
          continue;
       }
       int iReadSize = 0;
-      
+
       FD_ZERO(&readSet);
       FD_SET(s_fPipeAudioBufferRead, &readSet);
       FD_ZERO(&exceSet);
@@ -310,7 +310,7 @@ void _open_audio_pipes()
       return;
    }
    log_line("[AudioRx] Player pipe FIFO default size: %d bytes", fcntl(s_fPipeAudioPlayerOutput, F_GETPIPE_SZ));
-   
+
    s_fPipeAudioPlayerQueueRead = open(FIFO_RUBY_AUDIO_QUEUE, O_CREAT | O_RDONLY | O_NONBLOCK);
    if ( s_fPipeAudioPlayerQueueRead <= 0 )
    {
@@ -429,7 +429,7 @@ void start_audio_player_and_pipe()
    if ( ! s_bHasAudioOutputDevice )
    {
       log_line("[AudioRx] Controller has no output device. Not starting audio player and pipe.");
-      return;    
+      return;
    }
 
    if ( ! g_pCurrentModel->isAudioCapableAndEnabled() )
@@ -437,7 +437,7 @@ void start_audio_player_and_pipe()
       log_line("[AudioRx] Current vehicle did not passed audio checks. Not starting audio player and pipe.");
       return;
    }
-   
+
    log_line("[AudioRx] Starting audio streaming and player...");
 
    char szComm[128];
@@ -495,7 +495,7 @@ void init_processing_audio()
    log_line("[AudioRx] Init audio processing...");
    init_audio_rx_state();
    hardware_audio_stop_async_play();
-   
+
    s_fPipeAudioPlayerOutput = -1;
    s_fPipeAudioBufferWrite = -1;
    s_fPipeAudioBufferRead = -1;
@@ -641,7 +641,7 @@ void process_received_audio_packet(u8* pPacketBuffer)
    pData += sizeof(u32);
    int iAudioSize = (int)(pPH->total_length - sizeof(t_packet_header)- sizeof(u32));
    s_iAudioPacketSize = iAudioSize;
-   
+
    if ( s_uLastRecvAudioBlockIndex != MAX_U32 )
    if ( s_uLastRecvAudioBlockIndex > 50 )
    if ( uAudioBlockIndex < s_uLastRecvAudioBlockIndex - 50 )
@@ -681,7 +681,7 @@ void process_received_audio_packet(u8* pPacketBuffer)
       // Wait for the begining of the next block
       if ( uAudioBlockPacketIndex >= (u32)s_iAudioDataPacketsPerBlock )
          return;
-  
+
       s_uCurrentRxAudioBlockIndex = uAudioBlockIndex;
       _reset_current_audio_rx_block();
    }

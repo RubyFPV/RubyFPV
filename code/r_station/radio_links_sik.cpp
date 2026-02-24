@@ -166,7 +166,7 @@ static void * _reinit_sik_thread_func(void *ignored_argument)
                   uECC = (g_pCurrentModel->radioLinksParams.link_radio_flags_rx[iRadioLink] & RADIO_FLAGS_SIK_ECC)? 1:0;
                   uLBT = (g_pCurrentModel->radioLinksParams.link_radio_flags_rx[iRadioLink] & RADIO_FLAGS_SIK_LBT)? 1:0;
                   uMCSTR = (g_pCurrentModel->radioLinksParams.link_radio_flags_rx[iRadioLink] & RADIO_FLAGS_SIK_MCSTR)? 1:0;
-               
+
                   bool bDataRateOk = false;
                   for( int i=0; i<getSiKAirDataRatesCount(); i++ )
                   {
@@ -184,11 +184,11 @@ static void * _reinit_sik_thread_func(void *ignored_argument)
                   }
                }
             }
-            int iRes = hardware_radio_sik_set_params(pRadioHWInfo, 
+            int iRes = hardware_radio_sik_set_params(pRadioHWInfo,
                    uFreqKhz,
                    DEFAULT_RADIO_SIK_FREQ_SPREAD, DEFAULT_RADIO_SIK_CHANNELS,
                    DEFAULT_RADIO_SIK_NETID,
-                   uDataRate, uTxPower, 
+                   uDataRate, uTxPower,
                    uECC, uLBT, uMCSTR,
                    NULL);
             if ( iRes != 1 )
@@ -202,7 +202,7 @@ static void * _reinit_sik_thread_func(void *ignored_argument)
                {
                   send_alarm_to_central(ALARM_ID_GENERIC_STATUS_UPDATE, ALARM_FLAG_GENERIC_STATUS_RECONFIGURED_RADIO_INTERFACE_FAILED, 0);
                   radio_links_reopen_marked_sik_interfaces();
-  
+
                   g_SiKRadiosState.bMustReinitSiKInterfaces = false;
                   g_SiKRadiosState.iMustReconfigureSiKInterfaceIndex = -1;
                   g_SiKRadiosState.uSiKInterfaceIndexThatBrokeDown = MAX_U32;
@@ -231,16 +231,16 @@ static void * _reinit_sik_thread_func(void *ignored_argument)
       g_SiKRadiosState.bConfiguringSiKThreadWorking = false;
       return NULL;
    }
-   
+
    log_line("[Router-SiKThread] Reinitialized SiK radio interfaces successfully.");
-   
+
    radio_links_reopen_marked_sik_interfaces();
 
    if ( g_SiKRadiosState.iMustReconfigureSiKInterfaceIndex >= 0 )
       send_alarm_to_central(ALARM_ID_GENERIC_STATUS_UPDATE, ALARM_FLAG_GENERIC_STATUS_RECONFIGURED_RADIO_INTERFACE, 0);
    else
       send_alarm_to_central(ALARM_ID_RADIO_INTERFACE_REINITIALIZED, g_SiKRadiosState.uSiKInterfaceIndexThatBrokeDown, 0);
-   
+
    g_SiKRadiosState.bMustReinitSiKInterfaces = false;
    g_SiKRadiosState.iMustReconfigureSiKInterfaceIndex = -1;
    g_SiKRadiosState.uSiKInterfaceIndexThatBrokeDown = MAX_U32;
@@ -282,7 +282,7 @@ int radio_links_check_reinit_sik_interfaces()
          return 0;
       }
    }
-   
+
    if ( (! g_SiKRadiosState.bMustReinitSiKInterfaces) && (g_SiKRadiosState.iMustReconfigureSiKInterfaceIndex == -1) )
       return 0;
 
@@ -291,7 +291,7 @@ int radio_links_check_reinit_sik_interfaces()
 
    if ( g_SiKRadiosState.bConfiguringSiKThreadWorking )
       return 0;
-   
+
    if ( g_TimeNow < g_SiKRadiosState.uTimeLastSiKReinitCheck + g_SiKRadiosState.uTimeIntervalSiKReinitCheck )
       return 0;
 

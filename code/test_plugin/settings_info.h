@@ -12,7 +12,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif   
+#endif
 
 typedef unsigned int u32;
 typedef unsigned short u16;
@@ -39,5 +39,5 @@ typedef struct
 } __attribute__((packed)) plugin_settings_info_t2_extra;
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

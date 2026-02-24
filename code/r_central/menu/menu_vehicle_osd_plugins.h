@@ -17,8 +17,8 @@ class MenuVehicleOSDPlugins: public Menu
       virtual void onSelectItem();
       virtual void onItemValueChanged(int itemIndex);
       virtual void valuesToUI();
-            
+
    private:
-      MenuItemSelect* m_pItemsSelect[MAX_OSD_CUSTOM_PLUGINS];     
+      MenuItemSelect* m_pItemsSelect[MAX_OSD_CUSTOM_PLUGINS];
       int m_IndexPlugins[MAX_OSD_CUSTOM_PLUGINS];
 };

@@ -90,7 +90,7 @@ void MenuVehicleManagement::onShow()
       m_pMenuItems[m_IndexReset]->setEnabled(false);
       m_pMenuItems[m_IndexReboot]->setEnabled(false);
    }
-   
+
    Menu::onShow();
 }
 
@@ -122,7 +122,7 @@ bool MenuVehicleManagement::periodicLoop()
    }
    return false;
 }
-     
+
 void MenuVehicleManagement::onReturnFromChild(int iChildMenuId, int returnValue)
 {
    log_line("MenuVehicleManagement: on return from child id %d, result: %d", iChildMenuId, returnValue);
@@ -149,7 +149,7 @@ void MenuVehicleManagement::onReturnFromChild(int iChildMenuId, int returnValue)
       if ( uploadSoftware() )
       {
          onEventPairingDiscardAllUIActions();
-         
+
          char szTextW[256];
          sprintf(szTextW, L("Your %s was updated. It will reboot now."), g_pCurrentModel->getVehicleTypeString());
          MenuConfirmation* pm = new MenuConfirmation( L("Upload Succeeded"), szTextW, 3, true);
@@ -300,7 +300,7 @@ void MenuVehicleManagement::onSelectItem()
 
       snprintf(szFile, sizeof(szFile)/sizeof(szFile[0]), "%s/ruby_model_%s_%u.txt", FOLDER_USB_MOUNT, szModelName, g_pCurrentModel->uVehicleId);
       g_pCurrentModel->saveToFile(szFile, false);
-   
+
       hardware_unmount_usb();
       ruby_signal_alive();
       sync();
@@ -363,7 +363,7 @@ void MenuVehicleManagement::onSelectItem()
          addMessageWithTitle(0, L("Can't update"), L("This vehicle does not support OTA (over the air) updates."));
          return;
       }
-      
+
       if ( checkIsArmed() )
          return;
       if ( (! pairing_isStarted()) || (NULL == g_pCurrentModel) || (! link_is_vehicle_online_now(g_pCurrentModel->uVehicleId)) )
@@ -393,7 +393,7 @@ void MenuVehicleManagement::onSelectItem()
       MenuConfirmation* pMC = new MenuConfirmation( L("Upgrade Confirmation"), szBuff, 2);
       add_menu_to_stack(pMC);
    }
-        
+
    if ( m_IndexReset == m_SelectedIndex )
    {
       if ( checkIsArmed() )
@@ -403,7 +403,7 @@ void MenuVehicleManagement::onSelectItem()
       MenuConfirmation* pMC = new MenuConfirmation(L("Confirmation"), szBuff, 20);
       add_menu_to_stack(pMC);
    }
- 
+
    if ( m_IndexFactoryReset == m_SelectedIndex )
    {
       if ( checkIsArmed() )

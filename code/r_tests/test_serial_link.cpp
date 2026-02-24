@@ -16,12 +16,12 @@
 
 bool bQuit = false;
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    bQuit = true;
-} 
-  
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 
    log_line("\nStarted on %d baudrate, input: %d, output: %d, serial fd: %d.\n", iSpeed, bIn, bOut, iSerialPort);
 
-   
+
    u8 bufferIn[1024];
    int iBufferSize = 1024;
 
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 
    hardware_serial_send_sik_command(iSerialPort, "ATI");
    log_line("Sent command.");
-   
+
    iBufferSize = 1024;
    iLen = hardware_serial_wait_sik_response(iSerialPort, 1000, 2, bufferIn, &iBufferSize);
 
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 
    hardware_serial_send_sik_command(iSerialPort, "ATO");
    log_line("Sent command.");
-   
+
    iBufferSize = 1024;
    iLen = hardware_serial_wait_sik_response(iSerialPort, 1000, 2, bufferIn, &iBufferSize);
 
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
    close(iSerialPort);
    iSerialPort -1;
    iSerialPort = hardware_open_serial_port("/dev/ttyUSB0", iSpeed);
-   
+
    log_line("Reopened serial port. Waiting data.");
 
    while (!bQuit)
@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
 
       iBufferSize = 1024;
       iLen = hardware_serial_wait_sik_response(iSerialPort, 10, 0, bufferIn, &iBufferSize);
-      
+
       if ( iLen > 0 )
       {
          bufferIn[iLen] = 0;

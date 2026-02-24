@@ -116,7 +116,7 @@ void MenuSearchConnect::Render()
       g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
       g_pRenderEngine->setColors(get_Color_MenuText());
    }
-    
+
    sprintf(szBuff,"Found vehicle on %s", str_format_frequency(m_CurrentSearchFrequency));
    g_pRenderEngine->drawMessageLines(xPos, y, szBuff, MENU_TEXTLINE_SPACING, fMaxWidth, g_idFontMenu);
 
@@ -162,7 +162,7 @@ void MenuSearchConnect::Render()
       snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "Vehicle has %d radio links on: %s", iCountLinks, szLinks);
       g_pRenderEngine->drawMessageLines(xPos, y, szBuff, MENU_TEXTLINE_SPACING, fMaxWidth, g_idFontMenu);
       y += g_pRenderEngine->getMessageHeight(szBuff, MENU_TEXTLINE_SPACING, fMaxWidth, g_idFontMenu);
-      y += height_text * MENU_ITEM_SPACING;    
+      y += height_text * MENU_ITEM_SPACING;
    }
 
    if ( ((g_SearchVehicleRuntimeInfo.headerRubyTelemetryExtended.vehicle_type & MODEL_FIRMWARE_MASK) >> 5) == MODEL_FIRMWARE_TYPE_RUBY )
@@ -186,7 +186,7 @@ void MenuSearchConnect::onSelectItem()
    Menu::onSelectItem();
    if ( (-1 == m_SelectedIndex) || (m_pMenuItems[m_SelectedIndex]->isEditing()) )
       return;
-   
+
    // Add model as controller
    if ( m_iIndexController == m_SelectedIndex )
    {

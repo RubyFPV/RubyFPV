@@ -19,11 +19,11 @@ int bQuit = 0;
 // Define the primary surface for display
 SDL_Surface* scrMain = NULL;
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    bQuit = 1;
-} 
-    
+}
+
 
 // Main entrypoint
 int main(int argc, char* args[])
@@ -32,7 +32,7 @@ int main(int argc, char* args[])
 //signal(SIGINT, handle_sigint);
 //   signal(SIGTERM, handle_sigint);
 //   signal(SIGQUIT, handle_sigint);
- 
+
         // --------------------------------------
         // Initialization
         // --------------------------------------
@@ -100,7 +100,7 @@ int k = 0;
         // Now that we've completed drawing, update the main display
         SDL_Flip(scrMain);
 
-        
+
         }
         // Close down SDL
         SDL_Quit();

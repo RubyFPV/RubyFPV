@@ -79,7 +79,7 @@ void _controller_interfaces_add_card(const char* szMAC)
       s_CIS.listRadioInterfaces[s_CIS.radioInterfacesCount].cardModel = pRadioInfo->iCardModel;
    s_CIS.listRadioInterfaces[s_CIS.radioInterfacesCount].uSupportedRadioFlags = RADIO_FLAGS_USE_LEGACY_DATARATES | RADIO_FLAGS_USE_MCS_DATARATES | RADIO_FLAGS_FRAME_TYPE_DATA | RADIO_FLAGS_MCS;
    s_CIS.listRadioInterfaces[s_CIS.radioInterfacesCount].capabilities_flags = RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO | RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_DATA | RADIO_HW_CAPABILITY_FLAG_CAN_RX | RADIO_HW_CAPABILITY_FLAG_CAN_TX;
-   
+
    if ( hardware_radio_is_sik_radio(pRadioInfo) )
       s_CIS.listRadioInterfaces[s_CIS.radioInterfacesCount].capabilities_flags &= ~(RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO);
 
@@ -499,7 +499,7 @@ int controllerIsCardDisabled(const char* szMAC)
    if ( -1 == index )
       return 0;
 
-   if ( s_CIS.listRadioInterfaces[index].capabilities_flags & RADIO_HW_CAPABILITY_FLAG_DISABLED )   
+   if ( s_CIS.listRadioInterfaces[index].capabilities_flags & RADIO_HW_CAPABILITY_FLAG_DISABLED )
       return 1;
    return 0;
 }
@@ -650,7 +650,7 @@ void controllerSetCardTXPreferred(const char* szMAC)
    strncpy(s_CIS.listMACTXPreferredOrdered[0], szMAC, MAX_MAC_LENGTH-1);
    s_CIS.listMACTXPreferredOrdered[0][MAX_MAC_LENGTH-1] = 0;
    s_CIS.listMACTXPreferredCount++;
-   
+
    save_ControllerInterfacesSettings();
 }
 
@@ -672,7 +672,7 @@ void controllerRemoveCardTXPreferred(const char* szMAC)
       strcpy(s_CIS.listMACTXPreferredOrdered[i], s_CIS.listMACTXPreferredOrdered[i+1]);
 
    s_CIS.listMACTXPreferredCount--;
-   
+
    if ( iIndexControllerCard < 0 )
       log_line("CtrlInterfaces: Removed radio interface %s (unknown card) from preferred Tx list.", szMAC);
    else
@@ -727,7 +727,7 @@ void controllerGetCardUserDefinedNameOrType(radio_hw_info_t* pRadioHWInfo, char*
       strcpy(szOutput, szN);
       return;
    }
-   
+
    t_ControllerRadioInterfaceInfo* pCardInfo = controllerGetRadioCardInfo(pRadioHWInfo->szMAC);
    if ( NULL != pCardInfo )
    {
@@ -738,7 +738,7 @@ void controllerGetCardUserDefinedNameOrType(radio_hw_info_t* pRadioHWInfo, char*
          return;
       }
    }
-         
+
    strcpy(szOutput, "Generic");
 }
 
@@ -755,7 +755,7 @@ void controllerGetCardUserDefinedNameOrShortType(radio_hw_info_t* pRadioHWInfo, 
       strcpy(szOutput, szN);
       return;
    }
-   
+
    t_ControllerRadioInterfaceInfo* pCardInfo = controllerGetRadioCardInfo(pRadioHWInfo->szMAC);
    if ( NULL != pCardInfo )
    {
@@ -766,7 +766,7 @@ void controllerGetCardUserDefinedNameOrShortType(radio_hw_info_t* pRadioHWInfo, 
          return;
       }
    }
-         
+
    strcpy(szOutput, "Generic");
 }
 
@@ -1215,14 +1215,14 @@ int controllerComputeRXTXCards(Model* pModel, int iSearchFreq, int* pFrequencies
 
    if ( 1 == pModel->radioInterfacesParams.interfaces_count || 0 == pModel->radioLinksParams.link_frequency_khz[1] )
    {
-      log_line("ControllerComputeRXTXCards: Detected single radio link vehicle.");         
+      log_line("ControllerComputeRXTXCards: Detected single radio link vehicle.");
       return _controllerComputeRXTXCardsSingleFrequency(pModel, pFrequencies, pRXCardIndexes, countCardsRX, pTXCardIndexes, countCardsTX);
-      
+
    }
 
    // Model with multiple links
 
-   log_line("ControllerComputeRXTXCards: Detected single radio link vehicle.");         
+   log_line("ControllerComputeRXTXCards: Detected single radio link vehicle.");
    return _controllerComputeRXTXCardsDualFrequency(pModel, pFrequencies, pRXCardIndexes, countCardsRX, pTXCardIndexes, countCardsTX);
 }
 */
@@ -1295,7 +1295,7 @@ void controllerInterfacesEnumJoysticks()
       }
    }
 
-   // Remove missing ones 
+   // Remove missing ones
    for( int j=0; j<s_CIS.inputInterfacesCount; j++ )
    {
       bool bHardwareFound = false;
@@ -1340,7 +1340,7 @@ t_ControllerInputInterface* controllerInterfacesGetAt(int index)
 {
    if ( (index < 0) || (index >= hardware_get_joystick_interfaces_count()) )
       return NULL;
-   
+
    hw_joystick_info_t* pJoystick = hardware_get_joystick_info(index);
    if ( NULL == pJoystick )
       return NULL;

@@ -5,7 +5,7 @@ class MenuSystemAllParams: public Menu
 {
    public:
       MenuSystemAllParams();
-      virtual void onShow(); 
+      virtual void onShow();
       virtual void Render();
       virtual void onSelectItem();
 

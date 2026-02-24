@@ -59,7 +59,7 @@
 #include "processor_rx_audio.h"
 
 u32 s_debugLastFPSTime = 0;
-u32 s_debugFramesCount = 0; 
+u32 s_debugFramesCount = 0;
 
 extern t_packet_queue s_QueueRadioPacketsHighPrio;
 extern t_packet_queue s_QueueRadioPacketsRegPrio;
@@ -77,7 +77,7 @@ void _synchronize_shared_mems()
    {
       s_TimeLastVideoStatsUpdate = g_TimeNow;
       memcpy((u8*)g_pSM_VideoDecodeStats, (u8*)(&g_SM_VideoDecodeStats), sizeof(shared_mem_video_stream_stats_rx_processors));
-   
+
       if ( NULL != g_pSM_RouterVehiclesRuntimeInfo )
       {
          for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
@@ -90,7 +90,7 @@ void _synchronize_shared_mems()
             g_SM_RouterVehiclesRuntimeInfo.uLastTimeReceivedAckFromVehicle[i] = g_State.vehiclesRuntimeInfo[i].uLastTimeReceivedAckFromVehicle;
             g_SM_RouterVehiclesRuntimeInfo.iVehicleClockDeltaMilisec[i] = g_State.vehiclesRuntimeInfo[i].iVehicleClockDeltaMilisec;
             g_SM_RouterVehiclesRuntimeInfo.uCurrentAdaptiveECScheme[i] = g_State.vehiclesRuntimeInfo[i].uCurrentAdaptiveVideoECScheme;
- 
+
             g_SM_RouterVehiclesRuntimeInfo.uAverageCommandRoundtripMiliseconds[i] = g_State.vehiclesRuntimeInfo[i].uAverageCommandRoundtripMiliseconds;
             g_SM_RouterVehiclesRuntimeInfo.uMaxCommandRoundtripMiliseconds[i] = g_State.vehiclesRuntimeInfo[i].uMaxCommandRoundtripMiliseconds;
             g_SM_RouterVehiclesRuntimeInfo.uMinCommandRoundtripMiliseconds[i] = g_State.vehiclesRuntimeInfo[i].uMinCommandRoundtripMiliseconds;
@@ -108,13 +108,13 @@ void _synchronize_shared_mems()
       s_TimeLastControllerRTInfoUpdate = g_TimeNow;
       if ( NULL != g_pSMControllerRTInfo )
          memcpy((u8*)g_pSMControllerRTInfo, (u8*)&g_SMControllerRTInfo, sizeof(controller_runtime_info));
-      
+
       if ( (NULL != g_pSMControllerDebugVideoRTInfo) && (NULL != g_pCurrentModel) )
       if ( g_pControllerSettings->iEnableDebugStats || (g_pCurrentModel->osd_params.osd_flags2[g_pCurrentModel->osd_params.iCurrentOSDScreen] & OSD_FLAG2_SHOW_VIDEO_FRAMES_STATS) )
          memcpy((u8*)g_pSMControllerDebugVideoRTInfo, (u8*)&g_SMControllerDebugVideoRTInfo, sizeof(controller_debug_video_runtime_info));
    }
    //---------------------------------------------
-   
+
    if ( (NULL != g_pCurrentModel) && g_pControllerSettings->iDeveloperMode )
    if ( g_pCurrentModel->osd_params.osd_flags[g_pCurrentModel->osd_params.iCurrentOSDScreen] & OSD_FLAG_SHOW_STATS_VIDEO_H264_FRAMES_INFO )
    if ( g_TimeNow >= g_SM_VideoFramesStatsOutput.uLastTimeStatsUpdate + 200 )
@@ -149,7 +149,7 @@ void _check_rx_loop_consistency()
          radio_links_flag_reinit_sik_interface(iAnyBrokeInterface-1);
       else
       {
-         send_alarm_to_central(ALARM_ID_RADIO_INTERFACE_DOWN, iAnyBrokeInterface-1, 0); 
+         send_alarm_to_central(ALARM_ID_RADIO_INTERFACE_DOWN, iAnyBrokeInterface-1, 0);
          radio_links_reinit_radio_interfaces();
          return;
       }
@@ -187,7 +187,7 @@ void _check_rx_loop_consistency()
          u32 uQueue = radio_rx_get_and_reset_max_loop_time_queue();
          if ( uRead > 0xFFFF ) uRead = 0xFFFF;
          if ( uQueue > 0xFFFF ) uQueue = 0xFFFF;
-         
+
          send_alarm_to_central(ALARM_ID_CONTROLLER_CPU_RX_LOOP_OVERLOAD, uMaxRxLoopTime, uRead | (uQueue<<16));
       }
    }
@@ -229,7 +229,7 @@ void _check_send_pairing_requests()
       if ( g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId >= 0 )
       if ( g_pCurrentModel->relay_params.uRelayedVehicleId == pModel->uVehicleId )
          bExpectedVehicle = true;
-        
+
       if ( ! bExpectedVehicle )
          continue;
 
@@ -277,7 +277,7 @@ void _check_send_pairing_requests()
             send_alarm_to_central(ALARM_ID_GENERIC_STATUS_UPDATE, ALARM_FLAG_GENERIC_STATUS_SENT_PAIRING_REQUEST, PH.vehicle_id_dest);
          if ( (g_State.vehiclesRuntimeInfo[i].uPairingRequestId % 5) == 0 )
          {
-            log_line("Sent pairing request to vehicle (retry count: %u). CID: %u, VID: %u", g_State.vehiclesRuntimeInfo[i].uPairingRequestId, PH.vehicle_id_src, PH.vehicle_id_dest);  
+            log_line("Sent pairing request to vehicle (retry count: %u). CID: %u, VID: %u", g_State.vehiclesRuntimeInfo[i].uPairingRequestId, PH.vehicle_id_src, PH.vehicle_id_dest);
             if ( (g_State.vehiclesRuntimeInfo[i].uPairingRequestId % 10) == 0 )
                send_alarm_to_central(ALARM_ID_GENERIC_STATUS_UPDATE, ALARM_FLAG_GENERIC_STATUS_SENT_PAIRING_REQUEST, PH.vehicle_id_dest);
          }
@@ -303,7 +303,7 @@ int _must_inject_ping_now()
 
    if ( (g_TimeNow > sl_uTimeLastPingSent + ping_interval_ms) || (g_TimeNow < sl_uTimeLastPingSent) )
    {
-      sl_uTimeLastPingSent = g_TimeNow;   
+      sl_uTimeLastPingSent = g_TimeNow;
       return (int)ping_interval_ms;
    }
    return 0;
@@ -328,9 +328,9 @@ bool _check_queue_ping()
    s_uPingToSendLocalRadioLinkId++;
    if ( s_uPingToSendLocalRadioLinkId >= g_SM_RadioStats.countLocalRadioLinks )
       s_uPingToSendLocalRadioLinkId = 0;
-   
+
    u32 uDestinationVehicleId = g_pCurrentModel->uVehicleId;
-   
+
    // If vehicle is not paired yet, do not send pings
    if ( ! isPairingDoneWithVehicle(uDestinationVehicleId) )
       return false;
@@ -343,7 +343,7 @@ bool _check_queue_ping()
    if ( test_link_is_in_progress() )
    if ( test_link_get_test_link_index() == iVehicleRadioLinkId )
       return false;
-     
+
    // Store info about this ping
    g_TimeNow = get_current_timestamp_ms();
    for( int i=0; i<MAX_CONCURENT_VEHICLES; i++ )
@@ -396,7 +396,7 @@ void _check_free_storage_space()
    {
       sl_uCountFreeSpaceChecks++;
       //sl_uTimeLastFreeSpaceCheck = g_TimeNow;
-      
+
       int iFreeSpaceKb = hardware_get_free_space_kb_async(pCS->iCoresAdjustment? CORE_AFFINITY_OTHERS:-1);
       if ( iFreeSpaceKb < 0 )
       {
@@ -492,7 +492,7 @@ void _check_retransmissions_state()
    int iRTStartIndex = g_SMControllerRTInfo.iCurrentIndex - iDeltaSlicesFromNow;
    if ( iRTStartIndex < 0 )
       iRTStartIndex += SYSTEM_RT_INFO_INTERVALS;
-   
+
    int iRTIndex = iRTStartIndex;
    for( int i=0; i<SYSTEM_RT_INFO_INTERVALS/2; i++ )
    {
@@ -530,7 +530,7 @@ void _check_retransmissions_state()
    int iHasAckRetransmissionsCount = 0;
    iRTIndex = g_SMControllerRTInfo.iCurrentIndex;
    iDeltaSlicesFromNow = 0;
-   
+
    for( int i=0; i<SYSTEM_RT_INFO_INTERVALS; i++ )
    {
       iDeltaSlicesFromNow++;
@@ -687,7 +687,7 @@ void router_periodic_loop()
             hardware_radio_sik_save_configuration();
             hardware_save_radio_info();
             radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(g_iGetSiKConfigAsyncRadioInterfaceIndex);
-         
+
             char szTmp[256];
             szTmp[0] = 0;
             for( int i=0; i<16; i++ )
@@ -744,7 +744,7 @@ void router_periodic_loop()
    _check_free_storage_space();
    _check_send_pairing_requests();
    _check_retransmissions_state();
-   
+
    _synchronize_shared_mems();
    _check_rx_loop_consistency();
    _check_queue_ping();

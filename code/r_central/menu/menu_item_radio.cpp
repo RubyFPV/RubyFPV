@@ -288,7 +288,7 @@ void MenuItemRadio::Render(float xPos, float yPos, bool bSelected, float fWidthS
    fWidthSelection = m_pMenu->getUsableWidth();
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
    float height_text_small = g_pRenderEngine->textHeight(g_idFontMenuSmall);
-   
+
    g_pRenderEngine->setColors(get_Color_MenuText());
    float y = yPos;
 
@@ -330,7 +330,7 @@ void MenuItemRadio::Render(float xPos, float yPos, bool bSelected, float fWidthS
       }
 
       // Draw circle
-      
+
       if ( ! m_bEnabledSelections[i] )
          g_pRenderEngine->setColors(get_Color_MenuItemDisabledText());
       else
@@ -339,7 +339,7 @@ void MenuItemRadio::Render(float xPos, float yPos, bool bSelected, float fWidthS
       //g_pRenderEngine->drawLine(xPos - m_fSelectorWidth, y, xPos + m_fSelectorWidth, y);
       //g_pRenderEngine->drawCircle(xPos + m_fSelectorWidth*0.4 + 0.03, y + m_fSelectorWidth*0.4*g_pRenderEngine->getAspectRatio(), m_fSelectorWidth*0.6);
       //g_pRenderEngine->fillCircle(xPos + m_fSelectorWidth*0.4+0.06, y + m_fSelectorWidth*0.4*g_pRenderEngine->getAspectRatio(), m_fSelectorWidth*0.4);
-      
+
 
       g_pRenderEngine->drawCircle(xPos + m_fSelectorWidth*0.4, y + m_fSelectorWidth*0.4*g_pRenderEngine->getAspectRatio(), m_fSelectorWidth*0.6);
       if ( i == m_nSelectedIndex )

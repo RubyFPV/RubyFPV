@@ -11,7 +11,7 @@ class MenuStorage: public Menu
    public:
       MenuStorage();
       virtual ~MenuStorage();
-      virtual void onShow(); 
+      virtual void onShow();
       virtual void Render();
       virtual void valuesToUI();
       virtual void onMoveUp(bool bIgnoreReversion);
@@ -20,7 +20,7 @@ class MenuStorage: public Menu
       virtual void onMoveRight(bool bIgnoreReversion);
       virtual void onFocusedItemChanged();
       virtual bool periodicLoop();
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual int onBack();
       virtual void onSelectItem();
 
@@ -57,7 +57,7 @@ class MenuStorage: public Menu
       int m_IndexDelete;
       int m_IndexRecordingOptions;
       int m_MainItemsCount;
-      
+
       void buildFilesListPictures();
       void buildFilesListVideo();
       void movePictures(bool bDelete);

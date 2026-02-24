@@ -2,7 +2,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 void initLocalizationData();
 int getLanguagesCount();
@@ -13,5 +13,5 @@ int getActiveLanguage();
 const char* L(const char* szString);
 
 #ifdef __cplusplus
-}  
+}
 #endif

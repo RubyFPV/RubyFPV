@@ -54,7 +54,7 @@ bool s_isVehicle = false;
 int iMajor = 0;
 int iMinor = 0;
 int iBuild = 0;
-   
+
 void getSystemType()
 {
    if ( hardware_is_vehicle() )
@@ -74,7 +74,7 @@ void getSystemType()
    else
       log_line("| System detected as controller.");
    log_line("");
-}  
+}
 
 void validate_camera(Model* pModel)
 {
@@ -98,7 +98,7 @@ void update_openipc_cpu(Model* pModel)
 void do_update_to_118()
 {
    log_line("Doing update to 11.8");
- 
+
    if ( ! s_isVehicle )
    {
       load_ControllerSettings();
@@ -123,7 +123,7 @@ void do_update_to_118()
 void do_update_to_117()
 {
    log_line("Doing update to 11.7");
- 
+
    if ( ! s_isVehicle )
    {
       load_ControllerSettings();
@@ -221,7 +221,7 @@ void do_update_to_117()
 void do_update_to_116()
 {
    log_line("Doing update to 11.6");
- 
+
    if ( ! s_isVehicle )
    {
       load_ControllerSettings();
@@ -280,7 +280,7 @@ void do_update_to_116()
 void do_update_to_115()
 {
    log_line("Doing update to 11.5");
- 
+
    if ( ! s_isVehicle )
    {
       load_ControllerSettings();
@@ -354,12 +354,12 @@ void do_update_to_115()
 void do_update_to_114()
 {
    log_line("Doing update to 11.4");
- 
+
    if ( ! s_isVehicle )
    {
       load_Preferences();
       Preferences* pP = get_Preferences();
-      pP->nLogLevel = 0;  
+      pP->nLogLevel = 0;
       save_Preferences();
    }
 
@@ -373,10 +373,10 @@ void do_update_to_114()
 void do_update_to_113()
 {
    log_line("Doing update to 11.3");
- 
+
    if ( ! s_isVehicle )
    {
-     
+
    }
 
    Model* pModel = getCurrentModel();
@@ -428,7 +428,7 @@ void do_update_to_113()
 void do_update_to_112()
 {
    log_line("Doing update to 11.2");
- 
+
    if ( ! s_isVehicle )
    {
       load_ControllerSettings();
@@ -507,7 +507,7 @@ void do_update_to_112()
       pModel->video_params.iVideoHeight = 1080;
       pModel->video_params.iVideoFPS = 30;
    }
-   
+
    for( int i=0; i<MAX_VIDEO_LINK_PROFILES; i++ )
    {
       pModel->video_link_profiles[i].iAdaptiveAdjustmentStrength = DEFAULT_VIDEO_PARAMS_ADJUSTMENT_STRENGTH;
@@ -546,7 +546,7 @@ void do_update_to_112()
 void do_update_to_111()
 {
    log_line("Doing update to 11.1");
- 
+
    if ( ! s_isVehicle )
    {
       load_Preferences();
@@ -574,11 +574,11 @@ void do_update_to_111()
    pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_HQ;
    pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_HP;
    pModel->video_link_profiles[VIDEO_PROFILE_USER].iBlockDataPackets = DEFAULT_VIDEO_BLOCK_PACKETS_HQ;
-   
+
    pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].iECPercentage = DEFAULT_VIDEO_EC_RATE_HQ;
    pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].iECPercentage = DEFAULT_VIDEO_EC_RATE_HP;
    pModel->video_link_profiles[VIDEO_PROFILE_USER].iECPercentage = DEFAULT_VIDEO_EC_RATE_HQ;
-   
+
    for( int k=0; k<MODEL_MAX_CAMERAS; k++ )
    {
       pModel->camera_params[k].iCameraBinProfile = 0;
@@ -591,10 +591,10 @@ void do_update_to_111()
 void do_update_to_110()
 {
    log_line("Doing update to 11.0");
- 
+
    if ( ! s_isVehicle )
    {
-     
+
    }
 
    Model* pModel = getCurrentModel();
@@ -605,7 +605,7 @@ void do_update_to_110()
    pModel->video_link_profiles[VIDEO_PROFILE_HIGH_QUALITY].iECPercentage = DEFAULT_VIDEO_EC_RATE_HQ;
    pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].iECPercentage = DEFAULT_VIDEO_EC_RATE_HP;
    pModel->video_link_profiles[VIDEO_PROFILE_USER].iECPercentage = DEFAULT_VIDEO_EC_RATE_HQ;
-   
+
    pModel->radioInterfacesParams.iAutoVehicleTxPower = 0;
 
    log_line("Updated model VID %u (%s) to v11.0", pModel->uVehicleId, pModel->getLongName());
@@ -615,7 +615,7 @@ void do_update_to_110()
 void do_update_to_108()
 {
    log_line("Doing update to 10.8");
- 
+
    if ( ! s_isVehicle )
    {
       load_ControllerSettings();
@@ -636,7 +636,7 @@ void do_update_to_108()
    Model* pModel = getCurrentModel();
    if ( NULL == pModel )
       return;
-   
+
    u32 uBoardSubType = (pModel->hwCapabilities.uBoardType & BOARD_SUBTYPE_MASK) >> BOARD_SUBTYPE_SHIFT;
    if ( (uBoardSubType != 0) && (uBoardSubType < 10) )
       uBoardSubType *= 10;
@@ -658,7 +658,7 @@ void do_update_to_108()
 void do_update_to_107()
 {
    log_line("Doing update to 10.7");
- 
+
    if ( ! s_isVehicle )
    {
       load_Preferences();
@@ -680,7 +680,7 @@ void do_update_to_107()
 void do_update_to_106()
 {
    log_line("Doing update to 10.6");
- 
+
    if ( ! s_isVehicle )
    {
       load_ControllerSettings();
@@ -730,7 +730,7 @@ void do_update_to_106()
 void do_update_to_105()
 {
    log_line("Doing update to 10.5");
- 
+
    if ( ! s_isVehicle )
    {
       load_ControllerSettings();
@@ -761,7 +761,7 @@ void do_update_to_105()
 void do_update_to_104()
 {
    log_line("Doing update to 10.4");
- 
+
    if ( ! s_isVehicle )
    {
    }
@@ -795,7 +795,7 @@ void do_update_to_104()
    }
 
    pModel->video_link_profiles[VIDEO_PROFILE_HIGH_PERF].uTargetVideoBitrateBPS = DEFAULT_HP_VIDEO_BITRATE;
-   
+
    pModel->validateRadioSettings();
 
    pModel->processesPriorities.iThreadPriorityRadioRx = DEFAULT_PRIORITY_VEHICLE_THREAD_RADIO_RX;
@@ -823,7 +823,7 @@ void do_generic_update()
    if( access( "onyxfpv_capture_veye", R_OK ) != -1 )
       hw_execute_bash_command("cp -rf onyxfpv_capture_veye /usr/local/bin/veye_raspivid", NULL);
    #endif
-   
+
    #if defined (HW_PLATFORM_RASPBERRY)
    hw_execute_bash_command("cp -rf ruby_update.log /boot/ 2>/dev/null", NULL);
    hw_execute_bash_command("cp -rf onyxfpv_update.log /boot/ 2>/dev/null", NULL);
@@ -838,13 +838,13 @@ void do_generic_update()
    #endif
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("--------------------------");
    log_line("Caught signal to stop: %d", sig);
    log_line("--------------------------");
    gbQuit = true;
-} 
+}
 
 int main(int argc, char *argv[])
 {
@@ -902,7 +902,7 @@ int main(int argc, char *argv[])
    }
    else
       log_softerror_and_alarm("Failed to read current version id from file: %s",FILE_CONFIG_CURRENT_VERSION);
- 
+
    iMajor = (int)((uCurrentVersion >> 8) & 0xFF);
    iMinor = (int)(uCurrentVersion & 0xFF);
    iBuild = (int)(uCurrentVersion>>16);
@@ -1038,7 +1038,7 @@ int main(int argc, char *argv[])
    hw_execute_bash_command("rm -rf /usr/sbin/ruby_alive 2>/dev/null", NULL);
    hw_execute_bash_command("rm -rf /usr/sbin/majestic 2>/dev/null", NULL);
    #endif
-   
+
    log_line("Update finished.");
    return (0);
-} 
+}

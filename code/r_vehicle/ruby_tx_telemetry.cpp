@@ -83,7 +83,7 @@ int s_fIPCFromRouter = -1;
 
 u8 s_BufferMessageFromRouter[MAX_PACKET_TOTAL_SIZE];
 u8 s_PipeTmpBuffer[MAX_PACKET_TOTAL_SIZE];
-int s_PipeTmpBufferPos = 0;  
+int s_PipeTmpBufferPos = 0;
 
 int s_iSerialDataLinkFileHandle = -1;
 int s_fSerialToFC = -1;
@@ -193,7 +193,7 @@ void broadcast_vehicle_stats()
    u8 buffer[MAX_PACKET_TOTAL_SIZE];
    memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
    memcpy(buffer+sizeof(t_packet_header),(u8*)&(g_pCurrentModel->m_Stats), sizeof(type_vehicle_stats_info));
-   
+
    if ( g_bRouterReady )
    {
       ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, PH.total_length);
@@ -202,7 +202,7 @@ void broadcast_vehicle_stats()
    else
       log_line("Broadcast stats: router is not ready. Skip it.");
    if ( NULL != g_pProcessStats )
-      g_pProcessStats->lastIPCOutgoingTime = g_TimeNow; 
+      g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
 }
 
 void _add_hardware_telemetry_info( t_packet_header_ruby_telemetry_extended_v6* pPHRTE )
@@ -246,7 +246,7 @@ void _add_hardware_telemetry_info( t_packet_header_ruby_telemetry_extended_v6* p
       total = (tmp[0] - s_val_cpu[0]) + (tmp[1] - s_val_cpu[1]) + (tmp[2] - s_val_cpu[2]);
       pPHRTE->cpu_load = (total * 100) / (total + (tmp[3] - s_val_cpu[3]));
    }
-   s_val_cpu[0] = tmp[0]; s_val_cpu[1] = tmp[1]; s_val_cpu[2] = tmp[2]; s_val_cpu[3] = tmp[3]; 
+   s_val_cpu[0] = tmp[0]; s_val_cpu[1] = tmp[1]; s_val_cpu[2] = tmp[2]; s_val_cpu[3] = tmp[3];
 
    if ( g_TimeNow < s_time_tx_telemetry_cpu + 5000 )
       return;
@@ -374,7 +374,7 @@ void _send_rc_data_to_FC()
       log_line("Telemetry is set as read only with no requests for data streams. Do not send data to FC.");
       return;
    }
- 
+
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_MAVLINK )
       return;
    if ( telemetry_get_serial_port_file() < 0 )
@@ -401,7 +401,7 @@ void _send_rc_data_to_FC()
 
    g_TimeLastRCSentToFC = g_TimeNow;
    s_is_failsafe = s_pPHDownstreamInfoRC->is_failsafe;
-  
+
    int count = g_pCurrentModel->rc_params.channelsCount;
    if ( count > 18 )
       count = 18;
@@ -481,7 +481,7 @@ void save_model()
    if ( NULL != g_pProcessStats )
       g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
    if ( NULL != g_pProcessStats )
-      g_pProcessStats->lastActiveTime = get_current_timestamp_ms(); 
+      g_pProcessStats->lastActiveTime = get_current_timestamp_ms();
 }
 
 void reload_model(u8 changeType)
@@ -524,7 +524,7 @@ void reload_model(u8 changeType)
 
 
    s_iCurrentDataLinkSerialPortIndex = -1;
-   
+
    for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
        hw_serial_port_info_t* pPortInfo = hardware_get_serial_port_info(i);
@@ -546,7 +546,7 @@ void reload_model(u8 changeType)
    if ( g_pCurrentModel->telemetry_params.fc_telemetry_type != TELEMETRY_TYPE_NONE )
    if ( telemetry_open_serial_port() > 0 )
       s_uTimeToAdjustBalanceInterupts = g_TimeNow + 4000;
- 
+
    bool bLocalVSpeed = false;
    int li = g_pCurrentModel->osd_params.iCurrentOSDScreen;
    if ( li >= 0 && li < MODEL_MAX_OSD_SCREENS )
@@ -621,7 +621,7 @@ bool try_read_messages_from_router()
    {
       log_line("Received notification that router is ready.");
       _open_pipes(false, true);
-      log_line("Opened pipes. Mark router as read.");   
+      log_line("Opened pipes. Mark router as read.");
       g_bRouterReady = true;
       return true;
    }
@@ -660,12 +660,12 @@ bool try_read_messages_from_router()
       log_line("State is paired now.");
       return true;
    }
- 
+
    if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) == PACKET_COMPONENT_LOCAL_CONTROL )
    {
       if ( pPH->packet_type == PACKET_TYPE_LOCAL_CONTROL_MODEL_CHANGED )
       {
-         u8 changeType = (pPH->vehicle_id_src >> 8 ) & 0xFF;      
+         u8 changeType = (pPH->vehicle_id_src >> 8 ) & 0xFF;
          log_line("Received request from router to reload model (change type: %d (%s)).", (int)changeType, str_get_model_change_type((int)changeType));
          reload_model(changeType);
          return true;
@@ -679,7 +679,7 @@ bool try_read_messages_from_router()
          u32 uNewFreq = *pI;
          log_line("Received new model radio link frequency from router (radio link %u new freq: %s). Updating local model copy.", uLinkId+1, str_format_frequency(uNewFreq));
          if ( uLinkId < (u32)g_pCurrentModel->radioLinksParams.links_count )
-         { 
+         {
             g_pCurrentModel->radioLinksParams.link_frequency_khz[uLinkId] = uNewFreq;
             for( int i=0; i<g_pCurrentModel->radioInterfacesParams.interfaces_count; i++ )
             {
@@ -714,13 +714,13 @@ bool try_read_messages_from_router()
    {
       int len = pPH->total_length - sizeof(t_packet_header) - sizeof(t_packet_header_telemetry_raw);
       u8* pTelemetryData = (&s_BufferMessageFromRouter[0]) + sizeof(t_packet_header)+sizeof(t_packet_header_telemetry_raw);
-      t_packet_header_telemetry_raw* pPHTR = (t_packet_header_telemetry_raw*)(&s_BufferMessageFromRouter[sizeof(t_packet_header)]); 
-      
+      t_packet_header_telemetry_raw* pPHTR = (t_packet_header_telemetry_raw*)(&s_BufferMessageFromRouter[sizeof(t_packet_header)]);
+
       #ifdef LOG_RAW_TELEMETRY
       log_line("[Raw_Telem] Received raw telemetry packet from controller, index %u, %d / %d bytes", pPHTR->telem_segment_index, len, pPH->total_length);
       #endif
       if ( s_uRawTelemetryLastReceivedUploadedSegmentIndex != MAX_U32 &&
-           s_uRawTelemetryLastReceivedUploadedSegmentIndex > 10 && 
+           s_uRawTelemetryLastReceivedUploadedSegmentIndex > 10 &&
            pPHTR->telem_segment_index < s_uRawTelemetryLastReceivedUploadedSegmentIndex-10 )
          s_uRawTelemetryLastReceivedUploadedSegmentIndex = MAX_U32;
 
@@ -756,7 +756,7 @@ bool try_read_messages_from_router()
       memcpy((u8*)&segment, pDataLinkData, sizeof(u32));
       pDataLinkData += sizeof(u32);
       if ( s_uDataLinkLastReceivedUploadedSegmentIndex != MAX_U32 &&
-           s_uDataLinkLastReceivedUploadedSegmentIndex > 10 && 
+           s_uDataLinkLastReceivedUploadedSegmentIndex > 10 &&
            segment < s_uDataLinkLastReceivedUploadedSegmentIndex-10 )
          s_uDataLinkLastReceivedUploadedSegmentIndex = MAX_U32;
 
@@ -799,12 +799,12 @@ void send_datalink_data_packet_to_controller()
    PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
    PH.vehicle_id_dest = 0;
    PH.total_length = sizeof(t_packet_header)+sizeof(u32) + dataLinkSerialBufferCount;
-      
+
    u8 buffer[MAX_PACKET_TOTAL_SIZE];
    memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
    memcpy(buffer+sizeof(t_packet_header), (u8*)&s_uDataLinkDownlinkSegmentIndex, sizeof(u32));
    memcpy(buffer+sizeof(t_packet_header)+sizeof(u32), dataLinkSerialBuffer, dataLinkSerialBufferCount);
-   
+
    if ( g_bRouterReady && (! g_bLongTaskStarted) && (! s_bRadioInterfacesReinitIsInProgress) )
    {
       int result = ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, PH.total_length);
@@ -830,10 +830,10 @@ void try_read_serial_datalink()
    to.tv_sec = 0;
    to.tv_usec = 2000; // 2 ms
 
-   fd_set readset;   
+   fd_set readset;
    FD_ZERO(&readset);
    FD_SET(s_iSerialDataLinkFileHandle, &readset);
-   
+
    int res = select(s_iSerialDataLinkFileHandle+1, &readset, NULL, NULL, &to);
    if ( res <= 0 )
       return;
@@ -923,7 +923,7 @@ void check_send_telemetry_to_controller()
       #endif
 
       sPHRTE.uExtraRubyFlags = 0;
-      
+
       t_packet_header_ruby_telemetry_extended_extra_info PHTExtraInfo;
 
       memset((u8*)&PHTExtraInfo, 0, sizeof(t_packet_header_ruby_telemetry_extended_extra_info));
@@ -945,7 +945,7 @@ void check_send_telemetry_to_controller()
       if ( g_TimeNow > 500 )
       if ( g_SM_RadioStats.radio_interfaces[g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId].timeLastRxPacket+500 > g_TimeNow )
          sPHRTE.uRubyFlags |= FLAG_RUBY_TELEMETRY_HAS_RELAY_LINK;
-      
+
       sPHRTE.uRubyFlags &= ~FLAG_RUBY_TELEMETRY_IS_RELAYING;
 
       if ( g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId >= 0 )
@@ -959,14 +959,14 @@ void check_send_telemetry_to_controller()
 
       t_packet_header_ruby_telemetry_extended_extra_info_retransmissions ph_extra_info;
       memset((u8*)&ph_extra_info,0, sizeof(ph_extra_info));
-      
+
       sPHRTE.extraSize = 0;
 
       radio_packet_init(&sPH, PACKET_COMPONENT_TELEMETRY, PACKET_TYPE_RUBY_TELEMETRY_EXTENDED, STREAM_ID_TELEMETRY);
       sPH.vehicle_id_src = g_pCurrentModel->uVehicleId;
       sPH.vehicle_id_dest = 0;
       sPH.total_length = (u16)sizeof(t_packet_header)+(u16)sizeof(t_packet_header_ruby_telemetry_extended_v6) + (u16)sizeof(t_packet_header_ruby_telemetry_extended_extra_info) + (u16)sizeof(t_packet_header_ruby_telemetry_extended_extra_info_retransmissions) + sPHRTE.extraSize;
-      
+
       int dx = 0;
       memcpy(buffer, &sPH, sizeof(t_packet_header));
       dx += sizeof(t_packet_header);
@@ -999,12 +999,12 @@ void check_send_telemetry_to_controller()
          sPH.vehicle_id_src = g_pCurrentModel->uVehicleId;
          sPH.vehicle_id_dest = 0;
          sPH.total_length = (u16)sizeof(t_packet_header)+(u16)sizeof(type_u32_couters);
-      
+
          type_u32_couters dummyCounters; // gets populated by router
          reset_counters(&dummyCounters);
          memcpy(buffer, &sPH, sizeof(t_packet_header));
          memcpy(buffer+sizeof(t_packet_header), &dummyCounters, sizeof(type_u32_couters));
-         
+
          if ( g_bRouterReady && (!g_bLongTaskStarted) && (! s_bRadioInterfacesReinitIsInProgress) )
          {
             int result = ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, sPH.total_length);
@@ -1017,7 +1017,7 @@ void check_send_telemetry_to_controller()
 
    //----------------------------------------
    // Send short Ruby telemetry
-   
+
    if ( bDidSentRubyTelemetry )
    if ( hardware_radio_has_low_capacity_links() )
    {
@@ -1044,7 +1044,7 @@ void check_send_telemetry_to_controller()
          PHRTShort.altitude_abs = pFCTelem->altitude_abs; // 1/100 meters -1000 m
          PHRTShort.distance = pFCTelem->distance; // 1/100 meters
          PHRTShort.heading = pFCTelem->heading;
-         
+
          PHRTShort.vspeed = pFCTelem->vspeed; // 1/100 meters -1000 m
          PHRTShort.aspeed = pFCTelem->aspeed; // airspeed (1/100 meters - 1000 m)
          PHRTShort.hspeed = pFCTelem->hspeed; // 1/100 meters -1000 m
@@ -1054,17 +1054,17 @@ void check_send_telemetry_to_controller()
       sPH.vehicle_id_dest = 0;
       sPH.packet_flags_extended |= PACKET_FLAGS_EXTENDED_BIT_SEND_ON_LOW_CAPACITY_LINK_ONLY;
       sPH.total_length = (u16)sizeof(t_packet_header) + (u16)sizeof(t_packet_header_ruby_telemetry_short);
-      
+
       memcpy(buffer, &sPH, sizeof(t_packet_header));
       memcpy(buffer+sizeof(t_packet_header), &PHRTShort, sizeof(t_packet_header_ruby_telemetry_short));
-      
+
       if ( g_bRouterReady && (! isRadioLinksInitInProgress()) )
       {
          int result = ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, sPH.total_length);
          if ( result != sPH.total_length )
             log_softerror_and_alarm("Failed to send data to router. Sent result: %d", result );
       }
-   } 
+   }
 
    // ----------------------------------
    // Send FC Telemetry packet
@@ -1118,7 +1118,7 @@ void check_send_telemetry_to_controller()
          memcpy(buffer, &sPH, sizeof(t_packet_header));
          memcpy(buffer+sizeof(t_packet_header), (u8*)&s_uLastRadioRxHistorySentInterface, sizeof(u32));
          memcpy(buffer+sizeof(t_packet_header) + sizeof(u32), (u8*)&(s_pSM_HistoryRxStats->interfaces_history[s_uLastRadioRxHistorySentInterface]), sizeof(shared_mem_radio_stats_interface_rx_hist));
-         
+
          if ( g_bRouterReady && (! s_bRadioInterfacesReinitIsInProgress) )
          {
             int result = ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, sPH.total_length);
@@ -1130,7 +1130,7 @@ void check_send_telemetry_to_controller()
          if ( NULL != g_pProcessStats )
             g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
       }
-   }   
+   }
 
    if ( ! bDidSentRubyTelemetry )
       return;
@@ -1148,7 +1148,7 @@ void check_send_telemetry_to_controller()
       else
          log_line("Opened shared mem video info stats for reading.");
    }
-   
+
    if ( NULL == s_pSM_VideoInfoStatsRadioOut )
    {
       s_pSM_VideoInfoStatsRadioOut = shared_mem_video_frames_stats_radio_out_open_for_read();
@@ -1157,7 +1157,7 @@ void check_send_telemetry_to_controller()
       else
          log_line("Opened shared mem video info stats radio out for reading.");
    }
-   
+
    if ( (NULL != g_pCurrentModel) && (NULL != s_pSM_VideoInfoStats) && (NULL != s_pSM_VideoInfoStatsRadioOut) )
    if ( g_pCurrentModel->osd_params.osd_flags[g_pCurrentModel->osd_params.iCurrentOSDScreen] & OSD_FLAG_SHOW_STATS_VIDEO_H264_FRAMES_INFO)
    {
@@ -1169,7 +1169,7 @@ void check_send_telemetry_to_controller()
       memcpy(buffer, &sPH, sizeof(t_packet_header));
       memcpy(buffer+sizeof(t_packet_header), (u8*)s_pSM_VideoInfoStats, sizeof(shared_mem_video_frames_stats));
       memcpy(buffer+sizeof(t_packet_header) + sizeof(shared_mem_video_frames_stats), (u8*)s_pSM_VideoInfoStatsRadioOut, sizeof(shared_mem_video_frames_stats));
-      
+
       if ( g_bRouterReady && (! g_bLongTaskStarted) && (! s_bRadioInterfacesReinitIsInProgress) )
       {
          int result = ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, sPH.total_length);
@@ -1223,7 +1223,7 @@ void check_send_telemetry_to_controller()
 
       memcpy(buffer, &sPH, sizeof(t_packet_header));
       memcpy(buffer+sizeof(t_packet_header), &PHFCRCChannels, sizeof(t_packet_header_fc_rc_channels));
-      
+
       int result = ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, sPH.total_length);
       if ( result != sPH.total_length )
          log_softerror_and_alarm("Failed to send data to router. Sent result: %d", result );
@@ -1246,7 +1246,7 @@ void check_send_telemetry_to_controller()
 
       memcpy(buffer, &sPH, sizeof(t_packet_header));
       memcpy(buffer+sizeof(t_packet_header), (u8*)s_pPHDownstreamInfoRC, sizeof(t_packet_header_rc_info_downstream));
-      
+
       if ( g_bRouterReady && (! g_bLongTaskStarted) && (! s_bRadioInterfacesReinitIsInProgress) )
       {
          int result = ruby_ipc_channel_send_message(s_fIPCToRouter, buffer, sPH.total_length);
@@ -1264,10 +1264,10 @@ void _periodic_loop()
 {
    if ( g_TimeNow > s_uTimeLastCheckForRadioReinit + 2000 )
    {
-      s_uTimeLastCheckForRadioReinit = g_TimeNow; 
+      s_uTimeLastCheckForRadioReinit = g_TimeNow;
       char szFile[128];
       strcpy(szFile, FOLDER_RUBY_TEMP);
-      strcat(szFile, FILE_TEMP_REINIT_RADIO_IN_PROGRESS);  
+      strcat(szFile, FILE_TEMP_REINIT_RADIO_IN_PROGRESS);
       if ( access(szFile, R_OK) != -1 )
          s_bRadioInterfacesReinitIsInProgress = true;
       else
@@ -1281,7 +1281,7 @@ void check_open_datalink_serial_port()
 
    s_iCurrentDataLinkSerialPortIndex = -1;
    hw_serial_port_info_t* pPortInfo = NULL;
-       
+
    for( int i=0; i<hardware_serial_get_ports_count(); i++ )
    {
        pPortInfo = hardware_get_serial_port_info(i);
@@ -1301,7 +1301,7 @@ void check_open_datalink_serial_port()
       return;
 
    hardware_configure_serial(pPortInfo->szPortDeviceName, pPortInfo->lPortSpeed);
-   
+
    log_line("Opening serial port %s (%s) for auxiliary data link (baud rate: %u) ...", pPortInfo->szName, pPortInfo->szPortDeviceName, (int)pPortInfo->lPortSpeed);
    s_iSerialDataLinkFileHandle = hardware_open_serial_port(pPortInfo->szPortDeviceName, pPortInfo->lPortSpeed);
    if ( -1 == s_iSerialDataLinkFileHandle )
@@ -1376,20 +1376,20 @@ void _init_telemetry_structures()
 
 void _main_loop();
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line_forced_to_file("--------------------------");
    log_line_forced_to_file("Caught signal to stop: %d", sig);
    log_line_forced_to_file("--------------------------");
    g_bQuit = true;
-} 
+}
 
 int main(int argc, char *argv[])
 {
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
- 
+
    if ( strcmp(argv[argc-1], "-ver") == 0 )
    {
       printf("%d.%d (b-%d)", SYSTEM_SW_VERSION_MAJOR, SYSTEM_SW_VERSION_MINOR, SYSTEM_SW_BUILD_NUMBER);
@@ -1404,7 +1404,7 @@ int main(int argc, char *argv[])
    radio_packets_log_sizes();
 
    hardware_detectBoardAndSystemType();
-  
+
    if ( strcmp(argv[argc-1], "-debug") == 0 )
       log_enable_stdout();
 
@@ -1412,7 +1412,7 @@ int main(int argc, char *argv[])
    load_VehicleSettings();
    loadAllModels();
    g_pCurrentModel = getCurrentModel();
- 
+
    if ( g_pCurrentModel->uModelFlags & MODEL_FLAG_DISABLE_ALL_LOGS )
    {
       log_line("Log is disabled on vehicle. Disabled logs.");
@@ -1420,7 +1420,7 @@ int main(int argc, char *argv[])
    }
 
    _open_pipes(true, false);
-   
+
    open_shared_mem_objects();
 
    if ( g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_LOG_ONLY_ERRORS )
@@ -1457,7 +1457,7 @@ int main(int argc, char *argv[])
    process_stats_reset(g_pProcessStats, g_TimeNow);
 
    s_iCurrentDataLinkSerialPortIndex = -1;
-   
+
    for( int i=0; i<g_pCurrentModel->hardwareInterfacesInfo.serial_port_count; i++ )
    {
        if ( g_pCurrentModel->hardwareInterfacesInfo.serial_port_supported_and_usage[i] & MODEL_SERIAL_PORT_BIT_SUPPORTED )
@@ -1472,13 +1472,13 @@ int main(int argc, char *argv[])
 
    _init_telemetry_structures();
 
-   log_line("OSD plugins %s", g_bOSDPluginsNeedTelemetryStreams?"need full telemetry stream":"don't need full telemetry stream"); 
+   log_line("OSD plugins %s", g_bOSDPluginsNeedTelemetryStreams?"need full telemetry stream":"don't need full telemetry stream");
    log_line("Telemetry will send full telemetry back to controller? %s", telemetry_will_send_full_telemetry_to_controller()?"Yes":"No");
 
    g_TimeStart = get_current_timestamp_ms();
 
    broadcast_vehicle_stats();
-   
+
    check_open_datalink_serial_port();
 
    log_line("Started TX Telemetry. Running now.");
@@ -1506,7 +1506,7 @@ int main(int argc, char *argv[])
    if ( NULL != s_pSemaphoreStop )
       sem_close(s_pSemaphoreStop);
    sem_unlink(SEMAPHORE_STOP_VEHICLE_TELEM_TX);
-   
+
    //shared_mem_video_frames_stats_close(s_pSM_VideoInfoStats);
    //shared_mem_video_frames_stats_radio_out_close(s_pSM_VideoInfoStatsRadioOut);
    shared_mem_process_stats_close(SHARED_MEM_WATCHDOG_TELEMETRY_TX, g_pProcessStats);
@@ -1515,7 +1515,7 @@ int main(int argc, char *argv[])
    #ifdef FEATURE_ENABLE_RC
    shared_mem_rc_downstream_info_close(s_pPHDownstreamInfoRC);
    #endif
-   
+
    ruby_close_ipc_channel(s_fIPCToRouter);
    ruby_close_ipc_channel(s_fIPCFromRouter);
    s_fIPCToRouter = -1;
@@ -1563,7 +1563,7 @@ void _main_loop()
       }
 
       _periodic_loop();
-      
+
       if ( (g_pCurrentModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_NONE) || (! g_bRouterReady) )
          iSleepTime = iMaxSleepIntervalMs;
       else
@@ -1596,7 +1596,7 @@ void _main_loop()
                hardware_balance_interupts();
          }
       }
-      
+
       try_read_serial_datalink();
 
       if ( g_pCurrentModel->rc_params.uRCFlags & RC_FLAGS_ENABLED )
@@ -1624,7 +1624,7 @@ void _main_loop()
          _send_rc_data_to_FC();
       }
 
-      if ( dataLinkSerialBufferCount >= AUXILIARY_DATA_LINK_MIN_SEND_LENGTH || 
+      if ( dataLinkSerialBufferCount >= AUXILIARY_DATA_LINK_MIN_SEND_LENGTH ||
           (dataLinkSerialBufferCount > 0 && g_TimeNow >= dataLinkSerialBufferLastSendTime + AUXILIARY_DATA_LINK_SEND_TIMEOUT ) )
          send_datalink_data_packet_to_controller();
 

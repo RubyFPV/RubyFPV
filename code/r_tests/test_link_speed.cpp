@@ -14,11 +14,11 @@ bool quit = false;
 #define UPLINK 1
 #define DOWNLINK 2
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    quit = true;
-} 
+}
 
 
 int main(int argc, char *argv[])
@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
       printf("\nYou must specify rx or tx: test_link_speed [rx/tx] [delay ms]\n");
       return -1;
    }
-   
+
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
          static u8 rawPacket[MAX_PACKET_TOTAL_SIZE];
          int totalLength = radio_build_packet(rawPacket, packet, PH.total_length, UPLINK, 0);
          write_packet_to_radio(sock, rawPacket, totalLength);
-         log_line("Sent Ping, counter: %d", uPingId); 
+         log_line("Sent Ping, counter: %d", uPingId);
       }
 
       long miliSec = 2;
@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
       struct timeval to;
       to.tv_sec = 0;
       to.tv_usec = miliSec*1000;
-         
+
       int maxfd = -1;
       FD_ZERO(&readset);
       for(int i=0; i<hardware_get_radio_interfaces_count(); ++i)
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
             FD_SET(pNICInfo->runtimeInterfaceInfoRx.selectable_fd, &readset);
             if ( pNICInfo->runtimeInterfaceInfoRx.selectable_fd > maxfd )
                maxfd = pNICInfo->runtimeInterfaceInfoRx.selectable_fd;
-         } 
+         }
       }
       int n = select(maxfd+1, &readset, NULL, NULL, &to);
       if(n == 0)
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
             u8* pBuffer = NULL;
             int bCRCOk = 0;
             int okPacket = 0;
-            pBuffer = radio_process_wlan_data_in(i, &length, NULL, g_TimeNow); 
+            pBuffer = radio_process_wlan_data_in(i, &length, NULL, g_TimeNow);
             if ( NULL == pBuffer )
             {
                printf("NULL receive buffer. Ignoring...");
@@ -150,8 +150,8 @@ int main(int argc, char *argv[])
             int lastDBM = pNICInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nDbm;
             int lastDataRate = pNICInfo->runtimeInterfaceInfoRx.radioHwRxInfo.nDataRateBPSMCS;
 
-            t_packet_header* pPH = (t_packet_header*)pBuffer; 
-            
+            t_packet_header* pPH = (t_packet_header*)pBuffer;
+
             //okPacket = packet_process_and_check(i, pBuffer, length, NULL, &bCRCOk);
 
             if ( pPH->packet_type == PACKET_TYPE_RUBY_PING_CLOCK_REPLY )
@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
                u8 rawPacket[MAX_PACKET_TOTAL_SIZE];
                int totalLength = radio_build_packet(rawPacket, packet, PH.total_length, DOWNLINK, 0);
                write_packet_to_radio(sock, rawPacket, totalLength);
-               //log_line("Sent Ping response, counter: %d", pingId); 
+               //log_line("Sent Ping response, counter: %d", pingId);
             }
          }
       }

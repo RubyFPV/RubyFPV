@@ -114,7 +114,7 @@ void MenuText::computeRenderSizes()
            }
        }
        m_RenderHeight += 0.5*m_sfMenuPaddingY;
-   
+
    m_bInvalidated = false;
 }
 
@@ -127,7 +127,7 @@ void MenuText::Render()
       m_bInvalidated = false;
    }
 
-   float yTop = RenderFrameAndTitle(); 
+   float yTop = RenderFrameAndTitle();
    float y = yTop;
 
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);

@@ -17,9 +17,9 @@ class MenuColorPicker: public Menu
       virtual void onSelectItem();
       virtual void onItemValueChanged(int itemIndex);
       virtual void valuesToUI();
-      
+
       int m_ColorType;
- 
+
    private:
       MenuItemSlider* m_pItemsSlider[10];
       MenuItemSelect* m_pItemsSelect[10];

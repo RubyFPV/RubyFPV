@@ -100,7 +100,7 @@ void MenuVehicleRadioConfig::onAddToStack()
          i+1, str_get_radio_card_model_string(iCardModel), iPowerRaw, iPowerMw, g_pCurrentModel->radioInterfacesParams.interface_raw_power[i]);
 
       if ( iCardModel == CARD_MODEL_RTL8812AU_DUAL_ANTENNA )
-        bShowTxWarning = true;   
+        bShowTxWarning = true;
    }
 
    if ( bShowTxWarning )
@@ -110,7 +110,7 @@ void MenuVehicleRadioConfig::onAddToStack()
          sprintf(szText, L("Your radio interface (%s) has multiple cloned variants manufactured. Tx power varies depending on clone manufacturer, so a certain value can't be established."), str_get_radio_card_model_string(CARD_MODEL_RTL8812AU_DUAL_ANTENNA));
       else
          sprintf(szText, L("Some of your radio interfaces (%s) have multiple cloned variants manufactured. Tx power varies depending on clone manufacturer, so a certain value can't be established."), str_get_radio_card_model_string(CARD_MODEL_RTL8812AU_DUAL_ANTENNA));
-         
+
       addMessage2(0, L("Variable Tx Power"),szText);
    }
 }
@@ -157,7 +157,7 @@ void MenuVehicleRadioConfig::populate()
    m_pItemsSelect[3]->setEnabled(true);
    m_pItemsSelect[3]->setSelectedIndex(0);
    if ( g_pCurrentModel->uModelFlags & MODEL_FLAG_PRIORITIZE_UPLINK )
-      m_pItemsSelect[3]->setSelectedIndex(1); 
+      m_pItemsSelect[3]->setSelectedIndex(1);
 
    m_pItemsSelect[4]->setSelectedIndex(0);
    if ( g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_DOWNLINK_ONLY )
@@ -183,17 +183,17 @@ void MenuVehicleRadioConfig::populate()
    {
       m_pItemsSelect[2]->setSelectedIndex(0);
       if ( g_pCurrentModel->enc_flags & MODEL_ENC_FLAG_ENC_VIDEO )
-         m_pItemsSelect[2]->setSelectedIndex(1); 
+         m_pItemsSelect[2]->setSelectedIndex(1);
 
       if ( g_pCurrentModel->enc_flags & MODEL_ENC_FLAG_ENC_DATA )
-         m_pItemsSelect[2]->setSelectedIndex(2); 
+         m_pItemsSelect[2]->setSelectedIndex(2);
 
       if ( g_pCurrentModel->enc_flags & MODEL_ENC_FLAG_ENC_DATA )
       if ( g_pCurrentModel->enc_flags & MODEL_ENC_FLAG_ENC_VIDEO )
-         m_pItemsSelect[2]->setSelectedIndex(3); 
+         m_pItemsSelect[2]->setSelectedIndex(3);
 
       if ( g_pCurrentModel->enc_flags & MODEL_ENC_FLAG_ENC_ALL )
-         m_pItemsSelect[2]->setSelectedIndex(4); 
+         m_pItemsSelect[2]->setSelectedIndex(4);
 
       if ( ! m_bControllerHasKey )
       {
@@ -247,7 +247,7 @@ void MenuVehicleRadioConfig::populateFrequencies()
    for( int iRadioLinkId=0; iRadioLinkId<g_pCurrentModel->radioLinksParams.links_count; iRadioLinkId++ )
    {
       m_IndexFreq[iRadioLinkId] = -1;
-      
+
       int iRadioInterfaceId = g_pCurrentModel->getRadioInterfaceIndexForRadioLink(iRadioLinkId);
       if ( -1 == iRadioInterfaceId )
       {
@@ -256,7 +256,7 @@ void MenuVehicleRadioConfig::populateFrequencies()
       }
 
       str_get_supported_bands_string(g_pCurrentModel->radioInterfacesParams.interface_supported_bands[iRadioInterfaceId], szBuff);
-      log_line("MenuVehicleRadio: Vehicle radio interface %d (used on vehicle radio link %d) supported bands: %s", 
+      log_line("MenuVehicleRadio: Vehicle radio interface %d (used on vehicle radio link %d) supported bands: %s",
          iRadioInterfaceId+1, iRadioLinkId+1, szBuff);
 
       if ( g_pCurrentModel->radioInterfacesParams.interface_card_model[iRadioInterfaceId] == CARD_MODEL_SERIAL_RADIO_ELRS )
@@ -279,7 +279,7 @@ void MenuVehicleRadioConfig::populateFrequencies()
       strcpy(szTooltip, L("Sets the radio link frequency for this radio link."));
       snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), " Radio type: %s.", str_get_radio_card_model_string(g_pCurrentModel->radioInterfacesParams.interface_card_model[iRadioInterfaceId]));
       strcat(szTooltip, szBuff);
-      
+
       int iCountInterfacesAssignedToThisLink = 0;
       for( int i=0; i<g_SM_RadioStats.countLocalRadioInterfaces; i++ )
       {
@@ -342,7 +342,7 @@ void MenuVehicleRadioConfig::populateFrequencies()
          log_line("MenuVehicleRadio: Added %d frequencies to selector for radio link %d", m_SupportedChannelsCount[iRadioLinkId], iRadioLinkId+1);
          m_SupportedChannelsCount[iRadioLinkId] = getSupportedChannels( uControllerAllSupportedBands & g_pCurrentModel->radioInterfacesParams.interface_supported_bands[iRadioInterfaceId], 0, &(m_SupportedChannels[iRadioLinkId][0]), 100);
          log_line("MenuVehicleRadio: %d frequencies supported for radio link %d", m_SupportedChannelsCount[iRadioLinkId], iRadioLinkId+1);
-         
+
          int selectedIndex = 0;
          for( int ch=0; ch<m_SupportedChannelsCount[iRadioLinkId]; ch++ )
          {
@@ -374,7 +374,7 @@ void MenuVehicleRadioConfig::populateTxPowers()
 {
    for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
       m_IndexTxPowers[i] = -1;
-   
+
    for( int iLink=0; iLink<g_pCurrentModel->radioLinksParams.links_count; iLink++ )
    {
       int iVehicleLinkPowerMaxMw = 0;
@@ -409,7 +409,7 @@ void MenuVehicleRadioConfig::populateTxPowers()
       if ( g_pCurrentModel->radioLinksParams.links_count > 1 )
          sprintf(szTitle, L("Radio Link %d Tx Power (mw)"), iLink+1);
       if ( ! is_vehicle_radio_link_used(g_pCurrentModel, &g_SM_RadioStats, iLink) )
-         strcat(szTitle, " (Not used)");        
+         strcat(szTitle, " (Not used)");
       m_pItemsSelect[40+iLink] = createMenuItemTxPowers(szTitle, false, bBoost2W, bBoost4W, iVehicleLinkPowerMaxMw);
       m_IndexTxPowers[iLink] = addMenuItem(m_pItemsSelect[40+iLink]);
       selectMenuItemTxPowersValue(m_pItemsSelect[40+iLink], false, bBoost2W, bBoost4W, &(iLinkPowersMw[0]), iCountLinkInterfaces, iVehicleLinkPowerMaxMw);
@@ -478,7 +478,7 @@ void MenuVehicleRadioConfig::valuesToUI()
 void MenuVehicleRadioConfig::Render()
 {
    RenderPrepare();
-   
+
    float yTop = RenderFrameAndTitle();
    float y = yTop;
 
@@ -577,9 +577,9 @@ void MenuVehicleRadioConfig::sendNewRadioLinkFrequency(int iVehicleLinkIndex, u3
 
    type_radio_links_parameters newRadioLinkParams;
    memcpy((u8*)&newRadioLinkParams, (u8*)&(g_pCurrentModel->radioLinksParams), sizeof(type_radio_links_parameters));
-   
+
    newRadioLinkParams.link_frequency_khz[iVehicleLinkIndex] = uNewFreqKhz;
-   
+
    if ( 0 == memcmp((u8*)&newRadioLinkParams, (u8*)&(g_pCurrentModel->radioLinksParams), sizeof(type_radio_links_parameters)) )
    {
       log_line("MenuVehicleRadio: No change in radio link frequency. Do not send command.");
@@ -643,7 +643,7 @@ void MenuVehicleRadioConfig::computeSendPowerToVehicle(int iVehicleLinkIndex)
 
       int iCardModel = g_pCurrentModel->radioInterfacesParams.interface_card_model[i];
       int iCardMaxPowerMw = tx_powers_get_max_usable_power_mw_for_card(g_pCurrentModel->hwCapabilities.uBoardType, iCardModel);
- 
+
       int iCardNewPowerMw = iPowerMwToSet;
       if ( iCardNewPowerMw > iCardMaxPowerMw )
          iCardNewPowerMw = iCardMaxPowerMw;
@@ -759,7 +759,7 @@ void MenuVehicleRadioConfig::onSelectItem()
    {
       int index = m_pItemsSelect[20+n]->getSelectedIndex();
       u32 freq = m_SupportedChannels[n][index];
-      int band = getBand(freq);      
+      int band = getBand(freq);
       if ( freq == g_pCurrentModel->radioLinksParams.link_frequency_khz[n] )
          return;
 
@@ -781,7 +781,7 @@ void MenuVehicleRadioConfig::onSelectItem()
       uVehicleRadioInterfacesFrequencies[iRadioInterfaceId] = freq;
 
       const char* szError = controller_validate_radio_settings( g_pCurrentModel, uVehicleRadioInterfacesFrequencies, iVehicleRadioInterfacesCapab, NULL, NULL, NULL);
-      
+
          if ( NULL != szError && 0 != szError[0] )
          {
             log_line(szError);
@@ -859,6 +859,6 @@ void MenuVehicleRadioConfig::onSelectItem()
    if ( (-1 != m_IndexDevRuntimeInfo) && (m_IndexDevRuntimeInfo == m_SelectedIndex) )
    {
       add_menu_to_stack(new MenuVehicleRadioRuntimeCapabilities());
-      return;    
+      return;
    }
 }

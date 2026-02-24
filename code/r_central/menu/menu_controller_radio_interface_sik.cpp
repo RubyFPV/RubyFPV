@@ -51,7 +51,7 @@ MenuControllerRadioInterfaceSiK::MenuControllerRadioInterfaceSiK(int iInterfaceI
    m_yPos = 0.1;
    m_pPopupProgress = NULL;
    m_iInterfaceIndex = iInterfaceIndex;
-   
+
    load_ControllerInterfacesSettings();
 
    m_IndexName = -1;
@@ -85,9 +85,9 @@ void MenuControllerRadioInterfaceSiK::valuesToUI()
        return;
 
    radio_hw_info_t* pNIC = hardware_get_radio_info(m_iInterfaceIndex);
-      
+
    t_ControllerRadioInterfaceInfo* pCardInfo = controllerGetRadioCardInfo(pNIC->szMAC);
-      
+
    if ( NULL == pCardInfo )
       return;
 
@@ -207,9 +207,9 @@ bool MenuControllerRadioInterfaceSiK::setCardFlags()
 
    cardFlags |= RADIO_HW_CAPABILITY_FLAG_CAN_RX | RADIO_HW_CAPABILITY_FLAG_CAN_TX;
    controllerSetCardTXRX(pNIC->szMAC);
-   
+
    cardFlags |= RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_DATA;
-   
+
    controllerSetCardFlags(pNIC->szMAC, cardFlags);
    save_ControllerInterfacesSettings();
    return true;

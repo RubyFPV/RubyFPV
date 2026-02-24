@@ -7,7 +7,7 @@
 #include <sys/resource.h>
 #include <stdio.h>
 #include <sys/stat.h>
-#include <sys/socket.h> 
+#include <sys/socket.h>
 
 
 bool bQuit = false;
@@ -115,7 +115,7 @@ bool _parse_udp_packet(u8* pBuffer, int iLength)
    uNALStart[2] = 0;
    uNALStart[3] = 0x01;
 
-   
+
    static bool bFirstWrite = true;
    if ( bFirstWrite )
    //if ( uBytesWritten > 10000 )
@@ -187,12 +187,12 @@ bool _parse_udp_packet(u8* pBuffer, int iLength)
    return true;
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    bQuit = true;
-} 
-  
+}
+
 int main(int argc, char *argv[])
 {
    signal(SIGINT, handle_sigint);
@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
    log_line("\nStarted.\n");
 
    int udpport = atoi(argv[1]);
-   
+
    for( int i=2; i<5; i++ )
    {
       if ( argc > i )
@@ -224,7 +224,7 @@ int main(int argc, char *argv[])
 
    log_line("Use file: %s", bFile?"Yes":"No");
    log_line("Summary: %s", bSummary?"Yes":"No");
-  
+
    if ( bFile )
    {
       hw_execute_bash_command("rm -rf fileout.h264", NULL);
@@ -233,7 +233,7 @@ int main(int argc, char *argv[])
 
    int socket_server, socket_client;
    struct sockaddr_in server_addr, client_addr;
-	
+
    socket_server = socket(AF_INET , SOCK_DGRAM, 0);
    if (socket_server == -1)
    {
@@ -243,11 +243,11 @@ int main(int argc, char *argv[])
 
    memset(&server_addr, 0, sizeof(server_addr));
    memset(&client_addr, 0, sizeof(client_addr));
-    
+
    server_addr.sin_family = AF_INET;
    server_addr.sin_addr.s_addr = INADDR_ANY;
    server_addr.sin_port = htons( udpport );
-	
+
    client_addr.sin_family = AF_INET;
    client_addr.sin_addr.s_addr = INADDR_ANY;
    client_addr.sin_port = htons( udpport );
@@ -264,7 +264,7 @@ int main(int argc, char *argv[])
    u32 uTimeNow;
    u32 uLastTimeSecond = get_current_timestamp_ms();
    u32 uLoopsPerSec = 0;
-   
+
    while (!bQuit)
    {
       uTimeNow = get_current_timestamp_ms();
@@ -306,7 +306,7 @@ int main(int argc, char *argv[])
 
       u8 uBuffer[2025];
       socklen_t len = sizeof(client_addr);
-      int nRecv = recvfrom(socket_server, uBuffer, 1500, 
+      int nRecv = recvfrom(socket_server, uBuffer, 1500,
                 MSG_WAITALL, ( struct sockaddr *) &client_addr,
                 &len);
       //int nRecv = recv(socket_server, szBuff, 1024, )

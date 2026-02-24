@@ -12,12 +12,12 @@ extern "C" {
 }
 bool bQuit = false;
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    bQuit = true;
-} 
-  
+}
+
 u32 revert(u32 input)
 {
    u32 out = (input & 0xFF) << 8;
@@ -57,7 +57,7 @@ buf[2] = (4096 & 0xFF);
 write(file, buf, 3);
 
 u16 val = (0x2000) | (0x1800) | (0x0180) | (0x0018) | (0x07);
-         
+
 buf[0] = 0x00;
 buf[1] = ((val>>8) & 0xFF);
 buf[2] = (val & 0xFF);
@@ -90,7 +90,7 @@ while ( ! bQuit )
 
    resc = i2c_smbus_read_word_data(file, 0x04);
    resc = revert(resc);
-   
+
        u32 val32 = resv;
        val32 = (val32>>3);
        float amp = resc*0.1;

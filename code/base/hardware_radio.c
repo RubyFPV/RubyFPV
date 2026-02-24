@@ -126,14 +126,14 @@ void hardware_log_radio_info(radio_hw_info_t* pRadioInfoArray, int iCount)
 
    for( int i=0; i<iCount; i++ )
    {
-      log_line("* RadioInterface %d: %s MAC:%s phy#%d, supported: %s, USBPort: %s now at %s;", 
+      log_line("* RadioInterface %d: %s MAC:%s phy#%d, supported: %s, USBPort: %s now at %s;",
          i+1, pRadioInfoArray[i].szName, pRadioInfoArray[i].szMAC, pRadioInfoArray[i].phy_index,
          pRadioInfoArray[i].isSupported?"yes":"no",
          pRadioInfoArray[i].szUSBPort, str_format_frequency(pRadioInfoArray[i].uCurrentFrequencyKhz));
 
-      sprintf( szBuff, "   Type: %s, %s, pid/vid: %s driver: %s, ", 
+      sprintf( szBuff, "   Type: %s, %s, pid/vid: %s driver: %s, ",
          str_get_radio_card_model_string(pRadioInfoArray[i].iCardModel), pRadioInfoArray[i].szDescription, pRadioInfoArray[i].szProductId, pRadioInfoArray[i].szDriver);
-      
+
       char szBands[128];
       str_get_supported_bands_string(pRadioInfoArray[i].supportedBands, szBands);
       strcat( szBuff, szBands);
@@ -353,7 +353,7 @@ int _hardware_detect_card_model(const char* szProductId)
       #else
       return CARD_MODEL_ALFA_AWUS036ACH;
       #endif
-   }     
+   }
 
    if ( NULL != strstr( szProductId, "cf3:9271" ) )
       return CARD_MODEL_TPLINK722N;
@@ -569,7 +569,7 @@ void _hardware_assign_usb_from_physical_ports()
          // Ignore the x-y part
 
          log_line("[HW-R] Found USB port part for radio interface %d: [%s]", i+1, szPort);
-         
+
          int iPosMinus = iPosEnd-1;
          while ( iPosMinus > 0 )
          {
@@ -613,7 +613,7 @@ void _hardware_assign_usb_from_physical_ports()
          log_line("[HW-R] Found USB port part2 for radio interface %d: [%s]", i+1, &(szPort[iPosMinus]));
          sRadioInfo[i].iUSBHubPort = atoi(&(szPort[strlen(szPort)-1]));
          log_line("[HW-R] USB Hub port number for this radio interface %d (%s): %d", i+1, sRadioInfo[i].szName, sRadioInfo[i].iUSBHubPort);
-         
+
          if ( (szPort[iPosMinus] < '0') || (szPort[iPosMinus] > '9') )
          {
             log_line("[HW-R] Invalid port string [%s]. Skipping.", &(szPort[iPosMinus]));
@@ -651,7 +651,7 @@ void _hardware_assign_usb_from_physical_ports()
    }
 
    // Sort the radio interfaces on USB port number
-   
+
    for( int i=0; i<s_iHwRadiosCount-1; i++ )
    for( int j=i+1; j<s_iHwRadiosCount; j++ )
       if ( strncmp( sRadioInfo[i].szUSBPort, sRadioInfo[j].szUSBPort, MAX_RADIO_PORT_NAME_LENGTH-1 ) > 0 )
@@ -721,12 +721,12 @@ int hardware_find_usb_radio_interfaces_info()
          // Go to next line
          iEndLinePos++;
          iStLinePos = iEndLinePos;
-         continue;       
+         continue;
       }
 
       // Parse the line
       //log_line("[HW-R] Parsing USB line: [%s]", &szBuff[iStLinePos]);
-      
+
       char* pBus = strstr(&szBuff[iStLinePos], "Bus");
       char* pDevice = strstr(&szBuff[iStLinePos], "Device");
       char* pUSBId = strstr(&szBuff[iStLinePos], "ID");
@@ -832,18 +832,18 @@ int _hardware_enumerate_wifi_radios()
       log_error_and_alarm("Failed to enumerate 2.4/5.8 radios.");
       return 0;
    }
-   
+
    int iStartIndex = s_iHwRadiosCount;
 
    while (fgets(szBuff, 255, fp) != NULL)
    {
       sscanf(szBuff, "%s", sRadioInfo[s_iHwRadiosCount].szName);
-      
+
       if ( 0 == sRadioInfo[s_iHwRadiosCount].szName[0] )
          continue;
       if ( 0 != strstr(sRadioInfo[s_iHwRadiosCount].szName, "wlx") )
          continue;
-        
+
       log_line("[HW-R] Parsing found wireless radio: [%s]", sRadioInfo[s_iHwRadiosCount].szName);
       if ( 0 == strstr(sRadioInfo[s_iHwRadiosCount].szName, "wlan" ) )
       if ( 0 == strstr(sRadioInfo[s_iHwRadiosCount].szName, "wlx" ) )
@@ -851,7 +851,7 @@ int _hardware_enumerate_wifi_radios()
          log_line("[HW-R] Skipping wireless radio [%s]", sRadioInfo[s_iHwRadiosCount].szName);
          continue;
       }
-      
+
       sRadioInfo[s_iHwRadiosCount].iCardModel = 0;
       sRadioInfo[s_iHwRadiosCount].isSupported = 0;
       sRadioInfo[s_iHwRadiosCount].isSerialRadio = 0;
@@ -1197,9 +1197,9 @@ int hardware_enumerate_radio_interfaces_step(int iStep)
          log_line("[HW-R] HW Enumerate: no existing radio HW info file. Enumerating HW radios from scratch.");
 
       s_iHwRadiosCount = 0;
-   
+
       _hardware_enumerate_wifi_radios();
-      
+
       if ( 0 == s_iHwRadiosCount )
          log_error_and_alarm("[HW-R] No 2.4/5.8 radio modules found!");
       else
@@ -1213,7 +1213,7 @@ int hardware_enumerate_radio_interfaces_step(int iStep)
 
    log_line("[HW-R] Total: %d radios found", s_iHwRadiosCount);
    log_line("=================================================================");
-   
+
    if( iStep == -1 || iStep == 1 )
    {
       hardware_log_radio_info(&sRadioInfo[0], s_iHwRadiosCount);
@@ -1232,7 +1232,7 @@ int hardware_radio_get_class_net_adapters_count()
    szOutput[0] = 0;
    hw_execute_bash_command_raw_silent("ls /sys/class/net/", szOutput);
    removeNewLines(szOutput);
-      
+
    int iCount =0;
    char* szToken = strtok(szOutput, "*");
    while ( NULL != szToken )
@@ -1272,7 +1272,7 @@ int hardware_load_driver_rtl8812au()
    #endif
 
    char szOutput[256];
-   
+
    hw_execute_bash_command("sudo modprobe cfg80211", NULL);
    hw_execute_bash_command("sudo modprobe 88XXau rtw_tx_pwr_idx_override=1 2>&1", szOutput);
    log_line("Modprobe result: [%s]", szOutput);
@@ -1358,7 +1358,7 @@ int hardware_radio_load_radio_modules(int iEchoToConsole)
          printf("Ruby: ERROR: No known USB radio cards found!\n\n");
          fflush(stdout);
       }
-      return 0;    
+      return 0;
    }
 
    #if defined(HW_PLATFORM_RASPBERRY)
@@ -1419,7 +1419,7 @@ int hardware_radio_load_radio_modules(int iEchoToConsole)
       }
       log_line("[HW-R] Found RTL8812EU cards. Loading module...");
 
-      if ( 1 != hardware_load_driver_rtl8812eu() )    
+      if ( 1 != hardware_load_driver_rtl8812eu() )
       {
          log_softerror_and_alarm("[HW-R] Error on loading driver RTL8812EU");
          if ( iEchoToConsole )
@@ -1431,7 +1431,7 @@ int hardware_radio_load_radio_modules(int iEchoToConsole)
       else
       {
          iRTL8812EULoaded = 1;
-         iCountLoaded++;    
+         iCountLoaded++;
       }
    }
 
@@ -1444,7 +1444,7 @@ int hardware_radio_load_radio_modules(int iEchoToConsole)
       }
       log_line("[HW-R] Found RTL8733BU cards. Loading module...");
 
-      if ( 1 != hardware_load_driver_rtl8733bu() )    
+      if ( 1 != hardware_load_driver_rtl8733bu() )
       {
          log_softerror_and_alarm("[HW-R] Error on loading driver RTL8733BU");
          if ( iEchoToConsole )
@@ -1456,7 +1456,7 @@ int hardware_radio_load_radio_modules(int iEchoToConsole)
       else
       {
          iRTL8733BULoaded = 1;
-         iCountLoaded++;    
+         iCountLoaded++;
       }
    }
 
@@ -1501,7 +1501,7 @@ int _hardware_try_install_rtl8812au(char* szSrcDriver)
    strcat(szDriverFullPath, "drivers/");
    strcat(szDriverFullPath, szSrcDriver);
    log_line("[HW-R] Driver file to use: [%s]", szDriverFullPath);
-   
+
    if ( access(szDriverFullPath, R_OK) == -1 )
    {
       log_softerror_and_alarm("[HW-R] Can't access driver file: [%s]", szDriverFullPath);
@@ -1575,7 +1575,7 @@ int hardware_install_driver_rtl8812au(int iEchoToConsole)
    int iRes = _hardware_try_install_rtl8812au(szDriverFile);
    if ( 1 == iRes )
       return iRes;
-  
+
    if ( NULL != strstr(szPlatform, "v7l+") )
       strcpy(szDriverFile, "88XXau-pi.ko");
    else
@@ -1610,7 +1610,7 @@ int _hardware_try_install_rtl8812eu(char* szSrcDriver)
    strcat(szDriverFullPath, "drivers/");
    strcat(szDriverFullPath, szSrcDriver);
    log_line("[HW-R] Driver file to use: [%s]", szDriverFullPath);
-   
+
    if ( access(szDriverFullPath, R_OK) == -1 )
    {
       log_softerror_and_alarm("[HW-R] Can't access driver file: [%s]", szDriverFullPath);
@@ -1899,7 +1899,7 @@ int _configure_radio_interface_atheros(int iInterfaceIndex, radio_hw_info_t* pRa
    if ( 0 != szOutput[0] )
       log_softerror_and_alarm("Unexpected result: [%s]", szOutput);
    hardware_sleep_ms(uDelayMS);
-   
+
    sprintf(szComm, "iw dev %s set monitor none", pRadioHWInfo->szName);
    hw_execute_bash_command(szComm, NULL);
    hardware_sleep_ms(uDelayMS);
@@ -1911,7 +1911,7 @@ int _configure_radio_interface_atheros(int iInterfaceIndex, radio_hw_info_t* pRa
    sprintf(szComm, "ip link set dev %s up", pRadioHWInfo->szName );
    hw_execute_bash_command(szComm, NULL);
    hardware_sleep_ms(uDelayMS);
-   
+
    pRadioHWInfo->iCurrentDataRateBPS = dataRateMb*1000*1000;
 
    return 1;
@@ -1926,7 +1926,7 @@ int _configure_radio_interface_realtek(int iInterfaceIndex, radio_hw_info_t* pRa
    char szOutput[2048];
 
    #ifdef HW_PLATFORM_OPENIPC_CAMERA
-   
+
    sprintf(szComm, "ip link set dev %s up", pRadioHWInfo->szName );
    hw_execute_bash_command(szComm, NULL);
    hardware_sleep_ms(uDelayMS);
@@ -1938,7 +1938,7 @@ int _configure_radio_interface_realtek(int iInterfaceIndex, radio_hw_info_t* pRa
    sprintf(szComm, "iw dev %s set monitor fcsfail", pRadioHWInfo->szName);
    hw_execute_bash_command(szComm, szOutput);
    hardware_sleep_ms(uDelayMS);
-   
+
    return 1;
 
    #endif
@@ -2246,7 +2246,7 @@ int hardware_radio_driver_is_rtl8733bu_card(int iDriver)
 {
    if ( iDriver == RADIO_HW_DRIVER_REALTEK_8733BU )
       return 1;
-   return 0; 
+   return 0;
 }
 
 int hardware_radio_driver_is_atheros_card(int iDriver)
@@ -2303,7 +2303,7 @@ int hardware_radio_is_elrs_radio(radio_hw_info_t* pRadioInfo)
       return 0;
    if ( pRadioInfo->iCardModel != CARD_MODEL_SERIAL_RADIO_ELRS )
       return 0;
-     
+
    return 1;
 }
 
@@ -2326,7 +2326,7 @@ int hardware_radio_index_is_serial_radio(int iHWInterfaceIndex)
    radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(iHWInterfaceIndex);
    if ( NULL == pRadioHWInfo )
       return 0;
-     
+
    return hardware_radio_is_serial_radio(pRadioHWInfo);
 }
 
@@ -2335,7 +2335,7 @@ int hardware_radio_index_is_elrs_radio(int iHWInterfaceIndex)
    radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(iHWInterfaceIndex);
    if ( NULL == pRadioHWInfo )
       return 0;
-     
+
    return hardware_radio_is_elrs_radio(pRadioHWInfo);
 }
 
@@ -2344,7 +2344,7 @@ int hardware_radio_index_is_sik_radio(int iHWInterfaceIndex)
    radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(iHWInterfaceIndex);
    if ( NULL == pRadioHWInfo )
       return 0;
-     
+
    return hardware_radio_is_sik_radio(pRadioHWInfo);
 }
 
@@ -2371,10 +2371,10 @@ int hardware_radioindex_supports_frequency(int iRadioIndex, u32 freqKhz)
    if ( sRadioInfo[iRadioIndex].uCurrentFrequencyKhz == freqKhz )
       return 1;
    int band = getBand(freqKhz);
-   
+
    if ( band & sRadioInfo[iRadioIndex].supportedBands )
       return 1;
-    
+
    return 0;
 }
 
@@ -2387,10 +2387,10 @@ int hardware_radio_supports_frequency(radio_hw_info_t* pRadioInfo, u32 freqKhz)
    if ( ! s_HardwareRadiosEnumeratedOnce )
       hardware_enumerate_radio_interfaces();
    int band = getBand(freqKhz);
-   
+
    if ( band & pRadioInfo->supportedBands )
       return 1;
-    
+
    return 0;
 }
 

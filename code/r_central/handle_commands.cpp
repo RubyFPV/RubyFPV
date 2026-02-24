@@ -67,7 +67,7 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include <math.h>
- 
+
 static bool s_bHasCommandInProgress = false;
 
 static bool s_bHasToSyncCorePluginsInfoFromVehicle = true;
@@ -194,14 +194,14 @@ int handle_commands_on_full_model_settings_received(u32 uVehicleId, int iRespons
       sprintf(szComm, "gzip -df %s/last_recv_model.tar.gz 2>&1", FOLDER_RUBY_TEMP);
       hw_execute_bash_command(szComm, NULL);
       sprintf(szComm, "tar -C %s -xf %s/last_recv_model.tar 2>&1", FOLDER_RUBY_TEMP, FOLDER_RUBY_TEMP);
-      hw_execute_bash_command(szComm, NULL);    
+      hw_execute_bash_command(szComm, NULL);
    }
 
    char szFile[MAX_FILE_PATH_SIZE];
    sprintf(szFile, "%s/model.mdl", FOLDER_RUBY_TEMP);
    if ( 0 == iResponseParam )
       sprintf(szFile, "%s/tmp/model.mdl", FOLDER_RUBY_TEMP);
-   
+
    fd = fopen(szFile, "rb");
    if ( NULL == fd )
    {
@@ -286,7 +286,7 @@ int handle_commands_on_full_model_settings_received(u32 uVehicleId, int iRespons
          g_VehiclesRuntimeInfo[i].uSegmentsModelSettingsCount = 0;
          g_VehiclesRuntimeInfo[i].bWaitingForModelSettings = false;
          log_line("[Commands] Reset temp model download buffers for VID %u, runtime index %d", g_VehiclesRuntimeInfo[i].uVehicleId, i);
-      
+
          if ( g_VehiclesRuntimeInfo[i].uTimeLastReceivedModelSettings != MAX_U32 )
          if ( g_VehiclesRuntimeInfo[i].uTimeLastReceivedModelSettings+5000 > g_TimeNow )
          {
@@ -316,11 +316,11 @@ int handle_commands_on_full_model_settings_received(u32 uVehicleId, int iRespons
       log_softerror_and_alarm("[Commands] Failed to read received model settings from temporary model file (%s)", szFile);
       return -1;
    }
-   
+
    u8 uBuffer[5048];
    int length = fread(uBuffer, 1, 5000, fd);
    fclose(fd);
-   
+
    onEventReceivedModelSettings(modelTemp.uVehicleId, uBuffer, length, false);
    if ( 0 == iResponseParam )
       sprintf(szComm, "rm -rf %s/tmp/model.mdl", FOLDER_RUBY_TEMP);
@@ -342,7 +342,7 @@ void _handle_received_command_response_to_get_all_params_zip(u8* pPacket, int iL
 
    u8* pDataBuffer = pPacket + sizeof(t_packet_header) + sizeof(t_packet_header_command_response);
    int iDataLength = pPH->total_length - sizeof(t_packet_header) - sizeof(t_packet_header_command_response);
-   
+
    // Did we a full, complete, single zip response?
    if ( iDataLength > 500 )
    {
@@ -350,7 +350,7 @@ void _handle_received_command_response_to_get_all_params_zip(u8* pPacket, int iL
       handle_commands_on_full_model_settings_received(pPH->vehicle_id_src, pPHCR->command_response_param, pDataBuffer, iDataLength);
       return;
    }
-   
+
    Model* pModel = findModelWithId(pPH->vehicle_id_src, 6);
    if ( NULL == pModel )
    {
@@ -362,7 +362,7 @@ void _handle_received_command_response_to_get_all_params_zip(u8* pPacket, int iL
    int iSegmentIndex = (int)(*(pDataBuffer+1));
    int iTotalSegments = (int)(*(pDataBuffer+2));
    int iSegmentSize = (int)(*(pDataBuffer+3));
-   
+
    if ( (iSegmentIndex < 0) || (iSegmentIndex > 20) )
    {
       log_softerror_and_alarm("[Commands] Received invalid small segment index %d for model settings. Ignoring it.", iSegmentIndex);
@@ -404,11 +404,11 @@ void _handle_received_command_response_to_get_all_params_zip(u8* pPacket, int iL
    g_VehiclesRuntimeInfo[iRuntimeIndex].uSegmentsModelSettingsIds[iSegmentIndex] = iSegmentUniqueId;
    g_VehiclesRuntimeInfo[iRuntimeIndex].uSegmentsModelSettingsSize[iSegmentIndex] = iSegmentSize;
    g_VehiclesRuntimeInfo[iRuntimeIndex].uSegmentsModelSettingsCount = iTotalSegments;
-   
+
    bool bHasAll = true;
    int iTotalSize = 0;
    u8 bufferAll[4096];
-   
+
    char szTmp[32];
    char szSegments[256];
    szSegments[0] = 0;
@@ -418,14 +418,14 @@ void _handle_received_command_response_to_get_all_params_zip(u8* pPacket, int iL
       if ( (int)g_VehiclesRuntimeInfo[iRuntimeIndex].uSegmentsModelSettingsIds[i] != iSegmentUniqueId )
       {
          bHasAll = false;
-         continue;                   
+         continue;
       }
       if ( g_VehiclesRuntimeInfo[iRuntimeIndex].uSegmentsModelSettingsSize[i] == 0 )
       {
          bHasAll = false;
          continue;
       }
-      
+
       sprintf(szTmp, " %d", i+1);
       strcat(szSegments, szTmp);
       if ( bHasAll )
@@ -458,20 +458,20 @@ void handle_commands_send_current_command()
    PH.vehicle_id_src = g_uControllerId;
    PH.vehicle_id_dest = g_pCurrentModel->uVehicleId;
    PH.total_length = sizeof(t_packet_header)+sizeof(t_packet_header_command) + s_CommandBufferLength;
-   
+
 
    PHC.command_type = s_CommandType;
    PHC.command_counter = s_CommandCounter;
    PHC.command_param = s_CommandParam;
    PHC.command_resend_counter = s_CommandResendCounter;
-  
+
    u8 buffer[MAX_PACKET_TOTAL_SIZE];
    memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
    memcpy(buffer+sizeof(t_packet_header), (u8*)&PHC, sizeof(t_packet_header_command));
    memcpy(buffer+sizeof(t_packet_header)+sizeof(t_packet_header_command), s_CommandBuffer, s_CommandBufferLength);
-   
+
    send_packet_to_router(buffer, PH.total_length);
- 
+
    log_line_commands("[Commands] [Sent] to vId %u, cmd nb. %d, retry %d, type [%s], param: %u, total size: %d bytes, PH: %d bytes, PHC: %d bytes, extra len: %d bytes", g_pCurrentModel->uVehicleId, s_CommandCounter, s_CommandResendCounter, commands_get_description(s_CommandType), s_CommandParam,
      PH.total_length, sizeof(t_packet_header), sizeof(t_packet_header_command), s_CommandBufferLength);
 }
@@ -500,7 +500,7 @@ bool handle_commands_start_on_pairing()
 
    for( u32 u=0; u<MAX_FILE_SEGMENTS_TO_DOWNLOAD; u++ )
       s_pListFileSegments[u] = NULL;
-   
+
    log_line("[Commands] Handled start pairing. Complete.");
    return true;
 }
@@ -540,7 +540,7 @@ void merge_osd_params(osd_parameters_t* pParamsVehicleSrc, osd_parameters_t* pPa
 {
    if ( NULL == pParamsVehicleSrc || NULL == pParamsCtrlDest )
       return;
-         
+
    memcpy(pParamsCtrlDest, pParamsVehicleSrc, sizeof(osd_parameters_t));
 }
 
@@ -602,7 +602,7 @@ void _handle_download_file_response()
    if ( pFileInfo->isReady == 1 )
    {
       if ( pFileInfo->file_id == FILE_ID_VEHICLE_LOGS_ARCHIVE )
-         strcpy(szBuff, "Downloading vehicle logs...");  
+         strcpy(szBuff, "Downloading vehicle logs...");
    }
 
    if ( 0 != szBuff[0] )
@@ -619,7 +619,7 @@ void _handle_download_file_segment_response()
    memcpy((u8*)&flags, pBuffer, sizeof(u32));
    u32 uFileId = flags & 0xFFFF;
    u32 uFileSegment = (flags>>16);
-   
+
    length -= sizeof(u32);
    pBuffer += sizeof(u32);
    log_line("[Commands]: Received file segment %d of %d from vehicle (for file id %d), lenght: %d bytes.", uFileSegment, s_uCountFileSegmentsToDownload, uFileId, length);
@@ -791,7 +791,7 @@ bool handle_last_command_result()
 
          u8* pTmp = s_CommandReplyBuffer + sizeof(t_packet_header) + sizeof(t_packet_header_command_response);
          command_packet_core_plugins_response* pResponse = (command_packet_core_plugins_response*)pTmp;
-         
+
          g_iVehicleCorePluginsCount = pResponse->iCountPlugins;
          if ( g_iVehicleCorePluginsCount < 0 || g_iVehicleCorePluginsCount > MAX_CORE_PLUGINS_COUNT )
             g_iVehicleCorePluginsCount = 0;
@@ -874,7 +874,7 @@ bool handle_last_command_result()
             memcpy(&(g_pCurrentModel->relay_params), pParams, sizeof(type_relay_parameters));
             g_pCurrentModel->validateRadioSettings();
             saveControllerModel(g_pCurrentModel);
-            
+
             log_line("[HandleCommands] Finished updating model. Now doing relay state updates...");
             if ( (g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId < 0) ||
                  (g_pCurrentModel->relay_params.uRelayedVehicleId == 0) )
@@ -918,7 +918,7 @@ bool handle_last_command_result()
                          strcat(szTmp, ", ");
                       strcat(szTmp, szT);
                    }
-                   log_softerror_and_alarm("[HandleCommands] Current vehicles in vehicles runtime info: [%s]", szTmp);                   
+                   log_softerror_and_alarm("[HandleCommands] Current vehicles in vehicles runtime info: [%s]", szTmp);
                 }
                 log_line("[HandleCommands] Assign vehicle runtime index %d (currently has VID: %u) to relayed node VID %u",
                     iIndexEmptySlot, g_VehiclesRuntimeInfo[iIndexEmptySlot].uVehicleId, g_pCurrentModel->relay_params.uRelayedVehicleId);
@@ -928,7 +928,7 @@ bool handle_last_command_result()
 
             u8 uOldRelayMode = oldRelayParams.uCurrentRelayMode;
             oldRelayParams.uCurrentRelayMode = g_pCurrentModel->relay_params.uCurrentRelayMode;
-         
+
             // Only relay mode changed?
 
             if ( 0 == memcmp(&oldRelayParams, &(g_pCurrentModel->relay_params), sizeof(type_relay_parameters)) )
@@ -986,7 +986,7 @@ bool handle_last_command_result()
 
       case COMMAND_ID_SET_SIK_PACKET_SIZE:
          g_pCurrentModel->radioLinksParams.iSiKPacketSize = (int)s_CommandParam;
-         saveControllerModel(g_pCurrentModel);  
+         saveControllerModel(g_pCurrentModel);
          send_model_changed_message_to_router(MODEL_CHANGED_SIK_PACKET_SIZE, s_CommandParam);
          break;
 
@@ -1040,7 +1040,7 @@ bool handle_last_command_result()
               g_pCurrentModel->radioInterfacesParams.iAutoControllerTxPower = 1;
            else
               g_pCurrentModel->radioInterfacesParams.iAutoControllerTxPower = 0;
-           
+
            saveControllerModel(g_pCurrentModel);
            send_model_changed_message_to_router(MODEL_CHANGED_GENERIC, 0);
          }
@@ -1059,14 +1059,14 @@ bool handle_last_command_result()
 
       case COMMAND_ID_SET_MODEL_FLAGS:
          g_pCurrentModel->uModelFlags = s_CommandParam;
-         saveControllerModel(g_pCurrentModel);  
+         saveControllerModel(g_pCurrentModel);
          send_model_changed_message_to_router(MODEL_CHANGED_GENERIC, 0);
          break;
 
 
       case COMMAND_ID_GET_MODULES_INFO:
          pBuffer = s_CommandReplyBuffer + sizeof(t_packet_header) + sizeof(t_packet_header_command_response);
-         
+
          if ( 0 == s_CommandParam )
          {
             s_pMenuVehicleHWInfo = new Menu(0,"Vehicle Modules Info",NULL);
@@ -1089,7 +1089,7 @@ bool handle_last_command_result()
             s_pMenuVehicleHWInfo = new Menu(0,"Vehicle Hardware Info",NULL);
             s_pMenuVehicleHWInfo->m_xPos = 0.18; s_pMenuVehicleHWInfo->m_yPos = 0.16;
             s_pMenuVehicleHWInfo->m_Width = 0.48;
-            s_pMenuVehicleHWInfo->addTopLine(" ");         
+            s_pMenuVehicleHWInfo->addTopLine(" ");
             add_menu_to_stack(s_pMenuVehicleHWInfo);
 
             strncpy(szBuff, (const char*)pBuffer, sizeof(szBuff)/sizeof(szBuff[0]));
@@ -1112,7 +1112,7 @@ bool handle_last_command_result()
          s_pMenuVehicleHWInfo->addTopLine(szBuff);
          s_pMenuVehicleHWInfo->addTopLine(" ");
          s_pMenuVehicleHWInfo->addTopLine(" ");
-         
+
          for( int i=0; i<g_pCurrentModel->radioInterfacesParams.interfaces_count; i++ )
          {
             sprintf(szBuff, "Radio Interface %d: %s, USB port %s,  %s, driver %s", i+1, g_pCurrentModel->radioInterfacesParams.interface_szMAC[i], g_pCurrentModel->radioInterfacesParams.interface_szPort[i], str_get_radio_type_description(g_pCurrentModel->radioInterfacesParams.interface_radiotype_and_driver[i]), str_get_radio_driver_description((g_pCurrentModel->radioInterfacesParams.interface_radiotype_and_driver[i]>>8) & 0xFF));
@@ -1159,7 +1159,7 @@ bool handle_last_command_result()
 
             szWord = strtok(szBuff, "#");
             while( NULL != szWord )
-            {    
+            {
                s_pMenuVehicleHWInfo->addTopLine(szWord);
                szWord = strtok(NULL, "#");
             }
@@ -1243,7 +1243,7 @@ bool handle_last_command_result()
 
         pBuffer = s_CommandReplyBuffer + sizeof(t_packet_header) + sizeof(t_packet_header_command_response);
         log_line("[Commands] Received %d bytes for vehicle USB radio interfaces info.", iDataLength);
-        
+
         char szComm[256];
         char szFileUSB[MAX_FILE_PATH_SIZE];
         sprintf(szFileUSB, "%s/tmp_usb_info.tar", FOLDER_RUBY_TEMP);
@@ -1391,18 +1391,18 @@ bool handle_last_command_result()
          g_pCurrentModel->vehicle_type &= MODEL_FIRMWARE_MASK;
          g_pCurrentModel->vehicle_type |= (s_CommandParam & MODEL_TYPE_MASK);
          g_pCurrentModel->constructLongName();
-         saveControllerModel(g_pCurrentModel);         
+         saveControllerModel(g_pCurrentModel);
          break;
 
       case COMMAND_ID_SET_ENABLE_DHCP:
          log_line("[Commands] Command enable DHCP (0/1) succeeded, enabled: %d", s_CommandParam );
          g_pCurrentModel->enableDHCP = (bool)s_CommandParam;
-         saveControllerModel(g_pCurrentModel);         
+         saveControllerModel(g_pCurrentModel);
          break;
 
       case COMMAND_ID_SET_RC_CAMERA_PARAMS:
          g_pCurrentModel->camera_rc_channels = s_CommandParam;
-         saveControllerModel(g_pCurrentModel);         
+         saveControllerModel(g_pCurrentModel);
          send_model_changed_message_to_router(MODEL_CHANGED_GENERIC, 0);
          break;
 
@@ -1485,7 +1485,7 @@ bool handle_last_command_result()
          if ( tmp < 0 || tmp >= MODEL_CAMERA_PROFILES )
             tmp = 0;
          g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].iCurrentProfile = tmp;
-         saveControllerModel(g_pCurrentModel);  
+         saveControllerModel(g_pCurrentModel);
          send_model_changed_message_to_router(MODEL_CHANGED_CAMERA_PARAMS, 0);
          sprintf(szBuff, "Switched camera %d to profile %s", g_pCurrentModel->iCurrentCamera+1, model_getCameraProfileName(g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].iCurrentProfile));
          warnings_add(pPH->vehicle_id_src, szBuff);
@@ -1536,11 +1536,11 @@ bool handle_last_command_result()
 
             memcpy(&radio_links, &g_pCurrentModel->radioLinksParams, sizeof(type_radio_links_parameters) );
             memcpy(&radio_interfaces, &g_pCurrentModel->radioInterfacesParams, sizeof(type_radio_interfaces_parameters) );
- 
+
             char szFile[MAX_FILE_PATH_SIZE];
             strcpy(szFile, FOLDER_RUBY_TEMP);
             strcat(szFile, "tempVehicleSettings.txt");
-            g_pCurrentModel->loadFromFile(szFile); 
+            g_pCurrentModel->loadFromFile(szFile);
 
             memcpy(&g_pCurrentModel->radioLinksParams, &radio_links, sizeof(type_radio_links_parameters) );
             memcpy(&g_pCurrentModel->radioInterfacesParams, &radio_interfaces, sizeof(type_radio_interfaces_parameters) );
@@ -1599,7 +1599,7 @@ bool handle_last_command_result()
        {
          warnings_remove_configuring_radio_link(true);
          link_reset_reconfiguring_radiolink();
-              
+
          u32 tmpLink = (s_CommandParam>>24) & 0xFF;
          u32 tmpFreq = (s_CommandParam & 0xFFFFFF);
          log_line("[Commands] Received response Ok from vehicle to the link frequency change (new format). Vehicle radio link %u new freq: %s", tmpLink+1, str_format_frequency(tmpFreq));
@@ -1620,7 +1620,7 @@ bool handle_last_command_result()
             data[1] = tmpFreq;
             send_control_message_to_router_and_data(PACKET_TYPE_LOCAL_CONTROL_LINK_FREQUENCY_CHANGED, (u8*)(&data[0]), 2*sizeof(u32));
          }
-        
+
          break;
       }
 
@@ -1655,7 +1655,7 @@ bool handle_last_command_result()
 
       case COMMAND_ID_SET_RXTX_SYNC_TYPE:
          g_pCurrentModel->rxtx_sync_type = s_CommandParam;
-         saveControllerModel(g_pCurrentModel);  
+         saveControllerModel(g_pCurrentModel);
          send_model_changed_message_to_router(MODEL_CHANGED_GENERIC, 0);
          break;
 
@@ -1671,8 +1671,8 @@ bool handle_last_command_result()
                if ( (g_pCurrentModel->radioInterfacesParams.interface_radiotype_and_driver[iRadioInterfaceId] & 0xFF) == RADIO_TYPE_ATHEROS )
                   bIsAtheros = true;
                if ( (g_pCurrentModel->radioInterfacesParams.interface_radiotype_and_driver[iRadioInterfaceId] & 0xFF) == RADIO_TYPE_RALINK )
-                  bIsAtheros = true; 
-            }      
+                  bIsAtheros = true;
+            }
             if ( bIsAtheros )
             {
                g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[linkIndex] = DEFAULT_RADIO_DATARATE_VIDEO_ATHEROS;
@@ -1684,7 +1684,7 @@ bool handle_last_command_result()
             send_model_changed_message_to_router(MODEL_CHANGED_RESET_RADIO_LINK, linkIndex);
             return true;
          }
-         
+
       case COMMAND_ID_SET_RADIO_LINK_FLAGS:
          {
             u32* p = (u32*)&(s_CommandBuffer[0]);
@@ -1775,7 +1775,7 @@ bool handle_last_command_result()
 
       case COMMAND_ID_SET_GPS_INFO:
          g_pCurrentModel->iGPSCount = s_CommandParam;
-         saveControllerModel(g_pCurrentModel);         
+         saveControllerModel(g_pCurrentModel);
          break;
 
       case COMMAND_ID_SET_OSD_PARAMS:
@@ -1792,7 +1792,7 @@ bool handle_last_command_result()
             if ( g_bChangedOSDStatsFontSize )
             {
                g_bChangedOSDStatsFontSize = false;
-               
+
                u32 scale = g_pCurrentModel->osd_params.osd_preferences[g_pCurrentModel->osd_params.iCurrentOSDScreen] & 0xFF;
                osd_setScaleOSD((int)scale);
                scale = (g_pCurrentModel->osd_params.osd_preferences[g_pCurrentModel->osd_params.iCurrentOSDScreen]>>16) & 0x0F;
@@ -1813,7 +1813,7 @@ bool handle_last_command_result()
                g_pCurrentModel->alarms_params.uAlarmMotorCurrentThreshold & (1<<7),
                g_pCurrentModel->alarms_params.uAlarmMotorCurrentThreshold & 0x7F,
                s_CommandBuffer[0] );
-            
+
             saveControllerModel(g_pCurrentModel);
             send_model_changed_message_to_router(MODEL_CHANGED_GENERIC, 0);
             break;
@@ -1980,7 +1980,7 @@ bool _commands_check_send_get_settings()
             );
       }
    }
-   
+
    if ( get_CorePluginsCount() > 0 )
    if ( s_bHasToSyncCorePluginsInfoFromVehicle )
    if ( ! g_bIsReinit )
@@ -1997,7 +1997,7 @@ bool _commands_check_send_get_settings()
       warnings_add(g_pCurrentModel->uVehicleId, "Synchronizing vehicle plugins...");
       handle_commands_send_to_vehicle(COMMAND_ID_GET_CORE_PLUGINS_INFO, 0, NULL, 0);
    }
-   
+
    return false;
 }
 
@@ -2005,7 +2005,7 @@ bool _commands_check_download_file_segments()
 {
    if ( s_bHasCommandInProgress )
       return false;
-   
+
    if ( s_uFileIdToDownload == 0 )
       return false;
 
@@ -2039,7 +2039,7 @@ bool _commands_check_upload_file_segments()
 {
    if ( s_bHasCommandInProgress )
       return false;
-   
+
    if ( ! g_bHasFileUploadInProgress )
       return false;
 
@@ -2052,7 +2052,7 @@ bool _commands_check_upload_file_segments()
    if ( 0 == g_CurrentUploadingFile.uTotalSegments )
    {
       g_bHasFileUploadInProgress = false;
-      return false;    
+      return false;
    }
 
    if ( g_TimeNow < g_CurrentUploadingFile.uTimeLastUploadSegment + 100 )
@@ -2108,14 +2108,14 @@ void _handle_commands_on_command_timeout()
          log_softerror_and_alarm("[Commands] The new radio flags where not acknowledged by vehicle (no confirmation received)." );
 
       log_line("[Commands] Reverting radio links changes to last good ones.");
-      memcpy(&(g_pCurrentModel->radioLinksParams), &g_LastGoodRadioLinksParams, sizeof(type_radio_links_parameters));            
+      memcpy(&(g_pCurrentModel->radioLinksParams), &g_LastGoodRadioLinksParams, sizeof(type_radio_links_parameters));
       g_pCurrentModel->validateRadioSettings();
       saveControllerModel(g_pCurrentModel);
       send_model_changed_message_to_router(MODEL_CHANGED_GENERIC, 0);
-         
+
       warnings_remove_configuring_radio_link(false);
       link_reset_reconfiguring_radiolink();
-            
+
       char szTextW[256];
       sprintf(szTextW, "Your %s radio link does not support this combination of radio params.", g_pCurrentModel->getVehicleTypeString());
       MenuConfirmation* pMC = new MenuConfirmation("Unsupported Parameter", szTextW, -1, true);
@@ -2189,11 +2189,11 @@ void handle_commands_on_response_received(u8* pPacketBuffer, int iLength)
 
    t_packet_header* pPH = (t_packet_header*) pPacketBuffer;
 
-   if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) != PACKET_COMPONENT_COMMANDS ) 
+   if ( (pPH->packet_flags & PACKET_FLAGS_MASK_MODULE) != PACKET_COMPONENT_COMMANDS )
       return;
    if ( pPH->packet_type != PACKET_TYPE_COMMAND_RESPONSE )
       return;
-   
+
    t_packet_header_command_response* pPHCR = (t_packet_header_command_response*)(pPacketBuffer + sizeof(t_packet_header));
    log_line_commands( "[Commands] [Recv] Response from VID %u, cmd resp nb. %d, origin cmd nb. %d, origin retry %d, type [%s], response flags: %s, extra info len. %d]", pPH->vehicle_id_src, pPHCR->response_counter, pPHCR->origin_command_counter, pPHCR->origin_command_resend_counter, commands_get_description(pPHCR->origin_command_type), str_get_command_response_flags_string(pPHCR->command_response_flags), pPH->total_length-sizeof(t_packet_header)-sizeof(t_packet_header_command_response));
 
@@ -2225,7 +2225,7 @@ void handle_commands_on_response_received(u8* pPacketBuffer, int iLength)
 
    // Process this response to the last command sent
    s_CommandLastProcessedResponseToCommandCounter = s_CommandCounter;
-   
+
    memcpy( s_CommandReplyBuffer, pPacketBuffer, pPH->total_length );
    s_CommandReplyLength = pPH->total_length;
 
@@ -2274,7 +2274,7 @@ void handle_commands_on_response_received(u8* pPacketBuffer, int iLength)
 
    if ( NULL != menu_get_top_menu() )
       menu_get_top_menu()->onVehicleCommandFinished(s_CommandCounter, s_CommandType, s_bLastCommandSucceeded);
-   
+
    if ( ! s_bLastCommandSucceeded )
    {
       if ( s_CommandType == COMMAND_ID_SET_RADIO_LINK_FREQUENCY )
@@ -2327,7 +2327,7 @@ bool handle_commands_send_to_vehicle(u8 commandType, u32 param, u8* pBuffer, int
       handle_commands_show_popup_progress();
       return false;
    }
- 
+
    if ( ! link_has_received_main_vehicle_ruby_telemetry() )
       return false;
 
@@ -2456,7 +2456,7 @@ u32 handle_commands_increment_command_counter()
 u32 handle_commands_decrement_command_counter()
 {
    s_CommandCounter--;
-   return s_CommandCounter; 
+   return s_CommandCounter;
 }
 
 bool handle_commands_send_command_once_to_vehicle(u8 commandType, u8 resendCounter, u32 param, u8* pBuffer, int length)
@@ -2497,15 +2497,15 @@ bool handle_commands_send_command_once_to_vehicle(u8 commandType, u8 resendCount
    PHC.command_counter = s_CommandCounter;
    PHC.command_param = param;
    PHC.command_resend_counter = resendCounter;
-  
+
    u8 buffer[MAX_PACKET_TOTAL_SIZE];
    memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
    memcpy(buffer+sizeof(t_packet_header), (u8*)&PHC, sizeof(t_packet_header_command));
    if ( NULL != pBuffer )
       memcpy(buffer+sizeof(t_packet_header)+sizeof(t_packet_header_command), pBuffer, length);
-   
+
    send_packet_to_router(buffer, PH.total_length);
- 
+
    log_line_commands("[CommandsTh] [Sent] to vId %u, cmd nb. %d, retry %d, type [%s], param: %u]", g_pCurrentModel->uVehicleId, s_CommandCounter, resendCounter, commands_get_description(commandType), param);
    return true;
 }
@@ -2551,7 +2551,7 @@ bool handle_commands_send_single_oneway_command_to_vehicle(u32 uVehicleId, u8 re
       PHC.command_counter = s_CommandCounter;
       PHC.command_param = param;
       PHC.command_resend_counter = i;
-  
+
       memcpy(buffer, (u8*)&PH, sizeof(t_packet_header));
       memcpy(buffer+sizeof(t_packet_header), (u8*)&PHC, sizeof(t_packet_header_command));
       memcpy(buffer+sizeof(t_packet_header)+sizeof(t_packet_header_command), pBuffer, length);
@@ -2574,7 +2574,7 @@ bool handle_commands_send_ruby_message(t_packet_header* pPH, u8* pBuffer, int le
    pPH->vehicle_id_src = g_uControllerId;
    pPH->vehicle_id_dest = g_pCurrentModel->uVehicleId;
    pPH->total_length = sizeof(t_packet_header)+length;
-   
+
    u8 buffer[MAX_PACKET_TOTAL_SIZE];
    memcpy(buffer, (u8*)pPH, sizeof(t_packet_header));
    if ( NULL != pBuffer )
@@ -2624,14 +2624,14 @@ void handle_commands_initiate_file_upload(u32 uFileId, const char* szFileName)
    g_CurrentUploadingFile.uTotalSegments = 0;
    g_CurrentUploadingFile.uFileId = uFileId;
    g_CurrentUploadingFile.szFileName[0] = 0;
- 
+
    g_bHasFileUploadInProgress = false;
- 
+
    if ( NULL == szFileName || 0 == szFileName[0] )
       return;
 
    strncpy(g_CurrentUploadingFile.szFileName, szFileName, 127);
- 
+
    FILE* fd = fopen(szFileName, "rb");
    if ( NULL == fd )
    {
@@ -2676,7 +2676,7 @@ void handle_commands_initiate_file_upload(u32 uFileId, const char* szFileName)
    }
 
    log_line("[Commands] Allocated %d bytes for %u segments to upload file [%s] to vehicle.", lSize, g_CurrentUploadingFile.uTotalSegments, g_CurrentUploadingFile.szFileName);
-   
+
    fd = fopen(szFileName, "rb");
    if ( NULL == fd )
    {

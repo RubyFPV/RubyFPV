@@ -57,7 +57,7 @@ void* open_shared_mem(const char* name, int size, int readOnly)
       {
           log_softerror_and_alarm("[SharedMem] Failed to init (ftruncate) shared memory for writing: %s", name);
           close(fd);
-          return NULL;   
+          return NULL;
       }
    }
    void *retval = NULL;
@@ -274,7 +274,7 @@ void update_shared_mem_video_frames_stats(shared_mem_video_frames_stats* pSMVISt
 {
    if ( NULL == pSMVIStats )
       return;
-    
+
    pSMVIStats->uLastTimeStatsUpdate = uTimeNow;
 }
 
@@ -325,7 +325,7 @@ void update_shared_mem_video_frames_stats_on_new_frame(shared_mem_video_frames_s
    uFrameIndex++;
    uFrameIndex = (uFrameIndex % MAX_FRAMES_SAMPLES);
    pSMVFStats->uLastFrameIndex = uFrameIndex;
- 
+
    if ( iFrameType == 1 )
       pSMVFStats->uFramesTypesAndDuration[uFrameIndex] = 0;
    else if ( iFrameType == 5 )

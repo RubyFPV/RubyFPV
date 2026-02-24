@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
    }
 
 
-   
+
    g_pModelVehicle = new Model();
    if ( ! g_pModelVehicle->loadFromFile(argv[argc-1]) )
    {
@@ -31,4 +31,4 @@ int main(int argc, char *argv[])
    else
       log_line("Model loaded correctly.");
    return (0);
-} 
+}

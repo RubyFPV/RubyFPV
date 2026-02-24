@@ -49,7 +49,7 @@ bool loadAllModels()
 {
    log_line("Loading all models from storage...");
    s_bLoadedAllModels = true;
-  
+
    bool bSucceeded = true;
 
    if ( NULL != s_pCurrentModel )
@@ -306,7 +306,7 @@ void moveSpectatorModelToTop(int index)
 {
    if ( index < 0 || index >= s_iModelsSpectatorCount )
       return;
-        
+
    Model* tmp = s_pModelsSpectator[index];
    for( int i=index-1; i >=0; i-- )
    {
@@ -315,7 +315,7 @@ void moveSpectatorModelToTop(int index)
    s_pModelsSpectator[0] = tmp;
 }
 
-Model* getModelAtIndex(int index) 
+Model* getModelAtIndex(int index)
 {
    if ( index < 0 || index >= MAX_MODELS )
       return NULL;
@@ -346,7 +346,7 @@ Model* addNewModel(u32 uVehicleId, int iVersionMajor, int iVersionMinor)
    strcpy(szFile, FOLDER_CONFIG);
    strcat(szFile, FILE_CONFIG_CURRENT_VEHICLE_COUNT);
    save_simple_config_fileI(szFile, s_iModelsCount);
-   
+
    log_line("Added a new model in the controller's models list, VID: %u, software version: %d.%d, b-%d", s_pModels[s_iModelsCount-1]->uVehicleId, get_sw_version_major(s_pModels[s_iModelsCount-1]), get_sw_version_minor(s_pModels[s_iModelsCount-1]), get_sw_version_build(s_pModels[s_iModelsCount-1]));
    return s_pModels[s_iModelsCount-1];
 }
@@ -359,7 +359,7 @@ void replaceModel(int index, Model* pModel)
    if ( (NULL != s_pCurrentModel) && (NULL != s_pModels[index]) )
    if ( s_pCurrentModel->uVehicleId == s_pModels[index]->uVehicleId )
       s_pCurrentModel = pModel;
-   
+
    if ( NULL == s_pModels[index] )
       log_line("Replacing controller model %d, which is NULL, with new VID %u, ptr: %X",
           index, pModel->uVehicleId, pModel);
@@ -478,7 +478,7 @@ Model* deleteModel(Model* pModel)
       return s_pCurrentModel;
    }
 
-   char szFile[MAX_FILE_PATH_SIZE];      
+   char szFile[MAX_FILE_PATH_SIZE];
    bool bDeletedController = false;
    bool bDeletedSpectator = false;
    int pos = 0;
@@ -489,7 +489,7 @@ Model* deleteModel(Model* pModel)
          continue;
 
       log_line("Deleting controller model index %d: VID %u, ptr: %X", pos, pModel->uVehicleId, pModel);
-      
+
       if ( (NULL != s_pCurrentModel) && (s_pModels[pos]->uVehicleId == s_pCurrentModel->uVehicleId) )
       {
          log_line("Model to delete is also the current model. Delete it too.");
@@ -502,7 +502,7 @@ Model* deleteModel(Model* pModel)
          log_line("Deleted current vehicle (VID %u, ptr: %X) model file: %s", s_pCurrentModel->uVehicleId, s_pCurrentModel, szFile);
          s_pCurrentModel = NULL;
       }
-      
+
       for( int i=pos; i<s_iModelsCount-1; i++ )
          s_pModels[i] = s_pModels[i+1];
       s_iModelsCount--;
@@ -517,7 +517,7 @@ Model* deleteModel(Model* pModel)
       strcat(szFile, "bak");
       log_line("Remove model file: (%s)", szFile);
       unlink(szFile);
-      
+
       log_line("Saving %d controller models.", s_iModelsCount);
       strcpy(szFile, FOLDER_CONFIG);
       strcat(szFile, FILE_CONFIG_CURRENT_VEHICLE_COUNT);
@@ -540,7 +540,7 @@ Model* deleteModel(Model* pModel)
          continue;
 
       log_line("Deleting spectator model index %d: VID %u, ptr: %X", pos, pModel->uVehicleId, pModel);
-      
+
       if ( (NULL != s_pCurrentModel) && (s_pModelsSpectator[pos]->uVehicleId == s_pCurrentModel->uVehicleId) )
       {
          log_line("Model to delete is also the current spectator model. Delete it too.");
@@ -553,7 +553,7 @@ Model* deleteModel(Model* pModel)
          log_line("Deleted current vehicle (VID %u, ptr: %X) model file: %s", s_pCurrentModel->uVehicleId, s_pCurrentModel, szFile);
          s_pCurrentModel = NULL;
       }
-      
+
       for( int i=pos; i<s_iModelsSpectatorCount-1; i++ )
          s_pModelsSpectator[i] = s_pModelsSpectator[i+1];
       s_iModelsSpectatorCount--;
@@ -568,7 +568,7 @@ Model* deleteModel(Model* pModel)
       strcat(szFile, "bak");
       log_line("Remove model file: (%s)", szFile);
       unlink(szFile);
-      
+
       log_line("Saving %d spectator models.", s_iModelsSpectatorCount);
       for( int i=pos; i<s_iModelsSpectatorCount; i++ )
       {
@@ -688,7 +688,7 @@ void logControllerModels()
          log_line("Spectator model %d: VID %u, ptr: %X, mode: %s, must sync: %s",
          i+1, s_pModelsSpectator[i]->uVehicleId, s_pModelsSpectator[i], s_pModelsSpectator[i]->is_spectator?"spectator mode":"control mode", s_pModelsSpectator[i]->b_mustSyncFromVehicle?"yes":"no");
    }
-   
+
    if ( NULL != s_pCurrentModel )
       log_line("Current model: VID %u, ptr: %X, mode: %s, must sync: %s",
          s_pCurrentModel->uVehicleId, s_pCurrentModel, s_pCurrentModel->is_spectator?"spectator mode":"control mode", s_pCurrentModel->b_mustSyncFromVehicle?"yes":"no");

@@ -173,7 +173,7 @@ int _radio_dup_detection_get_runtime_index_for_vid(u32 uVehicleId, u8* pPacketBu
       if ( 0 == szBuff[0] )
          strcpy(szBuff, "None");
 
-      log_softerror_and_alarm("[RadioDuplicateDetection] No more room in vehicles list. Received data from VID %u, list of current VIDs (%d): [%s]", 
+      log_softerror_and_alarm("[RadioDuplicateDetection] No more room in vehicles list. Received data from VID %u, list of current VIDs (%d): [%s]",
          uVehicleId, MAX_CONCURENT_VEHICLES, szBuff);
       return -1;
    }
@@ -204,11 +204,11 @@ int radio_dup_detection_is_duplicate_on_stream(int iRadioInterfaceIndex, u8* pPa
       return 1;
 
    t_packet_header* pPH = (t_packet_header*)pPacketBuffer;
-   
+
    u32 uVehicleId = pPH->vehicle_id_src;
    u32 uStreamPacketIndex = (pPH->stream_packet_idx) & PACKET_FLAGS_MASK_STREAM_PACKET_IDX;
-   u32 uStreamIndex = (pPH->stream_packet_idx)>>PACKET_FLAGS_MASK_SHIFT_STREAM_INDEX; 
-   u8 uPacketType = pPH->packet_type;   
+   u32 uStreamIndex = (pPH->stream_packet_idx)>>PACKET_FLAGS_MASK_SHIFT_STREAM_INDEX;
+   u8 uPacketType = pPH->packet_type;
    int iStatsIndex = -1;
 
    iStatsIndex = _radio_dup_detection_get_runtime_index_for_vid(uVehicleId, pPacketBuffer, iPacketLength);
@@ -217,7 +217,7 @@ int radio_dup_detection_is_duplicate_on_stream(int iRadioInterfaceIndex, u8* pPa
 
    t_vehicle_history_packets_indexes* pDupInfo = &s_ListHistoryRxPacketsVehicles[iStatsIndex];
    pDupInfo->uVehicleId = uVehicleId;
-   
+
    static u32 s_TimeLastLogAlarmStreamPacketsVariation = 0;
 
    u32 uMaxDeltaForVideoStream = 2000;
@@ -226,7 +226,7 @@ int radio_dup_detection_is_duplicate_on_stream(int iRadioInterfaceIndex, u8* pPa
       uMaxDeltaForDataStream = 200;
 
    if ( (uStreamIndex != STREAM_ID_AUDIO) && (uStreamIndex < STREAM_ID_VIDEO_1) )
-   if ((pDupInfo->streamsPacketsHistory[uStreamIndex].uMaxReceivedPacketIndex > uMaxDeltaForDataStream ) && 
+   if ((pDupInfo->streamsPacketsHistory[uStreamIndex].uMaxReceivedPacketIndex > uMaxDeltaForDataStream ) &&
            (uStreamPacketIndex < pDupInfo->streamsPacketsHistory[uStreamIndex].uMaxReceivedPacketIndex - uMaxDeltaForDataStream) )
    if ( pDupInfo->streamsPacketsHistory[uStreamIndex].uLastTimeReceivedPacket > uTimeNow - 4000 )
    if ( uTimeNow > s_TimeLastLogAlarmStreamPacketsVariation + 1000 )
@@ -303,7 +303,7 @@ int radio_dup_detection_is_duplicate_on_stream(int iRadioInterfaceIndex, u8* pPa
    if ( bIsDuplicatePacket )
       return 1;
 
-   
+
    pDupInfo->streamsPacketsHistory[uStreamIndex].packetsHashIndexes[iHashIndex] = uStreamPacketIndex;
    pDupInfo->streamsPacketsHistory[uStreamIndex].uLastReceivedPacketIndex = uStreamPacketIndex;
    if ( uStreamPacketIndex > pDupInfo->streamsPacketsHistory[uStreamIndex].uMaxReceivedPacketIndex )

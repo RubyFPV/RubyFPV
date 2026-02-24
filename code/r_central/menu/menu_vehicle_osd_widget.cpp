@@ -272,7 +272,7 @@ void MenuVehicleOSDWidget::onPlusAction()
       if ( fYPos < 0 )
          fYPos = fHPixel;
    }
-  
+
    if ( m_bIsResizingH && (fWidth < 1.0) )
    {
       fWidth += WIDGET_MOVE_MARGIN;

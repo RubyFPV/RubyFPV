@@ -114,12 +114,12 @@ void MenuVehicleRadioInterface::onItemValueChanged(int itemIndex)
 
 void MenuVehicleRadioInterface::sendInterfaceCapabilitiesFlags(int iInterfaceIndex)
 {
-   
+
 }
 
 void MenuVehicleRadioInterface::sendInterfaceRadioFlags(int iInterfaceIndex)
 {
-   
+
 }
 
 void MenuVehicleRadioInterface::onSelectItem()

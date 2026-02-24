@@ -114,7 +114,7 @@ void hardware_files_check_config_folder()
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s* 2>/dev/null", FOLDER_CONFIG);
    hw_execute_bash_command(szComm, NULL);
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "chmod 777 %s* 2>/dev/null", FOLDER_CONFIG_MODELS);
-   hw_execute_bash_command(szComm, NULL); 
+   hw_execute_bash_command(szComm, NULL);
 }
 
 void hardware_files_init()
@@ -212,12 +212,12 @@ int hardware_try_mount_usb()
    char szCommand[128];
    char szOutput[2048];
    s_iUSBMounted = 0;
-   sprintf(szCommand, "mkdir -p %s", FOLDER_USB_MOUNT); 
+   sprintf(szCommand, "mkdir -p %s", FOLDER_USB_MOUNT);
    hw_execute_bash_command(szCommand, NULL);
 
    if ( 0 < strlen(FOLDER_USB_MOUNT) )
    {
-      sprintf(szCommand, "rm -rf %s*", FOLDER_USB_MOUNT); 
+      sprintf(szCommand, "rm -rf %s*", FOLDER_USB_MOUNT);
       hw_execute_bash_command(szCommand, NULL);
    }
    hw_execute_bash_command_raw("lsblk -l -n -o NAME | grep sd 2>&1", szOutput);
@@ -231,7 +231,7 @@ int hardware_try_mount_usb()
    if ( NULL == szToken )
    {
       log_softerror_and_alarm("[Hardware] USB memory stick could NOT be mounted! Failed to iterate block devices result.");
-      return 0;    
+      return 0;
    }
 
    int iFoundUSBDevice = 0;
@@ -268,7 +268,7 @@ int hardware_try_mount_usb()
    if ( (0 == iFoundUSBDevice) || (NULL == szToken) )
    {
       log_softerror_and_alarm("[Hardware] USB memory stick could NOT be mounted! No USB block devices found.");
-      return 0;    
+      return 0;
    }
 
    log_line("[Hardware] Found USB block device: [%s], Mounting it...", szToken );
@@ -379,7 +379,7 @@ int hardware_try_mount_usb()
       pStart++;
    }
    strcpy(s_szUSBMountName, pStart);
-   
+
    log_line("[Hardware] USB stick name [%s]", s_szUSBMountName);
 
    return s_iUSBMounted;

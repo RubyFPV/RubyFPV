@@ -116,7 +116,7 @@ void hardware_radio_set_txpower_raw_atheros(int iCardIndex, int iTxPower)
    if ( 0 != szBuff[0] )
       hw_execute_bash_command(szBuff, NULL);
 
-   // Change power for RALINK cards too. They are 2.4Ghz only cards 
+   // Change power for RALINK cards too. They are 2.4Ghz only cards
    if ( access( "/etc/modprobe.d/rt2800usb.conf", R_OK ) != -1 )
    {
       iTxPower = (iTxPower/10)-2;

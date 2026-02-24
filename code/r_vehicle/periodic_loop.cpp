@@ -111,7 +111,7 @@ static void * _reinit_sik_thread_func(void *ignored_argument)
                   uECC = (g_pCurrentModel->radioLinksParams.link_radio_flags_tx[iRadioLink] & RADIO_FLAGS_SIK_ECC)? 1:0;
                   uLBT = (g_pCurrentModel->radioLinksParams.link_radio_flags_tx[iRadioLink] & RADIO_FLAGS_SIK_LBT)? 1:0;
                   uMCSTR = (g_pCurrentModel->radioLinksParams.link_radio_flags_tx[iRadioLink] & RADIO_FLAGS_SIK_MCSTR)? 1:0;
-               
+
                   bool bDataRateOk = false;
                   for( int i=0; i<getSiKAirDataRatesCount(); i++ )
                   {
@@ -129,11 +129,11 @@ static void * _reinit_sik_thread_func(void *ignored_argument)
                   }
                }
             }
-            int iRes = hardware_radio_sik_set_params(pRadioHWInfo, 
+            int iRes = hardware_radio_sik_set_params(pRadioHWInfo,
                    uFreqKhz,
                    DEFAULT_RADIO_SIK_FREQ_SPREAD, DEFAULT_RADIO_SIK_CHANNELS,
                    DEFAULT_RADIO_SIK_NETID,
-                   uDataRate, uTxPower, 
+                   uDataRate, uTxPower,
                    uECC, uLBT, uMCSTR,
                    NULL);
             if ( iRes != 1 )
@@ -173,14 +173,14 @@ static void * _reinit_sik_thread_func(void *ignored_argument)
       g_SiKRadiosState.bConfiguringSiKThreadWorking = false;
       return NULL;
    }
-   
+
    log_line("[Router-SiKThread] Reinitialized SiK radio interfaces successfully.");
-   
+
    reopen_marked_sik_interfaces();
    if ( g_SiKRadiosState.iMustReconfigureSiKInterfaceIndex >= 0 )
        send_alarm_to_controller(ALARM_ID_GENERIC_STATUS_UPDATE, ALARM_FLAG_GENERIC_STATUS_RECONFIGURED_RADIO_INTERFACE, 0, 10);
    else
-       send_alarm_to_controller(ALARM_ID_RADIO_INTERFACE_REINITIALIZED, g_SiKRadiosState.uSiKInterfaceIndexThatBrokeDown, 0, 10); 
+       send_alarm_to_controller(ALARM_ID_RADIO_INTERFACE_REINITIALIZED, g_SiKRadiosState.uSiKInterfaceIndexThatBrokeDown, 0, 10);
 
    g_SiKRadiosState.bMustReinitSiKInterfaces = false;
    g_SiKRadiosState.iMustReconfigureSiKInterfaceIndex = -1;
@@ -221,7 +221,7 @@ int _check_reinit_sik_interfaces()
          return 0;
       }
    }
-   
+
    if ( (! g_SiKRadiosState.bMustReinitSiKInterfaces) && (g_SiKRadiosState.iMustReconfigureSiKInterfaceIndex == -1) )
       return 0;
 
@@ -230,7 +230,7 @@ int _check_reinit_sik_interfaces()
 
    if ( g_SiKRadiosState.bConfiguringSiKThreadWorking )
       return 0;
-   
+
    if ( g_TimeNow < g_SiKRadiosState.uTimeLastSiKReinitCheck + g_SiKRadiosState.uTimeIntervalSiKReinitCheck )
       return 0;
 
@@ -380,7 +380,7 @@ void _check_write_filesystem()
    {
       if ( ! s_bRouterWriteFileSystemOk )
         send_alarm_to_controller(ALARM_ID_VEHICLE_STORAGE_WRITE_ERRROR, 0, 0, 5);
-   }      
+   }
 }
 
 void _fill_in_radio_rx_stats_compact(shared_mem_radio_stats_radio_interface_compact* pRadioStatsCompact, u8 uCardIndex)
@@ -433,14 +433,14 @@ void _send_radio_stats_to_controller()
    radio_packet_init(&PH, PACKET_COMPONENT_TELEMETRY, PACKET_TYPE_RUBY_TELEMETRY_VEHICLE_RX_CARDS_STATS, STREAM_ID_TELEMETRY);
    PH.vehicle_id_src = g_pCurrentModel->uVehicleId;
    PH.vehicle_id_dest = g_uControllerId;
-   
+
    u8 packet[MAX_PACKET_TOTAL_SIZE];
    u8* pData = packet + sizeof(t_packet_header) + 2*sizeof(u8);
    u8 uType = 0;
    u8 uCardIndex = 0;
 
    // Send all in single packet
-   
+
    PH.packet_flags_extended |= PACKET_FLAGS_EXTENDED_BIT_SEND_ON_HIGH_CAPACITY_LINK_ONLY;
    PH.packet_flags_extended &= (~PACKET_FLAGS_EXTENDED_BIT_SEND_ON_LOW_CAPACITY_LINK_ONLY);
 
@@ -467,7 +467,7 @@ void _send_radio_stats_to_controller()
          uType = 0xF0;
          uCardIndex = i;
          PH.total_length = sizeof(t_packet_header) + 2*sizeof(u8) + sizeof(shared_mem_radio_stats_radio_interface);
-         
+
          memcpy(packet, (u8*)&PH, sizeof(t_packet_header));
          memcpy(packet + sizeof(t_packet_header), (u8*)&uType, sizeof(u8));
          memcpy(packet + sizeof(t_packet_header)+sizeof(u8), (u8*)&uCardIndex, sizeof(u8));
@@ -491,7 +491,7 @@ void _send_radio_stats_to_controller()
       uType = 0x0F;
       uCardIndex = uCardIndexRxStatsToSendSlow;
       PH.total_length = sizeof(t_packet_header) + 2*sizeof(u8) + sizeof(shared_mem_radio_stats_radio_interface_compact);
-      
+
       shared_mem_radio_stats_radio_interface_compact statsCompact;
       _fill_in_radio_rx_stats_compact(&statsCompact, uCardIndexRxStatsToSendSlow);
 
@@ -510,7 +510,7 @@ void _periodic_loop_check_ping()
    if ( g_TimeNow > s_uTimeLastCheckForRelayedVehicleRubyTelemetryAlarm + 200 )
    {
       s_uTimeLastCheckForRelayedVehicleRubyTelemetryAlarm = g_TimeNow;
-      
+
       u32 uLastTimeRecvRubyTelemetry = relay_get_time_last_received_ruby_telemetry_from_relayed_vehicle();
       static u32 sl_uTimeLastSendRubyRelayedTelemetryLostAlarm = 0;
       static u32 sl_uTimeLastSendRubyRelayedTelemetryRecoveredAlarm = 0;
@@ -554,9 +554,9 @@ void _update_videobitrate_history_data()
    //int iIndex = (int)g_SM_DevVideoBitrateHistory.uCurrentDataPoint;
 
    // To fix g_SM_DevVideoBitrateHistory.uQuantizationOverflowValue = video_link_get_oveflow_quantization_value();
-// To fix 
+// To fix
 /*   g_SM_DevVideoBitrateHistory.uCurrentTargetVideoBitrate = g_SM_VideoLinkStats.overwrites.currentSetVideoBitrate;
-  
+
    g_SM_DevVideoBitrateHistory.history[iIndex].uVideoQuantization = g_SM_VideoLinkStats.overwrites.currentH264QUantization;
    if ( (0 == video_sources_get_capture_start_time()) || (g_TimeNow < video_sources_get_capture_start_time() + 3000) )
       g_SM_DevVideoBitrateHistory.history[iIndex].uVideoQuantization = 0xFF;
@@ -686,7 +686,7 @@ void _periodic_update_radio_stats()
                PHRelayInfo.rssi_snr[i] = 0xFF;
 
             PHRelayInfo.link_quality[i] = g_SM_RadioStats.radio_interfaces[i].rxQuality;
-            
+
             if ( hardware_radio_index_is_wifi_radio(i))
             {
                if ( g_TimeLastReceivedFastRadioPacketFromController < g_TimeNow-TIMEOUT_LINK_TO_CONTROLLER_LOST )
@@ -710,7 +710,7 @@ void _periodic_update_radio_stats()
             if ( ! g_bHasSlowUplinkFromController )
                PHRelayInfo.link_quality[i] = 0;
          }
-         u8 uPacket[MAX_PACKET_TOTAL_SIZE];         
+         u8 uPacket[MAX_PACKET_TOTAL_SIZE];
          memcpy(uPacket, (u8*)&PH, sizeof(t_packet_header));
          memcpy(uPacket + sizeof(t_packet_header), (u8*)&PHRelayInfo, sizeof(t_packet_header_relay_radio_info));
          packets_queue_add_packet(&g_QueueRadioPacketsOut, uPacket);
@@ -745,7 +745,7 @@ void _update_tx_out_stats()
             hardware_radio_sik_save_configuration();
             hardware_save_radio_info();
             radio_hw_info_t* pRadioHWInfo = hardware_get_radio_info(g_iGetSiKConfigAsyncRadioInterfaceIndex);
-         
+
             char szTmp[256];
             szTmp[0] = 0;
             for( int i=0; i<16; i++ )
@@ -785,7 +785,7 @@ void _update_tx_out_stats()
    if ( g_TimeNow >= g_TimeLastHistoryTxComputation + 50 )
    {
       g_TimeLastHistoryTxComputation = g_TimeNow;
-      
+
       // Compute the averate tx gap
 
       g_PHVehicleTxStats.historyTxGapAvgMiliseconds[0] = 0xFF;
@@ -794,14 +794,14 @@ void _update_tx_out_stats()
       else if ( g_PHVehicleTxStats.tmp_uAverageTxCount == 1 )
          g_PHVehicleTxStats.historyTxGapAvgMiliseconds[0] = g_PHVehicleTxStats.historyTxGapMaxMiliseconds[0];
 
-      // Compute average video packets interval        
+      // Compute average video packets interval
 
       g_PHVehicleTxStats.historyVideoPacketsGapAvg[0] = 0xFF;
       if ( g_PHVehicleTxStats.tmp_uVideoIntervalsCount > 1 )
          g_PHVehicleTxStats.historyVideoPacketsGapAvg[0] = (g_PHVehicleTxStats.tmp_uVideoIntervalsSum - g_PHVehicleTxStats.historyVideoPacketsGapMax[0])/(g_PHVehicleTxStats.tmp_uVideoIntervalsCount-1);
       else if ( g_PHVehicleTxStats.tmp_uVideoIntervalsCount == 1 )
          g_PHVehicleTxStats.historyVideoPacketsGapAvg[0] = g_PHVehicleTxStats.historyVideoPacketsGapMax[0];
-        
+
 
       if ( ! g_bVideoPaused )
       if ( g_pCurrentModel->uDeveloperFlags & DEVELOPER_FLAGS_BIT_ENABLE_DEVELOPER_MODE )

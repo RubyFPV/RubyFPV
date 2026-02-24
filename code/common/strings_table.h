@@ -2,9 +2,9 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
-typedef struct 
+typedef struct
 {
    const char* szEnglish;
    const char* szTranslatedCN;
@@ -20,5 +20,5 @@ type_localized_strings* string_get_table();
 int string_get_table_size();
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

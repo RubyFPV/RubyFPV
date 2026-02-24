@@ -44,10 +44,10 @@ MenuVehicleExpert::MenuVehicleExpert(void)
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.13;
    float fSliderWidth = 0.10;
    setSubTitle("Change advanced vehicle settings, for expert users.");
-   
+
    addTopInfo();
 
-   m_pItemsSelect[2] = new MenuItemSelect("Enable CPU Overclocking", "Enables overclocking of the main ARM CPU.");  
+   m_pItemsSelect[2] = new MenuItemSelect("Enable CPU Overclocking", "Enables overclocking of the main ARM CPU.");
    m_pItemsSelect[2]->addSelection("No");
    m_pItemsSelect[2]->addSelection("Yes");
    m_pItemsSelect[2]->setIsEditable();
@@ -57,7 +57,7 @@ MenuVehicleExpert::MenuVehicleExpert(void)
    m_pItemsSlider[7]->setStep(25);
    m_IndexCPUSpeed = addMenuItem(m_pItemsSlider[7]);
 
-   m_pItemsSelect[3] = new MenuItemSelect("Enable GPU Overclocking", "Enables overclocking of the GPU cores.");  
+   m_pItemsSelect[3] = new MenuItemSelect("Enable GPU Overclocking", "Enables overclocking of the GPU cores.");
    m_pItemsSelect[3]->addSelection("No");
    m_pItemsSelect[3]->addSelection("Yes");
    m_pItemsSelect[3]->setIsEditable();
@@ -67,7 +67,7 @@ MenuVehicleExpert::MenuVehicleExpert(void)
    m_pItemsSlider[8]->setStep(25);
    m_IndexGPUSpeed = addMenuItem(m_pItemsSlider[8]);
 
-   m_pItemsSelect[4] = new MenuItemSelect("Enable Overvoltage", "Enables overvotage on the CPU and GPU cores. You need to increase voltage as you increase the frequency of the CPU or GPU.");  
+   m_pItemsSelect[4] = new MenuItemSelect("Enable Overvoltage", "Enables overvotage on the CPU and GPU cores. You need to increase voltage as you increase the frequency of the CPU or GPU.");
    m_pItemsSelect[4]->addSelection("No");
    m_pItemsSelect[4]->addSelection("Yes");
    m_IndexVoltageEnabled = addMenuItem(m_pItemsSelect[4]);
@@ -77,7 +77,7 @@ MenuVehicleExpert::MenuVehicleExpert(void)
 
    addMenuItem(new MenuItemSection("Other Settings"));
 
-   m_pItemsSelect[5] = new MenuItemSelect("Enable ETH and DHCP", "Enables local network and DHCP on the vehicle.");  
+   m_pItemsSelect[5] = new MenuItemSelect("Enable ETH and DHCP", "Enables local network and DHCP on the vehicle.");
    m_pItemsSelect[5]->addSelection("No");
    m_pItemsSelect[5]->addSelection("Yes");
    m_pItemsSelect[5]->setUseMultiViewLayout();
@@ -117,7 +117,7 @@ void MenuVehicleExpert::valuesToUI()
       m_pItemsSlider[9]->setCurrentValue(g_pCurrentModel->processesPriorities.iOverVoltage);
    else
       m_pItemsSlider[9]->setCurrentValue(-g_pCurrentModel->processesPriorities.iOverVoltage);
-   m_pItemsSlider[9]->setEnabled(g_pCurrentModel->processesPriorities.iOverVoltage > 0);   
+   m_pItemsSlider[9]->setEnabled(g_pCurrentModel->processesPriorities.iOverVoltage > 0);
 
 
    m_pItemsSelect[5]->setSelection(0);
@@ -130,7 +130,7 @@ void MenuVehicleExpert::addTopInfo()
    //char szBuffer[2048];
    //char szOutput[1024];
    //char szOutput2[1024];
-      
+
    //addTopLine(" ");
    //addTopLine("Note: Changing overclocking settings requires a reboot.");
    //addTopLine(" ");
@@ -278,7 +278,7 @@ void MenuVehicleExpert::onSelectItem()
       if ( ! handle_commands_send_to_vehicle(COMMAND_ID_RESET_CPU_SPEED, 0, NULL, 0) )
          valuesToUI();
    }
-   
+
    if ( sendUpdate )
    {
       if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_OVERCLOCKING_PARAMS, 0, (u8*)(&params), sizeof(command_packet_overclocking_params)) )

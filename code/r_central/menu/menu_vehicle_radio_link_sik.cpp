@@ -49,12 +49,12 @@ MenuVehicleRadioLinkSiK::MenuVehicleRadioLinkSiK(int iRadioLink)
    m_yPos = 0.1;
    m_iRadioLink = iRadioLink;
 
-   
+
    if ( g_pCurrentModel->radioLinksParams.link_capabilities_flags[m_iRadioLink] & RADIO_HW_CAPABILITY_FLAG_USED_FOR_RELAY )
       log_line("Opening menu for relay radio link %d ...", m_iRadioLink+1);
    else
       log_line("Opening menu for radio link %d ...", m_iRadioLink+1);
-    
+
    char szBuff[256];
 
    sprintf(szBuff, "Vehicle SiK Radio Link %d Parameters", m_iRadioLink+1);
@@ -74,7 +74,7 @@ MenuVehicleRadioLinkSiK::MenuVehicleRadioLinkSiK(int iRadioLink)
 
    m_bHasValidInterface = true;
    str_get_supported_bands_string(g_pCurrentModel->radioInterfacesParams.interface_supported_bands[iRadioInterfaceId], szBands);
-   
+
    u32 controllerBands = 0;
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
    {
@@ -83,7 +83,7 @@ MenuVehicleRadioLinkSiK::MenuVehicleRadioLinkSiK(int iRadioLink)
          continue;
       controllerBands |= pRadioHWInfo->supportedBands;
    }
-      
+
    m_SupportedChannelsCount = getSupportedChannels( controllerBands & g_pCurrentModel->radioInterfacesParams.interface_supported_bands[iRadioInterfaceId], 1, &(m_SupportedChannels[0]), MAX_MENU_CHANNELS);
 
    m_pItemsSelect[0] = new MenuItemSelect("Enabled", "Enables or disables this radio link.");
@@ -128,7 +128,7 @@ MenuVehicleRadioLinkSiK::MenuVehicleRadioLinkSiK(int iRadioLink)
    m_pItemsSelect[7]->setIsEditable();
    m_IndexUsage = addMenuItem(m_pItemsSelect[7]);
    */
-   
+
    m_pItemsSelect[2] = new MenuItemSelect("Radio Data Rate", "Sets the physical radio air data rate to use on this radio link. Lower radio data rates gives longer radio range.");
    for( int i=0; i<getSiKAirDataRatesCount(); i++ )
    {
@@ -139,7 +139,7 @@ MenuVehicleRadioLinkSiK::MenuVehicleRadioLinkSiK(int iRadioLink)
          sprintf(szBuff, "%d kbps", (iAirRate)/1000);
       m_pItemsSelect[2]->addSelection(szBuff);
    }
-   
+
    m_pItemsSelect[2]->setIsEditable();
    m_IndexDataRate = addMenuItem(m_pItemsSelect[2]);
 
@@ -230,7 +230,7 @@ void MenuVehicleRadioLinkSiK::valuesToUI()
       m_pItemsSelect[5]->setEnabled(false);
       m_pItemsSlider[0]->setEnabled(false);
    }
-   
+
    log_line("Menu: Radio Sik link %d current frequency: %s", m_iRadioLink+1, str_format_frequency(g_pCurrentModel->radioLinksParams.link_frequency_khz[m_iRadioLink]));
    int selectedIndex = 0;
    for( int ch=0; ch<m_SupportedChannelsCount; ch++ )
@@ -305,7 +305,7 @@ void MenuVehicleRadioLinkSiK::sendRadioLinkFlags(int linkIndex)
    if ( (indexRate < 0) || (indexRate >= getSiKAirDataRatesCount()) )
       return;
    datarate_bps = getSiKAirDataRates()[indexRate];
-   
+
 
    uRadioFlags &= ~(RADIO_FLAGS_SIK_ECC | RADIO_FLAGS_SIK_LBT | RADIO_FLAGS_SIK_MCSTR);
 
@@ -313,10 +313,10 @@ void MenuVehicleRadioLinkSiK::sendRadioLinkFlags(int linkIndex)
       uRadioFlags |= RADIO_FLAGS_SIK_ECC;
    if ( 1 == m_pItemsSelect[4]->getSelectedIndex() )
       uRadioFlags |= RADIO_FLAGS_SIK_LBT;
-  
+
    if ( 1 == m_pItemsSelect[5]->getSelectedIndex() )
       uRadioFlags |= RADIO_FLAGS_SIK_MCSTR;
-  
+
    u8 buffer[64];
    u32* p = (u32*)&(buffer[0]);
    *p = (u32)linkIndex;
@@ -327,7 +327,7 @@ void MenuVehicleRadioLinkSiK::sendRadioLinkFlags(int linkIndex)
    *pi = datarate_bps;
    pi++;
    *pi = datarate_bps;
- 
+
    memcpy(&g_LastGoodRadioLinksParams, &(g_pCurrentModel->radioLinksParams), sizeof(type_radio_links_parameters));
 
    g_pCurrentModel->radioLinksParams.link_radio_flags_tx[linkIndex] = uRadioFlags;
@@ -337,7 +337,7 @@ void MenuVehicleRadioLinkSiK::sendRadioLinkFlags(int linkIndex)
    saveControllerModel(g_pCurrentModel);
 
    send_model_changed_message_to_router(MODEL_CHANGED_RADIO_LINK_FRAMES_FLAGS, linkIndex);
-   
+
    char szBuff[128];
    str_get_radio_frame_flags_description(uRadioFlags, szBuff);
    log_line("Sending to vehicle new radio link flags for radio link %d: %s and datarates: %d/%d", linkIndex+1, szBuff, datarate_bps, datarate_bps);
@@ -345,11 +345,11 @@ void MenuVehicleRadioLinkSiK::sendRadioLinkFlags(int linkIndex)
    if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_RADIO_LINK_FLAGS, 0, buffer, 2*sizeof(u32) + 2*sizeof(int)) )
    {
       valuesToUI();
-      memcpy(&(g_pCurrentModel->radioLinksParams), &g_LastGoodRadioLinksParams, sizeof(type_radio_links_parameters));            
+      memcpy(&(g_pCurrentModel->radioLinksParams), &g_LastGoodRadioLinksParams, sizeof(type_radio_links_parameters));
    }
    else
    {
-      link_set_is_reconfiguring_radiolink(linkIndex, false, true, true); 
+      link_set_is_reconfiguring_radiolink(linkIndex, false, true, true);
       warnings_add_configuring_radio_link(linkIndex, "Changing radio link flags");
    }
 }

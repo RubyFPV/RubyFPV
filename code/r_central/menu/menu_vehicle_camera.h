@@ -16,8 +16,8 @@ class MenuVehicleCamera: public Menu
       virtual void onItemValueChanged(int itemIndex);
       virtual void onItemEndEdit(int itemIndex);
       virtual void valuesToUI();
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
-            
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
+
    private:
       void resetIndexes();
       void addItems();

@@ -103,15 +103,15 @@ bool _pairing_start()
          pm->m_Width = 0.36;
          pm->addTopLine("You are missing base components required to pair with OpenIPC cameras.");
          pm->addTopLine("Please do a full install of the Ruby firmware on the controller. Version 8.0 or newer.");
-         add_menu_to_stack(pm); 
+         add_menu_to_stack(pm);
       }
    }
    */
-   
+
    if ( NULL != g_pCurrentModel )
    {
       char szFile[128];
-      snprintf(szFile, sizeof(szFile)/sizeof(szFile[0]), LOG_FILE_VEHICLE, g_pCurrentModel->getShortName());      
+      snprintf(szFile, sizeof(szFile)/sizeof(szFile[0]), LOG_FILE_VEHICLE, g_pCurrentModel->getShortName());
       char szPath[256];
       strcpy(szPath, FOLDER_LOGS);
       strcat(szPath, szFile);
@@ -119,11 +119,11 @@ bool _pairing_start()
       if ( NULL != fd )
          fclose(fd);
    }
- 
+
    s_isRXStarted = true;
    s_isVideoReceiving = false;
    s_uPairingStartTime = g_TimeNow;
-   
+
    link_reset_reconfiguring_radiolink();
 
    if ( NULL != g_pCurrentModel && (! g_pCurrentModel->is_spectator) )
@@ -159,7 +159,7 @@ bool pairing_start_normal()
    g_iSearchSiKMCSTR = -1;
    g_bMustNegociateRadioLinksFlag = false;
    g_bAskedForNegociateRadioLink = false;
-   
+
    onEventBeforePairing();
 
    if ( NULL == g_pCurrentModel )
@@ -285,7 +285,7 @@ void _pairing_open_shared_mem()
       if ( NULL != g_pSMControllerRTInfo )
          break;
       g_pSMControllerRTInfo = controller_rt_info_open_for_read();
-      
+
       hardware_sleep_ms(2);
       iAnyNewOpen++;
    }
@@ -297,7 +297,7 @@ void _pairing_open_shared_mem()
       if ( NULL != g_pSMControllerDebugVideoRTInfo )
          break;
       g_pSMControllerDebugVideoRTInfo = controller_debug_video_rt_info_open_for_read();
-      
+
       hardware_sleep_ms(2);
       iAnyNewOpen++;
    }
@@ -473,7 +473,7 @@ void pairing_loop()
 {
    if ( ! pairing_isStarted() )
       return;
-   
+
    if ( g_bSearching )
       return;
 }

@@ -155,7 +155,7 @@ MenuQuickMenuSettings::MenuQuickMenuSettings(void)
 
 void MenuQuickMenuSettings::valuesToUI()
 {
-   
+
    Preferences* pP = get_Preferences();
 
    if ( m_bMenuQuickMenuSettingsIsOnCustomOption )

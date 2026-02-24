@@ -48,7 +48,7 @@ MenuVehicleCPU_OIPC::MenuVehicleCPU_OIPC(void)
    m_pItemsSlider[5] = new MenuItemSlider("CPU Speed (Mhz)", "Sets the main CPU frequency.", 700, 1200, 900, fSliderWidth);
    m_pItemsSlider[5]->setStep(25);
    m_IndexCPUSpeed = addMenuItem(m_pItemsSlider[5]);
-   
+
    m_pItemsSelect[5] = new MenuItemSelect("GPU Boost", "Increases the video encoder clock speed.");
    m_pItemsSelect[5]->addSelection("Off");
    m_pItemsSelect[5]->addSelection("Medium");
@@ -174,7 +174,7 @@ void MenuVehicleCPU_OIPC::onSelectItem()
    params.freq_arm = g_pCurrentModel->processesPriorities.iFreqARM;
    params.freq_gpu = g_pCurrentModel->processesPriorities.iFreqGPU;
    params.overvoltage = g_pCurrentModel->processesPriorities.iOverVoltage;
-   
+
    if ( m_IndexCPUSpeed == m_SelectedIndex )
    {
       params.freq_arm = m_pItemsSlider[5]->getCurrentValue();

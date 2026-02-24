@@ -13,7 +13,7 @@ class MenuVehicleRCCamera: public Menu
       virtual void Render();
       virtual void onSelectItem();
       virtual void valuesToUI();
-            
+
    private:
       void send_params();
 

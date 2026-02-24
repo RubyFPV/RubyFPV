@@ -42,7 +42,7 @@ void packets_queue_init(t_packet_queue* pQueue)
    if ( NULL == pQueue )
       return;
    pQueue->queue_start_pos = -1;
-   pQueue->queue_end_pos = -1;   
+   pQueue->queue_end_pos = -1;
 }
 
 int packets_queue_is_empty(t_packet_queue* pQueue)
@@ -71,7 +71,7 @@ int packets_queue_inject_packet_first(t_packet_queue* pQueue, u8* pBuffer)
       return 0;
 
    t_packet_header* pPH = (t_packet_header*)pBuffer;
-   
+
    if ( (-1 == pQueue->queue_start_pos) || (pQueue->queue_start_pos == pQueue->queue_end_pos) )
    {
       pQueue->queue_start_pos = 0;
@@ -99,7 +99,7 @@ int packets_queue_inject_packet_first_mark_time(t_packet_queue* pQueue, u8* pBuf
       return 0;
 
    t_packet_header* pPH = (t_packet_header*)pBuffer;
-   
+
    if ( (-1 == pQueue->queue_start_pos) || (pQueue->queue_start_pos == pQueue->queue_end_pos) )
    {
       pQueue->queue_start_pos = 0;
@@ -215,7 +215,7 @@ u8* packets_queue_pop_packet_and_time(t_packet_queue* pQueue, int* pLength, u32*
    if ( pQueue->queue_start_pos == pQueue->queue_end_pos )
       pQueue->timeFirstPacket = MAX_U32;
 
-   return pRet; 
+   return pRet;
 }
 
 u8* packets_queue_peek_packet(t_packet_queue* pQueue, int index, int* pLength)

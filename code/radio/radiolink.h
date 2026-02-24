@@ -56,7 +56,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif  
+#endif
 
 void radio_init_link_structures();
 void radio_link_cleanup();
@@ -100,5 +100,5 @@ int radio_write_serial_packet(int interfaceIndex, u8* pData, int dataLength, u32
 int radio_write_sik_packet(int interfaceIndex, u8* pData, int dataLength, u32 uTimeNow);
 
 #ifdef __cplusplus
-}  
+}
 #endif

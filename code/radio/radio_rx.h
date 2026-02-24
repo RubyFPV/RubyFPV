@@ -114,5 +114,5 @@ u8* radio_rx_wait_get_next_received_high_prio_packet(u32 uTimeoutMicroSec, int* 
 u8* radio_rx_wait_get_next_received_reg_prio_packet(u32 uTimeoutMicroSec, int* pLength, int* pIsShortPacket, int* pRadioInterfaceIndex);
 
 #ifdef __cplusplus
-}  
+}
 #endif

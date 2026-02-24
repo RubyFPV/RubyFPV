@@ -53,7 +53,7 @@ int s_iCorePluginsSettingsCount = 0;
 
 void reset_CorePluginsSettings()
 {
-   
+
    log_line("Reseted core plugins settings.");
 }
 
@@ -70,7 +70,7 @@ int save_CorePluginsSettings()
    }
    fprintf(fd, "%s\n", CORE_PLUGINS_SETTINGS_STAMP_ID);
    fprintf(fd, "%d\n", s_iCorePluginsSettingsCount);
-   
+
    for( int i=0; i<s_iCorePluginsSettingsCount; i++ )
    {
       char szBuff[256];
@@ -125,7 +125,7 @@ int load_CorePluginsSettings()
 
    if ( 1 != fscanf(fd, "%d", &s_iCorePluginsSettingsCount) )
       { s_iCorePluginsSettingsCount = 0; failed = 10; }
-   
+
    for( int i=0; i<s_iCorePluginsSettingsCount; i++ )
    {
       if ( (!failed) && (1 != fscanf(fd, "%s", s_CorePluginsSettings[i].szGUID)) )
@@ -151,7 +151,7 @@ int load_CorePluginsSettings()
    fclose(fd);
 
    // Validate settings
- 
+
    if ( s_iCorePluginsSettingsCount < 0 || s_iCorePluginsSettingsCount > MAX_CORE_PLUGINS_COUNT )
    {
       s_iCorePluginsSettingsCount = 0;
@@ -224,7 +224,7 @@ int _load_CorePlugin(char* szFileName, int iEnumerateOnly)
 
    const char* szPluginName = (*(s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].pFunctionCoreGetName))();
    const char* szPluginGUID = (*(s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].pFunctionCoreGetUID))();
-   
+
    if ( NULL == szPluginName || NULL == szPluginGUID )
    {
       log_softerror_and_alarm("[CorePlugins] Can't load plugin from file [%s], does not export a valid GUID and name.", szFile);
@@ -270,17 +270,17 @@ int _load_CorePlugin(char* szFileName, int iEnumerateOnly)
       if ( s_iCorePluginsSettingsCount < MAX_CORE_PLUGINS_COUNT )
       {
          iIsNew = 1;
-         strncpy(s_CorePluginsSettings[s_iCorePluginsSettingsCount].szName, s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szName, sizeof(s_CorePluginsSettings[s_iCorePluginsSettingsCount].szName)/sizeof(s_CorePluginsSettings[s_iCorePluginsSettingsCount].szName[0])-1); 
-         strncpy(s_CorePluginsSettings[s_iCorePluginsSettingsCount].szGUID, s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szGUID, sizeof(s_CorePluginsSettings[s_iCorePluginsSettingsCount].szGUID)/sizeof(s_CorePluginsSettings[s_iCorePluginsSettingsCount].szGUID[0])-1); 
+         strncpy(s_CorePluginsSettings[s_iCorePluginsSettingsCount].szName, s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szName, sizeof(s_CorePluginsSettings[s_iCorePluginsSettingsCount].szName)/sizeof(s_CorePluginsSettings[s_iCorePluginsSettingsCount].szName[0])-1);
+         strncpy(s_CorePluginsSettings[s_iCorePluginsSettingsCount].szGUID, s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].szGUID, sizeof(s_CorePluginsSettings[s_iCorePluginsSettingsCount].szGUID)/sizeof(s_CorePluginsSettings[s_iCorePluginsSettingsCount].szGUID[0])-1);
          s_CorePluginsSettings[s_iCorePluginsSettingsCount].iEnabled = 1;
          s_CorePluginsSettings[s_iCorePluginsSettingsCount].iVersion = 0;
-         
+
          if ( NULL != s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].pFunctionCoreGetVersion )
             s_CorePluginsSettings[s_iCorePluginsSettingsCount].iVersion = (*(s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].pFunctionCoreGetVersion))();
 
          if ( NULL != s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].pFunctionCoreRequestCapab )
             s_CorePluginsSettings[s_iCorePluginsSettingsCount].uRequestedCapabilities = (*(s_CorePluginsRuntimeInfo[s_iCorePluginsRuntimeCount].pFunctionCoreRequestCapab))();
-   
+
          s_CorePluginsSettings[s_iCorePluginsSettingsCount].uAllocatedCapabilities = s_CorePluginsSettings[s_iCorePluginsSettingsCount].uRequestedCapabilities;
          s_iCorePluginsSettingsCount++;
          save_CorePluginsSettings();
@@ -316,7 +316,7 @@ void load_CorePlugins(int iEnumerateOnly)
    int iSave = 0;
 
    log_line("[CorePlugins] Searching for plugins%s...", (iEnumerateOnly?" (in enumeration mode only)":""));
-   
+
    unload_CorePlugins();
 
    load_CorePluginsSettings();
@@ -348,14 +348,14 @@ void load_CorePlugins(int iEnumerateOnly)
 void unload_CorePlugins()
 {
    log_line("[CorePlugins] Unloading %d plugins...", s_iCorePluginsRuntimeCount);
-   
+
    for( int i=0; i<s_iCorePluginsRuntimeCount; i++ )
    {
       if ( NULL == s_CorePluginsRuntimeInfo[i].pLibrary )
          continue;
       if ( NULL != s_CorePluginsRuntimeInfo[i].pFunctionCoreUninit )
          (*(s_CorePluginsRuntimeInfo[i].pFunctionCoreUninit))();
-   
+
       dlclose(s_CorePluginsRuntimeInfo[i].pLibrary);
       s_CorePluginsRuntimeInfo[i].pLibrary = NULL;
       log_line("[CorePlugins] Unloaded plugin [%s]", s_CorePluginsRuntimeInfo[i].szName);
@@ -392,11 +392,11 @@ void delete_CorePlugin(char* szGUID)
    {
       if ( NULL != s_CorePluginsRuntimeInfo[iIndex].pFunctionCoreUninit )
          (*(s_CorePluginsRuntimeInfo[iIndex].pFunctionCoreUninit))();
-   
+
       dlclose(s_CorePluginsRuntimeInfo[iIndex].pLibrary);
       s_CorePluginsRuntimeInfo[iIndex].pLibrary = NULL;
    }
-      
+
    log_line("[CorePlugins] Deleted plugin [%s]", s_CorePluginsRuntimeInfo[iIndex].szName);
 
    char szComm[256];

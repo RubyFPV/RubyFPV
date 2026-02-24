@@ -68,8 +68,8 @@ void MenuTXRawPower::onShow()
       m_SelectedIndex = iTmp;
    if ( m_SelectedIndex >= m_ItemsCount )
       m_SelectedIndex = m_ItemsCount-1;
-} 
-      
+}
+
 void MenuTXRawPower::valuesToUI()
 {
    addItems();
@@ -130,7 +130,7 @@ void MenuTXRawPower::addItemsVehicle()
             continue;
          int iCardModel = g_pCurrentModel->radioInterfacesParams.interface_card_model[i];
          int iPowerRaw = g_pCurrentModel->radioInterfacesParams.interface_raw_power[i];
-         
+
          m_pItemSelectVehicleCards[i] = createItemCard(true, g_pCurrentModel->hwCapabilities.uBoardType, g_pCurrentModel->radioLinksParams.links_count, iLink, i, iCardModel, iPowerRaw);
          if ( NULL != m_pItemSelectVehicleCards[i] )
             m_iIndexVehicleCards[i] = addMenuItem(m_pItemSelectVehicleCards[i]);
@@ -172,7 +172,7 @@ void MenuTXRawPower::addItemsController()
    {
       for( int i=0; i<MAX_RADIO_INTERFACES; i++ )
          m_IndexControllerTxPowerRadioLinks[i] = -1;
-      
+
       MenuItemLegend* pLegend = new MenuItemLegend(L("Note"), L("Controller is currently set to Auto Tx power mode for the uplink. Set it to Fixed power mode in the Controller menu if you want to be able to customize the uplink tx power."), 0);
       addMenuItem(pLegend);
 
@@ -183,7 +183,7 @@ void MenuTXRawPower::addItemsController()
          strcpy(szTitle, L("Radio Uplink"));
          if ( g_pCurrentModel->radioLinksParams.links_count > 1 )
             sprintf(szTitle, L("Radio Uplink %d"), iLink+1);
-      
+
          int iCountInterfacesForLink = 0;
          for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
          {
@@ -418,7 +418,7 @@ void MenuTXRawPower::computeApplyControllerPower(int iCardIndex)
       return;
    }
    int iRawPowerToSet = piRawValues[iPowerIndex];
-   
+
    if ( ! hardware_radio_index_is_wifi_radio(iCardIndex) )
       return;
 
@@ -443,7 +443,7 @@ void MenuTXRawPower::computeApplyControllerPower(int iCardIndex)
 void MenuTXRawPower::Render()
 {
    RenderPrepare();
-   
+
    float yTop = RenderFrameAndTitle();
    float y = yTop;
 
@@ -519,7 +519,7 @@ void MenuTXRawPower::onSelectItem()
          }
       }
    }
-   
+
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
    {
       if ( (m_IndexControllerTxPowerRadioLinks[i] != -1) && (m_IndexControllerTxPowerRadioLinks[i] == m_SelectedIndex) )

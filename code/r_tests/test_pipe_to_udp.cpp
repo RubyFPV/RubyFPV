@@ -40,12 +40,12 @@ int pipe_exists()
    return 0;
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    bQuit = true;
-} 
-  
+}
+
 int main(int argc, char *argv[])
 {
    signal(SIGINT, handle_sigint);
@@ -75,9 +75,9 @@ int main(int argc, char *argv[])
    if ( argc >= 4 )
    if ( 0 == strcmp(argv[3], "-no-output") )
       bNoOutput = true;
- 
+
    g_iPipeFD = -1;
-   
+
    struct addrinfo hints;
    memset(&hints,0,sizeof(hints));
    hints.ai_family=AF_UNSPEC;
@@ -85,10 +85,10 @@ int main(int argc, char *argv[])
    hints.ai_protocol=0;
    hints.ai_flags=AI_ADDRCONFIG;
    struct addrinfo* res=0;
-   
+
    int socketfd;
    struct sockaddr_in server_addr;
-	
+
    socketfd = socket(AF_INET , SOCK_DGRAM, 0);
    if (socketfd == -1)
    {
@@ -97,12 +97,12 @@ int main(int argc, char *argv[])
    }
 
    memset(&server_addr, 0, sizeof(server_addr));
-    
+
    server_addr.sin_family = AF_INET;
    //server_addr.sin_addr.s_addr = inet_addr("192.168.42.129");
    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
    server_addr.sin_port = htons( udpport );
-	
+
    log_line("Sending data from [%s] to udp port %d ...", szPipeName, udpport);
    if ( bNoOutput )
       log_line("Output is disabled");

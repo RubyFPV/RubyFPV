@@ -112,7 +112,7 @@ void MenuRadioConfig::onShow()
    m_bComputedHeights = false;
    log_line("MenuRadioConfig: Entering menu radio config onShow event...");
    removeAllItems();
-      
+
    m_fFooterHeight = 1.0 * g_pRenderEngine->textHeight(m_iIdFontRegular) + m_sfMenuPaddingY;
    m_szCurrentTooltip[0] = 0;
 
@@ -146,7 +146,7 @@ void MenuRadioConfig::onShow()
 
    if ( m_iIndexCurrentItem >= m_iIndexMaxItem )
       m_iIndexCurrentItem = m_iIndexMaxItem-1;
-     
+
    if ( (0 < g_SM_RadioStats.countVehicleRadioLinks) || (0 < g_SM_RadioStats.countLocalRadioLinks) )
       computeHeights();
 
@@ -178,7 +178,7 @@ void MenuRadioConfig::onShow()
          bDoNotClose = true;
       if ( (NULL != pTopMenu) && (pTopMenu->getId() == MENU_ID_VEHICLE_RADIO_INTERFACE) )
          bDoNotClose = true;
- 
+
       if ( ! bDoNotClose )
       {
          log_line("MenuRadioConfig: Is not on top, close the top menu.");
@@ -222,7 +222,7 @@ void MenuRadioConfig::setTooltipText()
 void MenuRadioConfig::computeMenuItems()
 {
    log_line("MenuRadioConfig: Compute Menu Items...");
-   
+
    if ( NULL != m_pItemSelectTxCard )
       removeMenuItem(m_pItemSelectTxCard);
 
@@ -270,13 +270,13 @@ void MenuRadioConfig::computeMenuItems()
    // Check if swap vehicle radio interfaces is possible
    ControllerSettings* pCS = get_ControllerSettings();
    m_bHasSwapInterfacesCommand = false;
-   if ( (NULL != g_pCurrentModel) && g_bFirstModelPairingDone && (!m_bShowOnlyControllerUnusedInterfaces) )  
+   if ( (NULL != g_pCurrentModel) && g_bFirstModelPairingDone && (!m_bShowOnlyControllerUnusedInterfaces) )
    if ( pCS->iDeveloperMode )
    if ( g_pCurrentModel->canSwapEnabledHighCapacityRadioInterfaces() )
        m_bHasSwapInterfacesCommand = true;
 
    // Check to see to which radio links to add the swhich radio link commands
-   
+
    if ( (NULL != g_pCurrentModel) && g_bFirstModelPairingDone )
    for( int iVehicleRadioLink=0; iVehicleRadioLink<m_iCountVehicleRadioLinks; iVehicleRadioLink++ )
    {
@@ -350,7 +350,7 @@ void MenuRadioConfig::Render()
 
    g_pRenderEngine->setColors(get_Color_MenuBg());
    g_pRenderEngine->drawRoundRect(xStart, yStart, fWidth, m_fTotalHeightRadioConfig, MENU_ROUND_MARGIN*m_sfMenuPaddingY);
-   
+
    g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
    g_pRenderEngine->setFill(0,0,0,0);
    g_pRenderEngine->setStroke(get_Color_MenuBorder());
@@ -386,7 +386,7 @@ void MenuRadioConfig::Render()
    float yEnd = drawRadioLinks(xStart, xEnd, yStart);
    g_pRenderEngine->clearFontBackgroundBoundingBoxStrikeColor();
 
-   
+
    if ( NULL != m_pItemSelectTxCard )
    {
       float xPos = m_RenderXPos + g_pRenderEngine->textWidth(m_iIdFontRegular, "TxCard");
@@ -405,7 +405,7 @@ void MenuRadioConfig::Render()
       bool bBBox = false;
       if ( (m_uCommandsIds[m_iIndexCurrentItem] & 0xFF) == MRC_ID_ROTATE_RADIO_LINKS )
             bBBox = g_pRenderEngine->drawBackgroundBoundingBoxes(true);
-      
+
       float fWidthText = g_pRenderEngine->textWidth(m_iIdFontRegular, "Rotate Radio Links Order");
       g_pRenderEngine->drawTextLeft(xLeft, yEnd, m_iIdFontRegular, "Rotate Radio Links Order");
 
@@ -420,7 +420,7 @@ void MenuRadioConfig::Render()
       bool bBBox = false;
       if ( (m_uCommandsIds[m_iIndexCurrentItem] & 0xFF) == MRC_ID_SWAP_VEHICLE_RADIO_INTERFACES )
             bBBox = g_pRenderEngine->drawBackgroundBoundingBoxes(true);
-      
+
       float fWidthText = g_pRenderEngine->textWidth(m_iIdFontRegular, "Swap Vehicle's Radio Interfaces");
       g_pRenderEngine->drawTextLeft(xLeft, yEnd, m_iIdFontRegular, "Swap Vehicle's Radio Interfaces");
 
@@ -546,7 +546,7 @@ void MenuRadioConfig::onSelectedPreferredTxCard(int iVehicleRadioLink)
       if ( NULL != pRadioHWInfo )
          controllerRemoveCardTXPreferred(pRadioHWInfo->szMAC);
    }
-     
+
    if ( iSelection > 0 )
    {
       int iCount = 0;
@@ -612,9 +612,9 @@ void MenuRadioConfig::onClickAutoTx(int iRadioLink)
 
       char szBuff[256];
       char szName[128];
-   
+
       strcpy(szName, "NoName");
-   
+
       char szCardName[64];
       controllerGetCardUserDefinedNameOrShortType(pRadioHWInfo, szCardName);
       if ( NULL != szCardName && 0 != szCardName[0] )
@@ -679,7 +679,7 @@ void MenuRadioConfig::onSelectItem()
    log_line("MenuRadioConfig: Clicked on current item %d", m_iIndexCurrentItem);
 
    float height_text = g_pRenderEngine->textHeight(m_iIdFontRegular);
-   
+
    if ( m_bHasRotateRadioLinksOrderCommand )
    if ( (m_uCommandsIds[m_iIndexCurrentItem] & 0xFF) == MRC_ID_ROTATE_RADIO_LINKS )
    {
@@ -746,7 +746,7 @@ void MenuRadioConfig::onSelectItem()
          pMenu = new MenuVehicleRadioLinkELRS(iVehicleRadioLinkId);
       else
          pMenu = new MenuVehicleRadioLink(iVehicleRadioLinkId);
-        
+
       int iCountInterfacesAssignedToThisLink = 0;
       for( int i=0; i<g_SM_RadioStats.countLocalRadioInterfaces; i++ )
       {
@@ -788,7 +788,7 @@ void MenuRadioConfig::onSelectItem()
       if ( pMenu->m_yPos > 0.8 )
          pMenu->m_yPos = 0.8;
       add_menu_to_stack(pMenu);
-      return;  
+      return;
    }
 
    if ( (m_uCommandsIds[m_iIndexCurrentItem] & 0xFF) == MRC_ID_CONFIGURE_RADIO_INTERFACE_VEHICLE )
@@ -814,7 +814,7 @@ void MenuRadioConfig::onSelectItem()
       if ( pMenu->m_yPos > 0.8 )
          pMenu->m_yPos = 0.8;
       add_menu_to_stack(pMenu);
-      return;  
+      return;
    }
 
    if ( (m_uCommandsIds[m_iIndexCurrentItem] & 0xFF) == MRC_ID_SET_PREFFERED_TX )
@@ -873,7 +873,7 @@ float MenuRadioConfig::computeHeights()
              hTotalHeight += height_text*2.5;
       }
    }
-   
+
    int iCountUnusedControllerInterfaces = 0;
    if ( (NULL == g_pCurrentModel) || (!g_bFirstModelPairingDone) || m_bShowOnlyControllerUnusedInterfaces )
       iCountUnusedControllerInterfaces = hardware_get_radio_interfaces_count();
@@ -927,7 +927,7 @@ void MenuRadioConfig::computeMaxItemIndexAndCommands()
 
       return;
    }
-   
+
    if ( (NULL != g_pCurrentModel) && g_bFirstModelPairingDone )
    for( int iLink=0; iLink<m_iCountVehicleRadioLinks; iLink++ )
    {
@@ -1020,14 +1020,14 @@ float MenuRadioConfig::drawRadioLinks(float xStart, float xEnd, float yStart)
    float height_text = g_pRenderEngine->textHeight(m_iIdFontRegular);
    float fWidth = (xEnd - xStart);
    float fXMid = xStart + fWidth*0.5;
-   
+
    xStart += m_sfMenuPaddingX;
    xEnd -= m_sfMenuPaddingX;
    fWidth -= 2.0 * m_sfMenuPaddingX;
 
    m_RenderXPos = xStart;
    m_RenderWidth = fWidth;
-   
+
    computeMaxItemIndexAndCommands();
 
    m_bTmpHasVideoStreamsEnabled = false;
@@ -1042,7 +1042,7 @@ float MenuRadioConfig::drawRadioLinks(float xStart, float xEnd, float yStart)
    {
       yPos += height_text*4.0;
       g_pRenderEngine->drawText(xStart, yPos, m_iIdFontLarge, "No radio interfaces on controller!");
-      return yPos;   
+      return yPos;
    }
 
    // ---------------------------------
@@ -1136,12 +1136,12 @@ float MenuRadioConfig::drawRadioHeader(float xStart, float xEnd, float yStart)
       uIdIconVehicle = osd_getVehicleIcon( g_pCurrentModel->vehicle_type );
    //g_pRenderEngine->drawIcon(xStart + fWidth*0.2-hIconBig*0.5/g_pRenderEngine->getAspectRatio(), yPos, hIconBig/g_pRenderEngine->getAspectRatio(), hIconBig, g_idIconJoystick);
    //g_pRenderEngine->drawIcon(xStart + fWidth*0.8-hIconBig*0.5/g_pRenderEngine->getAspectRatio(), yPos, hIconBig/g_pRenderEngine->getAspectRatio(), hIconBig, uIdIconVehicle);
-   
+
    float fScale = 1.7;
    g_pRenderEngine->drawIcon(xMid - xMidMargin - hIconBig*fScale/g_pRenderEngine->getAspectRatio(), yPos-hIconBig*0.3, hIconBig*fScale/g_pRenderEngine->getAspectRatio(), hIconBig*fScale, g_idIconController);
    if ( (NULL != g_pCurrentModel) && g_bFirstModelPairingDone && (!m_bShowOnlyControllerUnusedInterfaces) )
       g_pRenderEngine->drawIcon(xMid + xMidMargin, yPos, hIconBig/g_pRenderEngine->getAspectRatio(), hIconBig, uIdIconVehicle);
-   
+
    float xLeft = xMid - xMidMargin - hIconBig*fScale/g_pRenderEngine->getAspectRatio() - 0.02/g_pRenderEngine->getAspectRatio();
    float xRight = xMid + xMidMargin + hIconBig/g_pRenderEngine->getAspectRatio() + 0.02/g_pRenderEngine->getAspectRatio();
 
@@ -1154,9 +1154,9 @@ float MenuRadioConfig::drawRadioHeader(float xStart, float xEnd, float yStart)
 
    szBuff[0] = toupper(szBuff[0]);
    g_pRenderEngine->drawText(xRight, yPos + (hIconBig-height_text)*0.5, m_iIdFontRegular, szBuff);
-   
+
    yPos += hIconBig + height_text*1.5;
-   
+
    if ( (NULL == g_pCurrentModel) || (! g_bFirstModelPairingDone) || m_bShowOnlyControllerUnusedInterfaces )
    {
       g_pRenderEngine->drawMessageLines(xMid + xMidMargin*0.6, yPos, "You have no active model. No radio links are created.", MENU_TEXTLINE_SPACING, (xEnd - xMid) - m_sfMenuPaddingX - xMidMargin*0.6, m_iIdFontRegular);
@@ -1232,7 +1232,7 @@ void MenuRadioConfig::drawOneRadioLinkCapabilities(float xStart, float xEnd, flo
    if ( g_pCurrentModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLink] & RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO )
    if ( ! (g_pCurrentModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLink] & RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_DATA) )
       strcat(szCapabilities, "Video Only,");
-      
+
    if ( g_pCurrentModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLink] & RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_DATA )
    if ( ! (g_pCurrentModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLink] & RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO) )
    {
@@ -1341,18 +1341,18 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
    float fPaddingInnerY = 0.02;
    float fPaddingInnerX = fPaddingInnerY/g_pRenderEngine->getAspectRatio();
    ControllerSettings* pCS = get_ControllerSettings();
-   
+
    bool bBBox = false;
    bool bShowLinkRed = false;
    bool bShowRed = false;
    bool bHasAutoTxOption = false;
 
    double cY[4] = {255,240,100,1.0};
-   
+
    char szTmp[64];
    char szBuff[128];
    char szError[128];
-   
+
    float xLeftMax[MAX_RADIO_INTERFACES];
    float yMidVehicle = 0.0;
    float yMidController[MAX_RADIO_INTERFACES];
@@ -1402,7 +1402,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
 
    bool bIsLinkActive = true;
    bool bIsRelayLink = false;
-   
+
    if ( g_pCurrentModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLink] & RADIO_HW_CAPABILITY_FLAG_DISABLED )
    {
       strcpy(szError, "Disabled");
@@ -1413,7 +1413,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
    {
       strcpy(szError, "No radio interface");
       bShowLinkRed = true;
-      bIsLinkActive = false;    
+      bIsLinkActive = false;
    }
    else if ( g_pCurrentModel->radioInterfacesParams.interface_capabilities_flags[iVehicleRadioInterfaceForThisLink] & RADIO_HW_CAPABILITY_FLAG_DISABLED )
    {
@@ -1428,7 +1428,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
       bShowLinkRed = true;
       bIsLinkActive = false;
    }
-   
+
    if ( ! (g_pCurrentModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLink] & RADIO_HW_CAPABILITY_FLAG_CAN_TX ) )
    if ( ! (g_pCurrentModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLink] & RADIO_HW_CAPABILITY_FLAG_CAN_RX ) )
    {
@@ -1443,7 +1443,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
    }
    else
    {
-     
+
    }
 
    if ( ( g_pCurrentModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLink] & RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_VIDEO ) &&
@@ -1473,7 +1473,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
        sprintf(szBuff, "Radio Link-%d  %s", iVehicleRadioLink+1, str_format_frequency(g_pCurrentModel->radioLinksParams.link_frequency_khz[iVehicleRadioLink]));
    else
       sprintf(szBuff, "Radio Link-%d  %s", iVehicleRadioLink+1, str_format_frequency(g_pCurrentModel->radioLinksParams.link_frequency_khz[iVehicleRadioLink]));
-      
+
 
    // -------------------------------------------------------
    // Begin - Draw link name/title
@@ -1512,7 +1512,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
          bBBox = g_pRenderEngine->drawBackgroundBoundingBoxes(true);
 
       g_pRenderEngine->drawText(fxTitleEnd, yPos-height_text*0.2, m_iIdFontRegular, "Test");
-      
+
       if ( (iCurrentMenuItemCommand == MRC_ID_DIAGNOSE_RADIO_LINK) && (iCurrentMenuItemExtraParam == iVehicleRadioLink) )
          g_pRenderEngine->drawBackgroundBoundingBoxes(bBBox);
 
@@ -1550,7 +1550,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
       g_pRenderEngine->drawRoundRect(xMid, yPos, fWidth - (xMid - xStart), m_fHeightLinks[iVehicleRadioLink]-height_text_large, MENU_ROUND_MARGIN*m_sfMenuPaddingY);
    else
       g_pRenderEngine->drawRoundRect(xStart, yPos, fWidth, m_fHeightLinks[iVehicleRadioLink]-height_text_large, MENU_ROUND_MARGIN*m_sfMenuPaddingY);
-   
+
    g_pRenderEngine->setColors(get_Color_MenuText());
    g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
 
@@ -1563,7 +1563,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
 
    yPos += height_text*2.0;
    yPos += fPaddingInnerY * 0.1;
-   
+
    g_pRenderEngine->setColors(get_Color_MenuText());
    g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
 
@@ -1578,7 +1578,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
       yPos += (m_fHeightLinks[iVehicleRadioLink]-height_text_large - 2.0*fPaddingInnerY-2.0*height_text) * 0.5 - height_text*1.5;
 
    int iVehicleRadioInterfaceId = g_pCurrentModel->getRadioInterfaceIndexForRadioLink(iVehicleRadioLink);
-      
+
    yMidVehicle = yPos + height_text*1.5;
    szTmp[0] = 0;
    if ( g_pCurrentModel->radioInterfacesParams.interface_capabilities_flags[iVehicleRadioInterfaceId] & RADIO_HW_CAPABILITY_FLAG_DISABLED )
@@ -1592,15 +1592,15 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
       strcat(szTmp, " Can't Uplink or Downlink");
       bShowRed = true;
    }
-   
+
    g_pRenderEngine->drawIcon(xMid + xMidMargin, yPos, hIcon/g_pRenderEngine->getAspectRatio(), hIcon, g_idIconRadio);
 
    float xiRight = xMid + xMidMargin + hIcon/g_pRenderEngine->getAspectRatio() + fPaddingInnerX;
    sprintf(szBuff, "Interface %d, Port %s", iVehicleRadioInterfaceId+1, g_pCurrentModel->radioInterfacesParams.interface_szPort[iVehicleRadioInterfaceId]);
-   
+
    if ( (iCurrentMenuItemCommand == MRC_ID_CONFIGURE_RADIO_INTERFACE_VEHICLE) && (iCurrentMenuItemExtraParam == iVehicleRadioInterfaceId) )
       bBBox = g_pRenderEngine->drawBackgroundBoundingBoxes(true);
-    
+
    g_pRenderEngine->drawText(xiRight, yPos, m_iIdFontRegular, szBuff);
 
    if ( (iCurrentMenuItemCommand == MRC_ID_CONFIGURE_RADIO_INTERFACE_VEHICLE) && (iCurrentMenuItemExtraParam == iVehicleRadioInterfaceId) )
@@ -1635,7 +1635,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
       bShowRed = true;
       strcat(szTmp, " Disabled");
    }
-   
+
    g_pRenderEngine->drawText(xiRight, yPos,  m_iIdFontRegular, szBuff);
    yPos += height_text;
 
@@ -1643,7 +1643,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
 
    //------------------------------------------------
    // Draw controller interfaces
-   
+
    float yTopInterfaces = y1;
    yPos = y1;
    iCountInterfacesAssignedToThisLink = 0;
@@ -1719,7 +1719,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
          }
          if ( m_bHasSwitchRadioLinkCommand[iVehicleRadioLink] )
             yPos -= height_text * 0.4;
-         yPos += g_pRenderEngine->drawMessageLines(xStart + 0.02 + fPaddingInnerX, yPos, szBuff, MENU_TEXTLINE_SPACING, (xMid-xMidMargin-xStart - 0.02 - fPaddingInnerX), m_iIdFontRegular); 
+         yPos += g_pRenderEngine->drawMessageLines(xStart + 0.02 + fPaddingInnerX, yPos, szBuff, MENU_TEXTLINE_SPACING, (xMid-xMidMargin-xStart - 0.02 - fPaddingInnerX), m_iIdFontRegular);
          g_pRenderEngine->setColors(get_Color_MenuText());
          g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
       }
@@ -1731,12 +1731,12 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
 
       if ( (iCurrentMenuItemCommand == MRC_ID_SWITCH_RADIO_LINK) && (iCurrentMenuItemExtraParam == iVehicleRadioLink) )
           bBBox = g_pRenderEngine->drawBackgroundBoundingBoxes(true);
-     
+
        g_pRenderEngine->drawText(xStart + 0.02 + fPaddingInnerX, yPos, m_iIdFontLarge, "Switch to this radio link");
-       
+
        if ( (iCurrentMenuItemCommand == MRC_ID_SWITCH_RADIO_LINK) && (iCurrentMenuItemExtraParam == iVehicleRadioLink) )
           g_pRenderEngine->drawBackgroundBoundingBoxes(bBBox);
-       
+
        yPos += 1.0*height_text_large;
    }
 
@@ -1775,12 +1775,12 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
 
       if ( (iCurrentMenuItemCommand == MRC_ID_SET_PREFFERED_TX) && (iCurrentMenuItemExtraParam == iVehicleRadioLink) )
          bBBox = g_pRenderEngine->drawBackgroundBoundingBoxes(true);
-    
+
       g_pRenderEngine->drawText(xStart + 0.02 + fPaddingInnerX, yPos, m_iIdFontRegular, szBuff);
-      
+
       if ( (iCurrentMenuItemCommand == MRC_ID_SET_PREFFERED_TX) && (iCurrentMenuItemExtraParam == iVehicleRadioLink) )
          g_pRenderEngine->drawBackgroundBoundingBoxes(bBBox);
-      
+
       yPos += 1.5*height_text;
    }
 
@@ -1793,13 +1793,13 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
    for( float y = yTopInterfaces; y<yPos-0.01; y += 0.02 )
       g_pRenderEngine->drawLine(xMid, y, xMid, y+0.01);
    g_pRenderEngine->setGlobalAlfa(fAlpha);
-   
+
    //--------------------------------------------------
    // Draw arrows
 
    g_pRenderEngine->setColors(get_Color_MenuText());
    g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
-      
+
    float xLeftMaxMax = 0.0;
    for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
       if ( xLeftMax[i] > xLeftMaxMax )
@@ -1850,7 +1850,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
       if ( pCardInfo->capabilities_flags & RADIO_HW_CAPABILITY_FLAG_CAN_RX )
       if ( g_pCurrentModel->radioInterfacesParams.interface_capabilities_flags[iVehicleRadioInterfaceId] & RADIO_HW_CAPABILITY_FLAG_CAN_TX )
       if ( g_pCurrentModel->radioLinksParams.link_capabilities_flags[iVehicleRadioLink] & RADIO_HW_CAPABILITY_FLAG_CAN_TX )
-         bCanDownlink = true;   
+         bCanDownlink = true;
 
       if ( pCardInfo->capabilities_flags & RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_DATA )
       if ( g_pCurrentModel->radioInterfacesParams.interface_capabilities_flags[iVehicleRadioInterfaceId] & RADIO_HW_CAPABILITY_FLAG_CAN_USE_FOR_DATA )
@@ -1902,18 +1902,18 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
          g_pRenderEngine->setColors(cY);
          g_pRenderEngine->setStrokeSize(1.0);
       }
-      
+
       float xLineMid = (xLineCtrl + xLineVeh)/2.0;
       float yLineMid = (yLineCtrl + yLineVeh)/2.0;
       float xLineMarginCtrl = xLineMid - height_text*0.5;
       float xLineMarginVeh = xLineMid + height_text*0.5;
       float yLineMarginCtrl = yLineCtrl + (yLineMid-yLineCtrl) * (xLineMarginCtrl-xLineCtrl) / (xLineMid - xLineCtrl);
       float yLineMarginVeh = yLineVeh + (yLineMid-yLineVeh) * (xLineMarginVeh-xLineVeh) / (xLineMid - xLineVeh);
-      
+
       //g_pRenderEngine->drawLine(xLineCtrl, yLineCtrl, xLineVeh, yLineVeh );
       g_pRenderEngine->drawLine(xLineCtrl, yLineCtrl, xLineMarginCtrl, yLineMarginCtrl);
       g_pRenderEngine->drawLine(xLineVeh, yLineVeh, xLineMarginVeh, yLineMarginVeh);
- 
+
       char szTxPower[64];
       if ( 1 == iArrowCount )
       {
@@ -1968,7 +1968,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
       {
          float dx = xLineVeh - xLineCtrl;
          float dy = yLineVeh - yLineCtrl;
-         float fLength = sqrtf(dx*dx+dy*dy);         
+         float fLength = sqrtf(dx*dx+dy*dy);
          float x1 = xLineMarginVeh + dx*0.01/fLength;
          float y1 = yLineMarginVeh + dy*0.01/fLength;
          float xp[3], yp[3];
@@ -1982,7 +1982,7 @@ float MenuRadioConfig::drawOneRadioLink(float xStart, float xEnd, float yStart, 
 
       g_pRenderEngine->setColors(get_Color_MenuText());
       g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
-     
+
       dyArrow += arrowSpacing;
    }
 
@@ -2001,7 +2001,7 @@ float MenuRadioConfig::drawRadioInterfaceController(float xStart, float xEnd, fl
    int iCurrentMenuItemExtraParam = (int)(m_uCommandsIds[m_iIndexCurrentItem] >> 8);
 
    bool bSelected = false;
-   
+
    if ( (iCurrentMenuItemCommand == MRC_ID_CONFIGURE_RADIO_INTERFACE_CONTROLLER) && (iCurrentMenuItemExtraParam == iRadioInterface) )
       bSelected = true;
 
@@ -2024,7 +2024,7 @@ float MenuRadioConfig::drawRadioInterfaceCtrlInfo(float xStart, float xEnd, floa
    float hIcon = height_text*2.4;
    float fPaddingInnerY = 0.02;
    float fPaddingInnerX = fPaddingInnerY/g_pRenderEngine->getAspectRatio();
-   
+
    float yPos = yStart;
    float fMaxWidth = 0.0;
 
@@ -2055,7 +2055,7 @@ float MenuRadioConfig::drawRadioInterfaceCtrlInfo(float xStart, float xEnd, floa
 
    g_pRenderEngine->setColors(get_Color_MenuText());
    g_pRenderEngine->setStrokeSize(MENU_OUTLINEWIDTH);
-   
+
    bShowRed = false;
 
    if ( pCardInfo->capabilities_flags & RADIO_HW_CAPABILITY_FLAG_DISABLED )
@@ -2063,11 +2063,11 @@ float MenuRadioConfig::drawRadioInterfaceCtrlInfo(float xStart, float xEnd, floa
    if ( !(pCardInfo->capabilities_flags & RADIO_HW_CAPABILITY_FLAG_CAN_TX) )
    if ( !(pCardInfo->capabilities_flags & RADIO_HW_CAPABILITY_FLAG_CAN_RX) )
       bShowRed = true;
-      
+
    m_fYPosCtrlRadioInterfaces[iRadioInterface] = yPos;
 
    g_pRenderEngine->drawIcon(xStart - hIcon/g_pRenderEngine->getAspectRatio(), yPos, hIcon/g_pRenderEngine->getAspectRatio(), hIcon, g_idIconRadio);
-      
+
    float xTextLeft = xStart - hIcon/g_pRenderEngine->getAspectRatio() - fPaddingInnerX;
    sprintf(szBuff, "Interface %d, Port %s", iRadioInterface+1, pRadioHWInfo->szUSBPort);
    if ( ! controllerIsCardInternal(pRadioHWInfo->szMAC) )
@@ -2075,7 +2075,7 @@ float MenuRadioConfig::drawRadioInterfaceCtrlInfo(float xStart, float xEnd, floa
 
    if ( bSelected )
       bBBox = g_pRenderEngine->drawBackgroundBoundingBoxes(true);
-      
+
    g_pRenderEngine->drawTextLeft(xTextLeft, yPos, m_iIdFontRegular, szBuff);
    fMaxWidth = g_pRenderEngine->textWidth(m_iIdFontRegular, szBuff);
 

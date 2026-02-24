@@ -8,13 +8,13 @@ class MenuControllerUpdateNet: public MenuControllerUpdate
 {
    public:
       MenuControllerUpdateNet();
-      virtual void onShow();     
+      virtual void onShow();
       virtual void valuesToUI();
       virtual void Render();
       virtual bool periodicLoop();
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
-      
+
       void onFinishCheckAsync(int iResult);
       void onUpdateCounter();
 

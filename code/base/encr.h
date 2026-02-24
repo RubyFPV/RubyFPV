@@ -9,7 +9,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 // Load and saves pass phrases
 int lpp(char* szOutputBuffer, int maxLength);
@@ -23,5 +23,5 @@ int epp(u8* pData, int len);
 int dpp(u8* pData, int len);
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif

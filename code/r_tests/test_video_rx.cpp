@@ -64,7 +64,7 @@ void parse_video_packet(u8* pBuffer, int payloadLength)
    pdpv = (t_packet_header_video_full_77*)(pBuffer + sizeof(t_packet_header));
 
    printf(" Recv block %d, packet %d\n", pdpv->video_block_index, pdpv->video_block_packet_index);
-   
+
    check_encoding_change(pdpv);
 
    s_iCurrentEncodingRecvPackets++;
@@ -84,7 +84,7 @@ void parse_video_packet(u8* pBuffer, int payloadLength)
             break;
    }
 
-   // No room found in buffer. Need to overwrite or push something out   
+   // No room found in buffer. Need to overwrite or push something out
    if ( index == MAX_BLOCKS_BUFFER )
    {
       log_line("Pussing incomplete block out: block index: %d", s_BufferBlockIndexes[0]);
@@ -113,11 +113,11 @@ void parse_video_packet(u8* pBuffer, int payloadLength)
 
 }
 
-void handle_sigint(int sig) 
-{ 
+void handle_sigint(int sig)
+{
    log_line("Caught signal to stop: %d\n", sig);
    quit = true;
-} 
+}
 
 
 int main(int argc, char *argv[])
@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
       printf("\nYou must specify network and optionaly a frequency:  test_port_rx wlan0 [2417]\n");
       return -1;
    }
-   
+
    signal(SIGINT, handle_sigint);
    signal(SIGTERM, handle_sigint);
    signal(SIGQUIT, handle_sigint);
@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
    log_init("RX_TEST_VIDEO");
    log_enable_stdout();
    hardware_enumerate_radio_interfaces();
-   
+
    if ( freq != -1 )
    {
       radio_utils_set_interface_frequency(-1, freq, -1, NULL, 0);
@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
       to.tv_sec = 0;
       to.tv_usec = miliSec*1000;
       t_packet_header* pdph = NULL;
-         
+
       int maxfd = -1;
       FD_ZERO(&readset);
       for(int i=0; i<hardware_get_radio_interfaces_count(); ++i)
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
             FD_SET(pNICInfo->monitor_interface.selectable_fd, &readset);
             if ( pNICInfo->monitor_interface.selectable_fd > maxfd )
                maxfd = pNICInfo->monitor_interface.selectable_fd;
-         } 
+         }
       }
       maxfd = 20;
       int n = select(maxfd+1, &readset, NULL, NULL, &to);
@@ -201,21 +201,21 @@ int main(int argc, char *argv[])
          radio_hw_info_t* pNICInfo = hardware_get_radio_info(i);
          if(FD_ISSET(pNICInfo->monitor_interface.selectable_fd, &readset))
          {
-         
+
          int payloadLength = 0;
          u8* pBuffer = NULL;
          int totalBytes = 0;
          int bCRCOk = 0;
          int okPacket = 0;
-         pBuffer = radio_process_wlan_data_in(i, &payloadLength, NULL, g_TimeNow); 
+         pBuffer = radio_process_wlan_data_in(i, &payloadLength, NULL, g_TimeNow);
          if ( NULL == pBuffer )
          {
             printf("NULL receive buffer. Ignoring...\n");
             fflush(stdout);
             continue;
          }
-         pdph = (t_packet_header*)pBuffer; 
-         
+         pdph = (t_packet_header*)pBuffer;
+
          if ( payloadLength < (int)(sizeof(t_packet_header)) )
          {
             printf("Packet too small, ignoring.\n");

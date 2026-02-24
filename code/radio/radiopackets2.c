@@ -38,7 +38,7 @@ void radio_packet_init(t_packet_header* pPH, u8 component, u8 packet_type, u32 u
 {
    if ( NULL == pPH )
       return;
-   
+
    if ( uStreamId >= MAX_RADIO_STREAMS )
       uStreamId = MAX_RADIO_STREAMS-1;
    pPH->uCRC = 0;
@@ -54,14 +54,14 @@ void radio_packet_init(t_packet_header* pPH, u8 component, u8 packet_type, u32 u
 
 void radio_packet_compute_crc(u8* pBuffer, int length)
 {
-   u32 crc = base_compute_crc32(pBuffer + sizeof(u32), length-sizeof(u32)); 
+   u32 crc = base_compute_crc32(pBuffer + sizeof(u32), length-sizeof(u32));
    u32* p = (u32*)pBuffer;
    *p = crc;
 }
 
 int radio_packet_check_crc(u8* pBuffer, int length)
 {
-   u32 crc = base_compute_crc32(pBuffer + sizeof(u32), length-sizeof(u32)); 
+   u32 crc = base_compute_crc32(pBuffer + sizeof(u32), length-sizeof(u32));
    u32* p = (u32*)pBuffer;
    if ( *p != crc )
       return 0;
@@ -82,7 +82,7 @@ void radio_populate_ruby_telemetry_v6_from_ruby_telemetry_v3(t_packet_header_rub
    memcpy(pV6->uRadioFrequenciesKhz, pV3->uRadioFrequenciesKhz, MAX_RADIO_INTERFACES*sizeof(u32));
 
    pV6->uRelayLinks = pV3->uRelayLinks;
-   
+
    pV6->downlink_tx_video_bitrate_bps = pV3->downlink_tx_video_bitrate_bps;
    pV6->downlink_tx_video_all_bitrate_bps = pV3->downlink_tx_video_all_bitrate_bps;
    pV6->downlink_tx_data_bitrate_bps = pV3->downlink_tx_data_bitrate_bps;
@@ -123,12 +123,12 @@ void radio_populate_ruby_telemetry_v6_from_ruby_telemetry_v4(t_packet_header_rub
    pV6->uVehicleId = pV4->uVehicleId;
    pV6->vehicle_type = pV4->vehicle_type;
    memcpy(pV6->vehicle_name, pV4->vehicle_name, MAX_VEHICLE_NAME_LENGTH);
-   
+
    pV6->radio_links_count = pV4->radio_links_count;
    memcpy(pV6->uRadioFrequenciesKhz, pV4->uRadioFrequenciesKhz, MAX_RADIO_INTERFACES*sizeof(u32));
 
    pV6->uRelayLinks = pV4->uRelayLinks;
-   
+
    pV6->downlink_tx_video_bitrate_bps = pV4->downlink_tx_video_bitrate_bps;
    pV6->downlink_tx_video_all_bitrate_bps = pV4->downlink_tx_video_all_bitrate_bps;
    pV6->downlink_tx_data_bitrate_bps = pV4->downlink_tx_data_bitrate_bps;
@@ -170,12 +170,12 @@ void radio_populate_ruby_telemetry_v6_from_ruby_telemetry_v5(t_packet_header_rub
    pV6->uVehicleId = pV5->uVehicleId;
    pV6->vehicle_type = pV5->vehicle_type;
    memcpy(pV6->vehicle_name, pV5->vehicle_name, MAX_VEHICLE_NAME_LENGTH);
-   
+
    pV6->radio_links_count = pV5->radio_links_count;
    memcpy(pV6->uRadioFrequenciesKhz, pV5->uRadioFrequenciesKhz, MAX_RADIO_INTERFACES*sizeof(u32));
 
    pV6->uRelayLinks = pV5->uRelayLinks;
-   
+
    pV6->downlink_tx_video_bitrate_bps = pV5->downlink_tx_video_bitrate_bps;
    pV6->downlink_tx_video_all_bitrate_bps = pV5->downlink_tx_video_all_bitrate_bps;
    pV6->downlink_tx_data_bitrate_bps = pV5->downlink_tx_data_bitrate_bps;

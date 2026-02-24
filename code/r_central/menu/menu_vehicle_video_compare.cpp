@@ -61,7 +61,7 @@ MenuVehicleVideoCompare::~MenuVehicleVideoCompare()
 }
 
 void MenuVehicleVideoCompare::onShow()
-{      
+{
    Menu::onShow();
 }
 
@@ -107,7 +107,7 @@ void MenuVehicleVideoCompare::addRenderLine(const char* szTitle, const char* szV
 
 void MenuVehicleVideoCompare::Render()
 {
-   RenderPrepare();   
+   RenderPrepare();
    float yTop = RenderFrameAndTitle();
 
    float fTableTop = m_RenderYPos + m_RenderTitleHeight + m_sfMenuPaddingY*2.0;
@@ -130,7 +130,7 @@ void MenuVehicleVideoCompare::Render()
 
    char szVals[6][64];
 
-   m_fCurrentYPos += g_pRenderEngine->getPixelHeight()*4.0;   
+   m_fCurrentYPos += g_pRenderEngine->getPixelHeight()*4.0;
    g_pRenderEngine->drawLine(m_RenderXPos + m_sfMenuPaddingX, m_fCurrentYPos, m_RenderXPos + m_RenderWidth - m_sfMenuPaddingX, m_fCurrentYPos);
    m_fCurrentYPos += m_sfMenuPaddingY * 0.5;
 
@@ -161,7 +161,7 @@ void MenuVehicleVideoCompare::Render()
    for( int i=0; i<5; i++ )
    {
       sprintf(szVals[i], "%d", (g_pCurrentModel->video_link_profiles[i].uProfileFlags & VIDEO_PROFILE_FLAG_MASK_RETRANSMISSIONS_GUARD_MASK) >> 8);
-   }   
+   }
    addRenderLine(L("Retransmissions Sensitivity (ms)"), szVals[0], szVals[1], szVals[2], szVals[3], szVals[4] );
 
    for( int i=0; i<5; i++ )

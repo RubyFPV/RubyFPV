@@ -137,7 +137,7 @@ u32 _get_previous_frequency_switch(int nLink)
          return nNewFreq;
       }
    }
-   return nNewFreq;   
+   return nNewFreq;
 }
 
 
@@ -201,7 +201,7 @@ u32 _get_next_frequency_switch(int nLink)
             nCurrentBandChannelsCount = getChannels24Count();
             continue;
          }
-         
+
          if ( nBand == RADIO_HW_SUPPORTED_BAND_24 )
          {
             nBand = RADIO_HW_SUPPORTED_BAND_25;
@@ -306,7 +306,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
    memcpy(&oldVideoParams, &(g_pCurrentModel->video_params), sizeof(video_parameters_t));
    memcpy(&(oldVideoLinkProfiles[0]), &(g_pCurrentModel->video_link_profiles[0]), MAX_VIDEO_LINK_PROFILES*sizeof(type_video_link_profile));
    memcpy(&oldProcesses, &g_pCurrentModel->processesPriorities, sizeof(type_processes_priorities));
-   
+
    u32 uOldDevFlags = g_pCurrentModel->uDeveloperFlags;
    u32 old_ef = g_pCurrentModel->enc_flags;
    bool bMustSignalOtherComponents = true;
@@ -326,7 +326,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
    VehicleSettings* pVS = get_VehicleSettings();
    if ( NULL != pVS )
       radio_rx_set_timeout_interval(pVS->iDevRxLoopTimeout);
-     
+
    char szFile[128];
    strcpy(szFile, FOLDER_CONFIG);
    strcat(szFile, FILE_CONFIG_CURRENT_VEHICLE_MODEL);
@@ -348,7 +348,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
          ruby_ipc_channel_send_message(s_fIPCRouterToRC, (u8*)pPH, pPH->total_length);
       return;
    }
-   
+
    if ( (g_pCurrentModel->radioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_BYPASS_SOCKETS_BUFFERS) != (oldRadioLinksParams.uGlobalRadioLinksFlags & MODEL_RADIOLINKS_FLAGS_BYPASS_SOCKETS_BUFFERS) )
    {
       log_line("Radio bypass socket buffers changed. Reinit radio interfaces...");
@@ -372,14 +372,14 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
          oldProcesses.iThreadPriorityRouter, oldProcesses.iThreadPriorityRadioRx, oldProcesses.iThreadPriorityRadioTx);
       log_line("New thread priorities: router %d, radio rx: %d, radio tx: %d",
          g_pCurrentModel->processesPriorities.iThreadPriorityRouter, g_pCurrentModel->processesPriorities.iThreadPriorityRadioRx, g_pCurrentModel->processesPriorities.iThreadPriorityRadioTx);
-      
+
       if ( iExtraParam )
       {
         log_line("Router and processes are marked for restart. Signal restart all procs and quit it.");
 
         if ( packets_queue_has_packets(&g_QueueRadioPacketsOut) )
            process_and_send_packets(false);
-      
+
         sem_t* pSem = sem_open(SEMAPHORE_RESTART_VEHICLE_PROCS, O_CREAT, S_IWUSR | S_IRUSR, 0);
         if ( (NULL == pSem) || (SEM_FAILED == pSem) )
            log_softerror_and_alarm("Failed to open semaphore to signal restart: %s", SEMAPHORE_RESTART_VEHICLE_PROCS);
@@ -537,7 +537,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
          send_alarm_to_controller(ALARM_ID_GENERIC, ALARM_ID_GENERIC_TYPE_SWAP_RADIO_INTERFACES_NOT_POSSIBLE, 0, 10);
          return;
       }
-      
+
       // Swap model radio interfaces and update local radio stats info structures
 
       if ( ! g_pCurrentModel->swapEnabledHighCapacityRadioInterfaces() )
@@ -594,10 +594,10 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
       ruby_ipc_channel_send_message(s_fIPCRouterToCommands, (u8*)pPH, pPH->total_length);
       if ( g_pCurrentModel->rc_params.uRCFlags & RC_FLAGS_ENABLED )
          ruby_ipc_channel_send_message(s_fIPCRouterToRC, (u8*)pPH, pPH->total_length);
-      
+
       send_alarm_to_controller(ALARM_ID_GENERIC, ALARM_ID_GENERIC_TYPE_SWAPPED_RADIO_INTERFACES, 0, 10);
       return;
-      
+
       /*
       radio_links_close_rxtx_radio_interfaces();
       if ( NULL != g_pProcessStats )
@@ -629,7 +629,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
       log_line("New relay params: VID: %u, freq: %s, on vehicle's radio link %d, relay flags: (%s)", g_pCurrentModel->relay_params.uRelayedVehicleId, str_format_frequency(g_pCurrentModel->relay_params.uRelayFrequencyKhz), g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId, str_format_relay_flags(g_pCurrentModel->relay_params.uRelayCapabilitiesFlags));
       u8 uOldRelayMode = oldRelayParams.uCurrentRelayMode;
       oldRelayParams.uCurrentRelayMode = g_pCurrentModel->relay_params.uCurrentRelayMode;
-      
+
       // Only relay mode changed?
 
       if ( 0 == memcmp(&oldRelayParams, &(g_pCurrentModel->relay_params), sizeof(type_relay_parameters)) )
@@ -642,12 +642,12 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
       }
 
       oldRelayParams.uCurrentRelayMode = uOldRelayMode;
-      
+
       u32 uOldRelayFlags = oldRelayParams.uRelayCapabilitiesFlags;
       oldRelayParams.uRelayCapabilitiesFlags = g_pCurrentModel->relay_params.uRelayCapabilitiesFlags;
 
       // Only relay flags changed?
-      
+
       if ( 0 == memcmp(&oldRelayParams, &(g_pCurrentModel->relay_params), sizeof(type_relay_parameters)) )
       {
          if ( uOldRelayFlags != g_pCurrentModel->relay_params.uRelayCapabilitiesFlags )
@@ -660,8 +660,8 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
          return;
       }
       oldRelayParams.uRelayCapabilitiesFlags = uOldRelayFlags;
-      
-      
+
+
       // Relay link changed?
       if ( oldRelayParams.isRelayEnabledOnRadioLinkId != g_pCurrentModel->relay_params.isRelayEnabledOnRadioLinkId )
       {
@@ -709,9 +709,9 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
 
       if ( -1 != iSikRadioIndexToUpdate )
       {
-         log_line("SiK radio interface %d tx power was changed from %d to %d. Updating SiK radio interfaces...", 
+         log_line("SiK radio interface %d tx power was changed from %d to %d. Updating SiK radio interfaces...",
             iSikRadioIndexToUpdate+1, oldRadioInterfacesParams.interface_raw_power[iSikRadioIndexToUpdate], g_pCurrentModel->radioInterfacesParams.interface_raw_power[iSikRadioIndexToUpdate] );
-         
+
          if ( g_SiKRadiosState.bConfiguringToolInProgress )
          {
             log_softerror_and_alarm("Another SiK configuration is in progress. Ignoring this one.");
@@ -733,7 +733,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
          close_and_mark_sik_interfaces_to_reopen();
          g_SiKRadiosState.bConfiguringToolInProgress = true;
          g_SiKRadiosState.uTimeStartConfiguring = g_TimeNow;
-         
+
          send_alarm_to_controller(ALARM_ID_GENERIC_STATUS_UPDATE, ALARM_FLAG_GENERIC_STATUS_RECONFIGURING_RADIO_INTERFACE, 0, 10);
 
          char szCommand[128];
@@ -763,7 +763,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
             g_pCurrentModel->radioLinksParams.uplink_datarate_data_bps[iRadioLink]);
 
       // If downlink data rate for an Atheros card has changed, update it.
-      
+
       for( int i=0; i<hardware_get_radio_interfaces_count(); i++ )
       {
          if ( g_SM_RadioStats.radio_interfaces[i].assignedVehicleRadioLinkId != iRadioLink )
@@ -779,7 +779,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
       }
       return;
    }
-   
+
    if ( changeType == MODEL_CHANGED_SIK_FREQUENCY )
    {
       log_line("Received local notification that a SiK radio frequency was changed. Updating SiK interfaces...");
@@ -808,11 +808,11 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
    {
       int iLink = iExtraParam;
       log_line("Received local notification that radio flags or datarates changed on radio link %d. Update radio frames type right away.", iLink+1);
-      
+
       log_line("Radio link %d new datarates: %d/%d", iLink+1, g_pCurrentModel->radioLinksParams.downlink_datarate_video_bps[iLink], g_pCurrentModel->radioLinksParams.downlink_datarate_data_bps[iLink]);
       log_line("Radio link %d new radio tx flags: %s", iLink+1, str_get_radio_frame_flags_description2(g_pCurrentModel->radioLinksParams.link_radio_flags_tx[iLink]));
       log_line("Radio link %d new radio rx flags: %s", iLink+1, str_get_radio_frame_flags_description2(g_pCurrentModel->radioLinksParams.link_radio_flags_rx[iLink]));
-      
+
       if( g_pCurrentModel->radioLinkIsSiKRadio(iLink) )
       {
          log_line("Radio flags or radio datarates changed on a SiK radio link (link %d).", iLink+1);
@@ -864,7 +864,7 @@ void _process_local_notification_model_changed(t_packet_header* pPH, int changeT
       {
          vehicle_launch_rx_rc(g_pCurrentModel);
          ruby_ipc_channel_send_message(s_fIPCRouterToTelemetry, (u8*)pPH, pPH->total_length);
-         return;       
+         return;
       }
 
       if ( g_pCurrentModel->rc_params.uRCFlags & RC_FLAGS_ENABLED )
@@ -918,14 +918,14 @@ void process_local_control_packet(t_packet_header* pPH)
       g_pProcessStats->lastActiveTime = g_TimeNow;
       g_pProcessStats->lastIPCIncomingTime = g_TimeNow;
    }
- 
+
    if ( pPH->packet_type == PACKET_TYPE_LOCAL_CONTROL_VEHICLE_SEND_MODEL_SETTINGS )
    {
       log_line("Router received local notification to send model settings to controller.");
       log_line("Tell rx_commands to do it.");
 
       g_bHasSentVehicleSettingsAtLeastOnce = true;
-      
+
       t_packet_header PH;
       radio_packet_init(&PH, PACKET_COMPONENT_LOCAL_CONTROL, PACKET_TYPE_LOCAL_CONTROL_VEHICLE_SEND_MODEL_SETTINGS, STREAM_ID_DATA);
       PH.vehicle_id_src = PACKET_COMPONENT_RUBY;
@@ -1088,7 +1088,7 @@ void process_local_control_packet(t_packet_header* pPH)
       close_and_mark_sik_interfaces_to_reopen();
       g_SiKRadiosState.bConfiguringToolInProgress = true;
       g_SiKRadiosState.uTimeStartConfiguring = g_TimeNow;
-      
+
       send_alarm_to_controller(ALARM_ID_GENERIC_STATUS_UPDATE, ALARM_FLAG_GENERIC_STATUS_RECONFIGURING_RADIO_INTERFACE, 0, 10);
 
       char szCommand[128];
@@ -1191,7 +1191,7 @@ void process_local_control_packet(t_packet_header* pPH)
    {
       log_line("Router received message to update camera params.");
       process_camera_params_changed((u8*)pPH, pPH->total_length);
-      
+
       ruby_ipc_channel_send_message(s_fIPCRouterToTelemetry, (u8*)pPH, pPH->total_length);
       if ( NULL != g_pProcessStats )
          g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;

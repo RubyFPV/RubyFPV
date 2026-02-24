@@ -209,7 +209,7 @@ typedef struct
 
 typedef struct
 {
-   int isRelayEnabledOnRadioLinkId; // negative: disabled, positive: radioLinkId 
+   int isRelayEnabledOnRadioLinkId; // negative: disabled, positive: radioLinkId
    u32 uRelayFrequencyKhz;
    u32 uRelayedVehicleId;
    u32 uRelayCapabilitiesFlags; // see RELAY_CAPABILITY_* in flags.h
@@ -245,7 +245,7 @@ typedef struct
    u16 rcChMax[MAX_RC_CHANNELS];
    u16 rcChFailSafe[MAX_RC_CHANNELS];
    u8 rcChExpo[MAX_RC_CHANNELS];  // expo (%)
-   u8 rcChFlags[MAX_RC_CHANNELS]; 
+   u8 rcChFlags[MAX_RC_CHANNELS];
           // bit 0: reversed
           // bit 1..3: failsafe type for this channel
           // bit 4: use linear range
@@ -392,7 +392,7 @@ typedef struct
       //  bit 1: tx pit mode enable: manual (by user)
       //  bit 2: tx pit mode enable: arm/disarm
       //  bit 3: tx pit mode enable: temperature
-   
+
    int iDummyR1;
 
    int  interfaces_count;
@@ -486,7 +486,7 @@ typedef struct
    int iThreadPriorityRC;
    int iThreadPriorityTelemetry;
    int iThreadPriorityOthers;
-   
+
    int ioNiceRouter; // 0 or negative - disabled;
    int ioNiceVideo; // 0 or negative - disabled;
 
@@ -509,7 +509,7 @@ typedef struct
    u32 uHWFlags;
    // bit 0: OTA capable
    // byte 1: threshold temp (C)
-   
+
    u32 uRubyBaseVersion;
    u32 uDummyHW1;
    u32 uDummyHW2;
@@ -532,7 +532,7 @@ class Model
         // bit 0: currently in tx pit mode
         // bit 1: currently in tx pit mode (due to temperature)
         // bit 2: currently in tx auto power mode
-      
+
       u32 uDeveloperFlags;
         // Check DEVELOPER_FLAGS_* in flags.h
         // byte 0:
@@ -544,7 +544,7 @@ class Model
         //    bit 5: inject video faults (for testing only)
         //    bit 6: disable video tx overload logic
         //    bit 7: send back vehicle tx gap
-        //     
+        //
         // byte 1:
         //    wifi guard delay (1..100 milisec)
 
@@ -553,7 +553,7 @@ class Model
         //    bit 1: inject recoverable video faults
 
       type_hardware_capabilities hwCapabilities;
-      
+
       char vehicle_name[MAX_VEHICLE_NAME_LENGTH];
       u32 uVehicleId;
       u32 uControllerId;
@@ -570,7 +570,7 @@ class Model
       type_vehicle_hardware_interfaces_info hardwareInterfacesInfo;
       type_processes_priorities processesPriorities;
 
-      
+
       // Radio interfaces order is given by physical order. Can't be changed.
       // Radio links order is auto/user defined.
       // Radio interfaces assignment to radio links is auto/user defined.
@@ -589,11 +589,11 @@ class Model
            // last 2 bits should be 1 for consistency check
 
       u32 enc_flags;
-      
+
       type_vehicle_stats_info m_Stats;
 
       int iGPSCount;
-      
+
       type_camera_parameters camera_params[MODEL_MAX_CAMERAS];
       int iCameraCount;
       int iCurrentCamera;
@@ -649,7 +649,7 @@ class Model
 
       void logVehicleRadioInfo();
       int logVehicleRadioLinkDifferences(const char* szPrefix, type_radio_links_parameters* pData1, type_radio_links_parameters* pData2);
-      
+
       bool find_and_validate_camera_settings();
       bool validate_fps_and_exposure_settings(camera_profile_parameters_t* pCameraProfile, bool bFullForce);
       bool validate_settings();
@@ -703,7 +703,7 @@ class Model
       bool validateVideoProfilesMaxVideoBitrate();
       int getCurrentVideoProfileMaxRetransmissionWindow();
 
-      
+
       void getCameraFlags(char* szCameraFlags);
       u32  getVideoFlags(char* szVideoFlags, int iVideoProfile, u32 uOverwriteVideoBPS, int iOverwriteKeyframeMS);
       void populateVehicleTelemetryData_v6(t_packet_header_ruby_telemetry_extended_v6* pPHRTE);

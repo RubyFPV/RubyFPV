@@ -43,7 +43,7 @@ class MenuVehicleRCChannels: public Menu
       virtual bool periodicLoop();
       virtual void onSelectItem();
       virtual void valuesToUI();
-            
+
    protected:
       void onClickAssign(int nChannel);
       void onAssignButton(int buttonIndex);
@@ -53,7 +53,7 @@ class MenuVehicleRCChannels: public Menu
       void populateRCInfo(rc_parameters_t* pRCInfo);
 
       MenuItemSelect* m_pItemsSelect[10];
-      MenuItemSlider* m_pItemsSlider[10];      
+      MenuItemSlider* m_pItemsSlider[10];
       t_menu_group_rc_channel m_ItemsChannels[24];
       int m_ChannelCount;
 

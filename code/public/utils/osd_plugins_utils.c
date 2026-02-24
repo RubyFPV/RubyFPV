@@ -7,7 +7,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 
 float plugin_osd_convertKm(float km, int iTargetMeasureUnit)
@@ -40,6 +40,6 @@ float plugin_osd_convertTemperature(float c, int iTargetMeasureUnit)
 
 
 #ifdef __cplusplus
-}  
-#endif 
+}
+#endif
 

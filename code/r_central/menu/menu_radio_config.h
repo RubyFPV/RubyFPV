@@ -16,19 +16,19 @@ class MenuRadioConfig: public Menu
       virtual void onFocusedItemChanged();
       virtual void onItemValueChanged(int itemIndex);
       virtual void onItemEndEdit(int itemIndex);
-      
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);        
-     
+
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
+
       virtual void onSelectItem();
 
       bool m_bGoToFirstRadioLinkOnShow;
-      
+
    protected:
       void showProgressInfo();
       void hideProgressInfo();
       void setTooltip(int iItemIndex, const char* szTooltip);
       void setTooltipText();
-      
+
       void computeMenuItems();
 
       void onClickAutoTx(int iRadioLink);
@@ -58,13 +58,13 @@ class MenuRadioConfig: public Menu
       float m_fYPosVehicleRadioInterfaces[MAX_RADIO_INTERFACES];
       float m_fYPosRadioLinks[MAX_RADIO_INTERFACES];
       float m_fFooterHeight;
-      
+
       u32  m_uCommandsIds[50];
       char m_szTooltips[50][256];
       char m_szCurrentTooltip[256];
-      
+
       bool m_bShowOnlyControllerUnusedInterfaces;
-      
+
       u32 m_uBandsSiKVehicle;
       u32 m_uBandsSiKController;
       int m_iCountVehicleRadioLinks;
@@ -73,7 +73,7 @@ class MenuRadioConfig: public Menu
       bool m_bHasSwitchRadioLinkCommand[MAX_RADIO_INTERFACES];
       bool m_bHasDiagnoseRadioLinkCommand[MAX_RADIO_INTERFACES];
       bool m_bHasRotateRadioLinksOrderCommand;
-      
+
       bool m_bComputedHeights;
 
       int m_iIndexCurrentItem;

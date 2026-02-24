@@ -51,7 +51,7 @@
 #define LIGHTTELEMETRY_SFRAMELENGTH 11
 #define LIGHTTELEMETRY_OFRAMELENGTH 18
 #define LIGHTTELEMETRY_NFRAMELENGTH 10
-#define LIGHTTELEMETRY_XFRAMELENGTH 10  
+#define LIGHTTELEMETRY_XFRAMELENGTH 10
 
 #define LTM_PARSE_STATE_IDLE 0
 #define LTM_PARSE_STATE_HEADER_START1 1
@@ -130,7 +130,7 @@ bool _parse_ltm_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_ru
          long alt = ((long)pdpfct->altitude) - 100000;
          if ( get_current_timestamp_ms() > s_TimeLastLTM_Altitude )
          {
-            long dTime = get_current_timestamp_ms() - s_TimeLastLTM_Altitude; 
+            long dTime = get_current_timestamp_ms() - s_TimeLastLTM_Altitude;
             float vspeed = (float)(alt - s_LastLTM_Altitude)*1000.0/(float)dTime;
             //log_line("alt: %d - %d, %d, %f, dt: %d", alt, s_LastMAVLink_Altitude, (long)vspeed, vspeed, dTime);
             pdpfct->vspeed = (u32)(vspeed + 100000);
@@ -138,7 +138,7 @@ bool _parse_ltm_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_ru
          s_TimeLastLTM_Altitude = get_current_timestamp_ms();
          s_LastLTM_Altitude = alt;
       }
-        
+
       tmp8 = parse_ltm_read_u8();
       pdpfct->satelites = (tmp8 >> 2) & 0xFF;
       pdpfct->gps_fix_type = 0;
@@ -152,7 +152,7 @@ bool _parse_ltm_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_ru
       s_iSystemMsgCount++;
       return true;
    }
- 
+
    if ( s_LTMExpectedFrameType == LIGHTTELEMETRY_AFRAME )
    {
       pdpfct->pitch = ((int16_t)parse_ltm_read_u16())*100 + 18000;
@@ -180,10 +180,10 @@ bool _parse_ltm_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_ru
       //uint8_t ltm_nav_error = ltmread_u8();
       //uint8_t ltm_nav_flags = ltmread_u8();
       //td->mission_current_seq = ltm_nav_activeWpNumber;
-       
+
       return true;
    }
-   if ( s_LTMExpectedFrameType == LIGHTTELEMETRY_XFRAME ) 
+   if ( s_LTMExpectedFrameType == LIGHTTELEMETRY_XFRAME )
    {
       //printf("\nxxx");
       //HDOP 		uint16 HDOP * 100
@@ -203,7 +203,7 @@ bool _parse_ltm_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_ru
       //RSSI 			uchar
       //Airspeed 			uchar, m/s
       //Status 			uchar
-      
+
       pdpfct->voltage = parse_ltm_read_u16();
       pdpfct->mah = parse_ltm_read_u16();
       pdpfct->rc_rssi = parse_ltm_read_u8();
@@ -219,7 +219,7 @@ bool _parse_ltm_message(t_packet_header_fc_telemetry* pdpfct, t_packet_header_ru
       }
 
       //printf("\nvolt: %f, amps: %f, mah: %d", pdpfct->voltage/100.0f, pdpfct->current/100.0f, pdpfct->mah);
-      
+
       if ( get_current_timestamp_ms() >= s_LTMLastCurrentComputeTime + 500 )
       {
          if ( 0 != s_LTMLastConsumedCurrent && 0 != s_LTMLastCurrentComputeTime )
@@ -335,7 +335,7 @@ bool parse_telemetry_from_fc_ltm( u8* buffer, int length, t_packet_header_fc_tel
       {
            if ( s_StateLTMPayloadAddIndex == 0 )
               s_StateLTMChecksum = c;
-           else 
+           else
               s_StateLTMChecksum ^= c;
 
            if (s_StateLTMPayloadAddIndex == s_LTMExpectedPayloadLength-4)

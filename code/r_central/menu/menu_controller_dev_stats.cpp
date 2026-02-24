@@ -58,7 +58,7 @@ void MenuControllerDevStatsConfig::addItems()
 {
    int iTmp = getSelectedMenuItemIndex();
    Preferences* pP = get_Preferences();
-   
+
    removeAllItems();
 
    if ( NULL == pP )
@@ -131,7 +131,7 @@ void MenuControllerDevStatsConfig::addItems()
    m_pItemsSelect[14]->setUseMultiViewLayout();
    m_pItemsSelect[14]->setSelectedIndex( (pP->uDebugStatsFlags & CTRL_RT_DEBUG_INFO_FLAG_SHOW_TX_HIGH_REG_PACKETS)?1:0);
    m_IndexShowTxHighRegPackets = addMenuItem(m_pItemsSelect[14]);
-  
+
    //-----------------------------------------------------------
    addMenuItem(new MenuItemSection("Video"));
 
@@ -256,7 +256,7 @@ void MenuControllerDevStatsConfig::onReturnFromChild(int iChildMenuId, int retur
 void MenuControllerDevStatsConfig::onSelectItem()
 {
    Preferences* pP = get_Preferences();
-  
+
    Menu::onSelectItem();
    if ( (-1 == m_SelectedIndex) || (m_pMenuItems[m_SelectedIndex]->isEditing()) )
       return;

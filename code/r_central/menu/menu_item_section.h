@@ -7,7 +7,7 @@ class MenuItemSection: public MenuItem
      MenuItemSection(const char* title);
      MenuItemSection(const char* title, const char* tooltip);
      virtual ~MenuItemSection();
-     
+
      virtual void setEnabled(bool enabled);
      virtual float getItemHeight(float maxWidth);
      virtual float getTitleWidth(float maxWidth);

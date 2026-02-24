@@ -169,7 +169,7 @@ void menu_discard_all_except(Menu* pMenu)
       g_iMenuReturnValue[i] = -1;
       g_iMenuDisableStackingFlag[i] = 0;
    }
-   g_iMenuStackTopIndex = 0; 
+   g_iMenuStackTopIndex = 0;
    log_line("[Menu] Discarded all menus.");
 }
 
@@ -497,21 +497,21 @@ void menu_loop(bool bNoKeys)
           g_iMenuDisableStackingFlag[i] = 0;
        }
    }
- 
+
    bool bRotarySelect = false;
    bool bRotaryCancel = false;
    bool bRotaryRotatedCW = false;
    bool bRotaryRotatedCCW = false;
    bool bRotaryRotatedFastCW = false;
    bool bRotaryRotatedFastCCW = false;
-   
+
    bool bRotary2Select = false;
    bool bRotary2Cancel = false;
    bool bRotary2RotatedCW = false;
    bool bRotary2RotatedCCW = false;
    bool bRotary2RotatedFastCW = false;
    bool bRotary2RotatedFastCCW = false;
-   
+
    _menu_check_rotary_encoders_buttons(&bRotarySelect, &bRotaryCancel, &bRotaryRotatedCW, &bRotaryRotatedCCW, &bRotaryRotatedFastCW, &bRotaryRotatedFastCCW, &bRotary2Select, &bRotary2Cancel, &bRotary2RotatedCW, &bRotary2RotatedCCW, &bRotary2RotatedFastCW, &bRotary2RotatedFastCCW);
 
    s_bRotaryRotated = bRotaryRotatedCW | bRotaryRotatedCCW | bRotaryRotatedFastCW | bRotaryRotatedFastCCW;
@@ -615,7 +615,7 @@ void menu_loop_parse_input_events()
           load_Preferences();
           add_menu_to_stack(new MenuRoot());
       }
-      else 
+      else
          g_pMenuStack[g_iMenuStackTopIndex-1]->onSelectItem();
    }
 
@@ -658,7 +658,7 @@ void menu_loop_parse_input_events()
          g_bHasVideoDecodeStatsSnapshot = false;
          return;
       }
-      
+
       if ( (NULL != g_pPopupCameraParams) && popups_has_popup(g_pPopupCameraParams) )
       {
          g_pPopupCameraParams->handleRotaryEvents(false, false, false, false, false, true);
@@ -776,7 +776,7 @@ void menu_rearrange_all_menus_xpos_no_animation()
          g_pMenuStack[i]->m_xPos = menu_get_XStartPos(g_pMenuStack[i]->m_Width);
       g_iMenuStackTopIndex++;
    }
-   
+
    menu_rearrange_all_menus_no_animation();
 }
 
@@ -792,7 +792,7 @@ void menu_render()
    float fOrigAlpha = g_pRenderEngine->getGlobalAlfa();
    bool bAlphaEnabled = g_pRenderEngine->isAlphaBlendingEnabled();
    Preferences* pP = get_Preferences();
-   
+
    // If menus are stacked, render only last 3 menus
 
    int iMenuToRender = g_iMenuStackTopIndex-3;
@@ -824,7 +824,7 @@ void menu_render()
          iMenuToRender++;
          continue;
       }
-      
+
       float fBgAlphaForMenu = g_pMenuStack[iMenuToRender]->m_fAlfaWhenInBackground - 0.08 * (float)(g_iMenuStackTopIndex-iMenuToRender-1);
       if ( pP->iMenuStyle == 1 )
          fBgAlphaForMenu = g_pMenuStack[iMenuToRender]->m_fAlfaWhenInBackground;
@@ -950,7 +950,7 @@ void menu_startAnimationOnChildMenuAdd(Menu* pTopMenu)
    }
    if ( ! bDoAnimate )
       return;
-   
+
    for ( int i=0; i<g_iMenuStackTopIndex; i++ )
    {
       if ( NULL == g_pMenuStack[i] )
@@ -975,7 +975,7 @@ void menu_startAnimationOnChildMenuClosed(Menu* pTopMenu)
    }
    if ( ! bDoAnimate )
       return;
-   
+
    for ( int i=0; i<g_iMenuStackTopIndex; i++ )
    {
       if ( NULL == g_pMenuStack[i] )
@@ -999,7 +999,7 @@ bool menu_check_current_model_ok_for_edit()
       add_menu_to_stack(pm);
       return false;
    }
-      
+
    if ( g_pCurrentModel->is_spectator )
    {
          Menu* pm = new Menu(0,L("Info"), NULL);

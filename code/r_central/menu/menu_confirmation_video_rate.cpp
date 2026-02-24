@@ -78,7 +78,7 @@ void MenuConfirmationVideoRate::onSelectItem()
 
    if ( 1 == m_SelectedIndex )
    {
-      handle_commands_send_to_vehicle(COMMAND_ID_CLEAR_LOGS, 1, NULL, 0); 
+      handle_commands_send_to_vehicle(COMMAND_ID_CLEAR_LOGS, 1, NULL, 0);
       menu_stack_pop(0);
    }
 }

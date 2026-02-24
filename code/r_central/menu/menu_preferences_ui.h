@@ -7,15 +7,15 @@ class MenuPreferencesUI: public Menu
 {
    public:
       MenuPreferencesUI(bool bShowOnlyOSD = false);
-      virtual void onShow();     
+      virtual void onShow();
       virtual void Render();
       virtual void onItemValueChanged(int itemIndex);
       virtual void onSelectItem();
       virtual void valuesToUI();
-      
+
    private:
       void addItems();
-      
+
       bool m_bShowOnlyOSD;
       MenuItemSelect* m_pItemsSelect[25];
       MenuItemSlider* m_pItemsSlider[10];

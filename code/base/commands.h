@@ -28,7 +28,7 @@
 // u32 - link index
 // u32 - link radio flags (MCS flags if any, STBC, adaptive rates, SIK flags, etc)
 // int - datarate video  -1..-n MCS or 0..x classic, in bps
-// int - datarate data 
+// int - datarate data
 
 #define COMMAND_ID_SET_RADIO_LINK_FLAGS_CONFIRMATION 8
 // param is radio link id
@@ -90,7 +90,7 @@ typedef struct
 {
    CorePluginSettings listPlugins[MAX_CORE_PLUGINS_COUNT];
    int iCountPlugins;
-   
+
 } __attribute__((packed)) command_packet_core_plugins_response;
 
 #define COMMAND_ID_RESET_RADIO_LINK 27
@@ -222,7 +222,7 @@ typedef struct
    int overvoltage; // 0 or negative - disabled, negative - default value
    int freq_arm; // 0 - disabled; in mhz
    int freq_gpu; // 0 - disabled; in mhz; (0/1 for OIPC boost)
-   
+
 } __attribute__((packed)) command_packet_overclocking_params;
 
 #define COMMAND_ID_SET_VEHICLE_BOARD_TYPE 110

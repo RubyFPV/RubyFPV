@@ -43,7 +43,7 @@ MenuVehicleRCInput::MenuVehicleRCInput(void)
    m_xPos = menu_get_XStartPos(m_Width); m_yPos = 0.26;
    m_bDisableStacking = true;
    char szLegend[256];
-   
+
    hardware_i2c_log_devices();
 
    ControllerInterfacesSettings* pCI = get_ControllerInterfacesSettings();
@@ -81,7 +81,7 @@ MenuVehicleRCInput::~MenuVehicleRCInput()
 }
 
 void MenuVehicleRCInput::onShow()
-{      
+{
    Menu::onShow();
 }
 
@@ -116,7 +116,7 @@ void MenuVehicleRCInput::valuesToUI()
 
 void MenuVehicleRCInput::Render()
 {
-   RenderPrepare();   
+   RenderPrepare();
    float yTop = RenderFrameAndTitle();
    float y = yTop;
 

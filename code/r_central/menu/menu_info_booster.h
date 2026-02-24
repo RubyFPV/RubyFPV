@@ -12,7 +12,7 @@ class MenuInfoBooster: public Menu
       virtual void onSelectItem();
 
       int m_iRadioCardIndex;
-      
+
    protected:
       u32 m_idImg1;
       u32 m_idImg2;

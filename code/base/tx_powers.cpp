@@ -108,7 +108,7 @@ static int s_iTxInfoRTL8812EURunCamV2[] =
 
 static int s_iTxInfoRTL8733BU[] =
    { 1,   1,   1,    4,    8,    12,  20,   22,   30,   60,    0,    0,    0}; // measured 20.jan.2025, ruby 10.3
-   
+
 static int s_iTxInfoRTL8812AUBonnetLow[] =
    { 1,   1,   2,    8,   20,   25,   35,   40,   45,    0,    0,    0,    0}; // measured 20.jan.2025, Ruby 11.2, Legacy 18Mb/MCS2 on 5700 Mhz
 static int s_iTxInfoRTL8812AUBonnetHigh[] =
@@ -116,7 +116,7 @@ static int s_iTxInfoRTL8812AUBonnetHigh[] =
 
 // { 1,  10,  20,   30,   40,   45,   50,   53,   56,   60,   63,   68,   70};
 //------------------------------------------------------------------------
-static int s_iTxInfoOIPCUSight[] = 
+static int s_iTxInfoOIPCUSight[] =
  { 550, 600, 650,  670,  0,  0,  0,  0,  0,  0,  0,  0,  0}; // measured 23.dec.2024, ruby 10.3
 
 
@@ -270,7 +270,7 @@ int tx_powers_convert_raw_to_mw(u32 uBoardType, int iCardModel, int iRawPower)
       return pow(10.0, ((float)iRawPower)/10.0);
    const int* piMwPowers = _tx_powers_get_mw_table_for_card(uBoardType, iCardModel);
    int iCount = sizeof(s_iTxRawPowerLevelMeasurementsValues)/sizeof(s_iTxRawPowerLevelMeasurementsValues[0]);
-   
+
    if ( iRawPower <= s_iTxRawPowerLevelMeasurementsValues[0] )
       return (piMwPowers[0]*iRawPower)/s_iTxRawPowerLevelMeasurementsValues[0];
 
@@ -296,7 +296,7 @@ int tx_powers_convert_mw_to_raw(u32 uBoardType, int iCardModel, int imWPower)
       return 10*log10((float)imWPower);
    const int* piMwPowers = _tx_powers_get_mw_table_for_card(uBoardType, iCardModel);
    int iCount = sizeof(s_iTxRawPowerLevelMeasurementsValues)/sizeof(s_iTxRawPowerLevelMeasurementsValues[0]);
-   
+
    if ( imWPower <= piMwPowers[0] )
    {
       int iRaw = (s_iTxRawPowerLevelMeasurementsValues[0]*imWPower)/piMwPowers[0];
@@ -342,7 +342,7 @@ int tx_power_compute_uplink_power_for_model_link(Model* pModel, int iVehicleRadi
    if ( iCardModel < 0 )
       iCardModel = -iCardModel;
 
-   u32 uBoardType = hardware_getBoardType();      
+   u32 uBoardType = hardware_getBoardType();
    int iVehicleLinkMwPower = get_vehicle_radio_link_current_tx_power_mw(pModel, iVehicleRadioLink);
    iVehicleLinkMwPower *= 4;
 

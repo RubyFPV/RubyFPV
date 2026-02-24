@@ -116,7 +116,7 @@ void* _thread_link_watch(void *argument)
         hw_execute_bash_command_silent("dmesg -C", NULL);
         continue;
       }
-      
+
       log_line("USB disconnect detected. Check radio interfaces...");
       int iCurrentRadioInterfacesCount = hardware_get_radio_interfaces_count();
       int iCurrentRadioInterfacesIEEECount = 0;
@@ -344,7 +344,7 @@ void link_watch_loop_popup_looking()
    g_pPopupLooking = new Popup(szText, 0.2, 0.36, 0.5, 0);
    if ( ! g_bFirstModelPairingDone )
       g_pPopupLooking->setCentered();
-   
+
    g_pPopupLooking->setIconId(idIcon, get_Color_MenuText());
 
    if ( (!g_bFirstModelPairingDone) || (NULL == g_pCurrentModel) )
@@ -386,7 +386,7 @@ void link_watch_loop_unexpected_vehicles()
          reset_vehicle_runtime_info(&g_UnexpectedVehicleRuntimeInfo);
          return;
       }
-   } 
+   }
    // Did not received any info from no unexpected vehicles? Then do nothing.
    if ( ! g_UnexpectedVehicleRuntimeInfo.bGotRubyTelemetryInfo )
       return;
@@ -394,7 +394,7 @@ void link_watch_loop_unexpected_vehicles()
    Model* pModelTemp = NULL;
    if ( controllerHasModelWithId(g_UnexpectedVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId) )
       pModelTemp = findModelWithId(g_UnexpectedVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId, 10);
-   
+
    // Received unexpected known vehicle
 
    if ( NULL != pModelTemp )
@@ -419,7 +419,7 @@ void link_watch_loop_unexpected_vehicles()
       add_menu_to_stack(new MenuSwitchVehicle(pModelTemp->uVehicleId));
       return;
    }
-   
+
    // Received unexpected unknown vehicle
 
    // Too old?
@@ -432,7 +432,7 @@ void link_watch_loop_unexpected_vehicles()
          log_line("Removed popup wrong model. We are not getting data anymore from the unexpected model UID: %u", g_UnexpectedVehicleRuntimeInfo.headerRubyTelemetryExtended.uVehicleId);
       }
       return;
-   }  
+   }
 
    // Fresh unexpected data
 
@@ -449,7 +449,7 @@ void link_watch_loop_unexpected_vehicles()
       strcat(szName, "No Name");
    else
       strcat(szName, (char*)g_UnexpectedVehicleRuntimeInfo.headerRubyTelemetryExtended.vehicle_name);
-   
+
    if ( 0 == g_pCurrentModel->radioInterfacesParams.interfaces_count )
       sprintf(szBuff, L("Warning: There is a different vehicle (%s) on the same frequency as your current vehicle (%s)!"), szName, g_pCurrentModel->getLongName());
    else if ( 1 == g_pCurrentModel->radioInterfacesParams.interfaces_count )
@@ -492,7 +492,7 @@ void link_watch_check_link_lost()
 
    if ( g_bFirstModelPairingDone && ( 0 == g_uActiveControllerModelVID) )
       return;
-   
+
    // If we never received main vehicle telemetry, do nothing
    if ( ! link_has_received_main_vehicle_ruby_telemetry() )
       return;
@@ -543,7 +543,7 @@ void link_watch_check_link_lost()
 
    if ( NULL != g_pPopupLinkLost )
       return;
-   
+
    g_pPopupLinkLost = new Popup("Link lost. Trying to reconnect...", 0.28, 0.3, 0.5, 0);
    g_pPopupLinkLost->setCentered();
    g_pPopupLinkLost->addLine(L("The radio link with the vehicle is lost. Will reconnect automatically when in range."));
@@ -795,7 +795,7 @@ void link_watch_loop_telemetry()
 }
 
 void link_watch_loop_video()
-{   
+{
    if ( ! g_VehiclesRuntimeInfo[g_iCurrentActiveVehicleRuntimeInfoIndex].bGotRubyTelemetryInfo )
       return;
    if ( NULL == g_pProcessStatsRouter )
@@ -865,7 +865,7 @@ void link_watch_loop_processes()
       if ( NULL == g_pProcessStatsRouter )
          log_softerror_and_alarm("Router process is about to fail. No process stats available.");
       else
-         log_softerror_and_alarm("Router process is about to fail. Last active time: %u ms ago, loop counter: %d", 
+         log_softerror_and_alarm("Router process is about to fail. Last active time: %u ms ago, loop counter: %d",
             g_TimeNow - g_ProcessStatsRouter.lastActiveTime, g_ProcessStatsRouter.uLoopCounter);
    }
 
@@ -874,7 +874,7 @@ void link_watch_loop_processes()
       if ( NULL == g_pProcessStatsTelemetry )
          log_softerror_and_alarm("Telemetry process is about to fail. No process stats available.");
       else
-         log_softerror_and_alarm("Telemetry process is about to fail. Last active time: %u ms ago, loop counter: %d", 
+         log_softerror_and_alarm("Telemetry process is about to fail. Last active time: %u ms ago, loop counter: %d",
             g_TimeNow - g_ProcessStatsTelemetry.lastActiveTime, g_ProcessStatsTelemetry.uLoopCounter);
    }
 
@@ -1193,7 +1193,7 @@ bool link_has_received_main_vehicle_ruby_telemetry()
 
    if ( ! g_VehiclesRuntimeInfo[0].bGotRubyTelemetryInfo )
       return false;
- 
+
    if ( g_bFirstModelPairingDone )
    if ( g_VehiclesRuntimeInfo[0].uVehicleId == g_pCurrentModel->uVehicleId )
       return true;
@@ -1261,5 +1261,5 @@ bool link_is_vehicle_online_now(u32 uVehicleId)
       if ( g_VehiclesRuntimeInfo[i].uTimeLastRecvAnyRubyTelemetry+2000 > g_TimeNow )
          return true;
    }
-   return false; 
+   return false;
 }

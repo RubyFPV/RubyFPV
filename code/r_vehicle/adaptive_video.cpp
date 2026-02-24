@@ -167,7 +167,7 @@ void adaptive_video_load_state()
          s_uAdaptiveVideoEffectiveDRBoostRates[i] = iTmp;
          if ( (s_uAdaptiveVideoEffectiveDRBoostRates[i] != 0xFF) && (s_uAdaptiveVideoEffectiveDRBoostRates[i] > 5) )
             s_uAdaptiveVideoEffectiveDRBoostRates[i] = 5;
-      }    
+      }
    }
 
    if ( NULL != g_pCurrentModel )
@@ -497,7 +497,7 @@ void adaptive_video_on_message_from_controller(u32 uRequestId, u8 uFlags, u32 uV
       {
          log_line("[AdaptiveVideo] Set custom EC scheme (%d/%d)", uECScheme >> 8, uECScheme & 0xFF);
          if ( NULL != g_pVideoTxBuffers )
-            g_pVideoTxBuffers->setCustomECScheme(uECScheme);       
+            g_pVideoTxBuffers->setCustomECScheme(uECScheme);
       }
    }
 }

@@ -79,7 +79,7 @@ void _send_msp_to_fc(u8 uCommand, u8* pData, int iDataLength)
       iDataLength = 0;
    if ( iDataLength > 250 )
       iDataLength = 250;
-   
+
    u8 uMSPBuffer[256];
    u8 uChecksum;
 
@@ -132,7 +132,7 @@ void _send_msp_telemetry_packet_to_controller(bool bSendIfEmpty)
    s_PHTMSP.uSegmentIdAndExtraInfo = (s_PHTMSP.uSegmentIdAndExtraInfo & 0xFFFF0000) | uId;
 
    s_PHTMSP.uSegmentIdAndExtraInfo = (s_PHTMSP.uSegmentIdAndExtraInfo & 0xFF00FFFF) | (((u32)base_compute_crc8(s_uMSPOutputBuffer, s_iMSPOutputBufferFilledBytes))<<16);
-   
+
    u8 buffer[MAX_PACKET_TOTAL_SIZE];
    memcpy(buffer, &PH, sizeof(t_packet_header));
    memcpy(buffer+sizeof(t_packet_header), &s_PHTMSP, sizeof(t_packet_header_telemetry_msp));
@@ -203,7 +203,7 @@ void telemetry_msp_periodic_loop()
              _send_msp_telemetry_packet_to_controller(true);
          }
       }
-   } 
+   }
 }
 
 
@@ -212,11 +212,11 @@ void telemetry_msp_on_second_lapse()
    t_packet_header_fc_telemetry* pFCTelem = telemetry_get_fc_telemetry_header();
    if ( NULL == pFCTelem )
       return;
-   
+
    if ( pFCTelem->flight_mode != 0 )
    if ( pFCTelem->flight_mode & FLIGHT_MODE_ARMED )
       pFCTelem->arm_time++;
-   
+
    g_pCurrentModel->updateStatsEverySecond(pFCTelem);
    broadcast_vehicle_stats();
 }

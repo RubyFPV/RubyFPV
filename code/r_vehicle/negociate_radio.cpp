@@ -148,7 +148,7 @@ void _negociate_radio_link_save_model(bool bSucceeded)
    ruby_ipc_channel_send_message(s_fIPCRouterToCommands, (u8*)&PH, PH.total_length);
    if ( g_pCurrentModel->rc_params.uRCFlags & RC_FLAGS_ENABLED )
       ruby_ipc_channel_send_message(s_fIPCRouterToRC, (u8*)&PH, PH.total_length);
-            
+
    if ( NULL != g_pProcessStats )
       g_pProcessStats->lastIPCOutgoingTime = g_TimeNow;
    if ( NULL != g_pProcessStats )
@@ -222,7 +222,7 @@ int negociate_radio_process_received_radio_link_messages(u8* pPacketBuffer)
       memcpy(&s_uNegociateRadioCurrentTestRadioFlags, pTmp, sizeof(u32));
       pTmp += sizeof(u32);
       memcpy(&s_iNegociateRadioCurrentTestTxPowerMw, pTmp, sizeof(int));
-      pTmp += sizeof(int);    
+      pTmp += sizeof(int);
       s_uNegociateRadioCurrentTestRadioFlags |= RADIO_FLAGS_FRAME_TYPE_DATA;
 
       log_line("[NegociateRadioLink] Recv test %d for radio interface %d, command %d, datarate: %s, radio flags: %s, tx power: %d mW",
@@ -231,7 +231,7 @@ int negociate_radio_process_received_radio_link_messages(u8* pPacketBuffer)
       if ( ! s_bIsNegociatingRadioLinks )
          _negociate_radio_link_on_start();
       adaptive_video_check_update_params();
-  
+
       t_packet_header PH;
       radio_packet_init(&PH, PACKET_COMPONENT_RUBY, PACKET_TYPE_NEGOCIATE_RADIO_LINKS, STREAM_ID_DATA);
       PH.vehicle_id_src = g_pCurrentModel->uVehicleId;

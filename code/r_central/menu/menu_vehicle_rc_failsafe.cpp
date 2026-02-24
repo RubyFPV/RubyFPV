@@ -44,7 +44,7 @@ MenuVehicleRCFailsafe::MenuVehicleRCFailsafe(void)
    setColumnsCount(3);
    char szBuff[128];
 
-   m_ChannelCount = g_pCurrentModel->rc_params.channelsCount; 
+   m_ChannelCount = g_pCurrentModel->rc_params.channelsCount;
    for( int i=0; i<m_ChannelCount; i++ )
    {
       g_pCurrentModel->get_rc_channel_name(i, szBuff);
@@ -60,7 +60,7 @@ MenuVehicleRCFailsafe::MenuVehicleRCFailsafe(void)
       m_ItemsChannels[i].pItemType->setCondensedOnly();
       m_ItemsChannels[i].m_IndexType = addMenuItem(m_ItemsChannels[i].pItemType);
 
-      m_ItemsChannels[i].pItemValue = new MenuItemRange("Value:", "Set a fixed failsafe value for this RC channel.", 500, 2500, 1000, 1 );  
+      m_ItemsChannels[i].pItemValue = new MenuItemRange("Value:", "Set a fixed failsafe value for this RC channel.", 500, 2500, 1000, 1 );
       m_ItemsChannels[i].pItemValue->setCondensedOnly();
       m_ItemsChannels[i].m_IndexValue = addMenuItem(m_ItemsChannels[i].pItemValue);
    }
@@ -71,7 +71,7 @@ MenuVehicleRCFailsafe::~MenuVehicleRCFailsafe()
 }
 
 void MenuVehicleRCFailsafe::onShow()
-{      
+{
    Menu::onShow();
 }
 
@@ -94,7 +94,7 @@ void MenuVehicleRCFailsafe::Render()
 {
    RenderPrepare();
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
-   
+
    float yTop = RenderFrameAndTitle();
    float y = yTop;
    float fFirstItemWidth = 0.08*Menu::getScaleFactor();
@@ -156,5 +156,5 @@ void MenuVehicleRCFailsafe::onSelectItem()
    params.rcChFailSafe[index] = fsvalue;
 
    if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_RC_PARAMS, 0, (u8*)&params, sizeof(rc_parameters_t)) )
-      valuesToUI();  
+      valuesToUI();
 }

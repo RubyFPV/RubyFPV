@@ -201,13 +201,13 @@ u32 video_sources_get_capture_start_time()
 {
    if ( g_pCurrentModel->isActiveCameraCSICompatible() || g_pCurrentModel->isActiveCameraVeye() )
       return video_source_cs_get_program_start_time();
-   return video_source_majestic_get_program_start_time(); 
+   return video_source_majestic_get_program_start_time();
 }
 
 void video_sources_flush_discard_all_pending_data()
 {
    log_line("[VideoSources] Clear video pipes...");
-      
+
    if ( g_pCurrentModel->isActiveCameraOpenIPC() )
       video_source_majestic_clear_input_buffers();
    if ( g_pCurrentModel->isActiveCameraCSICompatible() || g_pCurrentModel->isActiveCameraVeye() )
@@ -418,7 +418,7 @@ bool video_sources_try_read_camera_frame(bool* pbOutEndOfFrameDetected)
 
    if ( iTotalBytes == 0 )
       return false;
-  
+
 
    if ( g_TimeNow >= s_uLastTimeCountedTempFramesFPS + 1000 )
    {
@@ -504,7 +504,7 @@ void video_sources_on_changed_camera_params(type_camera_parameters* pNewCamParam
       if ( g_pCurrentModel->isRunningOnOpenIPCHardware() )
       {
          hardware_camera_maj_set_calibration_file(g_pCurrentModel->getActiveCameraType(), g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].iCameraBinProfile, g_pCurrentModel->camera_params[g_pCurrentModel->iCurrentCamera].szCameraBinProfileName);
-         video_source_majestic_clear_input_buffers(); 
+         video_source_majestic_clear_input_buffers();
       }
    }
 
@@ -598,13 +598,13 @@ void video_sources_on_changed_video_params(camera_profile_parameters_t* pOldCame
         (pOldVideoParams->iVideoFPS != pNewVideoParams->iVideoFPS) ||
         (pOldVideoParams->iH264Slices != pNewVideoParams->iH264Slices) ||
         ((pOldVideoParams->uVideoExtraFlags & VIDEO_FLAG_GENERATE_H265) != (pNewVideoParams->uVideoExtraFlags & VIDEO_FLAG_GENERATE_H265)) ||
- 
+
         (pOldVideoProfile->h264profile != pNewVideoProfile->h264profile) ||
         (pOldVideoProfile->h264level != pNewVideoProfile->h264level) ||
         (pOldVideoProfile->h264refresh != pNewVideoProfile->h264refresh) ||
         (pOldVideoProfile->h264quantization != pNewVideoProfile->h264quantization) )
       bDoFullRestart = true;
-   
+
    if ( hardware_is_running_on_openipc() )
    {
       if ( pCurrentCameraProfileParams->iShutterSpeed != pOldCameraProfileParams->iShutterSpeed )
@@ -654,7 +654,7 @@ void video_sources_on_changed_video_params(camera_profile_parameters_t* pOldCame
 
       if ( NULL != g_pVideoTxBuffers )
          g_pVideoTxBuffers->updateVideoHeader(g_pCurrentModel);
-      
+
       bDiscardTxBuffers = true;
       if ( g_pCurrentModel->isActiveCameraOpenIPC() )
          hardware_camera_maj_clear_temp_values();
@@ -802,7 +802,7 @@ void video_sources_set_video_bitrate(u32 uVideoBitrateBPS, int iIPQDelta, const 
       log_line("[VideoSources] Set video bitrate to %u kbps (reason: N/A), %s", uVideoBitrateBPS/1000, (s_uLastSetVideoBitrateBPS == uVideoBitrateBPS)?"is unchanged":"is changed");
    else
       log_line("[VideoSources] Set video bitrate to %u kbps (reason: %s), %s", uVideoBitrateBPS/1000, szReason, (s_uLastSetVideoBitrateBPS == uVideoBitrateBPS)?"is unchanged":"is changed");
-   
+
    if ( s_uLastSetVideoBitrateBPS == uVideoBitrateBPS )
       return;
 
@@ -816,7 +816,7 @@ void video_sources_set_video_bitrate(u32 uVideoBitrateBPS, int iIPQDelta, const 
            (hardware_camera_maj_get_current_qpdelta() != iIPQDelta) )
          hardware_camera_maj_set_bitrate_and_qpdelta( uVideoBitrateBPS, iIPQDelta);
       else if ( uVideoBitrateBPS != hardware_camera_maj_get_current_bitrate() )
-         hardware_camera_maj_set_bitrate(uVideoBitrateBPS); 
+         hardware_camera_maj_set_bitrate(uVideoBitrateBPS);
       else if ( hardware_camera_maj_get_current_qpdelta() != iIPQDelta )
          hardware_camera_maj_set_qpdelta(iIPQDelta);
    }
@@ -849,11 +849,11 @@ void video_sources_set_keyframe(int iKeyframeMs)
    if ( g_pCurrentModel->isActiveCameraCSICompatible() || g_pCurrentModel->isActiveCameraVeye() )
    {
       int iCurrentFPS = g_pCurrentModel->video_params.iVideoFPS;
-      int iKeyFrame_FrameCountValue = (iCurrentFPS * s_iLastSetVideoKeyframeMs) / 1000; 
+      int iKeyFrame_FrameCountValue = (iCurrentFPS * s_iLastSetVideoKeyframeMs) / 1000;
       video_source_csi_send_control_message(RASPIVID_COMMAND_ID_KEYFRAME, (u16)iKeyFrame_FrameCountValue, 0);
    }
    if ( g_pCurrentModel->isActiveCameraOpenIPC() )
-      hardware_camera_maj_set_keyframe(s_iLastSetVideoKeyframeMs);                
+      hardware_camera_maj_set_keyframe(s_iLastSetVideoKeyframeMs);
 }
 
 int video_sources_get_last_set_keyframe()

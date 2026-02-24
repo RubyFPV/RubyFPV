@@ -50,9 +50,9 @@ class MenuNegociateRadio: public Menu
       virtual int onBack();
       virtual bool periodicLoop();
       virtual void onVehicleCommandFinished(u32 uCommandId, u32 uCommandType, bool bSucceeded);
-      virtual void onReturnFromChild(int iChildMenuId, int returnValue);  
+      virtual void onReturnFromChild(int iChildMenuId, int returnValue);
       virtual void onSelectItem();
-      
+
       void onReceivedVehicleResponse(u8* pPacketData, int iPacketLength);
 
    private:
@@ -67,7 +67,7 @@ class MenuNegociateRadio: public Menu
       void _computeQualitiesSoFarForCurrentTest();
       bool _compute_radio_flags_to_apply(int iVehicleRadioInterfaceIndex);
       bool _compute_settings_to_apply();
-      
+
       void _send_keep_alive_to_vehicle();
       void _send_start_test_to_vehicle(int iTestIndex);
       void _send_end_all_tests_to_vehicle(bool bCanceled);
@@ -79,7 +79,7 @@ class MenuNegociateRadio: public Menu
       bool _currentTestUpdateWhenRunning();
       bool _updateCurrentMultiTest();
       void _advance_to_next_test();
-      
+
       void _save_new_settings_to_model();
       void _onFinishedTests();
       void _onCancel();

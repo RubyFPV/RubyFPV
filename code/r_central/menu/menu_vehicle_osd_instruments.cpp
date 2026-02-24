@@ -52,7 +52,7 @@ MenuVehicleOSDInstruments::MenuVehicleOSDInstruments(void)
    char szBuff[256];
    sprintf(szBuff, "Instruments/Gauges Settings (%s)", str_get_osd_screen_name(g_pCurrentModel->osd_params.iCurrentOSDScreen));
    setTitle(szBuff);
-   
+
    for( int i=0; i<50; i++ )
    {
       m_pItemsSelect[i] = NULL;
@@ -66,13 +66,13 @@ MenuVehicleOSDInstruments::MenuVehicleOSDInstruments(void)
    m_pItemsSelect[6]->setUseMultiViewLayout();
    m_IndexAHIShowSpeedAlt = addMenuItem(m_pItemsSelect[6]);
 
-   m_pItemsSelect[8] = new MenuItemSelect("   Side Speed/Alt", "Shows the instruments for speed and altitude to the edge of the screen");  
+   m_pItemsSelect[8] = new MenuItemSelect("   Side Speed/Alt", "Shows the instruments for speed and altitude to the edge of the screen");
    m_pItemsSelect[8]->addSelection("No");
    m_pItemsSelect[8]->addSelection("Yes");
    m_pItemsSelect[8]->setUseMultiViewLayout();
    m_IndexAHIToSides = addMenuItem(m_pItemsSelect[8]);
 
-   m_pItemsSelect[9] = new MenuItemSelect(L("Show Heading"), L("Shows the heading instrument."));  
+   m_pItemsSelect[9] = new MenuItemSelect(L("Show Heading"), L("Shows the heading instrument."));
    m_pItemsSelect[9]->addSelection(L("No"));
    m_pItemsSelect[9]->addSelection(L("Yes"));
    m_pItemsSelect[9]->setUseMultiViewLayout();

@@ -65,7 +65,7 @@ void MenuVehicleGeneral::addTopDescription()
         (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_AIRPLANE ||
         (g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK) == MODEL_TYPE_HELI )
       strcpy(szType, "flights");
-   
+
    sprintf(szBuff, "Total %s: %d", szType, g_pCurrentModel->m_Stats.uTotalFlights);
    addTopLine(szBuff);
 
@@ -99,7 +99,7 @@ void MenuVehicleGeneral::addTopDescription()
 
    sprintf(szBuff, "SW Version: %s", szBuff2);
    addTopLine(szBuff);
-   
+
    addTopLine("");
 }
 
@@ -161,7 +161,7 @@ void MenuVehicleGeneral::valuesToUI()
 void MenuVehicleGeneral::Render()
 {
    RenderPrepare();
-   
+
    float yTop = RenderFrameAndTitle();
    float y = yTop;
 
@@ -209,11 +209,11 @@ int MenuVehicleGeneral::onBack()
          strcpy(g_pCurrentModel->vehicle_name, (const char*)szBuff );
          g_pCurrentModel->constructLongName();
          saveControllerModel(g_pCurrentModel);
-         send_model_changed_message_to_router(MODEL_CHANGED_GENERIC, 0); 
+         send_model_changed_message_to_router(MODEL_CHANGED_GENERIC, 0);
       }
       else if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_VEHICLE_NAME, 0, (u8*)szBuff, MAX_VEHICLE_NAME_LENGTH) )
          m_pItemEditName->setCurrentValue(g_pCurrentModel->vehicle_name);
-    
+
       log_line("MenuVehicleGeneral: onBack: done end editing name.");
       return 1;
    }
@@ -241,7 +241,7 @@ void MenuVehicleGeneral::onSelectItem()
          g_pCurrentModel->vehicle_type &= MODEL_FIRMWARE_MASK;
          g_pCurrentModel->vehicle_type |= (uVehicleType & MODEL_TYPE_MASK);
          saveControllerModel(g_pCurrentModel);
-         send_model_changed_message_to_router(MODEL_CHANGED_GENERIC, 0); 
+         send_model_changed_message_to_router(MODEL_CHANGED_GENERIC, 0);
       }
       else if ( ! handle_commands_send_to_vehicle(COMMAND_ID_SET_VEHICLE_TYPE, uVehicleType, NULL, 0) )
          m_pItemsSelect[0]->setSelection(g_pCurrentModel->vehicle_type & MODEL_TYPE_MASK);

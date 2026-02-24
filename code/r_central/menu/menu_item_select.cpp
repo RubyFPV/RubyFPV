@@ -219,7 +219,7 @@ void MenuItemSelect::Render(float xPos, float yPos, bool bSelected, float fWidth
    RenderBaseTitle(xPos,yPos, bSelected, fWidthSelection);
 
    float height_text = g_pRenderEngine->textHeight(g_idFontMenu);
-   
+
    float fAlphaOrg = g_pRenderEngine->getGlobalAlfa();
    float fAlphaLow = 0.5;
    height_text = 0.9*height_text;
@@ -231,7 +231,7 @@ void MenuItemSelect::Render(float xPos, float yPos, bool bSelected, float fWidth
    float dyPaddings = 0.6*Menu::getSelectionPaddingY();
    float dyText = 0.14*(m_RenderHeight - m_RenderTitleHeight)-0.07*height_text;
    float dxItemPadding = dxPaddings*1.5;
-   
+
    for( int i=m_SelectionsCount-1; i>=0; i-- )
    {
       float width_text = g_pRenderEngine->textWidth(g_idFontMenu, m_szSelections[i]);
@@ -319,7 +319,7 @@ void MenuItemSelect::RenderPopupSelections(float xPos, float yPos, bool bSelecte
 
    if ( xValues > m_pMenu->getRenderXPos() + m_pMenu->getRenderWidth() - totalWidth*0.6 )
       xValues = m_pMenu->getRenderXPos() + m_pMenu->getRenderWidth() - totalWidth*0.6;
-   
+
    float heightPopup = 0.0;
    float hTmp = 0.0;
    int maxItemsInColumn = 0;
