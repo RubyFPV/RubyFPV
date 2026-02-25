@@ -296,7 +296,7 @@ void alarms_add_from_vehicle(u32 uVehicleId, u32 uAlarms, u32 uFlags1, u32 uFlag
       else
       {
          strcpy(szAlarmText, "Video capture process on vehicle is malfunctioning.");
-         strcpy(szAlarmText2, "A generic error occured. Reinstall your vehicle firmware.");       
+         strcpy(szAlarmText2, "A generic error occurred. Reinstall your vehicle firmware.");       
       }
    }
 

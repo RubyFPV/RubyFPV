@@ -1306,7 +1306,7 @@ void MenuVehicleCamera::uploadCalibrationFile(int iType, const char* szCalibrati
       if ( iRead <= 0 )
       {
          log_softerror_and_alarm("MenuVehicleCamera: Failed to read calibration file segment %d (of %d), error: %d", iSegment, iCountSegments, iRead);
-         addMessage("An internal error occured uploading calibration file.");
+         addMessage("An internal error occurred uploading calibration file.");
          send_pause_adaptive_to_router(0);
          valuesToUI();
          break;

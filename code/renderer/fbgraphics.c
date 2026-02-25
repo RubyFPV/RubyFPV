@@ -456,7 +456,7 @@ void fbg_fragmentPush(struct _fbg_fragment *fbg_fragment) {
     lfds720_ringbuffer_n_write(fbg_fragment->ringbuffer_state, (void *) (lfds720_pal_uint_t) fbg_fragment->tmp_fbg_freelist_data, NULL, &overwrite_occurred_flag, (void *)&overwritten_data, NULL);
     if (overwrite_occurred_flag == LFDS720_MISC_FLAG_RAISED) {
 #ifdef DEBUG
-        fprintf(stderr, "fbg_fragmentPush: Overwrite occured.\n");
+        fprintf(stderr, "fbg_fragmentPush: Overwrite occurred.\n");
         fflush(stdout);
 #endif
 
