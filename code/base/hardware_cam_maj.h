@@ -6,6 +6,10 @@
 void hardware_camera_maj_init_threads(Model* pModel);
 void hardware_camera_maj_stop_threads();
 
+// Ask the encoder to emit an IDR (keyframe) frame immediately.
+// waybeam: hits GET /request/idr. majestic: no-op (no supported endpoint).
+void hardware_camera_maj_request_idr();
+
 int hardware_camera_maj_validate_config();
 void hardware_camera_maj_add_log(const char* szLog, bool bAsync);
 int hardware_camera_maj_get_current_pid();

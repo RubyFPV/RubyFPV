@@ -52,6 +52,7 @@
 #include <sched.h>
 
 #include "video_source_majestic.h"
+#include "../base/hardware_cam_backend.h"
 #include "video_sources.h"
 #include "video_tx_buffers.h"
 #include "events.h"
@@ -103,18 +104,19 @@ pthread_t s_pThreadRestartMajestic;
 
 void _video_source_majestic_move_ruby_to_other_cores()
 {
-   int iPIDMajestic = hw_process_exists("majestic");
+   const char* szProc = hwcam_be_process_name();
+   int iPIDMajestic = hw_process_exists(szProc);
    int iPIDMajestic2 = hardware_camera_maj_get_current_pid();
 
    if ( (iPIDMajestic <= 0) || (iPIDMajestic2 <= 0) )
    {
-      log_line("[VideoSourceMaj] Can't balance CPU cores for majestic. Majestic is not running (PIDs: %d, %d)", iPIDMajestic, iPIDMajestic2);
+      log_line("[VideoSourceMaj] Can't balance CPU cores for %s. Not running (PIDs: %d, %d)", szProc, iPIDMajestic, iPIDMajestic2);
       return;
    }
 
    int iCPUCore = hw_process_get_current_core(iPIDMajestic);
 
-   log_line("[VideoSourceMaj] Current CPU core for majestic is: %d", iCPUCore);
+   log_line("[VideoSourceMaj] Current CPU core for %s is: %d", szProc, iCPUCore);
 
    if ( 0 == iCPUCore )
       iCPUCore = 1;
@@ -128,19 +130,20 @@ void _video_source_majestic_move_ruby_to_other_cores()
 
 void _video_source_majestic_check_cores_affinities_balance()
 {
-   int iPIDMajestic = hw_process_exists("majestic");
+   const char* szProc = hwcam_be_process_name();
+   int iPIDMajestic = hw_process_exists(szProc);
    int iPIDMajestic2 = hardware_camera_maj_get_current_pid();
 
    if ( (iPIDMajestic <= 0) || (iPIDMajestic2 <= 0) )
    {
-      log_line("[VideoSourceMaj] Can't check CPU cores balance for majestic. Majestic is not running (PIDs: %d, %d)", iPIDMajestic, iPIDMajestic2);
+      log_line("[VideoSourceMaj] Can't check CPU cores balance for %s. Not running (PIDs: %d, %d)", szProc, iPIDMajestic, iPIDMajestic2);
       return;
    }
 
    int iCPUCoreMaj = hw_process_get_current_core(iPIDMajestic);
    int iCPUCoreRuby = hw_process_get_current_core(getpid());
-   
-   log_line("[VideoSourceMaj] Current CPU core for majestic is: %d, for ruby_rt_vehicle is: %d, %s", iCPUCoreMaj, iCPUCoreRuby, (iCPUCoreMaj == iCPUCoreRuby)?"the same":"are different");
+
+   log_line("[VideoSourceMaj] Current CPU core for %s is: %d, for ruby_rt_vehicle is: %d, %s", szProc, iCPUCoreMaj, iCPUCoreRuby, (iCPUCoreMaj == iCPUCoreRuby)?"the same":"are different");
    if ( iCPUCoreMaj == iCPUCoreRuby )
        _video_source_majestic_move_ruby_to_other_cores();
 }
@@ -235,11 +238,11 @@ int _video_source_majestic_open(int iUDPPort)
 // Returns initial set video bitrate
 u32 video_source_majestic_start_program(u32 uOverwriteInitialBitrate, int iOverwriteInitialKFMs, int iOverwriteInitialQPDelta, int* pInitialKFSet)
 {
-   log_line("[VideoSourceMaj] Start program: Majestic file size: %d bytes", get_filesize("/usr/bin/majestic") );
+   log_line("[VideoSourceMaj] Start program: %s file size: %d bytes", hwcam_be_name(), get_filesize(hwcam_be_binary_path()));
 
    if ( 0 != hardware_camera_maj_validate_config() )
    {
-      log_softerror_and_alarm("[VideoSourceMaj] Start program: Invalid majestic config. Don't start it.");
+      log_softerror_and_alarm("[VideoSourceMaj] Start program: Invalid %s config. Don't start it.", hwcam_be_name());
       return 0;
    }
 
@@ -282,7 +285,7 @@ u32 video_source_majestic_start_program(u32 uOverwriteInitialBitrate, int iOverw
    if ( (g_pCurrentModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_AFFINITY_CORES_VIDEO_CAPTURE) &&
         (g_pCurrentModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_AFFINITY_CORES) &&
         (hw_procs_get_cpu_count() > 1) )
-      hw_set_process_affinity("majestic", -1, g_pCurrentModel->processesPriorities.iCoreVideoCapture, g_pCurrentModel->processesPriorities.iCoreVideoCapture);
+      hw_set_process_affinity(hwcam_be_process_name(), -1, g_pCurrentModel->processesPriorities.iCoreVideoCapture, g_pCurrentModel->processesPriorities.iCoreVideoCapture);
 
    if ( g_pCurrentModel->processesPriorities.uProcessesFlags & PROCESSES_FLAGS_ENABLE_PRIORITIES_ADJUSTMENTS )
    {
@@ -638,7 +641,14 @@ int _video_source_majestic_parse_rtp_data(u8* pInputRawData, int iInputBytes)
       log_softerror_and_alarm("[VideoSourceMaj] Read skipped RTP frames tpye %d, from seqnb %d to seqnb %d", uRTPPacketType, s_uLastRTPSeqNumberInUDPFrames[uRTPPacketType], uRTPSeqNb);
       if ( (uRTPPacketType == 98) || (uRTPPacketType == 100) )
       if ( s_uLastRTPSeqNumberInUDPFramesSkipCounter[uRTPPacketType] > 10 )
-         hw_execute_bash_command("killall -1 majestic", NULL);
+      {
+         // On RTP-seq desync majestic needed a SIGHUP to reinit. waybeam
+         // supports a dedicated IDR request endpoint which is a cleaner recovery.
+         if ( hwcam_be_supports_idr_request() )
+            hardware_camera_maj_request_idr();
+         else
+            hw_execute_bash_command(hwcam_be_reload_cmd(), NULL);
+      }
    }
    s_uLastRTPSeqNumberInUDPFrames[uRTPPacketType] = uRTPSeqNb;
 
@@ -941,14 +951,18 @@ bool video_source_majestic_periodic_health_checks()
       _video_source_majestic_check_cores_affinities_balance();
    }
 
-   // Check majestic process to be generating video data
+   // Check encoder process to be generating video data
+   // waybeam takes ~6-10s for first frame on cold boot (sensor unlock, ISP bin
+   // load, IQ params init, encoder thread spawn) — much longer than majestic.
+   // Use a backend-aware post-start grace period so we don't false-alarm.
+   const u32 uPostStartGraceMs = (hwcam_be_get() == HWCAM_BE_WAYBEAM) ? 12000 : 2000;
    if ( s_iCountMajestigProcessNotRunningChecks >= 0 )
    if ( g_TimeNow > g_TimeStart + 10000 )
    if ( g_TimeNow > s_uTimeLastMajesticRecvData + 5000 )
-   if ( (s_uTimeMajesticStarted != 0) && (g_TimeNow > s_uTimeMajesticStarted+2000))
+   if ( (s_uTimeMajesticStarted != 0) && (g_TimeNow > s_uTimeMajesticStarted + uPostStartGraceMs))
    if ( g_TimeNow > hardware_camera_maj_get_last_change_time() + 5000 )
    {
-      log_softerror_and_alarm("[VideoSourceMaj] majestic is not generating any video stream. Restart it.");
+      log_softerror_and_alarm("[VideoSourceMaj] %s is not generating any video stream. Restart it.", hwcam_be_name());
       
       signal_start_long_op();
       video_source_majestic_stop_program();

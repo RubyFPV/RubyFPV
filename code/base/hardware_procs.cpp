@@ -14,6 +14,7 @@
 #include <poll.h>
 
 #include "base.h"
+#include "hardware_cam_backend.h"
 #include "config.h"
 #include "hardware_procs.h"
 #include "hardware.h"
@@ -438,7 +439,7 @@ void hw_log_processes(int argc, char *argv[])
          _enum_process("ruby_capture_veye", iCore);
          #endif
          #if defined (HW_PLATFORM_OPENIPC_CAMERA)
-         _enum_process("majestic", iCore);
+         _enum_process(hwcam_be_process_name(), iCore);
          #endif
       }
    }
