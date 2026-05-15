@@ -49,6 +49,7 @@
 
 #include "timers.h"
 #include "shared_vars.h"
+#include "imu_receiver.h"
 
 #include <time.h>
 #include <sys/resource.h>
@@ -508,6 +509,8 @@ void try_read_messages_from_router()
 
       if ( pPH->packet_type == PACKET_TYPE_AUX_DATA_LINK_DOWNLOAD )
          process_datalink_packet_download(s_BufferTelemetryDownlink, pPH->total_length);
+      else if ( pPH->packet_type == PACKET_TYPE_RUBY_TELEMETRY_IMU_DOWNLOAD )
+         imu_receiver_on_packet(s_BufferTelemetryDownlink, pPH->total_length);
       else if ( pPH->packet_type == PACKET_TYPE_TELEMETRY_RAW_DOWNLOAD )
          process_data_telemetry_raw_download(s_BufferTelemetryDownlink, pPH->total_length);
       else if ( pPH->packet_type == PACKET_TYPE_RC_TELEMETRY )
@@ -812,6 +815,8 @@ int main(int argc, char *argv[])
    radio_enable_crc_gen(1);
 
    open_shared_mem_objects();
+
+   imu_receiver_init(FOLDER_MEDIA);
  
    log_line("Started all ok. Running now.");
    log_line("--------------------------------");
@@ -836,6 +841,7 @@ int main(int argc, char *argv[])
       u32 tTime0 = g_TimeNow;
 
       periodic_checks();
+      imu_receiver_periodic();
 
       iSleepTime = 50;
       if ( -1 != g_iSerialPortTelemetryFD )
@@ -882,6 +888,7 @@ int main(int argc, char *argv[])
          log_softerror_and_alarm("Main processing loop took too long (%u ms).", dTime);
    }
 
+   imu_receiver_shutdown();
    log_line("Stopping...");
 
    if ( -1 != g_iSerialPortDataLinkFD )

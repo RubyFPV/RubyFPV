@@ -259,7 +259,7 @@ ruby_update: $(FOLDER_RUTILS)/ruby_update.o $(MODULE_BASE) $(MODULE_MODELS) $(FO
 ruby_update_worker: $(FOLDER_RUTILS)/ruby_update_worker.o $(MODULE_BASE) $(MODULE_BASE2) $(MODULE_MODELS) $(MODULE_COMMON)
 	$(CXX) $(_CPPFLAGS_NOSDL) -o $@ $^ $(_LDFLAGS_NOSDL)
 
-ruby_tx_telemetry: $(FOLDER_VEHICLE)/ruby_tx_telemetry.o $(FOLDER_VEHICLE)/shared_vars.o $(FOLDER_VEHICLE)/telemetry.o $(FOLDER_VEHICLE)/telemetry_ltm.o $(FOLDER_VEHICLE)/telemetry_mavlink.o $(FOLDER_VEHICLE)/telemetry_msp.o $(MODULE_BASE) $(MODULE_BASE2) $(MODULE_MODELS) $(FOLDER_VEHICLE)/timers.o $(FOLDER_BASE)/parse_fc_telemetry.o $(FOLDER_BASE)/parse_fc_telemetry_ltm.o $(FOLDER_BASE)/vehicle_settings.o $(FOLDER_COMMON)/string_utils.o $(FOLDER_RADIO)/radiopackets2.o $(FOLDER_BASE)/hardware_audio.o $(FOLDER_BASE)/wiringPiI2C_radxa.o
+ruby_tx_telemetry: $(FOLDER_VEHICLE)/ruby_tx_telemetry.o $(FOLDER_VEHICLE)/shared_vars.o $(FOLDER_VEHICLE)/telemetry.o $(FOLDER_VEHICLE)/telemetry_ltm.o $(FOLDER_VEHICLE)/telemetry_mavlink.o $(FOLDER_VEHICLE)/telemetry_msp.o $(MODULE_BASE) $(MODULE_BASE2) $(MODULE_MODELS) $(FOLDER_VEHICLE)/timers.o $(FOLDER_BASE)/parse_fc_telemetry.o $(FOLDER_BASE)/parse_fc_telemetry_ltm.o $(FOLDER_BASE)/vehicle_settings.o $(FOLDER_COMMON)/string_utils.o $(FOLDER_RADIO)/radiopackets2.o $(FOLDER_BASE)/hardware_audio.o $(FOLDER_BASE)/wiringPiI2C_radxa.o $(FOLDER_BASE)/bmi270.o $(FOLDER_VEHICLE)/imu_sender.o
 	$(CXX) $(_CPPFLAGS) -o $@ $^ $(_LDFLAGS)
 
 ruby_rt_vehicle: $(FOLDER_VEHICLE)/ruby_rt_vehicle.o $(MODULE_BASE) $(MODULE_BASE2) $(MODULE_COMMON) $(MODULE_RADIO) $(MODULE_MODELS) $(MODULE_VEHICLE) $(FOLDER_BASE)/vehicle_settings.o $(FOLDER_VEHICLE)/processor_relay.o $(FOLDER_VEHICLE)/processor_tx_video.o $(FOLDER_VEHICLE)/processor_tx_audio.o $(FOLDER_VEHICLE)/events.o $(FOLDER_VEHICLE)/packets_utils.o $(FOLDER_VEHICLE)/process_local_packets.o $(FOLDER_VEHICLE)/process_radio_in_packets.o $(FOLDER_VEHICLE)/process_radio_out_packets.o $(FOLDER_VEHICLE)/process_received_ruby_messages.o $(FOLDER_VEHICLE)/radio_links.o $(FOLDER_VEHICLE)/periodic_loop.o $(FOLDER_BASE)/camera_utils.o $(FOLDER_VEHICLE)/test_link_params.o $(FOLDER_VEHICLE)/video_sources.o $(FOLDER_VEHICLE)/video_source_csi.o $(FOLDER_VEHICLE)/video_source_majestic.o $(FOLDER_BASE)/radio_utils.o \
@@ -269,7 +269,7 @@ ruby_rt_vehicle: $(FOLDER_VEHICLE)/ruby_rt_vehicle.o $(MODULE_BASE) $(MODULE_BAS
 ruby_controller: $(FOLDER_STATION)/ruby_controller.o $(MODULE_BASE) $(MODULE_BASE2) $(MODULE_COMMON) $(MODULE_RADIO) $(MODULE_MODELS) $(MODULE_STATION)
 	$(CXX) $(_CPPFLAGS) -o $@ $^ $(_LDFLAGS)
 
-ruby_rx_telemetry: $(FOLDER_STATION)/ruby_rx_telemetry.o $(MODULE_BASE) $(MODULE_BASE2) $(MODULE_COMMON) $(MODULE_RADIO) $(MODULE_MODELS) $(MODULE_STATION) $(FOLDER_BASE)/hardware_audio.o $(FOLDER_BASE)/wiringPiI2C_radxa.o
+ruby_rx_telemetry: $(FOLDER_STATION)/ruby_rx_telemetry.o $(MODULE_BASE) $(MODULE_BASE2) $(MODULE_COMMON) $(MODULE_RADIO) $(MODULE_MODELS) $(MODULE_STATION) $(FOLDER_BASE)/hardware_audio.o $(FOLDER_BASE)/wiringPiI2C_radxa.o $(FOLDER_BASE)/gcsv.o $(FOLDER_STATION)/imu_receiver.o
 	$(CXX) $(_CPPFLAGS) -o $@ $^ $(_LDFLAGS)
 
 ruby_tx_rc: $(FOLDER_STATION)/ruby_tx_rc.o $(MODULE_BASE) $(MODULE_BASE2) $(MODULE_COMMON) $(MODULE_RADIO) $(MODULE_MODELS) $(MODULE_STATION) $(FOLDER_BASE)/shared_mem_i2c.o $(FOLDER_BASE)/hardware_audio.o $(FOLDER_BASE)/wiringPiI2C_radxa.o

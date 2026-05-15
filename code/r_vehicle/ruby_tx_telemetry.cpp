@@ -74,6 +74,7 @@
 #include "telemetry_mavlink.h"
 #include "telemetry_ltm.h"
 #include "telemetry_msp.h"
+#include "imu_sender.h"
 #include "../utils/utils_vehicle.h"
 
 sem_t* s_pSemaphoreStop = NULL;
@@ -128,6 +129,8 @@ bool s_bSendRCInfoBack = false;
 
 static u32 s_uTimeLastCheckForRadioReinit = 0;
 static bool s_bRadioInterfacesReinitIsInProgress = false;
+static bool s_bIMUSenderInitialized = false;
+static u32 s_uTimeLastIMUSenderInitAttempt = 0;
 
 u32 s_uTimeToAdjustBalanceInterupts = 0;
 
@@ -137,6 +140,21 @@ bool isRadioLinksInitInProgress()
 }
 
 void check_open_datalink_serial_port();
+
+void _init_imu_sender_if_needed()
+{
+   if ( s_bIMUSenderInitialized )
+      return;
+   if ( s_fIPCToRouter < 0 )
+      return;
+   if ( g_TimeNow < s_uTimeLastIMUSenderInitAttempt + 5000 )
+      return;
+
+   s_uTimeLastIMUSenderInitAttempt = g_TimeNow;
+   if ( imu_sender_init(s_fIPCToRouter,
+                        (g_pCurrentModel != NULL) ? g_pCurrentModel->uVehicleId : 0) )
+      s_bIMUSenderInitialized = true;
+}
 
 void close_datalink_serial_port()
 {
@@ -620,9 +638,14 @@ bool try_read_messages_from_router()
    if ( pPH->packet_type == PACKET_TYPE_LOCAL_CONTROL_VEHICLE_ROUTER_READY )
    {
       log_line("Received notification that router is ready.");
-      _open_pipes(false, true);
-      log_line("Opened pipes. Mark router as read.");   
-      g_bRouterReady = true;
+      if ( _open_pipes(false, true) > 0 )
+      {
+         _init_imu_sender_if_needed();
+         log_line("Opened pipes. Mark router as read.");
+         g_bRouterReady = true;
+      }
+      else
+         log_softerror_and_alarm("Failed to open telemetry write pipe to router. Will retry on next router-ready notification.");
       return true;
    }
 
@@ -1501,6 +1524,8 @@ int main(int argc, char *argv[])
    _main_loop();
 
 
+   if ( s_bIMUSenderInitialized )
+      imu_sender_shutdown();
    log_line("Stopping...");
 
    if ( NULL != s_pSemaphoreStop )
@@ -1598,6 +1623,20 @@ void _main_loop()
       }
       
       try_read_serial_datalink();
+      if ( (! g_bRouterReady) || (s_fIPCToRouter < 0) )
+      {
+         if ( _open_pipes(false, true) > 0 )
+         {
+            _init_imu_sender_if_needed();
+            g_bRouterReady = true;
+            log_line("Recovered telemetry write pipe to router. Mark router as ready.");
+         }
+      }
+      if ( g_bRouterReady && (s_fIPCToRouter >= 0) )
+      {
+         _init_imu_sender_if_needed();
+         imu_sender_drain_and_send();
+      }
 
       if ( g_pCurrentModel->rc_params.uRCFlags & RC_FLAGS_ENABLED )
       if ( NULL == s_pPHDownstreamInfoRC )

@@ -813,6 +813,29 @@ typedef struct
 
 
 
+// PACKET_TYPE_RUBY_TELEMETRY_IMU_DOWNLOAD: Gyro+accel samples from the
+// vehicle BMI270 IMU to the ground station, for Gyroflow stabilization.
+// Payload = t_packet_header_imu_download + n_samples * t_imu_sample_compact.
+#define PACKET_TYPE_RUBY_TELEMETRY_IMU_DOWNLOAD 52
+
+typedef struct __attribute__((packed)) {
+   u32 imu_segment_index;   // monotonic; used by GS to detect drops
+   u32 t_us_base;           // CLOCK_MONOTONIC microseconds, low 32 bits,
+                            // of the first sample in this packet
+   u8  scale_codes;         // (gyr_code << 4) | acc_code
+                            // gyr_code: 0=125 1=250 2=500 3=1000 4=2000 dps
+                            // acc_code: 0=2 1=4 2=8 3=16 g
+   u8  n_samples;           // count of t_imu_sample_compact entries (1..16)
+   u16 reserved;
+} t_packet_header_imu_download;
+
+typedef struct __attribute__((packed)) {
+   u16 dt_us;               // microseconds since previous sample
+                            // (0 for sample 0 within the packet)
+   int16_t gx, gy, gz;      // raw signed 16-bit gyroscope
+   int16_t ax, ay, az;      // raw signed 16-bit accelerometer
+} t_imu_sample_compact;
+
 #define PACKET_TYPE_VEHICLE_RECORDING 50
 // Has extra info 8 bytes
 /*
