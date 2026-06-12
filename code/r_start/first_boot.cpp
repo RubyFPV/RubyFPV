@@ -36,6 +36,7 @@
 #include "../base/hardware.h"
 #include "../base/hardware_files.h"
 #include "../base/hardware_camera.h"
+#include "../base/hardware_cam_backend.h"
 #include "../base/hardware_radio.h"
 #include "../base/hardware_procs.h"
 #include "../base/vehicle_settings.h"
@@ -114,6 +115,8 @@ void do_first_boot_pre_initialization(bool bIgnoreDrivers)
 
    #if defined (HW_PLATFORM_OPENIPC_CAMERA)
    hw_execute_bash_command("rm -rf /etc/init.d/S*majestic", NULL);
+   // Ruby owns the encoder lifecycle; waybeam ships its own init script too.
+   hw_execute_bash_command("rm -rf /etc/init.d/S*waybeam", NULL);
    if ( ! bIgnoreDrivers )
       hardware_install_drivers(1);
    hardware_camera_check_set_oipc_sensor();
@@ -181,8 +184,14 @@ void do_first_boot_initialization_radxa(bool bIsVehicle, u32 uBoardType)
 void do_first_boot_initialization_openipc(bool bIsVehicle, u32 uBoardType)
 {
    log_line("Doing first time boot setup for OpenIPC platform...");
-   if ( (access("/etc/majestic.yaml", R_OK) != -1) && (hardware_file_get_file_size("/etc/majestic.yaml") > 200) )
-      hw_execute_bash_command("cp -rf /etc/majestic.yaml /etc/majestic.yaml.org", NULL);
+   const char* szCfg = hwcam_be_config_path();
+   const char* szBak = hwcam_be_config_backup_path();
+   if ( (access(szCfg, R_OK) != -1) && (hardware_file_get_file_size(szCfg) > 200) )
+   {
+      char szCmd[MAX_FILE_PATH_SIZE*3];
+      snprintf(szCmd, sizeof(szCmd), "cp -rf %s %s", szCfg, szBak);
+      hw_execute_bash_command(szCmd, NULL);
+   }
 
    hw_execute_bash_command("ln -s /lib/firmware/ath9k_htc/htc_9271.fw.3 /lib/firmware/ath9k_htc/htc_9271-1.4.0.fw", NULL);
    hw_execute_bash_command("sed -i 's/console:/#console:/' /etc/inittab", NULL);

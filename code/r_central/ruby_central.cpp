@@ -110,6 +110,7 @@
 #include "menu_confirmation_hdmi.h"
 #include "ui_alarms.h"
 #include "notifications.h"
+#include "vehicle_backend_cache.h"
 #include "local_stats.h"
 #include "rx_scope.h"
 #include "forward_watch.h"
@@ -980,6 +981,20 @@ int ruby_start_recording()
    if ( g_bIsVideoRecording )
        return -1;
 
+   // Onboard SD recording (waybeam): forward start to the vehicle instead of
+   // the GS DVR. Recording state is set when the vehicle confirms the command.
+   ControllerSettings* pCSRec = get_ControllerSettings();
+   if ( (NULL != pCSRec) && (1 == pCSRec->iRecordingTarget) )
+   {
+      if ( vehicle_backend_is_waybeam(g_pCurrentModel->uVehicleId) )
+      {
+         handle_commands_send_to_vehicle(COMMAND_ID_ONBOARD_RECORD, 1, NULL, 0);
+         log_line("Sent onboard recording start command to vehicle.");
+         return 0;
+      }
+      warnings_add(0, L("Onboard recording requires the waybeam encoder. Recording on the ground instead."), g_idIconCamera, get_Color_IconWarning(), 6);
+   }
+
    #ifdef HW_PLATFORM_RASPBERRY
    system("sudo mount -o remount,rw /");
    #endif
@@ -1042,6 +1057,18 @@ int ruby_stop_recording()
 
    if ( ! g_bIsVideoRecording )
        return -1;
+
+   // Onboard SD recording (waybeam): forward stop to the vehicle. The menu
+   // blocks changing the recording target while a recording is active, so the
+   // current setting always matches the recording in progress.
+   ControllerSettings* pCSRec = get_ControllerSettings();
+   if ( (NULL != pCSRec) && (1 == pCSRec->iRecordingTarget) )
+   if ( vehicle_backend_is_waybeam(g_pCurrentModel->uVehicleId) )
+   {
+      handle_commands_send_to_vehicle(COMMAND_ID_ONBOARD_RECORD, 0, NULL, 0);
+      log_line("Sent onboard recording stop command to vehicle.");
+      return 0;
+   }
 
    u8 uCmd = 0;
    send_control_message_to_router_and_data(PACKET_TYPE_LOCAL_CONTROL_VIDEO_RECORDING, &uCmd, 1);

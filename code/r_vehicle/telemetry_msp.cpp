@@ -36,6 +36,7 @@
 #include "timers.h"
 #include "../base/ruby_ipc.h"
 #include "../base/msp.h"
+#include "rx_osd_recording_vehicle.h"
 
 void broadcast_vehicle_stats();
 bool isRadioLinksInitInProgress();
@@ -178,6 +179,12 @@ void telemetry_msp_on_close()
 
 void telemetry_msp_periodic_loop()
 {
+   // Drive the onboard OSD writer (waybeam onboard-SD recording path).
+   // The writer polls the control file for start/stop signals written by
+   // ruby_start's onboard-record command handler (different process) and
+   // emits OSD frames at ~50 ms.
+   rx_osd_recording_vehicle_periodic_loop();
+
    if ( ! s_bMSPGotFCInfo )
    if ( g_TimeNow >= s_uMSPTimeLastConfigCommandToFC + 500 )
    {
@@ -473,11 +480,22 @@ void _parse_msp_command()
    }
 }
 
+u32 telemetry_msp_get_fc_type_flag()
+{
+   return s_PHTMSP.uMSPFlags & MSP_FLAGS_FC_TYPE_MASK;
+}
+
 bool telemetry_msp_on_new_serial_data(u8* pData, int iDataLength)
 {
    if ( (NULL == pData) || (iDataLength <= 0) )
       return false;
    bool bReturn = false;
+
+   // Feed raw MSP bytes into the onboard OSD writer's parallel MSP state so
+   // the vehicle maintains its own character-grid for .osd recording on the
+   // vehicle SD card. No-op unless onboard recording is active.
+   if ( rx_osd_recording_vehicle_is_started() )
+      rx_osd_recording_vehicle_feed_msp(pData, iDataLength, true);
 
    for( int i=0; i<iDataLength; i++ )
    {

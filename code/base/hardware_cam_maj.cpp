@@ -32,6 +32,7 @@
 
 #include "base.h"
 #include "hardware_cam_maj.h"
+#include "hardware_cam_backend.h"
 #include "hardware_camera.h"
 #include "hardware_procs.h"
 #include "hardware_files.h"
@@ -203,8 +204,8 @@ void* _thread_set_majestic_params_async(void *argument)
          bSignalMajestic |= localCommandsQueue.commands[iNextCommandIndexToExecute].bSignalMajestic;
          iNextCommandIndexToExecute = (iNextCommandIndexToExecute + 1) % MAX_MAJESTIC_COMMANDS;
       }
-      if ( bSignalMajestic )
-         hw_execute_bash_command_raw("killall -1 majestic", NULL);
+      if ( bSignalMajestic && hwcam_be_needs_sighup_after_http() )
+         hw_execute_bash_command_raw(hwcam_be_reload_cmd(), NULL);
    }
 
    log_line("[HwCamMajesticThread] Thread ended.");
@@ -235,8 +236,21 @@ void _add_maj_command_to_queue_or_exec(const char* szCommand, bool bSignalMajest
       _execute_maj_command_wait(szCommand);
 }
 
+void hardware_camera_maj_request_idr()
+{
+   if ( !hwcam_be_supports_idr_request() )
+      return;
+   // Fire-and-forget: async-queue when the params thread is alive so we don't
+   // block the caller path (typically a retransmission-failure handler).
+   if ( (0 != s_iPIDMajestic) && s_bThreadSetMajesticParamsRunning )
+      _add_maj_command_to_queue("curl -s localhost/request/idr", false);
+   else
+      hw_execute_bash_command_raw("curl -s localhost/request/idr", NULL);
+}
+
 void hardware_camera_maj_init_threads(Model* pModel)
 {
+   hwcam_be_detect();
    if ( s_bThreadSetMajesticParamsRunning )
    {
       log_line("[HwCamMajestic] Settings thread already running.");
@@ -348,35 +362,41 @@ void hardware_camera_maj_stop_threads()
 
 int hardware_camera_maj_validate_config()
 {
-   if ( (access("/etc/majestic.yaml", R_OK) != -1) && (hardware_file_get_file_size("/etc/majestic.yaml") > 200) )
+   const char* szCfg = hwcam_be_config_path();
+   const char* szBak = hwcam_be_config_backup_path();
+   const int iMinSize = 200;
+   char szCmd[MAX_FILE_PATH_SIZE*3];
+
+   if ( (access(szCfg, R_OK) != -1) && (hardware_file_get_file_size(szCfg) > iMinSize) )
    {
-      log_line("[HwCamMajestic] majestic config file is ok.");
-      if ( access("/etc/majestic.yaml.org", R_OK == -1) || (hardware_file_get_file_size("/etc/majestic.yaml.org") < 200) )
+      log_line("[HwCamMajestic] %s config file is ok.", hwcam_be_name());
+      if ( (access(szBak, R_OK) == -1) || (hardware_file_get_file_size(szBak) < iMinSize) )
       {
-         log_softerror_and_alarm("[HwCamMajestic] Failed to find majestic backup config file. Restore it.");
-         hw_execute_bash_command("cp -rf /etc/majestic.yaml /etc/majestic.yaml.org", NULL);
-         if ( access("/etc/majestic.yaml.org", R_OK == -1) || (hardware_file_get_file_size("/etc/majestic.yaml.org") < 200) )
-            log_softerror_and_alarm("[HwCamMajestic] Failed to restore majestic backup config file.");
+         log_softerror_and_alarm("[HwCamMajestic] Failed to find %s backup config file. Restore it.", hwcam_be_name());
+         snprintf(szCmd, sizeof(szCmd), "cp -rf %s %s", szCfg, szBak);
+         hw_execute_bash_command(szCmd, NULL);
+         if ( (access(szBak, R_OK) == -1) || (hardware_file_get_file_size(szBak) < iMinSize) )
+            log_softerror_and_alarm("[HwCamMajestic] Failed to restore %s backup config file.", hwcam_be_name());
       }
       else
-         log_line("[HwCamMajestic] majestic backup config file is ok.");
+         log_line("[HwCamMajestic] %s backup config file is ok.", hwcam_be_name());
       return 0;
    }
-  
-   
-   log_softerror_and_alarm("[HwCamMajestic] Invalid majestic config file. Restore it...");
-   if ( access("/etc/majestic.yaml.org", R_OK == -1) || (hardware_file_get_file_size("/etc/majestic.yaml.org") < 200) )
+
+   log_softerror_and_alarm("[HwCamMajestic] Invalid %s config file. Restore it...", hwcam_be_name());
+   if ( (access(szBak, R_OK) == -1) || (hardware_file_get_file_size(szBak) < iMinSize) )
    {
-      log_error_and_alarm("[HwCamMajestic] Invalid majestic config file and no backup present. Abort start.");
+      log_error_and_alarm("[HwCamMajestic] Invalid %s config file and no backup present. Abort start.", hwcam_be_name());
       return -1;
    }
-   hw_execute_bash_command("cp -rf /etc/majestic.yaml.org /etc/majestic.yaml", NULL);
-   if ( access("/etc/majestic.yaml", R_OK == -1) || (hardware_file_get_file_size("/etc/majestic.yaml") < 200) )
+   snprintf(szCmd, sizeof(szCmd), "cp -rf %s %s", szBak, szCfg);
+   hw_execute_bash_command(szCmd, NULL);
+   if ( (access(szCfg, R_OK) == -1) || (hardware_file_get_file_size(szCfg) < iMinSize) )
    {
-      log_error_and_alarm("[HwCamMajestic] Failed to restore majestic config file. Abort start.");
+      log_error_and_alarm("[HwCamMajestic] Failed to restore %s config file. Abort start.", hwcam_be_name());
       return -1;
    }
-   log_line("[HwCamMajestic] Restored majestic config file from backup.");
+   log_line("[HwCamMajestic] Restored %s config file from backup.", hwcam_be_name());
    return 0;
 }
    
@@ -432,31 +452,31 @@ bool hardware_camera_maj_start_capture_program(bool bEnableLog)
 
    char szOutput[1024];
    char szComm[256];
+   char szPsGrep[128];
+   const char* szProcName = hwcam_be_process_name();
 
    int iStartCount = 4;
    while ( iStartCount > 0 )
    {
       iStartCount--;
-      if ( bEnableLog )
-         sprintf(szComm, "/usr/bin/majestic -s 2>/dev/null 1>%s &", CONFIG_FILE_FULLPATH_MAJESTIC_LOG);
-      else
-         sprintf(szComm, "/usr/bin/majestic -s 2>/dev/null 1>/dev/null &");
+      hwcam_be_format_start_cmd(szComm, sizeof(szComm), bEnableLog, CONFIG_FILE_FULLPATH_MAJESTIC_LOG);
 
       hw_execute_bash_command_raw(szComm, NULL);
       hardware_sleep_ms(100);
-      s_iPIDMajestic = hw_process_exists("majestic");
+      s_iPIDMajestic = hw_process_exists(szProcName);
       int iRetries = 10;
       while ( (0 == s_iPIDMajestic) && (iRetries > 0) )
       {
          iRetries--;
          hardware_sleep_ms(50);
-         s_iPIDMajestic = hw_process_exists("majestic");
+         s_iPIDMajestic = hw_process_exists(szProcName);
       }
       if ( s_iPIDMajestic != 0 )
          return true;
 
-      hw_execute_bash_command_raw("ps -ae | grep majestic | grep -v \"grep\"", szOutput);
-      log_line("[HwCamMajestic] Found majestic PID(s): (%s)", szOutput);
+      snprintf(szPsGrep, sizeof(szPsGrep), "ps -ae | grep %s | grep -v \"grep\"", szProcName);
+      hw_execute_bash_command_raw(szPsGrep, szOutput);
+      log_line("[HwCamMajestic] Found %s PID(s): (%s)", szProcName, szOutput);
       removeTrailingNewLines(szOutput);
       hw_execute_bash_command_raw("ps -ae | grep ruby_rt_vehicle | grep -v \"grep\"", szOutput);
       removeTrailingNewLines(szOutput);
@@ -470,37 +490,39 @@ bool _hardware_camera_maj_signal_stop_capture_program(int iSignal)
 {
    char szOutput[256];
    szOutput[0] = 0;
-   //hw_execute_bash_command_raw("/etc/init.d/S95majestic stop", szOutput);
-   hw_execute_bash_command_raw("killall -9 majestic", szOutput);
+   const char* szProcName = hwcam_be_process_name();
+   hw_execute_bash_command_raw(hwcam_be_kill9_cmd(), szOutput);
 
    removeTrailingNewLines(szOutput);
-   log_line("[HwCamMajestic] Result of stop majestic using killall: (%s)", szOutput);
+   log_line("[HwCamMajestic] Result of stop %s using killall: (%s)", szProcName, szOutput);
    hardware_sleep_ms(100);
 
-   hw_process_get_pids("majestic", szOutput);
-   log_line("[HwCamMajestic] Majestic PID after killall command: (%s)", szOutput);
+   hw_process_get_pids(szProcName, szOutput);
+   log_line("[HwCamMajestic] %s PID after killall command: (%s)", szProcName, szOutput);
    if ( strlen(szOutput) < 2 )
    {
       s_iPIDMajestic = 0;
-      return true;    
+      return true;
    }
 
-
-   hw_execute_bash_command_raw("killall -1 majestic", NULL);
+   // Waybeam has no SIGHUP-as-reinit; its reload_cmd hits the HTTP restart
+   // endpoint which does not kill the process. Fall through to SIGTERM in that case.
+   if ( hwcam_be_needs_sighup_after_http() )
+      hw_execute_bash_command_raw(hwcam_be_reload_cmd(), NULL);
    hardware_sleep_ms(10);
-   hw_process_get_pids("majestic", szOutput);
-   log_line("[HwCamMajestic] Majestic PID after killall command: (%s)", szOutput);
+   hw_process_get_pids(szProcName, szOutput);
+   log_line("[HwCamMajestic] %s PID after reload command: (%s)", szProcName, szOutput);
    if ( strlen(szOutput) < 2 )
    {
       s_iPIDMajestic = 0;
-      return true;    
+      return true;
    }
 
-   hw_kill_process("majestic", iSignal);
+   hw_kill_process(szProcName, iSignal);
    hardware_sleep_ms(10);
- 
-   hw_process_get_pids("majestic", szOutput);
-   log_line("[HwCamMajestic] Majestic PID after stop command: (%s)", szOutput);
+
+   hw_process_get_pids(szProcName, szOutput);
+   log_line("[HwCamMajestic] %s PID after stop command: (%s)", szProcName, szOutput);
    if ( strlen(szOutput) > 2 )
       return false;
 
@@ -510,53 +532,58 @@ bool _hardware_camera_maj_signal_stop_capture_program(int iSignal)
 
 bool hardware_camera_maj_stop_capture_program()
 {
+   const char* szProcName = hwcam_be_process_name();
    if ( _hardware_camera_maj_signal_stop_capture_program(-1) )
    {
       s_iPIDMajestic = 0;
-      log_line("[HwCamMajestic] Stopped majestic.");
+      log_line("[HwCamMajestic] Stopped %s.", szProcName);
       return true;
    }
    hardware_sleep_ms(50);
    if ( _hardware_camera_maj_signal_stop_capture_program(-9) )
    {
       s_iPIDMajestic = 0;
-      log_line("[HwCamMajestic] Stopped majestic.");
+      log_line("[HwCamMajestic] Stopped %s.", szProcName);
       return true;
    }
    hardware_sleep_ms(50);
 
    char szPID[256];
    szPID[0] = 0;
-   hw_process_get_pids("majestic", szPID);
-   log_line("[HwCamMajestic] Stopping majestic: PID after try signaling to stop: (%s)", szPID);
+   hw_process_get_pids(szProcName, szPID);
+   log_line("[HwCamMajestic] Stopping %s: PID after try signaling to stop: (%s)", szProcName, szPID);
    int iRetry = 15;
    while ( (iRetry > 0) && (strlen(szPID) > 1) )
    {
       iRetry--;
       hardware_sleep_ms(50);
-      hw_execute_bash_command_raw("killall -1 majestic", NULL);
+      // For majestic this is SIGHUP which can coax an exit in some edge cases.
+      // For waybeam this hits HTTP /restart (won't kill), so we rely on the
+      // forced SIGKILL below.
+      if ( hwcam_be_needs_sighup_after_http() )
+         hw_execute_bash_command_raw(hwcam_be_reload_cmd(), NULL);
       hardware_sleep_ms(100);
-      hw_process_get_pids("majestic", szPID);
+      hw_process_get_pids(szProcName, szPID);
    }
 
-   log_line("[HwCamMajestic] Init: stopping majestic (2): PID after force try stop: (%s)", szPID);
+   log_line("[HwCamMajestic] Init: stopping %s (2): PID after force try stop: (%s)", szProcName, szPID);
    if ( strlen(szPID) < 2 )
    {
       s_iPIDMajestic = 0;
-      log_line("[HwCamMajestic] Stopped majestic.");
+      log_line("[HwCamMajestic] Stopped %s.", szProcName);
       return true;
    }
 
-   hw_kill_process("majestic", -9);
-   hw_process_get_pids("majestic", szPID);
+   hw_kill_process(szProcName, -9);
+   hw_process_get_pids(szProcName, szPID);
    s_iPIDMajestic = atoi(szPID);
    if ( strlen(szPID) < 2 )
    {
       s_iPIDMajestic = 0;
-      log_line("[HwCamMajestic] Stopped majestic.");
+      log_line("[HwCamMajestic] Stopped %s.", szProcName);
       return true;
    }
-   log_softerror_and_alarm("[HwCamMajestic] Init: failed to stop majestic. Current majestic PID: (%s) %d", szPID, s_iPIDMajestic);
+   log_softerror_and_alarm("[HwCamMajestic] Init: failed to stop %s. Current %s PID: (%s) %d", szProcName, szProcName, szPID, s_iPIDMajestic);
    return false;
 }
 
@@ -590,10 +617,14 @@ void hardware_camera_maj_update_nal_size(Model* pModel)
    s_iCurrentMajesticNALSize = iNALSize;
 
    char szComm[256];
-   sprintf(szComm, "cli -s .outgoing.naluSize %d", s_iCurrentMajesticNALSize);
+   // Pre-start config write. majestic: naluSize. waybeam: maxPayloadSize under .outgoing.
+   const char* szKey = (hwcam_be_get() == HWCAM_BE_WAYBEAM) ? ".outgoing.maxPayloadSize" : ".outgoing.naluSize";
+   char szVal[32];
+   snprintf(szVal, sizeof(szVal), "%d", s_iCurrentMajesticNALSize);
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), szKey, szVal, false);
    _execute_maj_command_wait(szComm);
    hardware_sleep_ms(1);
-   hw_execute_bash_command_raw("killall -1 majestic", NULL);
+   hw_execute_bash_command_raw(hwcam_be_reload_cmd(), NULL);
    hardware_sleep_ms(5);
 }
 
@@ -603,43 +634,49 @@ void _hardware_camera_maj_apply_image_settings()
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
 
    char szComm[128];
-   sprintf(szComm, "cli -s .image.luminance %d", s_CurrentMajesticCamSettings.brightness);
+   char szVal[32];
+
+   snprintf(szVal, sizeof(szVal), "%u", s_CurrentMajesticCamSettings.brightness);
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".image.luminance", szVal, false);
    _execute_maj_command_wait(szComm);
 
-   sprintf(szComm, "cli -s .image.contrast %d", s_CurrentMajesticCamSettings.contrast);
+   snprintf(szVal, sizeof(szVal), "%u", s_CurrentMajesticCamSettings.contrast);
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".image.contrast", szVal, false);
    _execute_maj_command_wait(szComm);
 
-   sprintf(szComm, "cli -s .image.saturation %d", s_CurrentMajesticCamSettings.saturation/2);
+   snprintf(szVal, sizeof(szVal), "%u", s_CurrentMajesticCamSettings.saturation/2);
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".image.saturation", szVal, false);
    _execute_maj_command_wait(szComm);
 
-   sprintf(szComm, "cli -s .image.hue %d", s_CurrentMajesticCamSettings.hue);
+   snprintf(szVal, sizeof(szVal), "%u", s_CurrentMajesticCamSettings.hue);
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".image.hue", szVal, false);
    _execute_maj_command_wait(szComm);
 
-   if ( s_CurrentMajesticCamSettings.uFlags & CAMERA_FLAG_OPENIPC_3A_FPV )
-      strcpy(szComm, "cli -s .fpv.enabled true");
-   else
-      strcpy(szComm, "cli -s .fpv.enabled false");
-
-   _execute_maj_command_wait(szComm);
-
-   if ( s_CurrentMajesticCamSettings.flip_image )
+   // waybeam has no .fpv.enabled field (its FPV tuning is .fpv.roiEnabled etc);
+   // skip this majestic-only flag on waybeam.
+   if ( hwcam_be_get() != HWCAM_BE_WAYBEAM )
    {
-      strcpy(szComm, "cli -s .image.flip true");
-      _execute_maj_command_wait(szComm);
-      strcpy(szComm, "cli -s .image.mirror true");
+      if ( s_CurrentMajesticCamSettings.uFlags & CAMERA_FLAG_OPENIPC_3A_FPV )
+         strcpy(szComm, "cli -s .fpv.enabled true");
+      else
+         strcpy(szComm, "cli -s .fpv.enabled false");
       _execute_maj_command_wait(szComm);
    }
-   else
-   {
-      strcpy(szComm, "cli -s .image.flip false");
-      _execute_maj_command_wait(szComm);
-      strcpy(szComm, "cli -s .image.mirror false");
-      _execute_maj_command_wait(szComm);
-   }
+
+   const char* szFlipVal = s_CurrentMajesticCamSettings.flip_image ? "true" : "false";
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".image.flip", szFlipVal, false);
+   _execute_maj_command_wait(szComm);
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".image.mirror", szFlipVal, false);
+   _execute_maj_command_wait(szComm);
 
    if ( 0 == s_CurrentMajesticCamSettings.iShutterSpeed )
    {
-      sprintf(szComm, "cli -d .isp.exposure");
+      // Default-reset: majestic has `cli -d` (delete/reset to default). waybeam
+      // has no equivalent — writing 0 maps to the default per waybeam docs.
+      if ( hwcam_be_get() == HWCAM_BE_WAYBEAM )
+         hwcam_be_format_cli_set(szComm, sizeof(szComm), ".isp.exposure", "0", false);
+      else
+         sprintf(szComm, "cli -d .isp.exposure");
       _execute_maj_command_wait(szComm);
    }
    else
@@ -647,19 +684,17 @@ void _hardware_camera_maj_apply_image_settings()
       int iShutterSpeed = s_CurrentMajesticCamSettings.iShutterSpeed;
       if ( (iShutterSpeed > -3) && (iShutterSpeed < 3) )
          iShutterSpeed = 3;
-      if ( iShutterSpeed > 0 )
-         sprintf(szComm, "cli -s .isp.exposure %.2f", (float)iShutterSpeed/1000.0);
-      else
-         sprintf(szComm, "cli -s .isp.exposure %.2f", -(float)iShutterSpeed/1000.0);
-
-      // exposure is in milisec for ssc338q
+      if ( iShutterSpeed < 0 )
+         iShutterSpeed = -iShutterSpeed;
       if ( hardware_board_is_sigmastar(hardware_getBoardType()) )
       {
-         if ( iShutterSpeed > 0 )
-            sprintf(szComm, "cli -s .isp.exposure %d", iShutterSpeed);
-         else
-            sprintf(szComm, "cli -s .isp.exposure %d", -iShutterSpeed);
+         snprintf(szVal, sizeof(szVal), "%d", iShutterSpeed);
       }
+      else
+      {
+         snprintf(szVal, sizeof(szVal), "%.2f", (float)iShutterSpeed/1000.0);
+      }
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".isp.exposure", szVal, false);
       _execute_maj_command_wait(szComm);
    }
 
@@ -668,36 +703,47 @@ void _hardware_camera_maj_apply_image_settings()
 
 void _hardware_camera_maj_set_all_params()
 {
-   char szComm[128];
+   char szComm[192];
+   char szVal[64];
+   const bool bWbm = (hwcam_be_get() == HWCAM_BE_WAYBEAM);
 
-   //hw_execute_bash_command_raw("cli -s .watchdog.enabled false", NULL);
-   _execute_maj_command_wait("cli -s .watchdog.enabled false");
-   _execute_maj_command_wait("cli -s .system.logLevel info");
-   _execute_maj_command_wait("cli -s .rtsp.enabled false");
-   _execute_maj_command_wait("cli -s .video1.enabled false");
-   _execute_maj_command_wait("cli -s .video0.enabled true");
-   _execute_maj_command_wait("cli -s .video0.rcMode cbr");
-   _execute_maj_command_wait("cli -s .isp.slowShutter disabled");
+   // Fields majestic has that waybeam either lacks or handles differently.
+   // Skip majestic-only fields on waybeam to avoid json_cli warnings about
+   // unknown keys.
+   if ( !bWbm )
+   {
+      _execute_maj_command_wait("cli -s .watchdog.enabled false");
+      _execute_maj_command_wait("cli -s .system.logLevel info");
+      _execute_maj_command_wait("cli -s .rtsp.enabled false");
+      _execute_maj_command_wait("cli -s .video1.enabled false");
+      _execute_maj_command_wait("cli -s .video0.enabled true");
+      _execute_maj_command_wait("cli -s .isp.slowShutter disabled");
+   }
+
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.rcMode", "cbr", bWbm);
+   _execute_maj_command_wait(szComm);
 
    if ( NULL != s_pCurrentMajesticModel )
       hardware_set_oipc_gpu_boost(s_pCurrentMajesticModel->processesPriorities.iFreqGPU);
 
-   if ( s_CurrentMajesticVideoParams.iH264Slices <= 1 )
+   // .video0.sliceUnits is majestic-only.
+   if ( !bWbm )
    {
-      _execute_maj_command_wait("cli -s .video0.sliceUnits 0");
-   }
-   else
-   {
-      sprintf(szComm, "cli -s .video0.sliceUnits %d", s_CurrentMajesticVideoParams.iH264Slices);
-      _execute_maj_command_wait(szComm);
+      if ( s_CurrentMajesticVideoParams.iH264Slices <= 1 )
+         _execute_maj_command_wait("cli -s .video0.sliceUnits 0");
+      else
+      {
+         sprintf(szComm, "cli -s .video0.sliceUnits %d", s_CurrentMajesticVideoParams.iH264Slices);
+         _execute_maj_command_wait(szComm);
+      }
    }
 
-   if ( s_CurrentMajesticVideoParams.uVideoExtraFlags & VIDEO_FLAG_GENERATE_H265 )
-      _execute_maj_command_wait("cli -s .video0.codec h265");
-   else
-      _execute_maj_command_wait("cli -s .video0.codec h264");
+   const char* szCodec = (s_CurrentMajesticVideoParams.uVideoExtraFlags & VIDEO_FLAG_GENERATE_H265) ? "h265" : "h264";
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.codec", szCodec, bWbm);
+   _execute_maj_command_wait(szComm);
 
-   sprintf(szComm, "cli -s .video0.fps %d", s_pCurrentMajesticModel->video_params.iVideoFPS);
+   snprintf(szVal, sizeof(szVal), "%d", s_pCurrentMajesticModel->video_params.iVideoFPS);
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.fps", szVal, false);
    _execute_maj_command_wait(szComm);
 
    s_uCurrentMajesticBitrate = DEFAULT_VIDEO_BITRATE_OPIC_SIGMASTAR;
@@ -711,20 +757,22 @@ void _hardware_camera_maj_set_all_params()
       }
    }
 
-   if ( s_uTemporaryMajesticBitrate > 0 )
-   if ( s_uTemporaryMajesticBitrate < s_uCurrentMajesticBitrate )
+   if ( (s_uTemporaryMajesticBitrate > 0) && (s_uTemporaryMajesticBitrate < s_uCurrentMajesticBitrate) )
       s_uCurrentMajesticBitrate = s_uTemporaryMajesticBitrate;
 
-   sprintf(szComm, "cli -s .video0.bitrate %u", s_uCurrentMajesticBitrate/1000);
+   snprintf(szVal, sizeof(szVal), "%u", s_uCurrentMajesticBitrate/1000);
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.bitrate", szVal, false);
    _execute_maj_command_wait(szComm);
 
-   sprintf(szComm, "cli -s .video0.size %dx%d", s_pCurrentMajesticModel->video_params.iVideoWidth, s_pCurrentMajesticModel->video_params.iVideoHeight);
+   snprintf(szVal, sizeof(szVal), "%dx%d", s_pCurrentMajesticModel->video_params.iVideoWidth, s_pCurrentMajesticModel->video_params.iVideoHeight);
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.size", szVal, bWbm);
    _execute_maj_command_wait(szComm);
 
    s_iCurrentMajesticQPDelta = s_pCurrentMajesticModel->video_link_profiles[s_iCurrentMajesticVideoProfile].iIPQuantizationDelta;
    if ( s_iTemporaryMajesticQPDelta > -100 )
       s_iCurrentMajesticQPDelta = s_iTemporaryMajesticQPDelta;
-   sprintf(szComm, "cli -s .video0.qpDelta %d", s_iCurrentMajesticQPDelta);
+   snprintf(szVal, sizeof(szVal), "%d", s_iCurrentMajesticQPDelta);
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.qpDelta", szVal, false);
    _execute_maj_command_wait(szComm);
 
    s_iCurrentMajesticKeyframeMs = s_pCurrentMajesticModel->getInitialKeyframeIntervalMs(s_iCurrentMajesticVideoProfile);
@@ -740,11 +788,19 @@ void _hardware_camera_maj_set_all_params()
       s_iCurrentMajesticKeyframeMs = 100;
    }
 
-   sprintf(szComm, "cli -s .video0.gopSize %.2f", s_fCurrentMajesticGOP);
+   snprintf(szVal, sizeof(szVal), "%.2f", s_fCurrentMajesticGOP);
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.gopSize", szVal, false);
    _execute_maj_command_wait(szComm);
 
-   _execute_maj_command_wait("cli -s .outgoing.enabled true");
-   _execute_maj_command_wait("cli -s .outgoing.server udp://127.0.0.1:5600");
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".outgoing.enabled", "true", false);
+   _execute_maj_command_wait(szComm);
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".outgoing.server", "udp://127.0.0.1:5600", bWbm);
+   _execute_maj_command_wait(szComm);
+   if ( bWbm )
+   {
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".outgoing.streamMode", "rtp", bWbm);
+      _execute_maj_command_wait(szComm);
+   }
 
    // Allow room for video header important and 5 bytes for NAL header
    int iNALSize = s_pCurrentMajesticModel->video_link_profiles[s_iCurrentMajesticVideoProfile].video_data_length;
@@ -752,26 +808,38 @@ void _hardware_camera_maj_set_all_params()
    iNALSize -= sizeof(t_packet_header_video_segment_important);
    iNALSize = iNALSize - (iNALSize % 4);
    s_iCurrentMajesticNALSize = iNALSize;
-   log_line("[HwCamMajestic] Set majestic NAL size to %d bytes (for video profile index: %d, %s)", iNALSize, s_iCurrentMajesticVideoProfile, str_get_video_profile_name(s_iCurrentMajesticVideoProfile));
-   sprintf(szComm, "cli -s .outgoing.naluSize %d", iNALSize);
+   log_line("[HwCamMajestic] Set %s NAL size to %d bytes (for video profile index: %d, %s)", hwcam_be_name(), iNALSize, s_iCurrentMajesticVideoProfile, str_get_video_profile_name(s_iCurrentMajesticVideoProfile));
+   snprintf(szVal, sizeof(szVal), "%d", iNALSize);
+   const char* szNalKey = bWbm ? ".outgoing.maxPayloadSize" : ".outgoing.naluSize";
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), szNalKey, szVal, false);
    _execute_maj_command_wait(szComm);
 
 
    u32 uNoiseLevel = s_pCurrentMajesticModel->video_link_profiles[s_iCurrentMajesticVideoProfile].uProfileFlags & VIDEO_PROFILE_FLAGS_MASK_NOISE;
-   if ( uNoiseLevel > 2 )
+   if ( bWbm )
    {
-      _execute_maj_command_wait("cli -d .fpv.noiseLevel");
-      _execute_maj_command_wait("cli -d .fpv.enabled");
+      // waybeam: .fpv.noiseLevel exists; .fpv.enabled does not. Use roi/noise controls instead.
+      snprintf(szVal, sizeof(szVal), "%u", (uNoiseLevel > 2) ? 0 : uNoiseLevel);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".fpv.noiseLevel", szVal, false);
+      _execute_maj_command_wait(szComm);
    }
    else
    {
-      _execute_maj_command_wait("cli -s .fpv.enabled true");
-      if ( uNoiseLevel == 2 )
-         _execute_maj_command_wait("cli -s .fpv.noiseLevel 2");
-      else if ( uNoiseLevel == 1 )
-         _execute_maj_command_wait("cli -s .fpv.noiseLevel 1");
+      if ( uNoiseLevel > 2 )
+      {
+         _execute_maj_command_wait("cli -d .fpv.noiseLevel");
+         _execute_maj_command_wait("cli -d .fpv.enabled");
+      }
       else
-         _execute_maj_command_wait("cli -s .fpv.noiseLevel 0");
+      {
+         _execute_maj_command_wait("cli -s .fpv.enabled true");
+         if ( uNoiseLevel == 2 )
+            _execute_maj_command_wait("cli -s .fpv.noiseLevel 2");
+         else if ( uNoiseLevel == 1 )
+            _execute_maj_command_wait("cli -s .fpv.noiseLevel 1");
+         else
+            _execute_maj_command_wait("cli -s .fpv.noiseLevel 0");
+      }
    }
    hardware_camera_maj_set_daylight_off((s_CurrentMajesticCamSettings.uFlags & CAMERA_FLAG_OPENIPC_DAYLIGHT_OFF)?1:0, false);
 
@@ -783,7 +851,7 @@ void hardware_camera_maj_apply_all_settings(Model* pModel, camera_profile_parame
 {
    if ( (NULL == pCameraParams) || (NULL == pModel) || (iVideoProfile < 0) || (NULL == pVideoParams) )
    {
-      log_softerror_and_alarm("[HwCamMajestic] Received invalid params to set majestic settings.");
+      log_softerror_and_alarm("[HwCamMajestic] Received invalid params to set %s settings.", hwcam_be_name());
       return;
    }
    s_uMajesticLastChangeTime = get_current_timestamp_ms();
@@ -797,9 +865,9 @@ void hardware_camera_maj_apply_all_settings(Model* pModel, camera_profile_parame
 
    _hardware_camera_maj_set_all_params();
 
-   log_line("[HwCamMajestic] Applied all settings. Signal majestic to update its' settings.");
-   hardware_camera_maj_add_log("Applied settings. Signal majestic to reload it's settings...", false);
-   hw_execute_bash_command_raw("killall -1 majestic", NULL);
+   log_line("[HwCamMajestic] Applied all settings. Signal %s to update its settings.", hwcam_be_name());
+   hardware_camera_maj_add_log("Applied settings. Reload encoder settings...", false);
+   hw_execute_bash_command_raw(hwcam_be_reload_cmd(), NULL);
 }
 
 void _hardware_camera_maj_set_irfilter_off_sync()
@@ -914,10 +982,14 @@ void hardware_camera_maj_set_calibration_file(int iCameraType, int iCalibrationF
       snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cp -rf %s%s /etc/sensors/%s", FOLDER_RUBY_TEMP, szFileName, szFileName);
       hw_execute_bash_command(szComm, NULL);
       hw_execute_bash_command("sync", NULL);
-      snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "cli -s .isp.sensorConfig /etc/sensors/%s", szFileName);
+      // majestic: .isp.sensorConfig  |  waybeam: .isp.sensorBin
+      const char* szKey = (hwcam_be_get() == HWCAM_BE_WAYBEAM) ? ".isp.sensorBin" : ".isp.sensorConfig";
+      char szPath[MAX_FILE_PATH_SIZE];
+      snprintf(szPath, sizeof(szPath), "/etc/sensors/%s", szFileName);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), szKey, szPath, (hwcam_be_get() == HWCAM_BE_WAYBEAM));
       hw_execute_bash_command_raw(szComm, NULL);
    }
-   hw_execute_bash_command_raw("killall -1 majestic", NULL);   
+   hw_execute_bash_command_raw(hwcam_be_reload_cmd(), NULL);
 }
 
 
@@ -938,7 +1010,9 @@ void hardware_camera_maj_set_brightness(u32 uValue)
    }
    else
    {
-      sprintf(szComm, "cli -s .image.luminance %d", s_CurrentMajesticCamSettings.brightness);
+      char szVal[16];
+      snprintf(szVal, sizeof(szVal), "%u", s_CurrentMajesticCamSettings.brightness);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".image.luminance", szVal, false);
       _execute_maj_command_wait(szComm);
    }
 }
@@ -959,7 +1033,9 @@ void hardware_camera_maj_set_contrast(u32 uValue)
    }
    else
    {
-      sprintf(szComm, "cli -s .image.contrast %d", s_CurrentMajesticCamSettings.contrast);
+      char szVal[16];
+      snprintf(szVal, sizeof(szVal), "%u", s_CurrentMajesticCamSettings.contrast);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".image.contrast", szVal, false);
       _execute_maj_command_wait(szComm);
    }
 }
@@ -980,7 +1056,9 @@ void hardware_camera_maj_set_hue(u32 uValue)
    }
    else
    {
-      sprintf(szComm, "cli -s .image.hue %d", s_CurrentMajesticCamSettings.hue);
+      char szVal[16];
+      snprintf(szVal, sizeof(szVal), "%u", s_CurrentMajesticCamSettings.hue);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".image.hue", szVal, false);
       _execute_maj_command_wait(szComm);
    }
 }
@@ -1002,7 +1080,9 @@ void hardware_camera_maj_set_saturation(u32 uValue)
    }
    else
    {
-      sprintf(szComm, "cli -s .image.saturation %d", s_CurrentMajesticCamSettings.saturation/2);
+      char szVal[16];
+      snprintf(szVal, sizeof(szVal), "%u", s_CurrentMajesticCamSettings.saturation/2);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".image.saturation", szVal, false);
       _execute_maj_command_wait(szComm);
    }
 }
@@ -1026,7 +1106,9 @@ void hardware_camera_maj_set_exposure(int iValue)
    }
    else
    {
-      sprintf(szComm, "cli -s .isp.exposure %d", iValue);
+      char szVal[16];
+      snprintf(szVal, sizeof(szVal), "%d", iValue);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".isp.exposure", szVal, false);
       _execute_maj_command_wait(szComm);
    }
 }
@@ -1034,17 +1116,20 @@ void hardware_camera_maj_set_exposure(int iValue)
 void hardware_camera_maj_set_temp_values(u32 uBitrate, int iKeyframeMs, int iQPDelta)
 {
    char szComm[256];
+   char szVal[32];
    if ( uBitrate > 0 )
    {
       s_uTemporaryMajesticBitrate = uBitrate;
-      sprintf(szComm, "cli -s .video0.bitrate %u", s_uTemporaryMajesticBitrate/1000);
+      snprintf(szVal, sizeof(szVal), "%u", s_uTemporaryMajesticBitrate/1000);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.bitrate", szVal, false);
       _execute_maj_command_wait(szComm);
       log_line("[HwCamMajestic] Did set temp runtime video bitrate value to: %.3f", (float)s_uTemporaryMajesticBitrate/1000.0/1000.0);
    }
    if ( iQPDelta > -100 )
    {
       s_iTemporaryMajesticQPDelta = iQPDelta;
-      sprintf(szComm, "cli -s .video0.qpDelta %d", s_iTemporaryMajesticQPDelta);
+      snprintf(szVal, sizeof(szVal), "%d", s_iTemporaryMajesticQPDelta);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.qpDelta", szVal, false);
       _execute_maj_command_wait(szComm);
       log_line("[HwCamMajestic] Did set temp runtime QPDelta value to: %d", s_iTemporaryMajesticQPDelta);
    }
@@ -1052,7 +1137,8 @@ void hardware_camera_maj_set_temp_values(u32 uBitrate, int iKeyframeMs, int iQPD
    {
       s_iTemporaryMajesticKeyframeMs = iKeyframeMs;
       s_fTemporaryMajesticGOP = ((float)iKeyframeMs)/1000.0;
-      sprintf(szComm, "cli -s .video0.gopSize %.2f", s_fTemporaryMajesticGOP);
+      snprintf(szVal, sizeof(szVal), "%.2f", s_fTemporaryMajesticGOP);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.gopSize", szVal, false);
       _execute_maj_command_wait(szComm);
       log_line("[HwCamMajestic] Did set temp runtime keyframe value to: %d ms", s_iTemporaryMajesticKeyframeMs);
    }
@@ -1091,7 +1177,9 @@ void hardware_camera_maj_set_keyframe(int iKeyframeMs)
    }
    else
    {
-      sprintf(szComm, "cli -s .video0.gopSize %.2f", s_fTemporaryMajesticGOP);
+      char szVal[32];
+      snprintf(szVal, sizeof(szVal), "%.2f", s_fTemporaryMajesticGOP);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.gopSize", szVal, false);
       _execute_maj_command_wait(szComm);
    }
 }
@@ -1130,7 +1218,9 @@ void hardware_camera_maj_set_bitrate(u32 uBitrate)
    }
    else
    {
-      sprintf(szComm, "cli -s .video0.bitrate %u", s_uTemporaryMajesticBitrate/1000);
+      char szVal[32];
+      snprintf(szVal, sizeof(szVal), "%u", s_uTemporaryMajesticBitrate/1000);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.bitrate", szVal, false);
       _execute_maj_command_wait(szComm);
    }
 }
@@ -1161,7 +1251,9 @@ void hardware_camera_maj_set_qpdelta(int iQPDelta)
    }
    else
    {
-      sprintf(szComm, "cli -s .video0.qpDelta %d", s_iTemporaryMajesticQPDelta);
+      char szVal[32];
+      snprintf(szVal, sizeof(szVal), "%d", s_iTemporaryMajesticQPDelta);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.qpDelta", szVal, false);
       _execute_maj_command_wait(szComm);
    }
 }
@@ -1212,10 +1304,13 @@ void hardware_camera_maj_set_bitrate_and_qpdelta(u32 uBitrate, int iQPDelta)
    }
    else
    {
-      sprintf(szComm, "cli -s .video0.bitrate %u", s_uTemporaryMajesticBitrate/1000);
+      char szVal[32];
+      snprintf(szVal, sizeof(szVal), "%u", s_uTemporaryMajesticBitrate/1000);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.bitrate", szVal, false);
       _execute_maj_command_wait(szComm);
 
-      sprintf(szComm, "cli -s .video0.qpDelta %d", s_iTemporaryMajesticQPDelta);
+      snprintf(szVal, sizeof(szVal), "%d", s_iTemporaryMajesticQPDelta);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".video0.qpDelta", szVal, false);
       _execute_maj_command_wait(szComm);
    }
 }
@@ -1227,10 +1322,14 @@ u32 hardware_camera_maj_get_last_change_time()
 
 void hardware_camera_maj_enable_audio(bool bEnable, int iBitrate, int iVolume)
 {
-   log_line("[HwCamMajestic] Enable audio: %s", bEnable?"yes":"no");
+   log_line("[HwCamMajestic] Enable audio: %s (backend: %s)", bEnable?"yes":"no", hwcam_be_name());
 
    s_uMajesticLastChangeTime = s_uMajesticLastChangeAudioTime = get_current_timestamp_ms();
-   char szComm[128];
+   char szComm[192];
+   char szVal[32];
+   const bool bWbm = (hwcam_be_get() == HWCAM_BE_WAYBEAM);
+   // Sample rate field name differs between backends.
+   const char* szRateKey = bWbm ? ".audio.sampleRate" : ".audio.srate";
 
    if ( bEnable )
    {
@@ -1241,16 +1340,29 @@ void hardware_camera_maj_enable_audio(bool bEnable, int iBitrate, int iVolume)
       if ( s_iCurrentMajAudioBitrate >= 32000 )
          s_iCurrentMajAudioBitrate = 48000;
 
-      _add_maj_command_to_queue_or_exec("cli -s .audio.outputEnabled false", false);
-      _add_maj_command_to_queue_or_exec("cli -s .audio.codec pcm", false);
-      sprintf(szComm, "cli -s .audio.srate %d", s_iCurrentMajAudioBitrate);
+      // majestic-only: .audio.outputEnabled false
+      if ( !bWbm )
+         _add_maj_command_to_queue_or_exec("cli -s .audio.outputEnabled false", false);
+
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".audio.codec", "pcm", bWbm);
       _add_maj_command_to_queue_or_exec(szComm, false);
-      sprintf(szComm, "cli -s .audio.volume %d", s_iCurrentMajAudioVolume);
+
+      snprintf(szVal, sizeof(szVal), "%d", s_iCurrentMajAudioBitrate);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), szRateKey, szVal, false);
       _add_maj_command_to_queue_or_exec(szComm, false);
-      _add_maj_command_to_queue_or_exec("cli -s .audio.enabled true", true);
+
+      snprintf(szVal, sizeof(szVal), "%d", s_iCurrentMajAudioVolume);
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".audio.volume", szVal, false);
+      _add_maj_command_to_queue_or_exec(szComm, false);
+
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".audio.enabled", "true", false);
+      _add_maj_command_to_queue_or_exec(szComm, true);
    }
    else
-      _add_maj_command_to_queue_or_exec("cli -s .audio.enabled false", true);
+   {
+      hwcam_be_format_cli_set(szComm, sizeof(szComm), ".audio.enabled", "false", false);
+      _add_maj_command_to_queue_or_exec(szComm, true);
+   }
    hardware_sleep_ms(10);
 }
 
@@ -1263,9 +1375,11 @@ void hardware_camera_maj_set_audio_volume(int iVolume)
    }
    s_uMajesticLastChangeTime = s_uMajesticLastChangeAudioTime = get_current_timestamp_ms();
    s_iCurrentMajAudioVolume = iVolume;
-   
+
    char szComm[128];
-   sprintf(szComm, "cli -s .audio.volume %d", s_iCurrentMajAudioVolume);
+   char szVal[32];
+   snprintf(szVal, sizeof(szVal), "%d", s_iCurrentMajAudioVolume);
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), ".audio.volume", szVal, false);
    _add_maj_command_to_queue_or_exec(szComm, true);
 }
 
@@ -1279,18 +1393,21 @@ void hardware_camera_maj_set_audio_quality(int iBitrate)
       iNewBitrate = 4000;
    if ( iNewBitrate >= 32000 )
       iNewBitrate = 48000;
-   
+
    if ( iNewBitrate == s_iCurrentMajAudioBitrate )
    {
       log_line("[HwCamMajestic] Received request to change bitrate, but it's unchanged: %d", iNewBitrate);
       return;
    }
-   
+
    s_uMajesticLastChangeTime = s_uMajesticLastChangeAudioTime = get_current_timestamp_ms();
    s_iCurrentMajAudioBitrate = iNewBitrate;
 
    char szComm[128];
-   sprintf(szComm, "cli -s .audio.srate %d", s_iCurrentMajAudioBitrate);
+   char szVal[32];
+   const char* szRateKey = (hwcam_be_get() == HWCAM_BE_WAYBEAM) ? ".audio.sampleRate" : ".audio.srate";
+   snprintf(szVal, sizeof(szVal), "%d", s_iCurrentMajAudioBitrate);
+   hwcam_be_format_cli_set(szComm, sizeof(szComm), szRateKey, szVal, false);
    _add_maj_command_to_queue_or_exec(szComm, true);
 }
 

@@ -56,6 +56,7 @@
 #include "../base/hardware.h"
 #include "../base/hardware_audio.h"
 #include "../base/hardware_camera.h"
+#include "../base/hardware_cam_backend.h"
 #include "../base/hardware_files.h"
 #include "../base/hardware_procs.h"
 #include "../base/utils.h"
@@ -1031,8 +1032,8 @@ int r_start_vehicle(int argc, char *argv[])
             if ( modelVehicle.hasCamera() )
             if ( modelVehicle.isActiveCameraOpenIPC() )
             {
-               szPIDs = hw_process_get_pids_inline("majestic");
-               log_line("Majestic PID(s): (%s)", szPIDs);
+               szPIDs = hw_process_get_pids_inline(hwcam_be_process_name());
+               log_line("%s PID(s): (%s)", hwcam_be_name(), szPIDs);
             }
             bMustRestart = true;
          }

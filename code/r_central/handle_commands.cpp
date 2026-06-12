@@ -40,6 +40,8 @@
 #include "popup.h"
 #include "popup_log.h"
 #include "shared_vars.h"
+#include "notifications.h"
+#include "vehicle_backend_cache.h"
 #include "menu.h"
 #include "colors.h"
 #include "osd_common.h"
@@ -781,6 +783,40 @@ bool handle_last_command_result()
          send_model_changed_message_to_router(MODEL_CHANGED_GENERIC, 0);
         }
         break;
+
+      case COMMAND_ID_GET_VIDEO_BACKEND:
+         {
+         if ( iDataLength >= 1 )
+         {
+            u8* pTmp = s_CommandReplyBuffer + sizeof(t_packet_header) + sizeof(t_packet_header_command_response);
+            vehicle_backend_cache_set(pPH->vehicle_id_src, *pTmp);
+            log_line("Received vehicle video backend: %d (1=majestic, 2=waybeam)", (int)(*pTmp));
+         }
+         }
+         break;
+
+      case COMMAND_ID_SET_ONBOARD_RECORDING:
+         warnings_add(pPH->vehicle_id_src, L("Vehicle recording settings updated."), g_idIconCamera, get_Color_IconNormal());
+         break;
+
+      case COMMAND_ID_ONBOARD_RECORD:
+         {
+         if ( 1 == s_CommandParam )
+         {
+            g_bIsVideoRecording = true;
+            g_uVideoRecordingStartTime = g_TimeNow;
+            notification_add_recording_start();
+            warnings_add(pPH->vehicle_id_src, L("Onboard recording started"), g_idIconCamera, get_Color_IconNormal());
+         }
+         else
+         {
+            g_bIsVideoRecording = false;
+            g_uVideoRecordingStartTime = 0;
+            notification_add_recording_end();
+            warnings_add(pPH->vehicle_id_src, L("Onboard recording stopped"), g_idIconCamera, get_Color_IconNormal());
+         }
+         }
+         break;
 
       case COMMAND_ID_GET_CORE_PLUGINS_INFO:
          {

@@ -49,6 +49,8 @@
 #include "pairing.h"
 #include "notifications.h"
 #include "handle_commands.h"
+#include "vehicle_backend_cache.h"
+#include "../base/commands.h"
 #include "osd_common.h"
 #include "osd.h"
 #include "osd_stats.h"
@@ -434,6 +436,18 @@ void onEventPairingStartReceivingData(u32 uVehicleId)
       g_bSyncModelSettingsOnLinkRecover = false;
       if ( NULL != g_pCurrentModel )
          g_pCurrentModel->b_mustSyncFromVehicle = true;
+   }
+
+   // The vehicle's video encoder backend (majestic vs waybeam) can change
+   // across a reboot, so a value cached earlier this session may be stale
+   // (e.g. cached "majestic" at boot, then the drone rebooted into waybeam).
+   // Clear it and re-probe whenever we (re)start receiving data, so the codec
+   // lock, resolution limits and onboard-recording gating reflect the encoder
+   // that is actually running now. The reply lands async in handle_commands.
+   if ( ! g_bSearching )
+   {
+      vehicle_backend_cache_clear(uVehicleId);
+      handle_commands_send_to_vehicle(COMMAND_ID_GET_VIDEO_BACKEND, 0, NULL, 0);
    }
 
    log_current_runtime_vehicles_info();

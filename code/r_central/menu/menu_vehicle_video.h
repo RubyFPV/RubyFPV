@@ -30,6 +30,7 @@ class MenuVehicleVideo: public Menu
       int m_IndexCompareProfiles;
       int m_IndexVideoCodec;
       int m_IndexExpert;
+      int m_IndexOnboardRecording;
       int m_IndexVideoLinkMode;
       int m_IndexShowFull;
       MenuItem* m_pMenuItemVideoWarning;

@@ -42,6 +42,7 @@
 #include "../base/hardware.h"
 #include "../base/hardware_files.h"
 #include "../base/hardware_camera.h"
+#include "../base/hardware_cam_backend.h"
 #include "../base/hardware_radio.h"
 #include "../base/hardware_radio_sik.h"
 #include "../base/encr.h"
@@ -57,6 +58,7 @@
 
 #include "launchers_vehicle.h"
 #include "video_source_csi.h"
+#include "rx_osd_recording_vehicle.h"
 #include "shared_vars.h"
 #include "timers.h"
 #include "../utils/utils_vehicle.h"
@@ -64,6 +66,7 @@
 #include "process_calib_file.h"
 
 #include <time.h>
+#include <unistd.h>
 #include <sys/resource.h>
 #include <sys/types.h>
 #include <dirent.h>
@@ -897,6 +900,131 @@ bool process_command(u8* pBuffer, int length)
       //hw_execute_bash_command_raw("rm -rf logs/* &", NULL);
       system("rm -rf logs/* &");
       log_line("Deleted all logs. Parameter: %d", (int)uCommandParam);
+      return true;
+   }
+
+   if ( uCommandType == COMMAND_ID_GET_VIDEO_BACKEND )
+   {
+      u8 uBackend = (hwcam_be_get() == HWCAM_BE_WAYBEAM) ? 2 : 1;
+      log_line("Received command to get video backend. Backend: %s", hwcam_be_name());
+      setCommandReplyBuffer(&uBackend, 1);
+      sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
+      return true;
+   }
+
+   if ( uCommandType == COMMAND_ID_SET_ONBOARD_RECORDING )
+   {
+      if ( iParamsLength != (int)sizeof(command_packet_onboard_recording) )
+      {
+         sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED_INVALID_PARAMS, 0, 0);
+         return true;
+      }
+      command_packet_onboard_recording* pParams = (command_packet_onboard_recording*)(pBuffer + sizeof(t_packet_header)+sizeof(t_packet_header_command));
+      if ( (pParams->uTarget == 1) && ( ! hwcam_be_supports_onboard_recording() ) )
+      {
+         log_softerror_and_alarm("Received onboard recording config but backend is %s; not supported.", hwcam_be_name());
+         sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED, 0, 0);
+         return true;
+      }
+      log_line("Received onboard recording config: target: %d, quality: %d, bitrate: %u kbps", (int)pParams->uTarget, (int)pParams->uQualityIdx, pParams->uBitrateKbps);
+      sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
+
+      if ( hwcam_be_get() != HWCAM_BE_WAYBEAM )
+         return true;
+
+      char szComm[256];
+      char szValue[32];
+      if ( pParams->uTarget == 1 )
+      {
+         hw_execute_bash_command("mkdir -p /mnt/mmcblk0p1/ruby", NULL);
+         // Dual VENC mode: ch0 keeps streaming at the adaptive bitrate, ch1
+         // records to SD at the fixed quality preset, immune to link drops.
+         hwcam_be_format_cli_set(szComm, sizeof(szComm), ".record.mode", "dual", true);
+         hw_execute_bash_command(szComm, NULL);
+         hwcam_be_format_cli_set(szComm, sizeof(szComm), ".record.dir", "/mnt/mmcblk0p1/ruby", true);
+         hw_execute_bash_command(szComm, NULL);
+         hwcam_be_format_cli_set(szComm, sizeof(szComm), ".record.format", "ts", true);
+         hw_execute_bash_command(szComm, NULL);
+         hwcam_be_format_cli_set(szComm, sizeof(szComm), ".record.enabled", "false", false);
+         hw_execute_bash_command(szComm, NULL);
+         sprintf(szValue, "%u", pParams->uBitrateKbps);
+         hwcam_be_format_cli_set(szComm, sizeof(szComm), ".record.bitrate", szValue, false);
+         hw_execute_bash_command(szComm, NULL);
+         hwcam_be_format_cli_set(szComm, sizeof(szComm), ".record.fps", "0", false);
+         hw_execute_bash_command(szComm, NULL);
+         hwcam_be_format_cli_set(szComm, sizeof(szComm), ".record.gopSize", "1.0", false);
+         hw_execute_bash_command(szComm, NULL);
+      }
+      else
+      {
+         hwcam_be_format_cli_set(szComm, sizeof(szComm), ".record.mode", "off", true);
+         hw_execute_bash_command(szComm, NULL);
+      }
+      // record.mode changes require a pipeline restart (brief video pause).
+      hw_execute_bash_command(hwcam_be_reload_cmd(), NULL);
+      return true;
+   }
+
+   if ( uCommandType == COMMAND_ID_ONBOARD_RECORD )
+   {
+      if ( ! hwcam_be_supports_onboard_recording() )
+      {
+         sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED, 0, 0);
+         return true;
+      }
+      char szCtl[256];
+      snprintf(szCtl, sizeof(szCtl), "%s%s", FOLDER_RUBY_TEMP, RX_OSD_REC_CONTROL_FILENAME);
+      if ( 1 == uCommandParam )
+      {
+         char szOutput[1024];
+         hw_execute_bash_command("mkdir -p /mnt/mmcblk0p1/ruby", NULL);
+         hw_execute_bash_command(hwcam_be_record_start_cmd(), NULL);
+         hardware_sleep_ms(100);
+         szOutput[0] = 0;
+         hw_execute_bash_command_raw(hwcam_be_record_status_cmd(), szOutput);
+         if ( NULL == strstr(szOutput, "\"active\":true") )
+         {
+            log_softerror_and_alarm("Onboard recording failed to start. Encoder status: [%s]", szOutput);
+            sendCommandReply(COMMAND_RESPONSE_FLAGS_FAILED, 0, 0);
+            return true;
+         }
+         // Signal the onboard OSD writer (runs in ruby_tx_telemetry) with the
+         // recording base path so the .osd sidecar pairs with the .ts file.
+         char szPath[256];
+         szPath[0] = 0;
+         char* pszPath = strstr(szOutput, "\"path\":\"");
+         if ( NULL != pszPath )
+         {
+            pszPath += strlen("\"path\":\"");
+            int i = 0;
+            while ( (0 != *pszPath) && ('"' != *pszPath) && (i < (int)sizeof(szPath)-1) )
+               szPath[i++] = *pszPath++;
+            szPath[i] = 0;
+            char* pszDot = strrchr(szPath, '.');
+            if ( NULL != pszDot )
+               *pszDot = 0;
+         }
+         if ( 0 != szPath[0] )
+         {
+            snprintf(szOutput, sizeof(szOutput), "mkdir -p %s", FOLDER_RUBY_TEMP);
+            hw_execute_bash_command(szOutput, NULL);
+            FILE* fp = fopen(szCtl, "w");
+            if ( NULL != fp )
+            {
+               fprintf(fp, "%s\n", szPath);
+               fclose(fp);
+            }
+         }
+         log_line("Onboard recording started. Path: [%s]", szPath);
+         sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
+      }
+      else
+      {
+         hw_execute_bash_command(hwcam_be_record_stop_cmd(), NULL);
+         unlink(szCtl);
+         log_line("Onboard recording stopped.");
+         sendCommandReply(COMMAND_RESPONSE_FLAGS_OK, 0, 0);
+      }
       return true;
    }
 

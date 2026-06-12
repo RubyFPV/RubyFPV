@@ -107,6 +107,9 @@ const char* commands_get_description(u8 command_type)
       case COMMAND_ID_DOWNLOAD_FILE: strcpy(szCommandDesc, "Download_File"); break;
       case COMMAND_ID_DOWNLOAD_FILE_SEGMENT: strcpy(szCommandDesc, "Download_File_Segment"); break;
       case COMMAND_ID_CLEAR_LOGS: strcpy(szCommandDesc, "Clear_Logs"); break;
+      case COMMAND_ID_GET_VIDEO_BACKEND: strcpy(szCommandDesc, "Get_Video_Backend"); break;
+      case COMMAND_ID_SET_ONBOARD_RECORDING: strcpy(szCommandDesc, "Set_Onboard_Recording"); break;
+      case COMMAND_ID_ONBOARD_RECORD: strcpy(szCommandDesc, "Onboard_Record"); break;
       case COMMAND_ID_SET_VEHICLE_BOARD_TYPE: strcpy(szCommandDesc, "Set_Vehicle_Board_Type"); break;
       case COMMAND_ID_SET_TELEMETRY_TYPE_AND_PORT: strcpy(szCommandDesc, "Set_TelemetryTypeAndPort"); break;
       case COMMAND_ID_GET_CPU_PROCS_INFO: strcpy(szCommandDesc, "Get_CPU_Procs_Info"); break;
