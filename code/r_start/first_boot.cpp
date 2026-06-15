@@ -106,6 +106,9 @@ void do_first_boot_pre_initialization(bool bIgnoreDrivers)
       save_Preferences();
    }
 
+   // Rename built-in WiFi to intwifi so it's excluded from FPV radio enumeration
+   hw_execute_bash_command("ruby_init_wifi -rename 2>/dev/null", NULL);
+
    printf("\nRuby: Done doing first time ever initialization on Radxa.\n");
    fflush(stdout);
    hw_execute_bash_command("echo \"\nRuby: Done doing first time ever initialization on Radxa.\n\" > /tmp/ruby/log_first_radxa.log", NULL);

@@ -36,9 +36,11 @@
 #include "menu_text.h"
 #include "menu_item_section.h"
 #include "menu_item_text.h"
+#include "menu_item_edit.h"
 #include "menu_confirmation.h"
 
 #include "../../base/hardware_files.h"
+#include "../../base/config_file_names.h"
 #include "../process_router_messages.h"
 
 #include <time.h>
@@ -88,12 +90,90 @@ MenuControllerNetwork::MenuControllerNetwork(void)
    addMenuItem(new MenuItemText("Note: Changing network settings requires a restart."));
 
    m_IndexSSH = addMenuItem( new MenuItem("Enable SSH", "Enables SSH login to this controller"));
+
+   #if defined(HW_PLATFORM_RADXA)
+   addMenuItem(new MenuItemSection("Internal WiFi"));
+
+   m_iWifiEnabled = 0;
+   m_szWifiSSID[0] = 0;
+   m_szWifiPassword[0] = 0;
+   _load_wifi_config();
+
+   m_pItemsSelect[2] = new MenuItemSelect("Enable Internal WiFi", "Use the built-in WiFi to connect to a local network for SSH and updates. Auto-disables when paired with a vehicle.");
+   m_pItemsSelect[2]->addSelection("No");
+   m_pItemsSelect[2]->addSelection("Yes");
+   m_pItemsSelect[2]->setIsEditable();
+   m_IndexWifiEnable = addMenuItem(m_pItemsSelect[2]);
+
+   m_IndexWifiSSID = addMenuItem(new MenuItemEdit("WiFi SSID", "Name of the WiFi network to connect to.", m_szWifiSSID));
+   m_IndexWifiPassword = addMenuItem(new MenuItemEdit("WiFi Password", "Password for the WiFi network.", m_szWifiPassword));
+
+   // Show WiFi IP if connected
+   char szWifiIP[256];
+   szWifiIP[0] = 0;
+   hw_execute_bash_command_raw("ip addr show intwifi 2>/dev/null | grep 'inet ' | awk '{print $2}' | cut -d/ -f1", szWifiIP);
+   removeTrailingNewLines(szWifiIP);
+   if ( 0 != szWifiIP[0] )
+   {
+      snprintf(szBuff, sizeof(szBuff)/sizeof(szBuff[0]), "WiFi IP: %s", szWifiIP);
+      addMenuItem(new MenuItemText(szBuff));
+   }
+   else
+   {
+      addMenuItem(new MenuItemText("WiFi: Not connected"));
+   }
+   #endif
+}
+
+void MenuControllerNetwork::_load_wifi_config()
+{
+   m_iWifiEnabled = 0;
+   m_szWifiSSID[0] = 0;
+   m_szWifiPassword[0] = 0;
+
+   char szFile[MAX_FILE_PATH_SIZE];
+   strcpy(szFile, FOLDER_CONFIG);
+   strcat(szFile, FILE_CONFIG_WIFI_CONNECT);
+
+   FILE* fd = fopen(szFile, "r");
+   if ( NULL == fd )
+      return;
+
+   char szLine[256];
+   if ( NULL != fgets(szLine, sizeof(szLine), fd) )
+   {
+      removeTrailingNewLines(szLine);
+      m_iWifiEnabled = atoi(szLine);
+   }
+   if ( NULL != fgets(m_szWifiSSID, sizeof(m_szWifiSSID), fd) )
+      removeTrailingNewLines(m_szWifiSSID);
+   if ( NULL != fgets(m_szWifiPassword, sizeof(m_szWifiPassword), fd) )
+      removeTrailingNewLines(m_szWifiPassword);
+
+   fclose(fd);
+}
+
+void MenuControllerNetwork::_save_wifi_config()
+{
+   char szFile[MAX_FILE_PATH_SIZE];
+   strcpy(szFile, FOLDER_CONFIG);
+   strcat(szFile, FILE_CONFIG_WIFI_CONNECT);
+
+   FILE* fd = fopen(szFile, "w");
+   if ( NULL == fd )
+   {
+      log_softerror_and_alarm("Failed to save WiFi config to %s", szFile);
+      return;
+   }
+   fprintf(fd, "%d\n%s\n%s\n", m_iWifiEnabled, m_szWifiSSID, m_szWifiPassword);
+   fclose(fd);
+   log_line("Saved WiFi config: enabled=%d, SSID=%s", m_iWifiEnabled, m_szWifiSSID);
 }
 
 void MenuControllerNetwork::valuesToUI()
 {
    ControllerSettings* pCS = get_ControllerSettings();
-   
+
    if( access( "/boot/nodhcp", R_OK ) == -1 )
       m_pItemsSelect[0]->setSelection(1);
    else
@@ -106,6 +186,10 @@ void MenuControllerNetwork::valuesToUI()
       m_pItemsRange[0]->setEnabled(true);
    else
       m_pItemsRange[0]->setEnabled(false);
+
+   #if defined(HW_PLATFORM_RADXA)
+   m_pItemsSelect[2]->setSelectedIndex(m_iWifiEnabled);
+   #endif
 }
 
 void MenuControllerNetwork::Render()
@@ -208,4 +292,48 @@ void MenuControllerNetwork::onSelectItem()
       onEventReboot();
       hardware_reboot();
    }
+
+   #if defined(HW_PLATFORM_RADXA)
+   if ( m_IndexWifiEnable == m_SelectedIndex )
+   {
+      m_iWifiEnabled = m_pItemsSelect[2]->getSelectedIndex();
+      _save_wifi_config();
+
+      if ( m_iWifiEnabled )
+      {
+         if ( 0 == m_szWifiSSID[0] )
+         {
+            addMessage("Please set WiFi SSID first.");
+            return;
+         }
+         hw_execute_bash_command("ruby_init_wifi 2>/dev/null &", NULL);
+         addMessage("Connecting to WiFi...");
+      }
+      else
+      {
+         hw_execute_bash_command("ruby_init_wifi -disconnect 2>/dev/null &", NULL);
+         addMessage("WiFi disconnected.");
+      }
+      valuesToUI();
+      return;
+   }
+
+   if ( m_IndexWifiSSID == m_SelectedIndex )
+   {
+      MenuItemEdit* pEdit = (MenuItemEdit*)m_pMenuItems[m_IndexWifiSSID];
+      strncpy(m_szWifiSSID, pEdit->getCurrentValue(), sizeof(m_szWifiSSID)-1);
+      m_szWifiSSID[sizeof(m_szWifiSSID)-1] = 0;
+      _save_wifi_config();
+      return;
+   }
+
+   if ( m_IndexWifiPassword == m_SelectedIndex )
+   {
+      MenuItemEdit* pEdit = (MenuItemEdit*)m_pMenuItems[m_IndexWifiPassword];
+      strncpy(m_szWifiPassword, pEdit->getCurrentValue(), sizeof(m_szWifiPassword)-1);
+      m_szWifiPassword[sizeof(m_szWifiPassword)-1] = 0;
+      _save_wifi_config();
+      return;
+   }
+   #endif
 }

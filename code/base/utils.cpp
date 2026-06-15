@@ -723,16 +723,22 @@ bool radio_utils_set_interface_frequency(Model* pModel, int iRadioIndex, int iAs
                sprintf(cmd, "iw dev %s set freq %u HT40+", pRadioInfo->szName, uFreqWifi);
                bUsedHT40 = true;
             }
+            #elif defined(HW_PLATFORM_OPENIPC_CAMERA)
+               // OpenIPC images ship no wireless-tools (iwconfig); use nl80211 (iw) instead.
+               sprintf(cmd, "iw dev %s set freq %u", pRadioInfo->szName, uFreqWifi);
             #else
-               sprintf(cmd, "iwconfig %s freq %u000", pRadioInfo->szName, uFrequencyKhz);            
+               sprintf(cmd, "iwconfig %s freq %u000", pRadioInfo->szName, uFrequencyKhz);
             #endif
          }
          else if ( pRadioInfo->isHighCapacityInterface )
          {
             #if defined(HW_PLATFORM_RASPBERRY)
             sprintf(cmd, "iw dev %s set freq %u", pRadioInfo->szName, uFreqWifi);
+            #elif defined(HW_PLATFORM_OPENIPC_CAMERA)
+            // OpenIPC images ship no wireless-tools (iwconfig); use nl80211 (iw) instead.
+            sprintf(cmd, "iw dev %s set freq %u", pRadioInfo->szName, uFreqWifi);
             #else
-            sprintf(cmd, "iwconfig %s freq %u000", pRadioInfo->szName, uFrequencyKhz);            
+            sprintf(cmd, "iwconfig %s freq %u000", pRadioInfo->szName, uFrequencyKhz);
             #endif
          }
          hw_execute_process(cmd, 0, szOutput, sizeof(szOutput)/sizeof(szOutput[0]));
@@ -754,6 +760,8 @@ bool radio_utils_set_interface_frequency(Model* pModel, int iRadioIndex, int iAs
             hardware_sleep_ms(delayMs);
             szOutput[0] = 0;
             #if defined(HW_PLATFORM_RASPBERRY)
+            sprintf(cmd, "iw dev %s set freq %u", pRadioInfo->szName, uFreqWifi);
+            #elif defined(HW_PLATFORM_OPENIPC_CAMERA)
             sprintf(cmd, "iw dev %s set freq %u", pRadioInfo->szName, uFreqWifi);
             #else
             sprintf(cmd, "iwconfig %s freq %u000", pRadioInfo->szName, uFrequencyKhz);

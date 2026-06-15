@@ -58,6 +58,7 @@
 #define FILE_CONFIG_CONTROLLER_OSD_WIDGETS "osd_widgets.cfg"
 #define FILE_CONFIG_CONTROLLER_FAVORITES_VEHICLES "favorites.cfg"
 #define FILE_CONFIG_FAST_BOOT_COUNTER "fast_boot_counter.txt"
+#define FILE_CONFIG_WIFI_CONNECT "wifi_connect.cfg"
 
 #define FILE_TEMP_USB_TETHERING_DEVICE "usb_tethering"
 #define FILE_TEMP_VIDEO_MEM_FILE "tmpVideo.h26x"
@@ -84,6 +85,7 @@
 #define FILE_TEMP_SIK_CONFIG_FINISHED "sik_config_complete"
 #define FILE_TEMP_AUDIO_RECORDING "audio.wav"
 #define FILE_TEMP_RADIOS_CONFIGURED "radio_configured"
+#define FILE_TEMP_WIFI_DISABLED "wifi_disabled"
 #define SUBFOLDER_UPDATES_PI    "bin/pi/"
 #define SUBFOLDER_UPDATES_RADXA "bin/radxaz3/"
 #define SUBFOLDER_UPDATES_OIPC  "bin/ssc338q/"

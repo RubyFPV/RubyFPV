@@ -799,6 +799,11 @@ bool _check_update_first_pairing_done_if_needed(int iInterfaceIndex, u8* pPacket
    set_model_main_connect_frequency(g_pCurrentModel->uVehicleId, uCurrentFrequencyKhz);
    ruby_set_is_first_pairing_done();
 
+   // Auto-disable internal WiFi to prevent interference with FPV link
+   #if defined(HW_PLATFORM_RADXA)
+   hw_execute_bash_command("ruby_init_wifi -disconnect 2>/dev/null &", NULL);
+   #endif
+
    resetVehicleRuntimeInfo(0);
    g_State.vehiclesRuntimeInfo[0].uVehicleId = uVehicleIdSrc;
    reset_video_stream_stats_for_vehicle(&g_SM_VideoDecodeStats, uVehicleIdSrc);
