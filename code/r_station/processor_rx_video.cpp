@@ -401,14 +401,35 @@ int ProcessorRxVideo::getVideoHeight()
 int ProcessorRxVideo::getVideoFPS()
 {
    int iFPS = 0;
+   int iDetectedFPS = 0;
    if ( -1 != m_iIndexVideoDecodeStats )
-      iFPS = g_SM_VideoDecodeStats.video_streams[m_iIndexVideoDecodeStats].iCurrentVideoTxSourceFPS;
-   if ( 0 == iFPS )
    {
-      Model* pModel = findModelWithId(m_uVehicleId, 177);
-      if ( NULL != pModel )
-         iFPS = pModel->video_params.iVideoFPS;
+      iFPS = g_SM_VideoDecodeStats.video_streams[m_iIndexVideoDecodeStats].iCurrentVideoTxSourceFPS;
+      iDetectedFPS = g_SM_VideoDecodeStats.video_streams[m_iIndexVideoDecodeStats].iDetectedFPS;
    }
+
+   Model* pModel = findModelWithId(m_uVehicleId, 177);
+   int iModelFPS = 0;
+   if ( NULL != pModel )
+      iModelFPS = pModel->video_params.iVideoFPS;
+
+   // iCurrentVideoTxSourceFPS comes from the air unit and can be wrong (e.g. 83 instead of 25).
+   // Prefer locally detected FPS when it disagrees significantly with the reported value.
+   if ( iDetectedFPS > 0 )
+   {
+      if ( (iFPS <= 0) || (iFPS > 120) || (abs(iFPS - iDetectedFPS) > 15) )
+         iFPS = iDetectedFPS;
+   }
+
+   if ( (iFPS <= 0) || (iFPS > 120) )
+   {
+      if ( iModelFPS > 0 )
+         iFPS = iModelFPS;
+   }
+
+   if ( iFPS <= 0 )
+      iFPS = 30;
+
    return iFPS;
 }
 
