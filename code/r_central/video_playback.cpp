@@ -112,6 +112,20 @@ void video_playback_play_file(const char* szVideoInfoFile)
    if ( s_iMSPOSDCols > 64 )
       s_iMSPOSDCols = 64;
 
+   if ( (iFPS < 5) || (iFPS > 120) )
+   {
+      if ( (NULL != g_pCurrentModel) && (g_pCurrentModel->video_params.iVideoFPS >= 5) && (g_pCurrentModel->video_params.iVideoFPS <= 120) )
+         iFPS = g_pCurrentModel->video_params.iVideoFPS;
+      else
+         iFPS = 30;
+      log_softerror_and_alarm("VideoPlayback: Clamped invalid FPS from info file to %d", iFPS);
+   }
+   else if ( (NULL != g_pCurrentModel) && (g_pCurrentModel->video_params.iVideoFPS >= 5) && (iFPS > g_pCurrentModel->video_params.iVideoFPS + 10) )
+   {
+      log_softerror_and_alarm("VideoPlayback: FPS %d from info file is much higher than model FPS %d, using model FPS", iFPS, g_pCurrentModel->video_params.iVideoFPS);
+      iFPS = g_pCurrentModel->video_params.iVideoFPS;
+   }
+
    log_line("VideoPlayback: Read info file: wxh: %dx%d, type: %d, fc: %d, osd font: %d, cols/rows: %d/%d",
        iWidth, iHeight, iType, s_iMSPOSDFCType, s_iMSPOSDFontType, s_iMSPOSDCols, s_iMSPOSDRows);
    fclose(fd);
@@ -127,6 +141,8 @@ void video_playback_play_file(const char* szVideoInfoFile)
 
    #ifdef HW_PLATFORM_RADXA
    snprintf(szComm, sizeof(szComm)/sizeof(szComm[0]), "./%s -file %s%s -fps %d", VIDEO_PLAYER_OFFLINE, FOLDER_MEDIA, szFile, iFPS);
+   if ( iType == VIDEO_TYPE_H265 )
+      strcat(szComm, " -h265");
    #endif
 
    if ( g_pControllerSettings->iCoresAdjustment )

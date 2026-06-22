@@ -448,6 +448,17 @@ void* _thread_video_recording(void *argument)
       return NULL;
    }
 
+   for( int i=0; i<MAX_VIDEO_PROCESSORS; i++ )
+   {
+      if( NULL == g_pVideoProcessorRxList[i] )
+         break;
+      if ( g_pCurrentModel->uVehicleId != g_pVideoProcessorRxList[i]->m_uVehicleId )
+         continue;
+      s_iRecordingFPS = g_pVideoProcessorRxList[i]->getVideoFPS();
+      log_line("[VideoRecording-Th] Final recording FPS for info file: %d", s_iRecordingFPS);
+      break;
+   }
+
    if ( ! _recording_write_info_file(uDurrationMs) )
    {
       _recording_cleanp_temp_recording_data();

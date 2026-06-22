@@ -137,6 +137,31 @@ void _signal_play_file_finished()
       log_softerror_and_alarm("Failed to open and signal semaphore %s", SEMAPHORE_VIDEO_FILE_PLAYBACK_FINISHED);
 }
 
+static bool _player_is_h264_vcl_nal(u32 uNALType)
+{
+   return (uNALType == 1) || (uNALType == 5);
+}
+
+static bool _player_is_h265_vcl_nal(u32 uNALType)
+{
+   return uNALType <= 31;
+}
+
+static void _player_pace_frame(u32* puFrameCount, u32* puPlaybackStartMs)
+{
+   if ( g_iFileFPS < 1 )
+      return;
+
+   if ( 0 == *puPlaybackStartMs )
+      *puPlaybackStartMs = get_current_timestamp_ms();
+
+   (*puFrameCount)++;
+   u32 uTargetMs = *puPlaybackStartMs + ((*puFrameCount) * 1000) / (u32)g_iFileFPS;
+   u32 uNow = get_current_timestamp_ms();
+   if ( uTargetMs > uNow )
+      hardware_sleep_ms(uTargetMs - uNow);
+}
+
 void _do_player_mode()
 {
    ControllerSettings* pCS = get_ControllerSettings();
@@ -202,7 +227,8 @@ void _do_player_mode()
    u32 uCurrentParseToken = 0x11111111;
    u32 uNALType = 0;
    u32 uPrevNALType = 0;
-   u32 uTimeLastFrame = 0;
+   u32 uFrameCount = 0;
+   u32 uPlaybackStartMs = 0;
 
 
    while ( (nRead > 0) && (!g_bQuit) )
@@ -213,21 +239,31 @@ void _do_player_mode()
       if ( nRead <= 0 )
          break;
       
-      // Detect end of a NAL
+      // Detect NAL boundaries and pace playback per video frame
       u8* pTmp = &(uBuffer[0]);
       for( int i=0; i<nRead; i++ )
       {
          uCurrentParseToken = (uCurrentParseToken << 8) | (*pTmp);
          pTmp++;
-         if ( uCurrentParseToken == 0x00000001 )
-         if ( i<(nRead-1) )
+         if ( uCurrentParseToken != 0x00000001 )
+            continue;
+         if ( i >= (nRead-1) )
+            continue;
+
+         if ( g_bUseH265Decoder )
          {
-            uNALType = (*pTmp) &0x1F;
+            uNALType = ((*pTmp) >> 1) & 0x3F;
+            if ( ! _player_is_h265_vcl_nal(uNALType) )
+               continue;
+
+            _player_pace_frame(&uFrameCount, &uPlaybackStartMs);
+         }
+         else
+         {
+            uNALType = (*pTmp) & 0x1F;
 
             if ( (uPrevNALType == 5) && (uNALType != 5) )
-            {
                g_iFileDetectedSlices = g_iFileTempSlices;
-            }
 
             if ( uPrevNALType == uNALType )
                g_iFileTempSlices++;
@@ -236,23 +272,12 @@ void _do_player_mode()
 
             uPrevNALType = uNALType;
 
+            if ( ! _player_is_h264_vcl_nal(uNALType) )
+               continue;
+            if ( (g_iFileTempSlices % g_iFileDetectedSlices) != 0 )
+               continue;
 
-            if ( (g_iFileTempSlices % g_iFileDetectedSlices) == 0 )
-            if ( ! parser_h264_is_signaling_nal(uNALType) )
-            {
-               u32 uTimeNow = get_current_timestamp_ms();
-
-               //long int miliSecs = (1000/g_iFileFPS);
-               // OpenIPC generates faster FPS as IFrames are not part of computation
-               long int miliSecs = (1000/(g_iFileFPS-4));
-               miliSecs = miliSecs - (uTimeNow - uTimeLastFrame);
-               uTimeLastFrame = uTimeNow;
-
-               if ( miliSecs > 0 )
-               {
-                  hardware_sleep_ms(miliSecs);
-               }
-            }
+            _player_pace_frame(&uFrameCount, &uPlaybackStartMs);
          }
       }
 
