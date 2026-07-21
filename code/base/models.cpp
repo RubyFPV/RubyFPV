@@ -6386,7 +6386,8 @@ int Model::getRequiredRadioDataRateForVideoBitrate(u32 uVideoBitrateBPS, int iRa
    {
       for( int i=0; i<=MAX_MCS_INDEX; i++ )
       {
-         u32 uMaxBitRate = getRealDataRateFromMCSRate(i, radioLinksParams.link_radio_flags_tx[iRadioLinkIndex]);
+         u32 uMaxBitRate = getRealDataRateFromMCSRate(i,
+            (radioLinksParams.link_radio_flags_tx[iRadioLinkIndex] & RADIO_FLAG_HT40) ? 1 : 0);
          if ( uMaxBitRate >= uBitrateTotalRequired )
          {
             iRadioDataRate = -i - 1;
