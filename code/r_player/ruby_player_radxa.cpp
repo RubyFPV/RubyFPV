@@ -222,9 +222,28 @@ void _do_player_mode()
          if ( uCurrentParseToken == 0x00000001 )
          if ( i<(nRead-1) )
          {
-            uNALType = (*pTmp) &0x1F;
+            // Parse the NAL type per codec. H264: low 5 bits of the byte after the
+            // start code. H265: 6 bits at [6:1]. Applying the H264 mask to an H265
+            // stream misclassifies inter-frame slices (TRAIL_N=0 / TRAIL_R=1) as
+            // signaling NALs, so they get no pacing sleep and the clip plays sped up.
+            // g_bUseH265Decoder is set from the .h265 file extension.
+            bool bKeyframeNAL, bSignalingNAL, bPrevKeyframeNAL;
+            if ( g_bUseH265Decoder )
+            {
+               uNALType = ((*pTmp) >> 1) & 0x3F;
+               bKeyframeNAL = (uNALType >= 16) && (uNALType <= 21); // BLA/IDR/CRA IRAP slices
+               bSignalingNAL = (uNALType >= 32);                    // VPS/SPS/PPS/AUD/SEI...
+               bPrevKeyframeNAL = (uPrevNALType >= 16) && (uPrevNALType <= 21);
+            }
+            else
+            {
+               uNALType = (*pTmp) & 0x1F;
+               bKeyframeNAL = (uNALType == 5);
+               bSignalingNAL = parser_h264_is_signaling_nal(uNALType);
+               bPrevKeyframeNAL = (uPrevNALType == 5);
+            }
 
-            if ( (uPrevNALType == 5) && (uNALType != 5) )
+            if ( bPrevKeyframeNAL && (! bKeyframeNAL) )
             {
                g_iFileDetectedSlices = g_iFileTempSlices;
             }
@@ -238,7 +257,7 @@ void _do_player_mode()
 
 
             if ( (g_iFileTempSlices % g_iFileDetectedSlices) == 0 )
-            if ( ! parser_h264_is_signaling_nal(uNALType) )
+            if ( ! bSignalingNAL )
             {
                u32 uTimeNow = get_current_timestamp_ms();
 

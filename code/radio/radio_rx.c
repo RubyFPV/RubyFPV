@@ -837,7 +837,7 @@ int _radio_rx_parse_received_wifi_radio_data(int iInterfaceIndex, int iMaxReads)
           (pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_IS_NAL_O)?"o":"",
           (pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_IS_END_OF_FRAME)?1:0,
           iDbgDR);
-      /**/
+      */
       }
 
       _radio_rx_check_add_packet_to_rx_queue(pPacketBuffer, iPacketLength, iInterfaceIndex);
@@ -1052,16 +1052,18 @@ void * _thread_radio_rx(void *argument)
          }
       }
 
+      /*
       int iDbg1 = s_RadioRxState.queue_reg_priority.iCurrentPacketIndexToWrite - s_RadioRxState.queue_reg_priority.iCurrentPacketIndexToConsume;
       if ( s_RadioRxState.queue_reg_priority.iCurrentPacketIndexToWrite < s_RadioRxState.queue_reg_priority.iCurrentPacketIndexToConsume )
          iDbg1 = s_RadioRxState.queue_reg_priority.iCurrentPacketIndexToWrite + (s_RadioRxState.queue_reg_priority.iQueueSize - s_RadioRxState.queue_reg_priority.iCurrentPacketIndexToConsume);
-      
+
       int iDbg2 = s_RadioRxState.queue_high_priority.iCurrentPacketIndexToWrite - s_RadioRxState.queue_high_priority.iCurrentPacketIndexToConsume;
       if ( s_RadioRxState.queue_high_priority.iCurrentPacketIndexToWrite < s_RadioRxState.queue_high_priority.iCurrentPacketIndexToConsume )
          iDbg2 = s_RadioRxState.queue_high_priority.iCurrentPacketIndexToWrite + (s_RadioRxState.queue_high_priority.iQueueSize - s_RadioRxState.queue_high_priority.iCurrentPacketIndexToConsume);
 
-      //if ( (iDbg1 > 10) || (iDbg2 > 10) )
-      //   log_line("DBG radio rx has %d reg and %d high prio pending packets to consume", iDbg1, iDbg2);
+      if ( (iDbg1 > 10) || (iDbg2 > 10) )
+         log_line("DBG radio rx has %d reg and %d high prio pending packets to consume", iDbg1, iDbg2);
+      */
       
       // Loop is executed every 100 ms max. So check and update stats about every 250 ms max
       if ( 0 == (s_iRxThreadLoopCounter % 2) )

@@ -399,7 +399,7 @@ void VideoTxPacketsBuffer::setLastFrameTimers(u32 uTimeReadCamera, u32 uTimeSend
    m_uLastFrameTimers = (uTimeReadCamera & 0x0F) |
       ((uTimeSendOthers & 0x0F) << 4) |
       ((uTimeSendVideo & 0xFF) << 8) |
-      ((uTotalProcessingTime & 0xFF) << 16);
+      ((uTotalProcessingTime & 0xFF) << 16) |
       ((uTimeExpectedSendVideoTime & 0xFF) << 24);
 }
 
@@ -669,11 +669,10 @@ int VideoTxPacketsBuffer::_addNewVideoPacket(u8* pRawVideoData, int iRawVideoDat
       if ( iRemainingVideoPackets < m_PacketHeaderVideo.uCurrentBlockDataPackets + 5 )
       if ( iRemainingVideoPackets < MAX_DATA_PACKETS_IN_BLOCK )
       {
-         int iTmpDataPackets = m_PacketHeaderVideo.uCurrentBlockDataPackets;
          m_PacketHeaderVideo.uCurrentBlockDataPackets = iRemainingVideoPackets;
          if ( m_uNextBlockECPackets > 0 )
             m_PacketHeaderVideo.uCurrentBlockECPackets = (m_PacketHeaderVideo.uCurrentBlockDataPackets * m_uNextBlockECPackets) / m_uNextBlockDataPackets;
-         //log_line("DBG should append packets in block, block size: %d, remaining %d; old: %d/%d, new scheme: %d/%d", iTmpDataPackets, iRemainingVideoPackets, m_uNextBlockDataPackets, m_uNextBlockECPackets, m_PacketHeaderVideo.uCurrentBlockDataPackets, m_PacketHeaderVideo.uCurrentBlockECPackets);
+         //log_line("DBG should append packets in block, remaining %d; old: %d/%d, new scheme: %d/%d", iRemainingVideoPackets, m_uNextBlockDataPackets, m_uNextBlockECPackets, m_PacketHeaderVideo.uCurrentBlockDataPackets, m_PacketHeaderVideo.uCurrentBlockECPackets);
       }
    }
 

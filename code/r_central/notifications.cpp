@@ -154,16 +154,31 @@ void notification_add_model_deleted()
    popups_add(new Popup(true, "Model deleted!", 3));
 }
 
+#include "../base/ctrl_settings.h"
+static const char* _recording_target_suffix()
+{
+   ControllerSettings* pCS = get_ControllerSettings();
+   if ( NULL == pCS )
+      return "";
+   if ( pCS->iRecordingTarget == 1 ) return " (Onboard SD)";
+   if ( pCS->iRecordingTarget == 2 ) return " (Both: Ground + Onboard SD)";
+   return " (Ground)";
+}
+
 void notification_add_recording_start()
 {
-   Popup* p = new Popup(true, L("Video recording started"), 3);
+   char szBuff[128];
+   snprintf(szBuff, sizeof(szBuff), "%s%s", L("Video recording started"), _recording_target_suffix());
+   Popup* p = new Popup(true, szBuff, 3);
    p->setIconId(g_idIconCamera, get_Color_IconNormal());
    popups_add_topmost(p);
 }
 
 void notification_add_recording_end()
 {
-   Popup* p = new Popup(true, "Video recording stopped", 4);
+   char szBuff[128];
+   snprintf(szBuff, sizeof(szBuff), "%s%s", L("Video recording stopped"), _recording_target_suffix());
+   Popup* p = new Popup(true, szBuff, 4);
    p->setIconId(g_idIconCamera, get_Color_IconNormal());
    popups_add_topmost(p);
 }

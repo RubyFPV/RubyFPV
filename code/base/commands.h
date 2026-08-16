@@ -294,5 +294,30 @@ typedef struct
 
 #define COMMAND_ID_CLEAR_LOGS 213
 
+#define COMMAND_ID_GET_VIDEO_BACKEND 214
+// no params. Response: 1 byte, vehicle video encoder backend:
+// 1 - majestic, 2 - waybeam (see vehicle_backend_cache.h VEHICLE_BACKEND_*)
+
+#define COMMAND_ID_SET_ONBOARD_RECORDING 215
+// Configures onboard SD recording on the vehicle (waybeam only).
+// Writes the record section of the waybeam JSON config and restarts the
+// encoder pipeline (brief video pause). Params:
+typedef struct
+{
+   u8 uTarget;       // 0 - ground (onboard recording off), 1 - onboard SD
+   u8 uQualityIdx;   // 0..3, informational echo of the controller preset
+   u32 uBitrateKbps; // recording channel bitrate in kbps (dual VENC channel)
+} __attribute__((packed)) command_packet_onboard_recording;
+
+#define COMMAND_ID_ONBOARD_RECORD 216
+// u32 param: 1 - start recording on the vehicle SD card, 0 - stop.
+// Vehicle forwards to the waybeam HTTP API (/api/v1/record/start|stop).
+
+#define COMMAND_ID_ENTER_PHONE_TRANSFER_MODE 217
+// no params. Vehicle runs /usr/bin/ap_mode.sh start, which stops the FPV
+// radio + waybeam and brings wlan0 up as an open AP (RubyFPV-<MAC4> @
+// 192.168.4.1) so a phone can pull onboard recordings over SSH. The FPV
+// link drops; the vehicle replies OK before reconfiguring the radio.
+
 //------------------------------------------------------
 const char* commands_get_description(u8 command_type);

@@ -55,6 +55,10 @@ static char s_szSRTLine2[128];
 
 static FILE* s_pFilePlaybackOSD = NULL;
 int s_iMSPOSDFCType, s_iMSPOSDFontType, s_iMSPOSDRows, s_iMSPOSDCols;
+// Grid size the .osd file's frames are actually packed at (bytes 36-39 of its header).
+// Older recordings predate that header field, so fall back to the legacy 53x20 size.
+static int s_iOSDFileCols = 53;
+static int s_iOSDFileRows = 20;
 u16 s_uMSPOSDDisplayBuffer[MAX_MSP_CHARS_BUFFER];
 static u32 s_uTimeOSDCurrentFrameStart = 0;
 static u32 s_uCountOSDFramesRead = 0;
@@ -291,7 +295,17 @@ void _video_playback_read_next_osd_frame()
          log_softerror_and_alarm("VideoPlayback: Failed to read OSD file header.");
          return;
       }
-      log_line("VideoPlayback: Read OSD file header. FC: %s", uBuffer);
+      // bytes 36-39: grid cols/rows the frames below are packed at (added in a later
+      // format revision); zero on older recordings, keep the 53x20 legacy fallback then.
+      u16 uCols = 0, uRows = 0;
+      memcpy(&uCols, &(uBuffer[36]), sizeof(u16));
+      memcpy(&uRows, &(uBuffer[38]), sizeof(u16));
+      if ( (uCols > 0) && (uCols <= 64) && (uRows > 0) && (uRows <= 24) )
+      {
+         s_iOSDFileCols = (int)uCols;
+         s_iOSDFileRows = (int)uRows;
+      }
+      log_line("VideoPlayback: Read OSD file header. FC: %s, grid: %dx%d", uBuffer, s_iOSDFileCols, s_iOSDFileRows);
    }
 
    int nRead = fread(uBuffer, 1, 4, s_pFilePlaybackOSD);
@@ -301,18 +315,18 @@ void _video_playback_read_next_osd_frame()
       return;
    }
    memcpy((u8*)&s_uTimeOSDCurrentFrameStart, uBuffer, sizeof(u32));
-   
-   nRead = fread(uBuffer16, 1, DEFAULT_MSPOSD_RECORDING_ROWS * DEFAULT_MSPOSD_RECORDING_COLS * sizeof(u16), s_pFilePlaybackOSD);
-   if ( nRead != DEFAULT_MSPOSD_RECORDING_ROWS * DEFAULT_MSPOSD_RECORDING_COLS * sizeof(u16) )
+
+   nRead = fread(uBuffer16, 1, s_iOSDFileRows * s_iOSDFileCols * sizeof(u16), s_pFilePlaybackOSD);
+   if ( nRead != s_iOSDFileRows * s_iOSDFileCols * (int)sizeof(u16) )
    {
       log_softerror_and_alarm("VideoPlayback: Failed to read OSD file frame osd data.");
       return;
    }
 
    int iPos = 0;
-   for( int y=0; y<DEFAULT_MSPOSD_RECORDING_ROWS; y++ )
-   for( int x=0; x<DEFAULT_MSPOSD_RECORDING_COLS; x++ )
-      s_uMSPOSDDisplayBuffer[x + y * s_iMSPOSDCols] = uBuffer16[iPos++];
+   for( int y=0; y<s_iOSDFileRows; y++ )
+   for( int x=0; x<s_iOSDFileCols; x++ )
+      s_uMSPOSDDisplayBuffer[x + y * s_iOSDFileCols] = uBuffer16[iPos++];
 
    s_uCountOSDFramesRead++;
 }
@@ -418,7 +432,7 @@ void video_playback_render()
 
    if ( (s_pFilePlaybackOSD != NULL) && (s_uCountOSDFramesRead != 0) )
    if ( (s_iMSPOSDCols != 0) && (s_iMSPOSDRows != 0) )
-      osd_render_msposd_buffer(s_iMSPOSDFCType, s_iMSPOSDFontType, s_iMSPOSDCols, s_iMSPOSDRows, s_uMSPOSDDisplayBuffer);
+      osd_render_msposd_buffer(s_iMSPOSDFCType, s_iMSPOSDFontType, s_iOSDFileCols, s_iOSDFileRows, s_uMSPOSDDisplayBuffer);
 
    g_pRenderEngine->endFrame();
 }

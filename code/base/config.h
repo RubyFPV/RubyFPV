@@ -115,8 +115,8 @@
 #define DEFAULT_MPP_BUFFERS_SIZE 32
 
 #define DEFAULT_OSD_RADIO_GRAPH_REFRESH_PERIOD_MS 50
-#define DEFAULT_MSPOSD_RECORDING_COLS 53
-#define DEFAULT_MSPOSD_RECORDING_ROWS 20
+#define DEFAULT_MSPOSD_RECORDING_COLS 60
+#define DEFAULT_MSPOSD_RECORDING_ROWS 22
 
 
 #ifdef __cplusplus
@@ -124,7 +124,7 @@ extern "C" {
 #endif 
 
 void getSystemVersionString(char* p, u32 swversion);
-int hardware_file_check_and_fix_access_c(char* szFullFileName);
+int hardware_file_check_and_fix_access_c(const char* szFullFileName);
 
 int config_file_get_value(const char* szPropName);
 void config_file_set_value(const char* szFile, const char* szPropName, int value);

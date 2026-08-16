@@ -302,7 +302,7 @@ void relay_send_packet_to_controller(u8* pBufferData, int iBufferLength)
       if ( uPacketType == PACKET_TYPE_RUBY_PAIRING_CONFIRMATION )
          bContainsPairConfirmation = true;
 
-      if ( (uStreamId < 0) || (uStreamId >= MAX_RADIO_STREAMS) )
+      if ( uStreamId >= MAX_RADIO_STREAMS )
          uStreamId = 0;
 
       iRemainingLength -= iPacketLength;
@@ -414,7 +414,7 @@ void _relay_send_single_packet_to_relayed_vehicle(u8* pBufferData, int iBufferLe
    u32 uRelayedVehicleId = pPH->vehicle_id_dest;
    u32 uStreamId = (pPH->stream_packet_idx)>>PACKET_FLAGS_MASK_SHIFT_STREAM_INDEX;
    
-   if ( (uStreamId < 0) || (uStreamId >= MAX_RADIO_STREAMS) )
+   if ( uStreamId >= MAX_RADIO_STREAMS )
       uStreamId = 0;
 
    if ( uRelayedVehicleId != g_pCurrentModel->relay_params.uRelayedVehicleId )

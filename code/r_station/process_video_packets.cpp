@@ -125,7 +125,7 @@ void process_received_video_component_packet(int iInterfaceIndex, u8* pPacket, i
           (pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_IS_NAL_O)?"o":"",
           (pPHVS->uVideoStatusFlags2 & VIDEO_STATUS_FLAGS2_IS_END_OF_FRAME)?1:0,
           iDbgDR);
-      /**/
+      */
       ProcessorRxVideo* pProcessorVideo = _find_create_rx_video_processor(uVehicleId, 0);
 
       if ( NULL == pProcessorVideo )

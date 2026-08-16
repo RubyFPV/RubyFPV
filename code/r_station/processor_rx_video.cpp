@@ -909,8 +909,7 @@ void ProcessorRxVideo::_updateDebugStatsOnVideoPacket(type_rx_video_packet_info*
    u8* pRadioPacket = pVideoPacket->pRawData;
    t_packet_header* pPH = (t_packet_header*)pRadioPacket;
    t_packet_header_video_segment* pPHVS = (t_packet_header_video_segment*) (pRadioPacket+sizeof(t_packet_header));
-   int iPacketLength = pPH->total_length;
-   
+
    if ( g_pControllerSettings->iEnableDebugStats )
    {
       if ( pPHVS->uStreamInfoFlags == VIDEO_STREAM_INFO_FLAG_LAST_FRAME_TIMERS )
@@ -1131,8 +1130,8 @@ int ProcessorRxVideo::checkAndRequestMissingPackets(bool bForceSyncNow)
    if ( 0 == iCountBlocks )
       return -1;
 
-   type_rx_video_block_info* pVideoBlockDbg = m_pVideoRxBuffer->getBlockInBufferFromBottom(0);
    /*
+   type_rx_video_block_info* pVideoBlockDbg = m_pVideoRxBuffer->getBlockInBufferFromBottom(0);
    log_line("DBG retr check: video buffer has %d blocks to check. Bottom block: f%d blk %u, scheme %d/%d, recv %d/%d pckts, frame has %d pckts, this block has %d to %d f pckts",
        iCountBlocks, pVideoBlockDbg->uH264FrameIndex,
        pVideoBlockDbg->uVideoBlockIndex,
@@ -1273,8 +1272,6 @@ int ProcessorRxVideo::checkAndRequestMissingPackets(bool bForceSyncNow)
       char szTmp[128];
       sprintf(szTmp, "t[f%d %u %d/%d pckts of %d/%d, eof %d]", pVideoBlock->uH264FrameIndex, pVideoBlock->uVideoBlockIndex, pVideoBlock->iRecvDataPackets, pVideoBlock->iRecvECPackets, pVideoBlock->iBlockDataPackets, pVideoBlock->iBlockECPackets, pVideoBlock->iLastRecordedEOF);
       strcat(szBufferBlocks, szTmp);
-
-      bool bRequestData = false;
 
       // Not enough EC packets to reconstruct
       if ( (pVideoBlock->iRecvDataPackets + pVideoBlock->iRecvECPackets) < pVideoBlock->iBlockDataPackets )

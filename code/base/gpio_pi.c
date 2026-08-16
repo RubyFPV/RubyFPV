@@ -13,6 +13,8 @@
 static int s_iGPIOButtonsDirectionDetected = 0;
 static int s_iGPIOButtonsPullDirection = 1;
 
+void _gpio_load_custom_mapping();
+
 
 int GPIOExport(int pin)
 {

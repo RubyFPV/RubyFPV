@@ -6,6 +6,10 @@
 void hardware_camera_maj_init_threads(Model* pModel);
 void hardware_camera_maj_stop_threads();
 
+// Ask the encoder to emit an IDR (keyframe) frame immediately.
+// waybeam: hits GET /request/idr. majestic: no-op (no supported endpoint).
+void hardware_camera_maj_request_idr();
+
 int hardware_camera_maj_validate_config();
 void hardware_camera_maj_add_log(const char* szLog, bool bAsync);
 int hardware_camera_maj_get_current_pid();
@@ -21,6 +25,7 @@ void hardware_camera_maj_set_daylight_off(int iDLOff, bool bAsync);
 void hardware_camera_maj_set_calibration_file(int iCameraType, int iCalibrationFileType, char* szCalibrationFile);
 
 void hardware_camera_maj_set_brightness(u32 uValue);
+void hardware_camera_maj_set_awb(u8 uWhiteBalance, u32 uWBTempK);
 void hardware_camera_maj_set_contrast(u32 uValue);
 void hardware_camera_maj_set_hue(u32 uValue);
 void hardware_camera_maj_set_saturation(u32 uValue);

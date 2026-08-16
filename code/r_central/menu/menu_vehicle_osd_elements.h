@@ -26,6 +26,7 @@ class MenuVehicleOSDElements: public Menu
       int m_IndexGrid;
       int m_IndexShowTxPower;
       int m_IndexRadioLinks, m_IndexRadioInterfaces, m_IndexSignalBars, m_IndexSignalBarsPosition;
+      int m_IndexLinkWarningOutline;
       int m_IndexWind, m_IndexTemperature;
       int m_IndexControllerCPU;
       int m_IndexControllerVoltage;

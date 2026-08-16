@@ -39,12 +39,16 @@
 #include "menu_vehicle_video_profile.h"
 #include "menu_vehicle_video_encodings.h"
 #include "menu_vehicle_video_compare.h"
+#include "menu_vehicle_onboard_recording.h"
 #include "menu_item_select.h"
 #include "menu_item_slider.h"
 #include "menu_item_section.h"
 
 #include "../osd/osd_common.h"
 #include "../process_router_messages.h"
+#include "../vehicle_backend_cache.h"
+#include "../handle_commands.h"
+#include "../../base/commands.h"
 
 MenuVehicleVideo::MenuVehicleVideo(void)
 :Menu(MENU_ID_VEHICLE_VIDEO, L("Video Settings"), NULL)
@@ -69,6 +73,16 @@ void MenuVehicleVideo::showCompact()
 
 void MenuVehicleVideo::onShow()
 {
+   // Probe the vehicle's video encoder backend so we can lock the codec to
+   // H.265 when waybeam (which is H.265-only) is the active encoder. The reply
+   // lands asynchronously in handle_commands and overwrites the backend cache.
+   // Probe on EVERY open (not only when UNKNOWN): the backend can change between
+   // boots/repairs, so a stale cached value must be refreshed each time. The
+   // reply overwrites unconditionally, so no need to clear first (avoids an
+   // UNKNOWN flicker that would briefly unlock the codec selector).
+   if ( NULL != g_pCurrentModel )
+      handle_commands_send_to_vehicle(COMMAND_ID_GET_VIDEO_BACKEND, 0, NULL, 0);
+
    int iTmp = getSelectedMenuItemIndex();
 
    addItems();
@@ -109,7 +123,7 @@ void MenuVehicleVideo::addItems()
    m_iVideoResolutionsCount = getOptionsVideoResolutionsCount(g_pCurrentModel->getActiveCameraType());
 
    m_pItemsSelect[0] = new MenuItemSelect(L("Resolution"), L("Sets the resolution of the video stream."));
-   
+
    for( int i=0; i<m_iVideoResolutionsCount; i++ )
    {
       sprintf(szBuff, "%s (%d x %d)", m_pVideoResolutions[i].szName, m_pVideoResolutions[i].iWidth, m_pVideoResolutions[i].iHeight);
@@ -238,7 +252,14 @@ void MenuVehicleVideo::addItems()
    {
       m_IndexExpert = addMenuItem(new MenuItem(L("Advanced Video Settings"), L("Change advanced video parameters for current profile.")));
       m_pMenuItems[m_IndexExpert]->showArrow();
-   }   
+   }
+
+   m_IndexOnboardRecording = -1;
+   if ( ! m_bShowCompact )
+   {
+      m_IndexOnboardRecording = addMenuItem(new MenuItem(L("Onboard Recording"), L("Record video to the drone's SD card instead of the ground station (waybeam encoder only).")));
+      m_pMenuItems[m_IndexOnboardRecording]->showArrow();
+   }
 
    if ( m_bShowCompact )
       m_IndexShowFull = addMenuItem(new MenuItem(L("Show all video settings"), L("")));
@@ -265,6 +286,15 @@ void MenuVehicleVideo::valuesToUI()
       m_pItemsSelect[10]->setSelectedIndex(1);
    else
       m_pItemsSelect[10]->setSelectedIndex(0);
+
+   // The waybeam encoder is H.265-only: it has no H.264 path, so selecting
+   // H.264 yields a black screen. When we've confirmed the vehicle is running
+   // waybeam, force the codec to H.265 and lock the selector.
+   if ( vehicle_backend_is_waybeam(g_pCurrentModel->uVehicleId) )
+   {
+      m_pItemsSelect[10]->setSelectedIndex(1);
+      m_pItemsSelect[10]->setEnabled(false);
+   }
 
    bool bFound = false;
    int iMaxFPS = getMaxFPSForCurrentVideoRes(&bFound);
@@ -499,7 +529,17 @@ void MenuVehicleVideo::sendVideoSettings()
    #endif
 
    if ( 0 == m_pItemsSelect[10]->getSelectedIndex() )
+   {
+      // waybeam is H.265-only — refuse H.264 even if the selector slipped
+      // through (e.g. the backend probe landed after the menu was built).
+      if ( vehicle_backend_is_waybeam(g_pCurrentModel->uVehicleId) )
+      {
+         addMessage(L("The waybeam encoder on this vehicle only supports H.265. H.264 is not available."));
+         valuesToUI();
+         return;
+      }
       paramsNew.uVideoExtraFlags &= ~VIDEO_FLAG_GENERATE_H265;
+   }
    else
    {
       #if defined (HW_PLATFORM_RASPBERRY)
@@ -740,6 +780,12 @@ void MenuVehicleVideo::onSelectItem()
       pMenuEnc->m_bShowEC = true;
       pMenuEnc->m_bShowH264 = true;
       add_menu_to_stack(pMenuEnc);
+   }
+
+   if ( (-1 != m_IndexOnboardRecording) && (m_IndexOnboardRecording == m_SelectedIndex) )
+   {
+      add_menu_to_stack(new MenuVehicleOnboardRecording());
+      return;
    }
 
    if ( m_IndexVideoCodec == m_SelectedIndex )

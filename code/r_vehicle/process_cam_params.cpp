@@ -137,6 +137,18 @@ int _try_process_live_changes(int iNewCameraIndex, type_camera_parameters* pNewC
       }
    }
 
+   if ( (pNewCamProfile->whitebalance != pCurCamProfile->whitebalance) ||
+        ((pNewCamProfile->uDummyCamP & 0xFFFF) != (pCurCamProfile->uDummyCamP & 0xFFFF)) )
+   {
+      if ( g_pCurrentModel->isRunningOnOpenIPCHardware() && (! hardware_board_is_goke(g_pCurrentModel->hwCapabilities.uBoardType)) )
+      {
+         hardware_camera_maj_set_awb(pNewCamProfile->whitebalance, pNewCamProfile->uDummyCamP & 0xFFFF);
+         pNewCamProfile->whitebalance = pCurCamProfile->whitebalance;
+         pNewCamProfile->uDummyCamP = pCurCamProfile->uDummyCamP;
+         iCountUpdates++;
+      }
+   }
+
    return iCountUpdates;
 }
 

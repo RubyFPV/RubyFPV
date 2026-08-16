@@ -14,6 +14,8 @@
 static int s_iGPIOButtonsDirectionDetected = 1;
 static int s_iGPIOButtonsPullDirection = 0;
 
+void _gpio_load_custom_mapping();
+
 int Convert_Pin_To_Chip_Line(int pin, char *chipname, int *line)
 {
    if ( (NULL == chipname) || (NULL == line) )

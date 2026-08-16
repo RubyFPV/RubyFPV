@@ -30,6 +30,10 @@
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <math.h>
+#if defined(RUBY_BUILD_HW_PLATFORM_RADXA)
+#include <cairo/cairo.h>
+#endif
 #include "../../base/base.h"
 #include "../../base/config.h"
 #include "../../base/ctrl_settings.h"
@@ -51,11 +55,210 @@ extern bool s_bDebugOSDShowAll;
 
 static bool bHasPITModeWarning = false;
 
+// Link warning outline: screen edge halo that fades in and shifts from yellow
+// to red as the radio downlink quality degrades from the warning level down to
+// the critical level.
+#define OSD_LINK_OUTLINE_QUALITY_WARNING 70.0f
+#define OSD_LINK_OUTLINE_QUALITY_CRITICAL 30.0f
+#define OSD_LINK_OUTLINE_BAND_PERCENT 0.145f
+#define OSD_LINK_OUTLINE_BAND_GROWTH 1.5f
+#define OSD_LINK_OUTLINE_MAX_ALPHA 0.80f
+#define OSD_LINK_OUTLINE_SEVERITY_EXPONENT 2.4f
+#define OSD_LINK_OUTLINE_FALLOFF_EXPONENT 3.6f
+#define OSD_LINK_OUTLINE_GRADIENT_STEPS 96
+#define OSD_LINK_OUTLINE_CORNER_PERCENT 0.16f
+#define OSD_LINK_OUTLINE_CORNER_STEPS 29
+#define OSD_LINK_OUTLINE_CORNER_STEP_ALPHA 0.065f
+#define OSD_LINK_BLACK_BARS_BAND_PERCENT 0.07f
+#define OSD_LINK_BLACK_BARS_MAX_ALPHA 0.75f
+
+static float s_fOSDLinkOutlineQuality = 100.0f;
+static u32 s_uOSDLinkOutlineLastTime = 0;
+
 void osd_warnings_reset()
 {
    g_bHasVideoDataOverloadAlarm = false;
    g_bHasVideoTxOverloadAlarm = false;
    bHasPITModeWarning = false;
+   s_fOSDLinkOutlineQuality = 100.0f;
+   s_uOSDLinkOutlineLastTime = 0;
+}
+
+void osd_warnings_render_link_outline()
+{
+   Model* pActiveModel = osd_get_current_data_source_vehicle_model();
+   if ( NULL == pActiveModel )
+      return;
+   u32 uFlags3 = pActiveModel->osd_params.osd_flags3[osd_get_current_layout_index()];
+   bool bModeOutline = (uFlags3 & OSD_FLAG3_SHOW_LINK_WARNING_OUTLINE)?true:false;
+   bool bModeBlackBars = (uFlags3 & OSD_FLAG3_SHOW_LINK_WARNING_BLACK_BARS)?true:false;
+   if ( (! bModeOutline) && (! bModeBlackBars) )
+      return;
+   if ( ! g_bIsRouterReady )
+      return;
+
+   // React to the best radio interface, so with multiple receivers the outline
+   // shows up only when even the strongest link is degraded.
+   int iMaxQuality = -1;
+   for( int i=0; i<g_SM_RadioStats.countLocalRadioInterfaces; i++ )
+   {
+      if ( g_SM_RadioStats.radio_interfaces[i].assignedLocalRadioLinkId < 0 )
+         continue;
+      if ( ! g_SM_RadioStats.radio_interfaces[i].openedForRead )
+         continue;
+      if ( g_SM_RadioStats.radio_interfaces[i].rxQuality > iMaxQuality )
+         iMaxQuality = g_SM_RadioStats.radio_interfaces[i].rxQuality;
+   }
+
+   bool bLinkLost = false;
+   if ( g_iCurrentActiveVehicleRuntimeInfoIndex >= 0 )
+      bLinkLost = g_VehiclesRuntimeInfo[g_iCurrentActiveVehicleRuntimeInfoIndex].bLinkLost;
+
+   float fQuality = (float)iMaxQuality;
+   if ( (iMaxQuality < 0) || bLinkLost )
+      fQuality = 0.0f;
+
+   // The quality source refreshes every ~500 ms; ease the displayed value
+   // toward each new sample with a ~350 ms time constant so the outline
+   // animates continuously through the sample window without lagging behind
+   u32 uDeltaMs = 0;
+   if ( (0 != s_uOSDLinkOutlineLastTime) && (g_TimeNow > s_uOSDLinkOutlineLastTime) )
+   {
+      uDeltaMs = g_TimeNow - s_uOSDLinkOutlineLastTime;
+      if ( uDeltaMs > 100 )
+         uDeltaMs = 100;
+   }
+   s_uOSDLinkOutlineLastTime = g_TimeNow;
+
+   float fEase = (float)uDeltaMs / 350.0f;
+   if ( fEase > 1.0f )
+      fEase = 1.0f;
+   s_fOSDLinkOutlineQuality += (fQuality - s_fOSDLinkOutlineQuality) * fEase;
+
+   float fSeverity = (OSD_LINK_OUTLINE_QUALITY_WARNING - s_fOSDLinkOutlineQuality) / (OSD_LINK_OUTLINE_QUALITY_WARNING - OSD_LINK_OUTLINE_QUALITY_CRITICAL);
+   if ( fSeverity > 1.0f )
+      fSeverity = 1.0f;
+   if ( fSeverity < 0.02f )
+      return;
+
+   bool bWasBlending = g_pRenderEngine->isAlphaBlendingEnabled();
+   g_pRenderEngine->setAlphaBlendingEnabled(true);
+   g_pRenderEngine->setStrokeSize(0.0f);
+
+   if ( bModeBlackBars )
+   {
+      // Simple solid dark bars at the screen edges, opacity scales with severity
+      float fAlpha = OSD_LINK_BLACK_BARS_MAX_ALPHA * fSeverity;
+      float fBandH = OSD_LINK_BLACK_BARS_BAND_PERCENT;
+      float fBandW = fBandH / g_pRenderEngine->getAspectRatio();
+      g_pRenderEngine->setFill(0.0f, 0.0f, 0.0f, fAlpha);
+      g_pRenderEngine->setStroke(0.0f, 0.0f, 0.0f, fAlpha);
+      g_pRenderEngine->drawRect(0.0f, 0.0f, 1.0f, fBandH);
+      g_pRenderEngine->drawRect(0.0f, 1.0f - fBandH, 1.0f, fBandH);
+      g_pRenderEngine->drawRect(0.0f, fBandH, fBandW, 1.0f - 2.0f*fBandH);
+      g_pRenderEngine->drawRect(1.0f - fBandW, fBandH, fBandW, 1.0f - 2.0f*fBandH);
+   }
+   else
+   {
+      // Power-curve response: barely-there at the warning edge, strongly
+      // visible near link lost
+      float fIntensity = powf(fSeverity, OSD_LINK_OUTLINE_SEVERITY_EXPONENT);
+      float fGreen = 255.0f * (1.0f - fSeverity);
+      // The band also grows inward as the link gets worse
+      float fBandH = OSD_LINK_OUTLINE_BAND_PERCENT * (1.0f + OSD_LINK_OUTLINE_BAND_GROWTH*fIntensity);
+
+#if defined(RUBY_BUILD_HW_PLATFORM_RADXA)
+      // Render with real cairo gradients: pixel-perfect smoothness for both
+      // the edge band and the corner vignette, and much cheaper than manual
+      // per-rect blending (pixman fills the spans in one optimized pass).
+      cairo_t* pCtx = (cairo_t*) g_pRenderEngine->getDrawContext();
+      if ( NULL != pCtx )
+      {
+         int iScreenW = g_pRenderEngine->getScreenWidth();
+         int iScreenH = g_pRenderEngine->getScreenHeight();
+         int iBandPx = (int)(fBandH * (float)iScreenH);
+         if ( iBandPx > iScreenH/3 )
+            iBandPx = iScreenH/3;
+         double dG = (double)fGreen/255.0;
+         double dMaxA = (double)(OSD_LINK_OUTLINE_MAX_ALPHA * fIntensity);
+
+         cairo_save(pCtx);
+         cairo_set_operator(pCtx, CAIRO_OPERATOR_OVER);
+
+         // Four overlapping edge gradients; where two overlap (near corners)
+         // the OVER blend compounds them, which already deepens the corners.
+         // Extra stops near 0 keep fidelity for high falloff exponents.
+         static const double s_dStops[7] = {0.0, 0.1, 0.2, 0.35, 0.5, 0.75, 1.0};
+         for( int iEdge=0; iEdge<4; iEdge++ )
+         {
+            cairo_pattern_t* pPat = NULL;
+            switch ( iEdge )
+            {
+               case 0: pPat = cairo_pattern_create_linear(0, 0, 0, iBandPx); break;
+               case 1: pPat = cairo_pattern_create_linear(0, iScreenH, 0, iScreenH - iBandPx); break;
+               case 2: pPat = cairo_pattern_create_linear(0, 0, iBandPx, 0); break;
+               default: pPat = cairo_pattern_create_linear(iScreenW, 0, iScreenW - iBandPx, 0); break;
+            }
+            for( int s=0; s<7; s++ )
+            {
+               double dT = 1.0 - s_dStops[s];
+               cairo_pattern_add_color_stop_rgba(pPat, s_dStops[s], 1.0, dG, 0.0, dMaxA*pow(dT, (double)OSD_LINK_OUTLINE_FALLOFF_EXPONENT));
+            }
+            cairo_set_source(pCtx, pPat);
+            switch ( iEdge )
+            {
+               case 0: cairo_rectangle(pCtx, 0, 0, iScreenW, iBandPx); break;
+               case 1: cairo_rectangle(pCtx, 0, iScreenH - iBandPx, iScreenW, iBandPx); break;
+               case 2: cairo_rectangle(pCtx, 0, 0, iBandPx, iScreenH); break;
+               default: cairo_rectangle(pCtx, iScreenW - iBandPx, 0, iBandPx, iScreenH); break;
+            }
+            cairo_fill(pCtx);
+            cairo_pattern_destroy(pPat);
+         }
+
+         // Radial corner vignette on top, one gradient per corner
+         int iCornPx = (int)(OSD_LINK_OUTLINE_CORNER_PERCENT * (float)iScreenH);
+         // Equivalent peak opacity of the old N-layer accumulation
+         double dCornA = (1.0 - pow(1.0 - (double)OSD_LINK_OUTLINE_CORNER_STEP_ALPHA, (double)OSD_LINK_OUTLINE_CORNER_STEPS)) * (double)fIntensity;
+         for( int iC=0; iC<4; iC++ )
+         {
+            double dCx = (iC & 1) ? (double)iScreenW : 0.0;
+            double dCy = (iC & 2) ? (double)iScreenH : 0.0;
+            cairo_pattern_t* pPat = cairo_pattern_create_radial(dCx, dCy, 0, dCx, dCy, iCornPx);
+            for( int s=0; s<7; s++ )
+            {
+               double dT = 1.0 - s_dStops[s];
+               cairo_pattern_add_color_stop_rgba(pPat, s_dStops[s], 1.0, dG, 0.0, dCornA*dT*dT);
+            }
+            cairo_set_source(pCtx, pPat);
+            cairo_rectangle(pCtx, (iC & 1) ? (iScreenW - iCornPx) : 0, (iC & 2) ? (iScreenH - iCornPx) : 0, iCornPx, iCornPx);
+            cairo_fill(pCtx);
+            cairo_pattern_destroy(pPat);
+         }
+         cairo_restore(pCtx);
+      }
+#else
+      // Non-cairo platforms: stepped rect rings (coarser but portable)
+      float fBandW = fBandH / g_pRenderEngine->getAspectRatio();
+      float fStepH = fBandH / (float)OSD_LINK_OUTLINE_GRADIENT_STEPS;
+      float fStepW = fBandW / (float)OSD_LINK_OUTLINE_GRADIENT_STEPS;
+      for( int iStep=0; iStep<OSD_LINK_OUTLINE_GRADIENT_STEPS; iStep++ )
+      {
+         float fT = 1.0f - (float)iStep/(float)OSD_LINK_OUTLINE_GRADIENT_STEPS;
+         float fAlpha = OSD_LINK_OUTLINE_MAX_ALPHA * fIntensity * powf(fT, OSD_LINK_OUTLINE_FALLOFF_EXPONENT);
+         g_pRenderEngine->setFill(255.0f, fGreen, 0.0f, fAlpha);
+         g_pRenderEngine->setStroke(255.0f, fGreen, 0.0f, fAlpha);
+         float xOut = fStepW * (float)iStep;
+         float yOut = fStepH * (float)iStep;
+         g_pRenderEngine->drawRect(xOut, yOut, 1.0f - 2.0f*xOut, fStepH);
+         g_pRenderEngine->drawRect(xOut, 1.0f - yOut - fStepH, 1.0f - 2.0f*xOut, fStepH);
+         g_pRenderEngine->drawRect(xOut, yOut + fStepH, fStepW, 1.0f - 2.0f*(yOut + fStepH));
+         g_pRenderEngine->drawRect(1.0f - xOut - fStepW, yOut + fStepH, fStepW, 1.0f - 2.0f*(yOut + fStepH));
+      }
+#endif
+   }
+   g_pRenderEngine->setAlphaBlendingEnabled(bWasBlending);
+   osd_set_colors();
 }
 
 void _osd_warnings_check_pit_mode(Model* pActiveModel)

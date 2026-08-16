@@ -1160,9 +1160,9 @@ void log_dword(const char* szText, u32 value)
 
    
    if ( NULL != fd )
-   {   fprintf(fd, szText); fprintf(fd, ": "); }
+   {   fprintf(fd, "%s", szText); fprintf(fd, ": "); }
    if ( ! s_logDisabledStdout )
-   {   printf(szText); printf(": "); }
+   {   printf("%s", szText); printf(": "); }
 
    for( int i=31; i>=0; i-- )
    {
@@ -1220,12 +1220,12 @@ void log_dword_bits(const char* szText, u32 value)
    
    if ( NULL != fd )
    {
-       fprintf(fd, szText);
+       fprintf(fd, "%s", szText);
        fprintf(fd, ": ");
    }
    if ( ! s_logDisabledStdout )
    {
-      printf(szText);
+      printf("%s", szText);
       printf(": ");
    }
 

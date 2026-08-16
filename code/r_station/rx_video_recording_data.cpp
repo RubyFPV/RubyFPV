@@ -350,6 +350,12 @@ void rx_video_recording_data_add_osd_frame()
          case MSP_FLAGS_FC_TYPE_PITLAB: strcpy(uHeader, "PITL"); break;
          case MSP_FLAGS_FC_TYPE_ARDUPILOT: strcpy(uHeader, "ARDU"); break;
       }
+      // bytes 36-39: grid cols/rows (u16 each), read by external tools (Digital-FPV-OSD-Tool)
+      // to auto-detect the frame stride instead of assuming a fixed default grid size.
+      u16 uCols = DEFAULT_MSPOSD_RECORDING_COLS;
+      u16 uRows = DEFAULT_MSPOSD_RECORDING_ROWS;
+      memcpy(&(uHeader[36]), &uCols, sizeof(u16));
+      memcpy(&(uHeader[38]), &uRows, sizeof(u16));
       fwrite(uHeader, 1, 40, s_pFileRecordingOSDData);
       s_uLastTimeRecordedOSDData = g_TimeNow;
       return;
@@ -362,10 +368,19 @@ void rx_video_recording_data_add_osd_frame()
    fwrite((u8*)&uTimeMs, 1, sizeof(u32), s_pFileRecordingOSDData);
    u16 uBuffer[MAX_MSP_CHARS_BUFFER];
    int iBuffPos = 0;
+   int iCols = pRuntimeInfo->mspState.headerTelemetryMSP.uMSPOSDCols;
+   if ( iCols <= 0 || iCols > 64 )
+      iCols = DEFAULT_MSPOSD_RECORDING_COLS;
+   int iRows = pRuntimeInfo->mspState.headerTelemetryMSP.uMSPOSDRows;
+   if ( iRows <= 0 || iRows > 24 )
+      iRows = DEFAULT_MSPOSD_RECORDING_ROWS;
+   // Real canvas (iCols/iRows) can be smaller than the padded output grid: pad cells
+   // with 0, don't read uScreenChars at x>=iCols, which would alias into the next
+   // row's real data (real stride is iCols).
    for( int y=0; y<DEFAULT_MSPOSD_RECORDING_ROWS; y++ )
    for( int x=0; x<DEFAULT_MSPOSD_RECORDING_COLS; x++ )
-      uBuffer[iBuffPos++] = pRuntimeInfo->mspState.uScreenChars[x + y * pRuntimeInfo->mspState.headerTelemetryMSP.uMSPOSDCols];
-      
+      uBuffer[iBuffPos++] = ( (x < iCols) && (y < iRows) ) ? pRuntimeInfo->mspState.uScreenChars[x + y * iCols] : 0;
+
    fwrite(uBuffer, 1, iBuffPos * sizeof(u16), s_pFileRecordingOSDData);
    s_iOSDDataFrameCount = pRuntimeInfo->mspState.iLastDrawFrameNumber;
    s_uLastTimeRecordedOSDData = g_TimeNow;

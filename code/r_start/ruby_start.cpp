@@ -1693,6 +1693,12 @@ int main(int argc, char *argv[])
    hw_execute_ruby_process(NULL, "ruby_initdhcp", NULL, NULL);
    #endif
 
+   #if defined (HW_PLATFORM_RADXA)
+   // Rename built-in WiFi interface early, then connect in background
+   hw_execute_bash_command("ruby_init_wifi -rename 2>/dev/null", NULL);
+   hw_execute_ruby_process(NULL, "ruby_init_wifi", NULL, NULL);
+   #endif
+
    detectSystemType();
 
    #if defined (HW_PLATFORM_RASPBERRY) || defined (HW_PLATFORM_RADXA)

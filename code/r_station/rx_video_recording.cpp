@@ -94,6 +94,13 @@ u32 s_uRecordingStreamPrevParsedToken = 0x11111111;
 bool s_bRecordingFoundStartOfFirstNAL = false;
 bool s_bRecordingThreadReadyForData = false;
 
+// Count actual recorded video frames (codec-agnostic, via uH264FrameIndex) so the
+// stored FPS reflects the real average capture rate. The vehicle can encode at a
+// variable/lower-than-nominal FPS (e.g. AE in low light), and using the nominal FPS
+// for playback makes the recording play back sped up.
+u32 s_uRecordingFrameCount = 0;
+int s_iRecordingLastFrameIndex = -1;
+
 void _recording_send_status_to_central(u8 uStatus, u8 uErrorLevel, const char* szError)
 {
    t_packet_header PH;
@@ -448,6 +455,23 @@ void* _thread_video_recording(void *argument)
       return NULL;
    }
 
+   // Replace the nominal FPS with the real average capture rate (recorded frames over
+   // the actual recording duration). The vehicle can encode at a variable / lower FPS
+   // than nominal; using the nominal FPS makes a constant-rate playback run sped up.
+   if ( (s_uRecordingFrameCount > 10) && (uDurrationMs > 1000) )
+   {
+      int iComputedFPS = (int)(((long long)s_uRecordingFrameCount * 1000 + uDurrationMs/2) / uDurrationMs);
+      if ( (iComputedFPS >= 1) && (iComputedFPS <= 240) )
+      {
+         log_line("[VideoRecording-Th] Computed average recording FPS: %d (%u frames over %u ms). Nominal was %d.",
+            iComputedFPS, s_uRecordingFrameCount, uDurrationMs, s_iRecordingFPS);
+         s_iRecordingFPS = iComputedFPS;
+      }
+      else
+         log_softerror_and_alarm("[VideoRecording-Th] Computed average FPS %d out of range (%u frames / %u ms); keeping nominal %d.",
+            iComputedFPS, s_uRecordingFrameCount, uDurrationMs, s_iRecordingFPS);
+   }
+
    if ( ! _recording_write_info_file(uDurrationMs) )
    {
       _recording_cleanp_temp_recording_data();
@@ -583,6 +607,8 @@ void rx_video_recording_start()
    log_line("[VideoRecording] Received request to start recording video.");
 
    s_iTempRecordingBufferFilledInBytes = 0;
+   s_uRecordingFrameCount = 0;
+   s_iRecordingLastFrameIndex = -1;
    s_iRecordingWidth = 1280;
    s_iRecordingHeight = 720;
    s_iRecordingFPS = 0;
@@ -726,10 +752,19 @@ u32  rx_video_recording_get_last_start_stop_time()
    return s_uRecordingLastStartStopTime;
 }
 
-void rx_video_recording_on_new_data(u8* pData, int iLength)
+void rx_video_recording_on_new_data(u8* pData, int iLength, int iFrameIndex)
 {
    if ( (! s_bIsRecording) || s_bRequestedStopRecording || (-1 == s_iFileVideoRecordingOutput) || (NULL == pData) || (iLength <= 0) || (s_iPipeRecordingThreadWrite <= 0) || (! s_bRecordingThreadReadyForData) )
       return;
+
+   // Count distinct video frames as they are written. uH264FrameIndex is monotonic
+   // per picture (H264/H265), so a change marks a new frame. A frame can span multiple
+   // data blocks, hence we count transitions, not calls.
+   if ( iFrameIndex != s_iRecordingLastFrameIndex )
+   {
+      s_iRecordingLastFrameIndex = iFrameIndex;
+      s_uRecordingFrameCount++;
+   }
 
    while ( ! s_bRecordingFoundStartOfFirstNAL )
    {

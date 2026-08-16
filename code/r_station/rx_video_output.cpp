@@ -1269,7 +1269,7 @@ void rx_video_output_video_data(u32 uVehicleId, t_packet_header_video_segment* p
    if ( s_VideoETHOutputInfo.s_bForwardETHPipeEnabled && (-1 != s_VideoETHOutputInfo.s_ForwardETHVideoPipeFile) )
       write(s_VideoETHOutputInfo.s_ForwardETHVideoPipeFile, pBuffer, video_data_length);
 
-   rx_video_recording_on_new_data(pBuffer, video_data_length);
+   rx_video_recording_on_new_data(pBuffer, video_data_length, (int)pPHVS->uH264FrameIndex);
 
    if ( s_VideoETHOutputInfo.s_bForwardIsETHForwardEnabled && (-1 != s_VideoETHOutputInfo.s_ForwardETHSocketVideo ) )
       _rx_video_output_to_eth(pBuffer, video_data_length);

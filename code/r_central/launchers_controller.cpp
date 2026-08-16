@@ -93,6 +93,14 @@ void controller_launch_router(bool bSearchMode, int iFirmwareType)
 
    hw_execute_ruby_process(szPrefix, "ruby_rt_station", szParams, NULL);
    log_line("Done launching controller router.");
+
+   // Auto-manage internal WiFi: disable when connecting to vehicle, enable when searching
+   #if defined(HW_PLATFORM_RADXA)
+   if ( bSearchMode )
+      hw_execute_bash_command("ruby_init_wifi -reconnect 2>/dev/null &", NULL);
+   else
+      hw_execute_bash_command("ruby_init_wifi -disconnect 2>/dev/null &", NULL);
+   #endif
 }
 
 void controller_stop_router()

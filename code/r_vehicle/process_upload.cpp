@@ -599,7 +599,7 @@ void process_sw_upload_new(u32 command_param, u8* pBuffer, int length)
       }
    }
 
-   if ( (params->file_block_index < 0) || (params->file_block_index > s_uSWPacketsCount) )
+   if ( params->file_block_index > s_uSWPacketsCount )
    {
       log_softerror_and_alarm("Received SW Upload packet index %d out of bounds (%u)", params->file_block_index, s_uSWPacketsCount);
       _sw_update_close_remove_temp_files();

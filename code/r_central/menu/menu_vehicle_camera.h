@@ -45,6 +45,7 @@ class MenuVehicleCamera: public Menu
       int m_IndexEV, m_IndexEVValue;
       int m_IndexAGC;
       int m_IndexExposureMode, m_IndexExposureValue, m_IndexWhiteBalance;
+      int m_IndexWBTemp;
       int m_IndexAnalogGains;
       int m_IndexMetering, m_IndexDRC;
       int m_IndexISO, m_IndexISOValue;

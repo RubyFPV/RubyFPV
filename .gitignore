@@ -1,0 +1,16 @@
+# Personal / machine-specific agent notes (device IPs, credentials, bench setup).
+# See AGENTS.md — never commit these.
+AGENTS.local.md
+CLAUDE.local.md
+
+# Build outputs
+*.o
+*.a
+*.so
+build.log
+
+# Local scratch
+*.patch
+*.diff
+*.bak
+*.bak-*

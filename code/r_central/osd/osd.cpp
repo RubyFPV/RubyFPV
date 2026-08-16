@@ -2980,6 +2980,9 @@ void osd_render_all()
    set_Color_OSDOutline( p->iColorOSDOutline[0], p->iColorOSDOutline[1], p->iColorOSDOutline[2], ((float)p->iColorOSDOutline[3])/100.0);
    osd_set_colors();
 
+   // Render the link warning outline first so all other OSD elements show on top of it
+   osd_warnings_render_link_outline();
+
    if ( pModel->osd_params.osd_flags2[osd_get_current_layout_index()] & OSD_FLAG2_LAYOUT_ENABLED )
    {
       if ( pModel->telemetry_params.fc_telemetry_type == TELEMETRY_TYPE_MSP )

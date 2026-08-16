@@ -1177,13 +1177,13 @@ int hardware_read_joystick(int joystickIndex, int miliSec)
       for( int i=0; i<count; i++ )
       {
          if ( (joystickEvent[i].type & ~JS_EVENT_INIT) == JS_EVENT_BUTTON )
-         if ( joystickEvent[i].number >= 0 && joystickEvent[i].number < MAX_JOYSTICK_BUTTONS )
+         if ( joystickEvent[i].number < MAX_JOYSTICK_BUTTONS )
          {
             s_HardwareJoystickInfo[joystickIndex].buttonsValues[joystickEvent[i].number] = joystickEvent[i].value;
             countEvents++;
          }
          if ( (joystickEvent[i].type & ~JS_EVENT_INIT) == JS_EVENT_AXIS )
-         if ( joystickEvent[i].number >= 0 && joystickEvent[i].number < MAX_JOYSTICK_AXES )
+         if ( joystickEvent[i].number < MAX_JOYSTICK_AXES )
          {
             s_HardwareJoystickInfo[joystickIndex].axesValues[joystickEvent[i].number] = joystickEvent[i].value;
             countEvents++;

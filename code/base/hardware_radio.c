@@ -1119,7 +1119,13 @@ int _hardware_enumerate_wifi_radios()
         sRadioInfo[i].supportedBands |= RADIO_HW_SUPPORTED_BAND_58;
 
       if ( sRadioInfo[i].iRadioDriver == RADIO_HW_DRIVER_REALTEK_8812EU )
+      {
          sRadioInfo[i].supportedBands &= ~RADIO_HW_SUPPORTED_BAND_24;
+         // The 8812EU vendor driver does not expose its channel list via `iw phy info`,
+         // so the grep-based band probe above misses 5.8GHz and a fresh model would default
+         // to 2.4GHz. It is a 5.8GHz card — force the band so fresh flashes come up on 5.8.
+         sRadioInfo[i].supportedBands |= RADIO_HW_SUPPORTED_BAND_58;
+      }
 
       char szBands[128];
       str_get_supported_bands_string(sRadioInfo[i].supportedBands, szBands);

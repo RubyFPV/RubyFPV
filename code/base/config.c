@@ -50,7 +50,7 @@ void getSystemVersionString(char* p, u32 swversion)
    sprintf(p, "%u.%u", major, minor);
 }
 
-int hardware_file_check_and_fix_access_c(char* szFullFileName)
+int hardware_file_check_and_fix_access_c(const char* szFullFileName)
 {
    if ( (NULL == szFullFileName) || (0 == szFullFileName[0]) )
       return 0;
